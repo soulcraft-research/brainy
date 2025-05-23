@@ -1,5 +1,5 @@
 {
-  "name": "brainy",
+  "name": "@soulcraft/brainy",
   "version": "0.1.0",
   "description": "A vector database using HNSW indexing with Origin Private File System storage",
   "main": "dist/index.js",
@@ -30,6 +30,10 @@
   ],
   "author": "David Snelling (david@soulcraft.com)",
   "license": "MIT",
+  "private": true,
+  "publishConfig": {
+    "access": "restricted"
+  },
   "devDependencies": {
     "@types/jest": "^29.5.3",
     "@types/node": "^20.4.5",

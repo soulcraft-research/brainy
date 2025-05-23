@@ -18,7 +18,7 @@ A vector database that runs in a browser or Node.js and utilizes Origin Private 
 ## Installation
 
 ```bash
-npm install brainy
+npm install @soulcraft/brainy
 ```
 
 ## Usage
@@ -26,7 +26,7 @@ npm install brainy
 ### Basic Example
 
 ```typescript
-import {BrainyData} from 'brainy';
+import {BrainyData} from '@soulcraft/brainy';
 
 // Create a new vector database
 const db = new BrainyData();
@@ -77,7 +77,7 @@ import {
   euclideanDistance, 
   UniversalSentenceEncoder, 
   createEmbeddingFunction
-} from 'brainy';
+} from '@soulcraft/brainy';
 
 // Configure the vector database
 const db = new BrainyData({
@@ -109,49 +109,54 @@ const db = new BrainyData({
     // storageAdapter: myCustomStorageAdapter
 
     // You can also explicitly use the FileSystemStorage with a custom directory:
-    // import { FileSystemStorage } from 'brainy/storage/fileSystemStorage';
+    // import { FileSystemStorage } from '@soulcraft/brainy/storage/fileSystemStorage';
     // storageAdapter: new FileSystemStorage('/custom/path')
 });
 ```
 
-## Contributing and Publishing
+## Publishing and Using as a Private NPM Package
 
-Soulcraft Brainy is an open source project released under the MIT license. Contributions are welcome!
+Soulcraft Brainy is configured as a private NPM package with restricted access. This section provides information on how to publish and use it within your organization.
 
-### Contributing to the Project
+### Publishing the Package
 
-To contribute to the project:
+To publish updates to the package:
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests to ensure everything works:
-   ```bash
-   npm test
-   ```
-5. Submit a pull request
-
-### Publishing a New Version
-
-To publish a new version to npm:
-
-1. Update the version in package.json following semantic versioning
-2. Build the package:
+1. Ensure you have the appropriate npm credentials and access to the @soulcraft organization
+2. Update the version in package.json
+3. Build the package:
    ```bash
    npm run build
    ```
-3. Publish the package:
+4. Publish the package:
    ```bash
    npm publish
    ```
 
-### Installing the Package
-
-To install the package in your project:
-
-```bash
-npm install brainy
+Note that the package has the following configuration in package.json:
+```json
+"private": true,
+"publishConfig": {
+  "access": "restricted"
+}
 ```
+
+This ensures that the package is only accessible to users with appropriate permissions within the @soulcraft organization.
+
+### Installing the Private Package
+
+To install the package in another project:
+
+1. Ensure you have access to the @soulcraft organization on npm
+2. Add the package to your project:
+   ```bash
+   npm install @soulcraft/brainy
+   ```
+
+3. If you're using a private npm registry, you may need to configure npm to use your organization's registry:
+   ```bash
+   npm config set @soulcraft:registry https://your-private-registry.com/
+   ```
 
 ### Requirements
 
