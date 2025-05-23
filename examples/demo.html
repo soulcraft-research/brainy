@@ -1,0 +1,1083 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Soulcraft Brainy - Demo</title>
+    <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+            rel="stylesheet"/>
+    <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"/>
+    <script type="importmap">
+        {
+          "imports": {
+            "uuid": "https://cdn.jsdelivr.net/npm/uuid@9.0.0/dist/esm-browser/index.js",
+            "@tensorflow/tfjs/dist/tf.esm.js": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.esm.js",
+            "@tensorflow-models/universal-sentence-encoder/dist/universal-sentence-encoder.esm.js": "https://cdn.jsdelivr.net/npm/@tensorflow-models/universal-sentence-encoder/dist/universal-sentence-encoder.esm.js",
+            "@tensorflow/tfjs-core": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core/dist/tf-core.esm.js",
+            "@tensorflow/tfjs-layers": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-layers/dist/tf-layers.esm.js",
+            "@tensorflow/tfjs-backend-cpu": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu/dist/tf-backend-cpu.esm.js"
+          }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .navbar {
+            background-color: #4361ee;
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            color: white !important;
+        }
+
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+
+        .card-header {
+            background-color: #4361ee;
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            font-weight: 600;
+        }
+
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .feature-icon {
+            font-size: 1.5rem;
+            margin-right: 10px;
+            color: #4361ee;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="#">
+            <i class="bi bi-database"></i> Soulcraft Brainy
+        </a>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#">Demo</a>
+                </li>
+                <li class="nav-item">
+                    <a
+                            class="nav-link"
+                            href="https://github.com/yourusername/soulcraft-brainy"
+                            target="_blank"
+                    >GitHub</a
+                    >
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h1 class="card-title">
+                        <i class="bi bi-braces"></i> Soulcraft Brainy
+                    </h1>
+                    <p class="card-text lead">
+                        A vector database that runs in a browser or Node.js and utilizes
+                        Origin Private File System (OPFS) for storage, with HNSW
+                        (Hierarchical Navigable Small World) for efficient vector
+                        indexing.
+                    </p>
+                    <div class="d-flex flex-wrap gap-3 mt-4">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-globe feature-icon"></i>
+                            <span>Cross-platform</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-hdd feature-icon"></i>
+                            <span>Persistent storage</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-search feature-icon"></i>
+                            <span>Efficient vector search</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <span>Database Configuration</span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="distanceFunction" class="form-label"
+                                >Distance Function</label
+                                >
+                                <select class="form-select" id="distanceFunction">
+                                    <option value="cosine">Cosine Distance</option>
+                                    <option value="euclidean">Euclidean Distance</option>
+                                    <option value="manhattan">Manhattan Distance</option>
+                                    <option value="dotProduct">Dot Product Distance</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">HNSW Parameters</label>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <div class="input-group">
+                                            <span class="input-group-text">M</span>
+                                            <input
+                                                    type="number"
+                                                    class="form-control"
+                                                    id="paramM"
+                                                    value="16"/>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="input-group">
+                                            <span class="input-group-text">efConstruction</span>
+                                            <input
+                                                    type="number"
+                                                    class="form-control"
+                                                    id="paramEfConstruction"
+                                                    value="200"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button id="initBtn" class="btn btn-primary">
+                            <i class="bi bi-play-fill"></i> Initialize Database
+                        </button>
+                        <button id="clearBtn" class="btn btn-danger" disabled>
+                            <i class="bi bi-trash"></i> Clear Database
+                        </button>
+                        <button id="sizeBtn" class="btn btn-secondary" disabled>
+                            <i class="bi bi-info-circle"></i> Database Size
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <span>Add Vectors</span>
+                </div>
+                <div class="card-body">
+                    <button id="addSampleBtn" class="btn btn-success mb-3" disabled>
+                        <i class="bi bi-plus-circle"></i> Add Sample Vectors
+                    </button>
+
+                    <div class="mb-3">
+                        <label for="customVectorName" class="form-label"
+                        >Custom Vector</label
+                        >
+                        <input
+                                type="text"
+                                class="form-control mb-2"
+                                id="customVectorName"
+                                placeholder="Name (e.g., elephant)"/>
+                        <input
+                                type="text"
+                                class="form-control mb-2"
+                                id="customVectorValues"
+                                placeholder="Vector Values (comma-separated, e.g., 0.1, 0.2, 0.3, 0.4)"/>
+                        <textarea
+                                class="form-control"
+                                id="customVectorMetadata"
+                                rows="2"
+                                placeholder='Metadata (JSON, e.g., {"type": "mammal", "size": "large"})'></textarea>
+                    </div>
+                    <button id="addCustomBtn" class="btn btn-success" disabled>
+                        <i class="bi bi-plus-circle"></i> Add Custom Vector
+                    </button>
+
+                    <hr class="my-4">
+
+                    <div class="mb-3">
+                        <label for="textToAddInput" class="form-label">Add Text (Auto-Embedded)</label>
+                        <input
+                                type="text"
+                                class="form-control mb-2"
+                                id="textToAddInput"
+                                placeholder="Enter text to add (e.g., 'A beautiful sunset')"
+                                disabled/>
+                        <textarea
+                                class="form-control"
+                                id="textToAddMetadata"
+                                rows="2"
+                                placeholder='Metadata (JSON, e.g., {"category": "nature", "sentiment": "positive"})'
+                                disabled></textarea>
+                    </div>
+                    <button id="addTextBtn" class="btn btn-success" disabled>
+                        <i class="bi bi-plus-circle"></i> Add Text with Auto-Embedding
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <span>Search & Operations</span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="searchVector" class="form-label"
+                        >Search Vector</label
+                        >
+                        <select class="form-select mb-2" id="searchVector" disabled>
+                            <option value="">Select a vector</option>
+                        </select>
+                        <div class="input-group mb-2">
+                            <span class="input-group-text">Results (k)</span>
+                            <input
+                                    type="number"
+                                    class="form-control"
+                                    id="searchK"
+                                    value="3"
+                                    min="1"
+                                    max="10"/>
+                        </div>
+                        <button id="searchBtn" class="btn btn-primary" disabled>
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="operationVector" class="form-label"
+                        >Vector Operations</label
+                        >
+                        <select class="form-select mb-2" id="operationVector" disabled>
+                            <option value="">Select a vector</option>
+                        </select>
+                        <div class="d-flex gap-2">
+                            <button id="getBtn" class="btn btn-info" disabled>
+                                <i class="bi bi-info-circle"></i> Get
+                            </button>
+                            <button id="updateBtn" class="btn btn-warning" disabled>
+                                <i class="bi bi-pencil"></i> Update
+                            </button>
+                            <button id="deleteBtn" class="btn btn-danger" disabled>
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <span>Text Search</span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="textSearchInput" class="form-label"
+                        >Search Term</label
+                        >
+                        <input
+                                type="text"
+                                class="form-control mb-2"
+                                id="textSearchInput"
+                                placeholder="Enter text to search (e.g., 'large mammal')"
+                                disabled/>
+                        <div class="input-group mb-2">
+                            <span class="input-group-text">Results (k)</span>
+                            <input
+                                    type="number"
+                                    class="form-control"
+                                    id="textSearchK"
+                                    value="3"
+                                    min="1"
+                                    max="10"
+                                    disabled/>
+                        </div>
+                        <button id="textSearchBtn" class="btn btn-primary" disabled>
+                            <i class="bi bi-search"></i> Text Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <span>Graph Visualization</span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Create Edge</label>
+                        <div class="row g-2 mb-2">
+                            <div class="col-5">
+                                <select class="form-select" id="sourceNode" disabled>
+                                    <option value="">Source Node</option>
+                                </select>
+                            </div>
+                            <div class="col-5">
+                                <select class="form-select" id="targetNode" disabled>
+                                    <option value="">Target Node</option>
+                                </select>
+                            </div>
+                            <div class="col-2">
+                                <button
+                                        id="addEdgeBtn"
+                                        class="btn btn-success w-100"
+                                        disabled>
+                                    <i class="bi bi-link"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <input
+                                    type="text"
+                                    class="form-control"
+                                    id="edgeType"
+                                    placeholder="Edge Type (e.g., 'is_related_to')"
+                                    disabled/>
+                        </div>
+                    </div>
+                    <div
+                            id="graphContainer"
+                            class="border rounded p-2 mb-2"
+                            style="height: 200px; background-color: #f8f9fa">
+                        <div
+                                class="text-center text-muted h-100 d-flex align-items-center justify-content-center">
+                            Graph visualization will appear here
+                        </div>
+                    </div>
+                    <button id="visualizeGraphBtn" class="btn btn-info" disabled>
+                        <i class="bi bi-diagram-3"></i> Visualize Graph
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <span>Console Output</span>
+                </div>
+                <div class="card-body">
+                    <pre id="output">// Output will appear here</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script type="module">
+    // Import the BrainyData from your library
+    import {
+        BrainyData,
+        euclideanDistance,
+        cosineDistance,
+        manhattanDistance,
+        dotProductDistance
+    } from '../dist/index.js'
+
+    // Example data - word embeddings
+    const wordEmbeddings = {
+        cat: [0.2, 0.3, 0.4, 0.1],
+        dog: [0.3, 0.2, 0.4, 0.2],
+        fish: [0.1, 0.1, 0.8, 0.2],
+        bird: [0.1, 0.4, 0.2, 0.5],
+        tiger: [0.3, 0.4, 0.3, 0.1],
+        lion: [0.4, 0.3, 0.2, 0.1],
+        shark: [0.2, 0.1, 0.7, 0.3],
+        eagle: [0.2, 0.5, 0.1, 0.4]
+    }
+
+    // Example metadata
+    const metadata = {
+        cat: {type: 'mammal', domesticated: true},
+        dog: {type: 'mammal', domesticated: true},
+        fish: {type: 'fish', domesticated: false},
+        bird: {type: 'bird', domesticated: false},
+        tiger: {type: 'mammal', domesticated: false},
+        lion: {type: 'mammal', domesticated: false},
+        shark: {type: 'fish', domesticated: false},
+        eagle: {type: 'bird', domesticated: false}
+    }
+
+    // Get DOM elements
+    const outputEl = document.getElementById('output')
+    const initBtn = document.getElementById('initBtn')
+    const clearBtn = document.getElementById('clearBtn')
+    const sizeBtn = document.getElementById('sizeBtn')
+    const addSampleBtn = document.getElementById('addSampleBtn')
+    const addCustomBtn = document.getElementById('addCustomBtn')
+    const searchBtn = document.getElementById('searchBtn')
+    const getBtn = document.getElementById('getBtn')
+    const updateBtn = document.getElementById('updateBtn')
+    const deleteBtn = document.getElementById('deleteBtn')
+    const textSearchBtn = document.getElementById('textSearchBtn')
+    const addEdgeBtn = document.getElementById('addEdgeBtn')
+    const visualizeGraphBtn = document.getElementById('visualizeGraphBtn')
+
+    // Form elements
+    const distanceFunctionSelect = document.getElementById('distanceFunction')
+    const paramM = document.getElementById('paramM')
+    const paramEfConstruction = document.getElementById('paramEfConstruction')
+    const searchVector = document.getElementById('searchVector')
+    const searchK = document.getElementById('searchK')
+    const operationVector = document.getElementById('operationVector')
+    const customVectorName = document.getElementById('customVectorName')
+    const customVectorValues = document.getElementById('customVectorValues')
+    const customVectorMetadata = document.getElementById(
+        'customVectorMetadata'
+    )
+    const textSearchInput = document.getElementById('textSearchInput')
+    const textSearchK = document.getElementById('textSearchK')
+    const textToAddInput = document.getElementById('textToAddInput')
+    const textToAddMetadata = document.getElementById('textToAddMetadata')
+    const sourceNode = document.getElementById('sourceNode')
+    const targetNode = document.getElementById('targetNode')
+    const edgeType = document.getElementById('edgeType')
+    const graphContainer = document.getElementById('graphContainer')
+
+    // Create a new vector database
+    let db
+    const ids = {}
+
+    // Reference to the add text button
+    const addTextBtn = document.getElementById('addTextBtn')
+
+    // Helper function to log output
+    function log(message) {
+        if (typeof message === 'object') {
+            outputEl.textContent = JSON.stringify(message, null, 2)
+        } else {
+            outputEl.textContent = message
+        }
+    }
+
+    // Helper function to update vector selects
+    function updateVectorSelects() {
+        // Clear existing options
+        searchVector.innerHTML = '<option value="">Select a vector</option>'
+        operationVector.innerHTML = '<option value="">Select a vector</option>'
+        sourceNode.innerHTML = '<option value="">Source Node</option>'
+        targetNode.innerHTML = '<option value="">Target Node</option>'
+
+        // Add options for each vector
+        for (const [word, id] of Object.entries(ids)) {
+            const searchOption = document.createElement('option')
+            searchOption.value = word
+            searchOption.textContent = word
+            searchVector.appendChild(searchOption)
+
+            const operationOption = document.createElement('option')
+            operationOption.value = id
+            operationOption.textContent = word
+            operationVector.appendChild(operationOption)
+
+            // Add options for source and target node selects
+            const sourceOption = document.createElement('option')
+            sourceOption.value = id
+            sourceOption.textContent = word
+            sourceNode.appendChild(sourceOption)
+
+            const targetOption = document.createElement('option')
+            targetOption.value = id
+            targetOption.textContent = word
+            targetNode.appendChild(targetOption)
+        }
+    }
+
+    // Get the selected distance function
+    function getSelectedDistanceFunction() {
+        const selected = distanceFunctionSelect.value
+        switch (selected) {
+            case 'euclidean':
+                return euclideanDistance
+            case 'manhattan':
+                return manhattanDistance
+            case 'dotProduct':
+                return dotProductDistance
+            default:
+                return cosineDistance
+        }
+    }
+
+    // Simple function to convert text to vector
+    function textToVector(text) {
+        // This is a very simple implementation for demo purposes
+        // In a real application, you would use a proper embedding model
+
+        // Normalize the text
+        const normalizedText = text.toLowerCase().trim()
+
+        // Create a simple 4-dimensional vector based on character frequencies
+        const vector = [0, 0, 0, 0]
+
+        // Count vowels, consonants, numbers, and special characters
+        for (let i = 0; i < normalizedText.length; i++) {
+            const char = normalizedText[i]
+            if ('aeiou'.includes(char)) {
+                vector[0] += 0.1 // Vowels affect first dimension
+            } else if ('bcdfghjklmnpqrstvwxyz'.includes(char)) {
+                vector[1] += 0.1 // Consonants affect second dimension
+            } else if ('0123456789'.includes(char)) {
+                vector[2] += 0.1 // Numbers affect third dimension
+            } else {
+                vector[3] += 0.1 // Special chars affect fourth dimension
+            }
+        }
+
+        // Normalize the vector
+        const magnitude = Math.sqrt(
+            vector.reduce((sum, val) => sum + val * val, 0)
+        )
+        if (magnitude > 0) {
+            return vector.map((val) => val / magnitude)
+        }
+
+        return vector
+    }
+
+    // Function to render a simple graph visualization
+    function renderGraph(edges) {
+        if (!edges || edges.length === 0) {
+            graphContainer.innerHTML =
+                '<div class="text-center text-muted h-100 d-flex align-items-center justify-content-center">No edges to display</div>'
+            return
+        }
+
+        // Create a simple HTML representation of the graph
+        let html = '<div class="p-2">'
+
+        // Group edges by source
+        const edgesBySource = {}
+        for (const edge of edges) {
+            if (!edgesBySource[edge.sourceId]) {
+                edgesBySource[edge.sourceId] = []
+            }
+            edgesBySource[edge.sourceId].push(edge)
+        }
+
+        // Create a simple representation of nodes and edges
+        for (const [sourceId, sourceEdges] of Object.entries(edgesBySource)) {
+            const sourceName =
+                Object.entries(ids).find(([_, id]) => id === sourceId)?.[0] ||
+                'unknown'
+            html += `<div class="mb-2"><strong>${sourceName}</strong></div>`
+
+            for (const edge of sourceEdges) {
+                const targetName =
+                    Object.entries(ids).find(
+                        ([_, id]) => id === edge.targetId
+                    )?.[0] || 'unknown'
+                const edgeLabel = edge.type || 'connected_to'
+                html += `<div class="ms-4 mb-1">→ <span class="text-primary">${edgeLabel}</span> → ${targetName}</div>`
+            }
+        }
+
+        html += '</div>'
+        graphContainer.innerHTML = html
+    }
+
+    // Initialize the database
+    initBtn.addEventListener('click', async () => {
+        try {
+            log('Initializing database...')
+
+            // Get configuration values
+            const distanceFunction = getSelectedDistanceFunction()
+            const M = parseInt(paramM.value)
+            const efConstruction = parseInt(paramEfConstruction.value)
+
+            // Create the database with configuration
+            db = new BrainyData({
+                hnsw: {
+                    M,
+                    efConstruction
+                },
+                distanceFunction
+            })
+
+            await db.init()
+
+            log('Database initialized successfully')
+
+            // Enable buttons
+            initBtn.disabled = true
+            clearBtn.disabled = false
+            sizeBtn.disabled = false
+            addSampleBtn.disabled = false
+            addCustomBtn.disabled = false
+            textSearchInput.disabled = false
+            textSearchK.disabled = false
+            textSearchBtn.disabled = false
+            textToAddInput.disabled = false
+            textToAddMetadata.disabled = false
+            addTextBtn.disabled = false
+            edgeType.disabled = false
+        } catch (error) {
+            log(`Error: ${error.message}`)
+        }
+    })
+
+    // Add sample vectors
+    addSampleBtn.addEventListener('click', async () => {
+        try {
+            log('Adding sample vectors...')
+
+            // Add vectors to the database
+            for (const [word, vector] of Object.entries(wordEmbeddings)) {
+                ids[word] = await db.add(vector, metadata[word])
+            }
+
+            log(
+                `Added ${Object.keys(ids).length} vectors:\n${JSON.stringify(ids, null, 2)}`
+            )
+
+            // Update vector selects
+            updateVectorSelects()
+
+            // Enable search and operation buttons
+            searchBtn.disabled = false
+            getBtn.disabled = false
+            updateBtn.disabled = false
+            deleteBtn.disabled = false
+            sourceNode.disabled = false
+            targetNode.disabled = false
+            addEdgeBtn.disabled = false
+            visualizeGraphBtn.disabled = false
+        } catch (error) {
+            log(`Error: ${error.message}`)
+        }
+    })
+
+    // Add custom vector
+    addCustomBtn.addEventListener('click', async () => {
+        try {
+            const name = customVectorName.value.trim()
+            const vectorStr = customVectorValues.value.trim()
+            const metadataStr = customVectorMetadata.value.trim()
+
+            if (!name || !vectorStr) {
+                log('Please provide a name and vector values')
+                return
+            }
+
+            // Parse vector values
+            const vector = vectorStr.split(',').map((v) => parseFloat(v.trim()))
+
+            // Parse metadata
+            let metadataObj = {}
+            if (metadataStr) {
+                try {
+                    metadataObj = JSON.parse(metadataStr)
+                } catch (e) {
+                    log('Invalid JSON in metadata. Using empty object.')
+                }
+            }
+
+            log(`Adding custom vector "${name}"...`)
+
+            // Add to database
+            ids[name] = await db.add(vector, metadataObj)
+
+            log(`Added custom vector "${name}" with ID: ${ids[name]}`)
+
+            // Update vector selects
+            updateVectorSelects()
+
+            // Enable search and operation buttons
+            searchBtn.disabled = false
+            getBtn.disabled = false
+            updateBtn.disabled = false
+            deleteBtn.disabled = false
+
+            // Clear inputs
+            customVectorName.value = ''
+            customVectorValues.value = ''
+            customVectorMetadata.value = ''
+        } catch (error) {
+            log(`Error: ${error.message}`)
+        }
+    })
+
+    // Search for similar vectors
+    searchBtn.addEventListener('click', async () => {
+        try {
+            const selected = searchVector.value
+            const k = parseInt(searchK.value)
+
+            if (!selected) {
+                log('Please select a vector to search')
+                return
+            }
+
+            log(`Searching for vectors similar to "${selected}"...`)
+
+            // Get the vector to search for - either from wordEmbeddings or by retrieving it from the database
+            let searchVector
+            if (wordEmbeddings[selected]) {
+                searchVector = wordEmbeddings[selected]
+            } else {
+                // For custom vectors, retrieve the vector from the database using the ID
+                const id = ids[selected]
+                if (id) {
+                    const doc = await db.get(id)
+                    if (doc && doc.vector) {
+                        searchVector = doc.vector
+                    } else {
+                        throw new Error('Failed to retrieve vector from database')
+                    }
+                } else {
+                    throw new Error('Vector ID not found')
+                }
+            }
+
+            const results = await db.search(searchVector, k)
+
+            // Format results for display
+            const formattedResults = results.map((result) => {
+                const word =
+                    Object.entries(ids).find(([_, id]) => id === result.id)?.[0] ||
+                    'unknown'
+                return {
+                    word,
+                    score: result.score,
+                    metadata: result.metadata
+                }
+            })
+
+            log(
+                `Search results for "${selected}":\n${JSON.stringify(formattedResults, null, 2)}`
+            )
+        } catch (error) {
+            log(`Error: ${error.message}`)
+        }
+    })
+
+    // Get a vector by ID
+    getBtn.addEventListener('click', async () => {
+        try {
+            const id = operationVector.value
+
+            if (!id) {
+                log('Please select a vector')
+                return
+            }
+
+            log(`Getting vector with ID ${id}...`)
+
+            const result = await db.get(id)
+
+            log(`Vector details:\n${JSON.stringify(result, null, 2)}`)
+        } catch (error) {
+            log(`Error: ${error.message}`)
+        }
+    })
+
+    // Update metadata
+    updateBtn.addEventListener('click', async () => {
+        try {
+            const id = operationVector.value
+
+            if (!id) {
+                log('Please select a vector')
+                return
+            }
+
+            // Get current metadata
+            const doc = await db.get(id)
+            const word =
+                Object.entries(ids).find(([_, docId]) => docId === id)?.[0] ||
+                'unknown'
+
+            // Prompt for new metadata
+            const newMetadataStr = prompt(
+                'Enter new metadata (JSON):',
+                JSON.stringify(doc.metadata)
+            )
+
+            if (newMetadataStr === null) {
+                return // User cancelled
+            }
+
+            // Parse new metadata
+            let newMetadata
+            try {
+                newMetadata = JSON.parse(newMetadataStr)
+            } catch (e) {
+                log('Invalid JSON. Update cancelled.')
+                return
+            }
+
+            log(`Updating metadata for "${word}"...`)
+
+            await db.updateMetadata(id, newMetadata)
+
+            // Get updated document
+            const updatedDoc = await db.get(id)
+
+            log(`Updated metadata:\n${JSON.stringify(updatedDoc, null, 2)}`)
+        } catch (error) {
+            log(`Error: ${error.message}`)
+        }
+    })
+
+    // Delete a vector
+    deleteBtn.addEventListener('click', async () => {
+        try {
+            const id = operationVector.value
+
+            if (!id) {
+                log('Please select a vector')
+                return
+            }
+
+            const word =
+                Object.entries(ids).find(([_, docId]) => docId === id)?.[0] ||
+                'unknown'
+
+            if (!confirm(`Are you sure you want to delete "${word}"?`)) {
+                return
+            }
+
+            log(`Deleting vector "${word}"...`)
+
+            await db.delete(id)
+
+            // Remove from ids
+            delete ids[word]
+
+            log(`Deleted vector "${word}". Database size: ${db.size()}`)
+
+            // Update vector selects
+            updateVectorSelects()
+        } catch (error) {
+            log(`Error: ${error.message}`)
+        }
+    })
+
+    // Clear the database
+    clearBtn.addEventListener('click', async () => {
+        try {
+            if (!confirm('Are you sure you want to clear the database?')) {
+                return
+            }
+
+            log('Clearing database...')
+
+            await db.clear()
+
+            log('Database cleared successfully')
+
+            // Clear ids
+            Object.keys(ids).forEach((key) => delete ids[key])
+
+            // Update vector selects
+            updateVectorSelects()
+
+            // Disable buttons
+            searchBtn.disabled = true
+            getBtn.disabled = true
+            updateBtn.disabled = true
+            deleteBtn.disabled = true
+        } catch (error) {
+            log(`Error: ${error.message}`)
+        }
+    })
+
+    // Get database size
+    sizeBtn.addEventListener('click', () => {
+        try {
+            const size = db.size()
+            log(`Database size: ${size} vectors`)
+        } catch (error) {
+            log(`Error: ${error.message}`)
+        }
+    })
+
+    // Text search
+    textSearchBtn.addEventListener('click', async () => {
+        try {
+            const searchTerm = textSearchInput.value.trim()
+            const k = parseInt(textSearchK.value)
+
+            if (!searchTerm) {
+                log('Please enter a search term')
+                return
+            }
+
+            log(`Searching for "${searchTerm}" using automatic embedding...`)
+
+            // Search directly with the text - it will be automatically embedded
+            const results = await db.search(searchTerm, k)
+
+            // Format results for display
+            const formattedResults = results.map((result) => {
+                const word =
+                    Object.entries(ids).find(([_, id]) => id === result.id)?.[0] ||
+                    'unknown'
+                return {
+                    word,
+                    score: result.score,
+                    metadata: result.metadata
+                }
+            })
+
+            log(
+                `Text search results for "${searchTerm}":\n${JSON.stringify(formattedResults, null, 2)}`
+            )
+        } catch (error) {
+            log(`Error: ${error.message}`)
+        }
+    })
+
+    // Add edge between nodes
+    addEdgeBtn.addEventListener('click', async () => {
+        try {
+            const sourceId = sourceNode.value
+            const targetId = targetNode.value
+            const type = edgeType.value.trim() || 'connected_to'
+
+            if (!sourceId || !targetId) {
+                log('Please select both source and target nodes')
+                return
+            }
+
+            if (sourceId === targetId) {
+                log('Source and target nodes must be different')
+                return
+            }
+
+            log(
+                `Creating edge from ${sourceId} to ${targetId} with type "${type}"...`
+            )
+
+            // Add the edge
+            const edgeId = await db.addEdge(sourceId, targetId, null, {type})
+
+            log(`Edge created with ID: ${edgeId}`)
+
+            // Visualize the graph
+            const edges = await db.getAllEdges()
+            renderGraph(edges)
+        } catch (error) {
+            log(`Error: ${error.message}`)
+        }
+    })
+
+    // Add text with auto-embedding
+    addTextBtn.addEventListener('click', async () => {
+        try {
+            const text = textToAddInput.value.trim()
+            const metadataStr = textToAddMetadata.value.trim()
+
+            if (!text) {
+                log('Please enter text to add')
+                return
+            }
+
+            // Parse metadata
+            let metadataObj = {}
+            if (metadataStr) {
+                try {
+                    metadataObj = JSON.parse(metadataStr)
+                } catch (e) {
+                    log('Invalid JSON in metadata. Using empty object.')
+                }
+            }
+
+            log(`Adding text "${text}" with auto-embedding...`)
+
+            // Add to database - the text will be automatically embedded
+            const id = await db.add(text, metadataObj)
+
+            // Use the first few words as the name
+            const name = text.split(' ').slice(0, 3).join(' ') + '...'
+            ids[name] = id
+
+            log(`Added text with ID: ${id}`)
+
+            // Update vector selects
+            updateVectorSelects()
+
+            // Enable search and operation buttons
+            searchBtn.disabled = false
+            getBtn.disabled = false
+            updateBtn.disabled = false
+            deleteBtn.disabled = false
+            sourceNode.disabled = false
+            targetNode.disabled = false
+            addEdgeBtn.disabled = false
+            visualizeGraphBtn.disabled = false
+
+            // Clear inputs
+            textToAddInput.value = ''
+            textToAddMetadata.value = ''
+        } catch (error) {
+            log(`Error: ${error.message}`)
+        }
+    })
+
+    // Visualize graph
+    visualizeGraphBtn.addEventListener('click', async () => {
+        try {
+            log('Fetching all edges and visualizing graph...')
+
+            const edges = await db.getAllEdges()
+
+            if (edges.length === 0) {
+                log('No edges found. Create some edges first.')
+                return
+            }
+
+            log(`Found ${edges.length} edges. Rendering graph...`)
+
+            renderGraph(edges)
+        } catch (error) {
+            log(`Error: ${error.message}`)
+        }
+    })
+</script>
+</body>
+</html>
