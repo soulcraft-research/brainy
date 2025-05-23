@@ -30,7 +30,7 @@
   ],
   "author": "David Snelling (david@soulcraft.com)",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "publishConfig": {
     "access": "restricted"
   },

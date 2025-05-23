@@ -135,13 +135,13 @@ To publish updates to the package:
 
 Note that the package has the following configuration in package.json:
 ```json
-"private": true,
+"private": false,
 "publishConfig": {
   "access": "restricted"
 }
 ```
 
-This ensures that the package is only accessible to users with appropriate permissions within the @soulcraft organization.
+This ensures that the package is only accessible to users with appropriate permissions within the @soulcraft organization. The `"access": "restricted"` setting limits access to the package to members of the @soulcraft organization, while `"private": false` allows the package to be published to npm.
 
 ### Installing the Private Package
 
