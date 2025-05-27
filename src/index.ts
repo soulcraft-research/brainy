@@ -34,6 +34,20 @@ export {
   createStorage 
 }
 
+// Export augmentation pipeline
+import {
+  AugmentationPipeline,
+  augmentationPipeline,
+  ExecutionMode,
+  PipelineOptions
+} from './augmentationPipeline.js'
+export {
+  AugmentationPipeline,
+  augmentationPipeline,
+  ExecutionMode
+}
+export type { PipelineOptions }
+
 // Export types
 import type {
   Vector,
@@ -59,3 +73,27 @@ export type {
   HNSWConfig,
   StorageAdapter
 }
+
+// Export augmentation types
+import type {
+  IAugmentation,
+  AugmentationResponse,
+  IWebSocketSupport
+} from './types/augmentations.js'
+export type {
+  IAugmentation,
+  AugmentationResponse,
+  IWebSocketSupport
+}
+export { BrainyAugmentations } from './types/augmentations.js'
+
+// Export combined WebSocket augmentation interfaces
+export type {
+  IWebSocketCognitionAugmentation,
+  IWebSocketSenseAugmentation,
+  IWebSocketPerceptionAugmentation,
+  IWebSocketActivationAugmentation,
+  IWebSocketDialogAugmentation,
+  IWebSocketConduitAugmentation,
+  IWebSocketMemoryAugmentation
+} from './types/augmentations.js'

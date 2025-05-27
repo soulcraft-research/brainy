@@ -6,7 +6,7 @@ type WebSocketConnection = {
 }
 
 type DataCallback<T> = (data: T) => void
-type AugmentationResponse<T> = Promise<{
+export type AugmentationResponse<T> = Promise<{
   success: boolean
   data: T
   error?: string
@@ -16,7 +16,7 @@ type AugmentationResponse<T> = Promise<{
  * Base interface for all Brainy augmentations.
  * All augmentations must implement these core properties.
  */
-interface IAugmentation {
+export interface IAugmentation {
   /** A unique identifier for the augmentation (e.g., "my-reasoner-v1") */
   readonly name: string
   /** A human-readable description of the augmentation's purpose */
@@ -37,7 +37,7 @@ interface IAugmentation {
  * Interface for WebSocket support.
  * Augmentations that implement this interface can communicate via WebSockets.
  */
-interface IWebSocketSupport {
+export interface IWebSocketSupport extends IAugmentation {
   /**
    * Establishes a WebSocket connection.
    * @param url The WebSocket server URL to connect to
@@ -69,36 +69,7 @@ interface IWebSocketSupport {
   closeWebSocket(connectionId: string, code?: number, reason?: string): Promise<void>
 }
 
-namespace BrainyAugmentations {
-  /**
-   * Interface for Cognitions augmentations.
-   * These augmentations enable advanced reasoning, inference, and logical operations.
-   */
-  export interface ICognitionAugmentation extends IAugmentation {
-    /**
-     * Performs a reasoning operation based on current knowledge.
-     * @param query The specific reasoning task or question
-     * @param context Optional additional context for the reasoning
-     */
-    reason(query: string, context?: Record<string, unknown>): AugmentationResponse<{
-      inference: string
-      confidence: number
-    }>
-
-    /**
-     * Infers relationships or new facts from existing data.
-     * @param dataSubset A subset of data to infer from
-     */
-    infer(dataSubset: Record<string, unknown>): AugmentationResponse<Record<string, unknown>>
-
-    /**
-     * Executes a logical operation or rule set.
-     * @param ruleId The identifier of the rule or logic to apply
-     * @param input Data to apply the logic to
-     */
-    executeLogic(ruleId: string, input: Record<string, unknown>): AugmentationResponse<boolean>
-  }
-
+export namespace BrainyAugmentations {
   /**
    * Interface for Senses augmentations.
    * These augmentations ingest and process raw, unstructured data into nouns and verbs.
@@ -123,111 +94,6 @@ namespace BrainyAugmentations {
       feedUrl: string,
       callback: DataCallback<{ nouns: string[]; verbs: string[] }>
     ): Promise<void>
-  }
-
-  /**
-   * Interface for Perceptions augmentations.
-   * These augmentations interpret, contextualize, and visualize identified nouns and verbs.
-   */
-  export interface IPerceptionAugmentation extends IAugmentation {
-    /**
-     * Interprets and contextualizes processed nouns and verbs.
-     * @param nouns The list of identified nouns
-     * @param verbs The list of identified verbs
-     * @param context Optional additional context for interpretation
-     */
-    interpret(
-      nouns: string[],
-      verbs: string[],
-      context?: Record<string, unknown>
-    ): AugmentationResponse<Record<string, unknown>>
-
-    /**
-     * Organizes and filters information.
-     * @param data The data to organize (e.g., interpreted perceptions)
-     * @param criteria Optional criteria for filtering/prioritization
-     */
-    organize(
-      data: Record<string, unknown>,
-      criteria?: Record<string, unknown>
-    ): AugmentationResponse<Record<string, unknown>>
-
-    /**
-     * Generates a visualization based on the provided data.
-     * @param data The data to visualize (e.g., interpreted patterns)
-     * @param visualizationType The desired type of visualization (e.g., 'graph', 'chart')
-     */
-    generateVisualization(
-      data: Record<string, unknown>,
-      visualizationType: string
-    ): AugmentationResponse<string | Buffer | Record<string, unknown>>
-  }
-
-  /**
-   * Interface for Activations augmentations.
-   * These augmentations dictate how Brainy initiates actions, responses, or data manipulations.
-   */
-  export interface IActivationAugmentation extends IAugmentation {
-    /**
-     * Triggers an action based on a processed command or internal state.
-     * @param actionName The name of the action to trigger
-     * @param parameters Optional parameters for the action
-     */
-    triggerAction(
-      actionName: string,
-      parameters?: Record<string, unknown>
-    ): AugmentationResponse<unknown>
-
-    /**
-     * Generates an expressive output or response from Brainy.
-     * @param knowledgeId The identifier of the knowledge to express
-     * @param format The desired output format (e.g., 'text', 'json')
-     */
-    generateOutput(knowledgeId: string, format: string): AugmentationResponse<string | Record<string, unknown>>
-
-    /**
-     * Interacts with an external system or API.
-     * @param systemId The identifier of the external system
-     * @param payload The data to send to the external system
-     */
-    interactExternal(systemId: string, payload: Record<string, unknown>): AugmentationResponse<unknown>
-  }
-
-  /**
-   * Interface for Dialogs augmentations.
-   * These augmentations facilitate natural language understanding and generation for conversational interaction.
-   */
-  export interface IDialogAugmentation extends IAugmentation {
-    /**
-     * Processes a user's natural language input (query).
-     * @param naturalLanguageQuery The raw text query from the user
-     * @param sessionId An optional session ID for conversational context
-     */
-    processUserInput(naturalLanguageQuery: string, sessionId?: string): AugmentationResponse<{
-      intent: string
-      nouns: string[]
-      verbs: string[]
-      context: Record<string, unknown>
-    }>
-
-    /**
-     * Generates a natural language response based on Brainy's knowledge and interpreted input.
-     * @param interpretedInput The output from `processUserInput` or similar
-     * @param knowledgeContext Relevant knowledge retrieved from Brainy
-     * @param sessionId An optional session ID for conversational context
-     */
-    generateResponse(
-      interpretedInput: Record<string, unknown>,
-      knowledgeContext: Record<string, unknown>,
-      sessionId?: string
-    ): AugmentationResponse<string>
-
-    /**
-     * Manages and updates conversational context.
-     * @param sessionId The session ID
-     * @param contextUpdate The data to update the context with
-     */
-    manageContext(sessionId: string, contextUpdate: Record<string, unknown>): Promise<void>
   }
 
   /**
@@ -272,12 +138,207 @@ namespace BrainyAugmentations {
      */
     monitorStream(streamId: string, callback: DataCallback<unknown>): Promise<void>
   }
+
+  /**
+   * Interface for Cognitions augmentations.
+   * These augmentations enable advanced reasoning, inference, and logical operations.
+   */
+  export interface ICognitionAugmentation extends IAugmentation {
+    /**
+     * Performs a reasoning operation based on current knowledge.
+     * @param query The specific reasoning task or question
+     * @param context Optional additional context for the reasoning
+     */
+    reason(query: string, context?: Record<string, unknown>): AugmentationResponse<{
+      inference: string
+      confidence: number
+    }>
+
+    /**
+     * Infers relationships or new facts from existing data.
+     * @param dataSubset A subset of data to infer from
+     */
+    infer(dataSubset: Record<string, unknown>): AugmentationResponse<Record<string, unknown>>
+
+    /**
+     * Executes a logical operation or rule set.
+     * @param ruleId The identifier of the rule or logic to apply
+     * @param input Data to apply the logic to
+     */
+    executeLogic(ruleId: string, input: Record<string, unknown>): AugmentationResponse<boolean>
+  }
+
+  /**
+   * Interface for Memory augmentations.
+   * These augmentations provide storage capabilities for data in different formats (e.g., fileSystem, in-memory, or firestore).
+   */
+  export interface IMemoryAugmentation extends IAugmentation {
+    /**
+     * Stores data in the memory system.
+     * @param key The unique identifier for the data
+     * @param data The data to store
+     * @param options Optional storage options (e.g., expiration, format)
+     */
+    storeData(
+      key: string,
+      data: unknown,
+      options?: Record<string, unknown>
+    ): AugmentationResponse<boolean>
+
+    /**
+     * Retrieves data from the memory system.
+     * @param key The unique identifier for the data
+     * @param options Optional retrieval options (e.g., format, version)
+     */
+    retrieveData(
+      key: string,
+      options?: Record<string, unknown>
+    ): AugmentationResponse<unknown>
+
+    /**
+     * Updates existing data in the memory system.
+     * @param key The unique identifier for the data
+     * @param data The updated data
+     * @param options Optional update options (e.g., merge, overwrite)
+     */
+    updateData(
+      key: string,
+      data: unknown,
+      options?: Record<string, unknown>
+    ): AugmentationResponse<boolean>
+
+    /**
+     * Deletes data from the memory system.
+     * @param key The unique identifier for the data
+     * @param options Optional deletion options
+     */
+    deleteData(
+      key: string,
+      options?: Record<string, unknown>
+    ): AugmentationResponse<boolean>
+
+    /**
+     * Lists available data keys in the memory system.
+     * @param pattern Optional pattern to filter keys (e.g., prefix, regex)
+     * @param options Optional listing options (e.g., limit, offset)
+     */
+    listDataKeys(
+      pattern?: string,
+      options?: Record<string, unknown>
+    ): AugmentationResponse<string[]>
+  }
+
+  /**
+   * Interface for Perceptions augmentations.
+   * These augmentations interpret, contextualize, and visualize identified nouns and verbs.
+   */
+  export interface IPerceptionAugmentation extends IAugmentation {
+    /**
+     * Interprets and contextualizes processed nouns and verbs.
+     * @param nouns The list of identified nouns
+     * @param verbs The list of identified verbs
+     * @param context Optional additional context for interpretation
+     */
+    interpret(
+      nouns: string[],
+      verbs: string[],
+      context?: Record<string, unknown>
+    ): AugmentationResponse<Record<string, unknown>>
+
+    /**
+     * Organizes and filters information.
+     * @param data The data to organize (e.g., interpreted perceptions)
+     * @param criteria Optional criteria for filtering/prioritization
+     */
+    organize(
+      data: Record<string, unknown>,
+      criteria?: Record<string, unknown>
+    ): AugmentationResponse<Record<string, unknown>>
+
+    /**
+     * Generates a visualization based on the provided data.
+     * @param data The data to visualize (e.g., interpreted patterns)
+     * @param visualizationType The desired type of visualization (e.g., 'graph', 'chart')
+     */
+    generateVisualization(
+      data: Record<string, unknown>,
+      visualizationType: string
+    ): AugmentationResponse<string | Buffer | Record<string, unknown>>
+  }
+
+  /**
+   * Interface for Dialogs augmentations.
+   * These augmentations facilitate natural language understanding and generation for conversational interaction.
+   */
+  export interface IDialogAugmentation extends IAugmentation {
+    /**
+     * Processes a user's natural language input (query).
+     * @param naturalLanguageQuery The raw text query from the user
+     * @param sessionId An optional session ID for conversational context
+     */
+    processUserInput(naturalLanguageQuery: string, sessionId?: string): AugmentationResponse<{
+      intent: string
+      nouns: string[]
+      verbs: string[]
+      context: Record<string, unknown>
+    }>
+
+    /**
+     * Generates a natural language response based on Brainy's knowledge and interpreted input.
+     * @param interpretedInput The output from `processUserInput` or similar
+     * @param knowledgeContext Relevant knowledge retrieved from Brainy
+     * @param sessionId An optional session ID for conversational context
+     */
+    generateResponse(
+      interpretedInput: Record<string, unknown>,
+      knowledgeContext: Record<string, unknown>,
+      sessionId?: string
+    ): AugmentationResponse<string>
+
+    /**
+     * Manages and updates conversational context.
+     * @param sessionId The session ID
+     * @param contextUpdate The data to update the context with
+     */
+    manageContext(sessionId: string, contextUpdate: Record<string, unknown>): Promise<void>
+  }
+
+  /**
+   * Interface for Activations augmentations.
+   * These augmentations dictate how Brainy initiates actions, responses, or data manipulations.
+   */
+  export interface IActivationAugmentation extends IAugmentation {
+    /**
+     * Triggers an action based on a processed command or internal state.
+     * @param actionName The name of the action to trigger
+     * @param parameters Optional parameters for the action
+     */
+    triggerAction(
+      actionName: string,
+      parameters?: Record<string, unknown>
+    ): AugmentationResponse<unknown>
+
+    /**
+     * Generates an expressive output or response from Brainy.
+     * @param knowledgeId The identifier of the knowledge to express
+     * @param format The desired output format (e.g., 'text', 'json')
+     */
+    generateOutput(knowledgeId: string, format: string): AugmentationResponse<string | Record<string, unknown>>
+
+    /**
+     * Interacts with an external system or API.
+     * @param systemId The identifier of the external system
+     * @param payload The data to send to the external system
+     */
+    interactExternal(systemId: string, payload: Record<string, unknown>): AugmentationResponse<unknown>
+  }
 }
 
 /** WebSocket-enabled augmentation interfaces */
-type IWebSocketCognitionAugmentation = BrainyAugmentations.ICognitionAugmentation & IWebSocketSupport
-type IWebSocketSenseAugmentation = BrainyAugmentations.ISenseAugmentation & IWebSocketSupport
-type IWebSocketPerceptionAugmentation = BrainyAugmentations.IPerceptionAugmentation & IWebSocketSupport
-type IWebSocketActivationAugmentation = BrainyAugmentations.IActivationAugmentation & IWebSocketSupport
-type IWebSocketDialogAugmentation = BrainyAugmentations.IDialogAugmentation & IWebSocketSupport
-type IWebSocketConduitAugmentation = BrainyAugmentations.IConduitAugmentation & IWebSocketSupport
+export type IWebSocketSenseAugmentation = BrainyAugmentations.ISenseAugmentation & IWebSocketSupport
+export type IWebSocketConduitAugmentation = BrainyAugmentations.IConduitAugmentation & IWebSocketSupport
+export type IWebSocketCognitionAugmentation = BrainyAugmentations.ICognitionAugmentation & IWebSocketSupport
+export type IWebSocketMemoryAugmentation = BrainyAugmentations.IMemoryAugmentation & IWebSocketSupport
+export type IWebSocketPerceptionAugmentation = BrainyAugmentations.IPerceptionAugmentation & IWebSocketSupport
+export type IWebSocketDialogAugmentation = BrainyAugmentations.IDialogAugmentation & IWebSocketSupport
+export type IWebSocketActivationAugmentation = BrainyAugmentations.IActivationAugmentation & IWebSocketSupport

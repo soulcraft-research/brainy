@@ -13,6 +13,7 @@ A vector database that runs in a browser or Node.js and utilizes Origin Private 
 - **TypeScript support**: Fully typed API with generics for metadata types
 - **Multiple distance functions**: Supports cosine, Euclidean, Manhattan, and dot product distance metrics
 - **Augmentation system**: Extensible architecture for adding specialized capabilities
+- **Memory augmentation**: Store and retrieve data in different formats (fileSystem, in-memory, firestore)
 - **Graph data model**: Structured representation of entities and relationships
 
 ## Installation
@@ -197,6 +198,45 @@ interface IWebSocketSupport {
 
 Brainy supports several specialized augmentation types:
 
+#### Sense Augmentations
+
+For processing raw, unstructured data:
+
+```typescript
+interface ISenseAugmentation extends IAugmentation {
+  processRawData(rawData: Buffer | string, dataType: string): AugmentationResponse<{
+    nouns: string[];
+    verbs: string[];
+  }>;
+  listenToFeed(
+    feedUrl: string,
+    callback: DataCallback<{ nouns: string[]; verbs: string[] }>
+  ): Promise<void>;
+}
+```
+
+#### Conduit Augmentations
+
+For establishing data exchange channels:
+
+```typescript
+interface IConduitAugmentation extends IAugmentation {
+  establishConnection(
+    targetSystemId: string,
+    config: Record<string, unknown>
+  ): AugmentationResponse<WebSocketConnection>;
+  readData(
+    query: Record<string, unknown>,
+    options?: Record<string, unknown>
+  ): AugmentationResponse<unknown>;
+  writeData(
+    data: Record<string, unknown>,
+    options?: Record<string, unknown>
+  ): AugmentationResponse<unknown>;
+  monitorStream(streamId: string, callback: DataCallback<unknown>): Promise<void>;
+}
+```
+
 #### Cognition Augmentations
 
 For reasoning, inference, and logical operations:
@@ -212,20 +252,34 @@ interface ICognitionAugmentation extends IAugmentation {
 }
 ```
 
-#### Sense Augmentations
+#### Memory Augmentations
 
-For processing raw, unstructured data:
+For storing data in different formats (e.g., fileSystem, in-memory, or firestore):
 
 ```typescript
-interface ISenseAugmentation extends IAugmentation {
-  processRawData(rawData: Buffer | string, dataType: string): AugmentationResponse<{
-    nouns: string[];
-    verbs: string[];
-  }>;
-  listenToFeed(
-    feedUrl: string,
-    callback: DataCallback<{ nouns: string[]; verbs: string[] }>
-  ): Promise<void>;
+interface IMemoryAugmentation extends IAugmentation {
+  storeData(
+    key: string,
+    data: unknown,
+    options?: Record<string, unknown>
+  ): AugmentationResponse<boolean>;
+  retrieveData(
+    key: string,
+    options?: Record<string, unknown>
+  ): AugmentationResponse<unknown>;
+  updateData(
+    key: string,
+    data: unknown,
+    options?: Record<string, unknown>
+  ): AugmentationResponse<boolean>;
+  deleteData(
+    key: string,
+    options?: Record<string, unknown>
+  ): AugmentationResponse<boolean>;
+  listDataKeys(
+    pattern?: string,
+    options?: Record<string, unknown>
+  ): AugmentationResponse<string[]>;
 }
 ```
 
@@ -251,21 +305,6 @@ interface IPerceptionAugmentation extends IAugmentation {
 }
 ```
 
-#### Activation Augmentations
-
-For triggering actions and generating outputs:
-
-```typescript
-interface IActivationAugmentation extends IAugmentation {
-  triggerAction(
-    actionName: string,
-    parameters?: Record<string, unknown>
-  ): AugmentationResponse<unknown>;
-  generateOutput(knowledgeId: string, format: string): AugmentationResponse<string | Record<string, unknown>>;
-  interactExternal(systemId: string, payload: Record<string, unknown>): AugmentationResponse<unknown>;
-}
-```
-
 #### Dialog Augmentations
 
 For natural language understanding and generation:
@@ -287,26 +326,103 @@ interface IDialogAugmentation extends IAugmentation {
 }
 ```
 
-#### Conduit Augmentations
+#### Activation Augmentations
 
-For establishing data exchange channels:
+For triggering actions and generating outputs:
 
 ```typescript
-interface IConduitAugmentation extends IAugmentation {
-  establishConnection(
-    targetSystemId: string,
-    config: Record<string, unknown>
-  ): AugmentationResponse<WebSocketConnection>;
-  readData(
-    query: Record<string, unknown>,
-    options?: Record<string, unknown>
+interface IActivationAugmentation extends IAugmentation {
+  triggerAction(
+    actionName: string,
+    parameters?: Record<string, unknown>
   ): AugmentationResponse<unknown>;
-  writeData(
-    data: Record<string, unknown>,
-    options?: Record<string, unknown>
-  ): AugmentationResponse<unknown>;
-  monitorStream(streamId: string, callback: DataCallback<unknown>): Promise<void>;
+  generateOutput(knowledgeId: string, format: string): AugmentationResponse<string | Record<string, unknown>>;
+  interactExternal(systemId: string, payload: Record<string, unknown>): AugmentationResponse<unknown>;
 }
+```
+
+### Augmentation Event Pipeline
+
+Brainy provides an event pipeline that allows registering and executing multiple augmentations of each type. The pipeline supports different execution modes and provides a flexible way to manage augmentations.
+
+#### Using the Pipeline
+
+```typescript
+import { augmentationPipeline, ExecutionMode } from '@soulcraft/brainy';
+
+// Register augmentations
+augmentationPipeline.register(mySenseAugmentation);
+augmentationPipeline.register(myConduitAugmentation);
+augmentationPipeline.register(myCognitionAugmentation);
+
+// Initialize all registered augmentations
+await augmentationPipeline.initialize();
+
+// Execute a sense pipeline
+const processingResults = await augmentationPipeline.executeSensePipeline(
+  'processRawData',
+  ['Some raw text data', 'text'],
+  { mode: ExecutionMode.SEQUENTIAL, stopOnError: true }
+);
+
+// Execute a conduit pipeline
+const connectionResults = await augmentationPipeline.executeConduitPipeline(
+  'establishConnection',
+  ['external-system', { apiKey: 'your-api-key' }]
+);
+
+// Execute a cognition pipeline
+const reasoningResults = await augmentationPipeline.executeCognitionPipeline(
+  'reason',
+  ['What is the capital of France?', { additionalContext: 'geography' }],
+  { mode: ExecutionMode.PARALLEL }
+);
+
+// Execute a memory pipeline
+const storeResults = await augmentationPipeline.executeMemoryPipeline(
+  'storeData',
+  ['user123', { name: 'John Doe', email: 'john@example.com' }]
+);
+
+const retrieveResults = await augmentationPipeline.executeMemoryPipeline(
+  'retrieveData',
+  ['user123']
+);
+
+// Shut down all registered augmentations
+await augmentationPipeline.shutDown();
+```
+
+#### Execution Modes
+
+The pipeline supports several execution modes:
+
+- `ExecutionMode.SEQUENTIAL`: Execute augmentations one after another (default)
+- `ExecutionMode.PARALLEL`: Execute all augmentations simultaneously
+- `ExecutionMode.FIRST_SUCCESS`: Execute augmentations until one succeeds
+- `ExecutionMode.FIRST_RESULT`: Execute augmentations until one returns a result
+
+#### Pipeline Options
+
+You can configure the pipeline execution with options:
+
+```typescript
+interface PipelineOptions {
+  mode?: ExecutionMode;     // Execution mode (default: SEQUENTIAL)
+  timeout?: number;         // Timeout in milliseconds (default: 30000)
+  stopOnError?: boolean;    // Whether to stop on error (default: false)
+}
+```
+
+#### Creating a Custom Pipeline
+
+You can create a custom pipeline instance if needed:
+
+```typescript
+import { AugmentationPipeline } from '@soulcraft/brainy';
+
+const myPipeline = new AugmentationPipeline();
+myPipeline.register(myCustomAugmentation);
 ```
 
 ## Graph Data Model
@@ -425,6 +541,9 @@ The repository also includes TypeScript examples for Node.js:
 
 - `src/examples/basicUsage.ts`: Demonstrates basic vector operations
 - `src/examples/customStorage.ts`: Shows how to use a custom storage adapter
+- `src/examples/augmentationPipeline.ts`: Demonstrates the augmentation pipeline
+- `src/examples/webSocketAugmentation.ts`: Shows how to create WebSocket-supporting augmentations
+- `src/examples/memoryAugmentation.ts`: Demonstrates memory augmentations for different storage formats
 
 ## How It Works
 
