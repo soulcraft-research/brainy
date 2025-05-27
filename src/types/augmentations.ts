@@ -1,4 +1,18 @@
 /** Common types for augmentation system */
+
+/**
+ * Enum representing all types of augmentations available in the Brainy system.
+ */
+export enum AugmentationType {
+  SENSE = 'sense',
+  CONDUIT = 'conduit',
+  COGNITION = 'cognition',
+  MEMORY = 'memory',
+  PERCEPTION = 'perception',
+  DIALOG = 'dialog',
+  ACTIVATION = 'activation',
+  WEBSOCKET = 'webSocket'
+}
 type WebSocketConnection = {
   connectionId: string
   url: string

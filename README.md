@@ -119,17 +119,62 @@ const db = new BrainyData({
 
 Soulcraft Brainy is configured as a private NPM package with restricted access. This section provides information on how to publish and use it within your organization.
 
+### Versioning
+
+This project uses semantic versioning (SemVer) with automatic version determination based on conventional commit messages. The version is automatically bumped when code is merged to the main branch, according to the following rules:
+
+- **Major version** (`x.0.0`): Breaking changes, indicated by commits with `BREAKING CHANGE:` in the body or commits of type `feat` with `!` (e.g., `feat!: remove deprecated API`)
+- **Minor version** (`0.x.0`): New features that don't break existing functionality, indicated by commits of type `feat`
+- **Patch version** (`0.0.x`): Bug fixes and other minor changes, indicated by commits of type `fix`
+
+#### Commit Message Format
+
+To ensure proper versioning, commit messages should follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+Common types include:
+- `feat`: A new feature (minor version bump)
+- `fix`: A bug fix (patch version bump)
+- `docs`: Documentation changes
+- `style`: Changes that don't affect code functionality (formatting, etc.)
+- `refactor`: Code changes that neither fix bugs nor add features
+- `perf`: Performance improvements
+- `test`: Adding or correcting tests
+- `chore`: Changes to the build process or auxiliary tools
+
+Examples:
+```
+feat: add new vector normalization option
+fix: correct distance calculation in HNSW search
+docs: update API documentation
+feat(storage): add support for IndexedDB
+fix!: change API parameter order (this will cause a major version bump)
+```
+
 ### Publishing the Package
 
-To publish updates to the package:
+The package is automatically published when changes are merged to the main branch. The GitHub Actions workflow will:
+
+1. Determine the appropriate version bump based on commit messages
+2. Update the version in package.json
+3. Create a new GitHub release with release notes
+4. Publish the package to npm
+
+For manual publishing (if needed):
 
 1. Ensure you have the appropriate npm credentials and access to the @soulcraft organization
-2. Update the version in package.json
-3. Build the package:
+2. Build the package:
    ```bash
    npm run build
    ```
-4. Publish the package:
+3. Publish the package:
    ```bash
    npm publish
    ```
@@ -341,6 +386,25 @@ interface IActivationAugmentation extends IAugmentation {
 }
 ```
 
+### Augmentation Types
+
+Brainy provides an enum that lists all types of augmentations available in the system:
+
+```typescript
+enum AugmentationType {
+  SENSE = 'sense',
+  CONDUIT = 'conduit',
+  COGNITION = 'cognition',
+  MEMORY = 'memory',
+  PERCEPTION = 'perception',
+  DIALOG = 'dialog',
+  ACTIVATION = 'activation',
+  WEBSOCKET = 'webSocket'
+}
+```
+
+This enum can be used by consumers of the library to identify the different types of augmentations.
+
 ### Augmentation Event Pipeline
 
 Brainy provides an event pipeline that allows registering and executing multiple augmentations of each type. The pipeline supports different execution modes and provides a flexible way to manage augmentations.
@@ -348,7 +412,7 @@ Brainy provides an event pipeline that allows registering and executing multiple
 #### Using the Pipeline
 
 ```typescript
-import { augmentationPipeline, ExecutionMode } from '@soulcraft/brainy';
+import { augmentationPipeline, ExecutionMode, AugmentationType } from '@soulcraft/brainy';
 
 // Register augmentations
 augmentationPipeline.register(mySenseAugmentation);
@@ -357,6 +421,18 @@ augmentationPipeline.register(myCognitionAugmentation);
 
 // Initialize all registered augmentations
 await augmentationPipeline.initialize();
+
+// Get all registered augmentations
+const allAugmentations = augmentationPipeline.getAllAugmentations();
+console.log(`Total augmentations: ${allAugmentations.length}`);
+
+// Get all augmentations of a specific type
+const senseAugmentations = augmentationPipeline.getAugmentationsByType(AugmentationType.SENSE);
+console.log(`Sense augmentations: ${senseAugmentations.length}`);
+
+// Get all available augmentation types
+const availableTypes = augmentationPipeline.getAvailableAugmentationTypes();
+console.log(`Available augmentation types: ${availableTypes.join(', ')}`);
 
 // Execute a sense pipeline
 const processingResults = await augmentationPipeline.executeSensePipeline(

@@ -10,7 +10,8 @@ import {
   BrainyAugmentations,
   IAugmentation,
   IWebSocketSupport,
-  AugmentationResponse
+  AugmentationResponse,
+  AugmentationType
 } from './types/augmentations.js'
 
 /**
@@ -399,7 +400,7 @@ export class AugmentationPipeline {
    *
    * @returns An array of all registered augmentations
    */
-  private getAllAugmentations(): IAugmentation[] {
+  public getAllAugmentations(): IAugmentation[] {
     // Create a Set to avoid duplicates (an augmentation might be in multiple registries)
     const allAugmentations = new Set<IAugmentation>([
       ...this.registry.sense,
@@ -414,6 +415,55 @@ export class AugmentationPipeline {
 
     // Convert back to array
     return Array.from(allAugmentations)
+  }
+
+  /**
+   * Get all augmentations of a specific type
+   *
+   * @param type The type of augmentation to get
+   * @returns An array of all augmentations of the specified type
+   */
+  public getAugmentationsByType(type: AugmentationType): IAugmentation[] {
+    switch (type) {
+      case AugmentationType.SENSE:
+        return [...this.registry.sense]
+      case AugmentationType.CONDUIT:
+        return [...this.registry.conduit]
+      case AugmentationType.COGNITION:
+        return [...this.registry.cognition]
+      case AugmentationType.MEMORY:
+        return [...this.registry.memory]
+      case AugmentationType.PERCEPTION:
+        return [...this.registry.perception]
+      case AugmentationType.DIALOG:
+        return [...this.registry.dialog]
+      case AugmentationType.ACTIVATION:
+        return [...this.registry.activation]
+      case AugmentationType.WEBSOCKET:
+        return [...this.registry.webSocket]
+      default:
+        return []
+    }
+  }
+
+  /**
+   * Get all available augmentation types
+   *
+   * @returns An array of all augmentation types that have at least one registered augmentation
+   */
+  public getAvailableAugmentationTypes(): AugmentationType[] {
+    const availableTypes: AugmentationType[] = []
+
+    if (this.registry.sense.length > 0) availableTypes.push(AugmentationType.SENSE)
+    if (this.registry.conduit.length > 0) availableTypes.push(AugmentationType.CONDUIT)
+    if (this.registry.cognition.length > 0) availableTypes.push(AugmentationType.COGNITION)
+    if (this.registry.memory.length > 0) availableTypes.push(AugmentationType.MEMORY)
+    if (this.registry.perception.length > 0) availableTypes.push(AugmentationType.PERCEPTION)
+    if (this.registry.dialog.length > 0) availableTypes.push(AugmentationType.DIALOG)
+    if (this.registry.activation.length > 0) availableTypes.push(AugmentationType.ACTIVATION)
+    if (this.registry.webSocket.length > 0) availableTypes.push(AugmentationType.WEBSOCKET)
+
+    return availableTypes
   }
 
   /**

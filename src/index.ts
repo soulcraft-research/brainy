@@ -80,12 +80,13 @@ import type {
   AugmentationResponse,
   IWebSocketSupport
 } from './types/augmentations.js'
+import { AugmentationType, BrainyAugmentations } from './types/augmentations.js'
 export type {
   IAugmentation,
   AugmentationResponse,
   IWebSocketSupport
 }
-export { BrainyAugmentations } from './types/augmentations.js'
+export { AugmentationType, BrainyAugmentations }
 
 // Export combined WebSocket augmentation interfaces
 export type {
