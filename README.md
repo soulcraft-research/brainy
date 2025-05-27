@@ -55,6 +55,11 @@ const catResults = await db.search("cat", 2);
 console.log(catResults);
 // Results will include vectors similar to the embedding of "cat"
 
+// Use the dedicated text search method for simpler code
+const lionResults = await db.searchText("lion", 2);
+console.log(lionResults);
+// Results will include vectors similar to the embedding of "lion"
+
 // Get a vector by ID
 const cat = await db.get(catId);
 console.log(cat);
@@ -68,6 +73,46 @@ await db.delete(fishId);
 
 // Clear the database
 await db.clear();
+```
+
+### Using the Embedding Function
+
+You can directly use the same embedding function that the database uses internally:
+
+```typescript
+import {BrainyData} from '@soulcraft/brainy';
+
+// Create a new vector database
+const db = new BrainyData();
+await db.init();
+
+// Embed a single text string
+const catVector = await db.embed("cat");
+console.log(catVector);
+// [0.123, 0.456, 0.789, ...] - Vector representation of "cat"
+
+// Embed multiple texts at once
+const animalVectors = await db.embed(["cat", "dog", "fish"]);
+console.log(animalVectors);
+// [0.123, 0.456, 0.789, ...] - Vector representation of the first item in the array
+
+// You can also use the exported embedding classes directly
+import {UniversalSentenceEncoder, createEmbeddingFunction} from '@soulcraft/brainy';
+
+// Create a new Universal Sentence Encoder model
+const useModel = new UniversalSentenceEncoder();
+await useModel.init();
+
+// Create an embedding function from the model
+const embedFunction = createEmbeddingFunction(useModel);
+
+// Embed text using the function
+const vector = await embedFunction("Some text to embed");
+console.log(vector);
+// [0.123, 0.456, 0.789, ...] - Vector representation of "Some text to embed"
+
+// Don't forget to dispose of the model when done
+await useModel.dispose();
 ```
 
 ### Configuration Options
@@ -121,60 +166,49 @@ Soulcraft Brainy is configured as a private NPM package with restricted access. 
 
 ### Versioning
 
-This project uses semantic versioning (SemVer) with automatic version determination based on conventional commit messages. The version is automatically bumped when code is merged to the main branch, according to the following rules:
+This project uses semantic versioning (SemVer):
 
-- **Major version** (`x.0.0`): Breaking changes, indicated by commits with `BREAKING CHANGE:` in the body or commits of type `feat` with `!` (e.g., `feat!: remove deprecated API`)
-- **Minor version** (`0.x.0`): New features that don't break existing functionality, indicated by commits of type `feat`
-- **Patch version** (`0.0.x`): Bug fixes and other minor changes, indicated by commits of type `fix`
+- **Major version** (`x.0.0`): Breaking changes that may require updates to dependent code
+- **Minor version** (`0.x.0`): New features that don't break existing functionality
+- **Patch version** (`0.0.x`): Bug fixes and other minor changes
 
-#### Commit Message Format
+The package includes scripts for manual version bumping:
 
-To ensure proper versioning, commit messages should follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+```bash
+# Increment patch version (0.0.x)
+npm run version:patch
 
+# Increment minor version (0.x.0)
+npm run version:minor
+
+# Increment major version (x.0.0)
+npm run version:major
 ```
-<type>[optional scope]: <description>
 
-[optional body]
-
-[optional footer(s)]
-```
-
-Common types include:
-- `feat`: A new feature (minor version bump)
-- `fix`: A bug fix (patch version bump)
-- `docs`: Documentation changes
-- `style`: Changes that don't affect code functionality (formatting, etc.)
-- `refactor`: Code changes that neither fix bugs nor add features
-- `perf`: Performance improvements
-- `test`: Adding or correcting tests
-- `chore`: Changes to the build process or auxiliary tools
-
-Examples:
-```
-feat: add new vector normalization option
-fix: correct distance calculation in HNSW search
-docs: update API documentation
-feat(storage): add support for IndexedDB
-fix!: change API parameter order (this will cause a major version bump)
-```
+These commands will update the version in package.json and create a git tag for the new version.
 
 ### Publishing the Package
 
-The package is automatically published when changes are merged to the main branch. The GitHub Actions workflow will:
-
-1. Determine the appropriate version bump based on commit messages
-2. Update the version in package.json
-3. Create a new GitHub release with release notes
-4. Publish the package to npm
-
-For manual publishing (if needed):
+To publish updates to the package:
 
 1. Ensure you have the appropriate npm credentials and access to the @soulcraft organization
-2. Build the package:
+2. Update the version using one of the version scripts:
+   ```bash
+   npm run version:patch  # For bug fixes and minor changes
+   npm run version:minor  # For new features
+   npm run version:major  # For breaking changes
+   ```
+3. Use the deploy script to build and publish the package:
+   ```bash
+   npm run deploy
+   ```
+
+Alternatively, you can run the steps separately:
+1. Build the package:
    ```bash
    npm run build
    ```
-3. Publish the package:
+2. Publish the package:
    ```bash
    npm publish
    ```
@@ -667,11 +701,13 @@ constructor(config?: BrainyDataConfig)
 - `add(vectorOrData: Vector | any, metadata?: T, options?: { forceEmbed?: boolean }): Promise<string>` - Add a vector or data to the database
 - `addBatch(items: Array<{ vectorOrData: Vector | any, metadata?: T }>, options?: { forceEmbed?: boolean }): Promise<string[]>` - Add multiple vectors or data items
 - `search(queryVectorOrData: Vector | any, k?: number, options?: { forceEmbed?: boolean }): Promise<SearchResult<T>[]>` - Search for similar vectors
+- `searchText(query: string, k?: number): Promise<SearchResult<T>[]>` - Search for similar documents using a text query
 - `get(id: string): Promise<VectorDocument<T> | null>` - Get a vector by ID
 - `delete(id: string): Promise<boolean>` - Delete a vector
 - `updateMetadata(id: string, metadata: T): Promise<boolean>` - Update metadata
 - `clear(): Promise<void>` - Clear the database
 - `size(): number` - Get the number of vectors in the database
+- `embed(data: string | string[]): Promise<Vector>` - Embed text or data into a vector using the same embedding function used by this instance
 
 ### Distance Functions
 

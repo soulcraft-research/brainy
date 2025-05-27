@@ -235,7 +235,7 @@ export class AugmentationPipeline {
     method: M & (BrainyAugmentations.ISenseAugmentation[M] extends (...args: any[]) => any ? M : never),
     args: Parameters<Extract<BrainyAugmentations.ISenseAugmentation[M], (...args: any[]) => any>>,
     options: PipelineOptions = {}
-  ): Promise<AugmentationResponse<R>[]> {
+  ): Promise<Promise<{ success: boolean; data: R; error?: string }>[]> {
     const opts = { ...DEFAULT_PIPELINE_OPTIONS, ...options }
     return this.executeTypedPipeline<BrainyAugmentations.ISenseAugmentation, M, R>(
       this.registry.sense,
@@ -260,7 +260,7 @@ export class AugmentationPipeline {
     method: M & (BrainyAugmentations.IConduitAugmentation[M] extends (...args: any[]) => any ? M : never),
     args: Parameters<Extract<BrainyAugmentations.IConduitAugmentation[M], (...args: any[]) => any>>,
     options: PipelineOptions = {}
-  ): Promise<AugmentationResponse<R>[]> {
+  ): Promise<Promise<{ success: boolean; data: R; error?: string }>[]> {
     const opts = { ...DEFAULT_PIPELINE_OPTIONS, ...options }
     return this.executeTypedPipeline<BrainyAugmentations.IConduitAugmentation, M, R>(
       this.registry.conduit,
@@ -285,7 +285,7 @@ export class AugmentationPipeline {
     method: M & (BrainyAugmentations.ICognitionAugmentation[M] extends (...args: any[]) => any ? M : never),
     args: Parameters<Extract<BrainyAugmentations.ICognitionAugmentation[M], (...args: any[]) => any>>,
     options: PipelineOptions = {}
-  ): Promise<AugmentationResponse<R>[]> {
+  ): Promise<Promise<{ success: boolean; data: R; error?: string }>[]> {
     const opts = { ...DEFAULT_PIPELINE_OPTIONS, ...options }
     return this.executeTypedPipeline<BrainyAugmentations.ICognitionAugmentation, M, R>(
       this.registry.cognition,
@@ -310,7 +310,7 @@ export class AugmentationPipeline {
     method: M & (BrainyAugmentations.IMemoryAugmentation[M] extends (...args: any[]) => any ? M : never),
     args: Parameters<Extract<BrainyAugmentations.IMemoryAugmentation[M], (...args: any[]) => any>>,
     options: PipelineOptions = {}
-  ): Promise<AugmentationResponse<R>[]> {
+  ): Promise<Promise<{ success: boolean; data: R; error?: string }>[]> {
     const opts = { ...DEFAULT_PIPELINE_OPTIONS, ...options }
     return this.executeTypedPipeline<BrainyAugmentations.IMemoryAugmentation, M, R>(
       this.registry.memory,
@@ -335,7 +335,7 @@ export class AugmentationPipeline {
     method: M & (BrainyAugmentations.IPerceptionAugmentation[M] extends (...args: any[]) => any ? M : never),
     args: Parameters<Extract<BrainyAugmentations.IPerceptionAugmentation[M], (...args: any[]) => any>>,
     options: PipelineOptions = {}
-  ): Promise<AugmentationResponse<R>[]> {
+  ): Promise<Promise<{ success: boolean; data: R; error?: string }>[]> {
     const opts = { ...DEFAULT_PIPELINE_OPTIONS, ...options }
     return this.executeTypedPipeline<BrainyAugmentations.IPerceptionAugmentation, M, R>(
       this.registry.perception,
@@ -360,7 +360,7 @@ export class AugmentationPipeline {
     method: M & (BrainyAugmentations.IDialogAugmentation[M] extends (...args: any[]) => any ? M : never),
     args: Parameters<Extract<BrainyAugmentations.IDialogAugmentation[M], (...args: any[]) => any>>,
     options: PipelineOptions = {}
-  ): Promise<AugmentationResponse<R>[]> {
+  ): Promise<Promise<{ success: boolean; data: R; error?: string }>[]> {
     const opts = { ...DEFAULT_PIPELINE_OPTIONS, ...options }
     return this.executeTypedPipeline<BrainyAugmentations.IDialogAugmentation, M, R>(
       this.registry.dialog,
@@ -385,7 +385,7 @@ export class AugmentationPipeline {
     method: M & (BrainyAugmentations.IActivationAugmentation[M] extends (...args: any[]) => any ? M : never),
     args: Parameters<Extract<BrainyAugmentations.IActivationAugmentation[M], (...args: any[]) => any>>,
     options: PipelineOptions = {}
-  ): Promise<AugmentationResponse<R>[]> {
+  ): Promise<Promise<{ success: boolean; data: R; error?: string }>[]> {
     const opts = { ...DEFAULT_PIPELINE_OPTIONS, ...options }
     return this.executeTypedPipeline<BrainyAugmentations.IActivationAugmentation, M, R>(
       this.registry.activation,
@@ -538,10 +538,10 @@ export class AugmentationPipeline {
         // Create a timeout promise if a timeout is specified
         const timeoutPromise = options.timeout
           ? new Promise<{
-              success: boolean
-              data: R
-              error?: string
-            }>((_, reject) => {
+            success: boolean
+            data: R
+            error?: string
+          }>((_, reject) => {
             setTimeout(() => {
               reject(new Error(`Timeout executing ${String(method)} on ${augmentation.name}`))
             }, options.timeout)

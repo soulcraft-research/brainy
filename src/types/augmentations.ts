@@ -20,11 +20,11 @@ type WebSocketConnection = {
 }
 
 type DataCallback<T> = (data: T) => void
-export type AugmentationResponse<T> = Promise<{
+export type AugmentationResponse<T> = {
   success: boolean
   data: T
   error?: string
-}>
+}
 
 /**
  * Base interface for all Brainy augmentations.

@@ -1,64 +1,30 @@
 # Contributing to Soulcraft Brainy
 
-Thank you for your interest in contributing to Soulcraft Brainy! This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to Soulcraft Brainy! This document provides guidelines and instructions for
+contributing to the project.
 
 ## Commit Message Guidelines
 
-This project uses [Conventional Commits](https://www.conventionalcommits.org/) for automatic semantic versioning. Your commit messages determine how the version number is incremented.
+When contributing to this project, please write clear and descriptive commit messages that explain the purpose of your changes. Good commit messages help maintainers understand your contributions and make the review process smoother.
 
-### Commit Message Format
+### Best Practices
 
-Each commit message consists of a **header**, a **body**, and a **footer**:
-
-```
-<type>[optional scope]: <description>
-
-[optional body]
-
-[optional footer(s)]
-```
-
-The **header** is mandatory and must conform to the following format:
-
-- **type**: What kind of change is this commit making? (required)
-- **scope**: What part of the codebase does this change affect? (optional)
-- **description**: A short description of the change (required)
-
-### Types
-
-- **feat**: A new feature (triggers a minor version bump)
-- **fix**: A bug fix (triggers a patch version bump)
-- **docs**: Documentation only changes
-- **style**: Changes that do not affect the meaning of the code (white-space, formatting, etc.)
-- **refactor**: A code change that neither fixes a bug nor adds a feature
-- **perf**: A code change that improves performance
-- **test**: Adding missing tests or correcting existing tests
-- **chore**: Changes to the build process or auxiliary tools and libraries
-
-### Breaking Changes
-
-Breaking changes should be indicated by:
-1. Adding an exclamation mark after the type/scope: `feat!: remove deprecated API`
-2. Adding a `BREAKING CHANGE:` footer: 
-   ```
-   feat: change API parameter order
-   
-   BREAKING CHANGE: The order of parameters in the API has changed.
-   ```
-
-Both methods will trigger a major version bump.
+- Keep the first line concise (ideally under 50 characters)
+- Use the imperative mood ("Add feature" not "Added feature")
+- Reference issues and pull requests where appropriate
+- When necessary, provide more detailed explanations in the commit body
 
 ### Examples
 
 ```
-feat: add vector normalization option
-fix: correct distance calculation in HNSW search
-docs: update API documentation
-feat(storage): add support for IndexedDB
-fix!: change API parameter order
-refactor: simplify vector comparison logic
-test: add tests for metadata filtering
-chore: update build dependencies
+Add vector normalization option
+Fix distance calculation in HNSW search
+Update API documentation
+Add support for IndexedDB storage
+Change API parameter order
+Simplify vector comparison logic
+Add tests for metadata filtering
+Update build dependencies
 ```
 
 ## Pull Request Process

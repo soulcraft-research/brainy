@@ -22,6 +22,20 @@ export {
   dotProductDistance 
 }
 
+// Export embedding functionality
+import {
+  SimpleEmbedding,
+  UniversalSentenceEncoder,
+  createEmbeddingFunction,
+  defaultEmbeddingFunction
+} from './utils/embedding.js'
+export {
+  SimpleEmbedding,
+  UniversalSentenceEncoder,
+  createEmbeddingFunction,
+  defaultEmbeddingFunction
+}
+
 // Export storage adapters
 import { 
   OPFSStorage, 

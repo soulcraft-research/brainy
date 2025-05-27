@@ -536,6 +536,47 @@ export class BrainyData<T = any> {
   }
 
   /**
+   * Embed text or data into a vector using the same embedding function used by this instance
+   * This allows clients to use the same TensorFlow Universal Sentence Encoder throughout their application
+   * 
+   * @param data Text or data to embed
+   * @returns A promise that resolves to the embedded vector
+   */
+  public async embed(data: string | string[]): Promise<Vector> {
+    await this.ensureInitialized()
+
+    try {
+      return await this.embeddingFunction(data)
+    } catch (error) {
+      console.error('Failed to embed data:', error)
+      throw new Error(`Failed to embed data: ${error}`)
+    }
+  }
+
+  /**
+   * Search for similar documents using a text query
+   * This is a convenience method that embeds the query text and performs a search
+   * 
+   * @param query Text query to search for
+   * @param k Number of results to return
+   * @returns Array of search results
+   */
+  public async searchText(query: string, k: number = 10): Promise<SearchResult<T>[]> {
+    await this.ensureInitialized()
+
+    try {
+      // Embed the query text
+      const queryVector = await this.embed(query)
+
+      // Search using the embedded vector
+      return await this.search(queryVector, k)
+    } catch (error) {
+      console.error('Failed to search with text query:', error)
+      throw new Error(`Failed to search with text query: ${error}`)
+    }
+  }
+
+  /**
    * Ensure the database is initialized
    */
   private async ensureInitialized(): Promise<void> {
