@@ -27,12 +27,16 @@ import {
   SimpleEmbedding,
   UniversalSentenceEncoder,
   createEmbeddingFunction,
+  createTensorFlowEmbeddingFunction,
+  createSimpleEmbeddingFunction,
   defaultEmbeddingFunction
 } from './utils/embedding.js'
 export {
   SimpleEmbedding,
   UniversalSentenceEncoder,
   createEmbeddingFunction,
+  createTensorFlowEmbeddingFunction,
+  createSimpleEmbeddingFunction,
   defaultEmbeddingFunction
 }
 

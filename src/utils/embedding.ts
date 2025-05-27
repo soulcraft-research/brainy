@@ -75,7 +75,8 @@ export class SimpleEmbedding implements EmbeddingModel {
 
 /**
  * TensorFlow Universal Sentence Encoder embedding model
- * Requires @tensorflow/tfjs and @tensorflow-models/universal-sentence-encoder to be installed
+ * This model provides high-quality text embeddings using TensorFlow.js
+ * The required TensorFlow.js dependencies are automatically installed with this package
  */
 export class UniversalSentenceEncoder implements EmbeddingModel {
   private model: any = null
@@ -98,7 +99,9 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
       this.initialized = true
     } catch (error) {
       console.error('Failed to initialize Universal Sentence Encoder:', error)
-      throw new Error(`Failed to initialize Universal Sentence Encoder: ${error}`)
+      throw new Error(
+        `Failed to initialize Universal Sentence Encoder: ${error}`
+      )
     }
   }
 
@@ -163,6 +166,23 @@ export function createEmbeddingFunction(model: EmbeddingModel): EmbeddingFunctio
 }
 
 /**
- * Default embedding function using UniversalSentenceEncoder
+ * Creates a TensorFlow-based Universal Sentence Encoder embedding function
+ * This is the recommended embedding function for high-quality text embeddings
  */
-export const defaultEmbeddingFunction: EmbeddingFunction = createEmbeddingFunction(new UniversalSentenceEncoder())
+export function createTensorFlowEmbeddingFunction(): EmbeddingFunction {
+  return createEmbeddingFunction(new UniversalSentenceEncoder())
+}
+
+/**
+ * Simple embedding function using character-based embedding
+ * This is a basic implementation that doesn't use TensorFlow
+ */
+export function createSimpleEmbeddingFunction(): EmbeddingFunction {
+  return createEmbeddingFunction(new SimpleEmbedding())
+}
+
+/**
+ * Default embedding function using UniversalSentenceEncoder
+ * This provides high-quality text embeddings using TensorFlow.js
+ */
+export const defaultEmbeddingFunction: EmbeddingFunction = createTensorFlowEmbeddingFunction()

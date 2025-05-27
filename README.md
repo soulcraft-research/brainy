@@ -8,7 +8,7 @@ A vector database that runs in a browser or Node.js and utilizes Origin Private 
 - **Persistent storage**: Uses Origin Private File System (OPFS) in browsers, with fallback to in-memory storage
 - **Efficient vector search**: Implements HNSW (Hierarchical Navigable Small World) algorithm for fast approximate nearest neighbor search
 - **Automatic embedding**: Converts text and other data to vectors using embedding models
-- **TensorFlow.js integration**: Uses Universal Sentence Encoder for high-quality text embeddings
+- **TensorFlow.js integration**: Uses Universal Sentence Encoder for high-quality text embeddings (TensorFlow.js is included as a dependency)
 - **Metadata support**: Store and retrieve metadata alongside vectors
 - **TypeScript support**: Fully typed API with generics for metadata types
 - **Multiple distance functions**: Supports cosine, Euclidean, Manhattan, and dot product distance metrics
@@ -95,11 +95,41 @@ console.log(catVector);
 const animalVectors = await db.embed(["cat", "dog", "fish"]);
 console.log(animalVectors);
 // [0.123, 0.456, 0.789, ...] - Vector representation of the first item in the array
+```
 
-// You can also use the exported embedding classes directly
-import {UniversalSentenceEncoder, createEmbeddingFunction} from '@soulcraft/brainy';
+### Using Embedding Functions
 
-// Create a new Universal Sentence Encoder model
+By default, Brainy uses the TensorFlow Universal Sentence Encoder for high-quality text embeddings. The TensorFlow.js dependencies are automatically included when you install the package, so you don't need to install them separately.
+
+You can use the default embedding function directly:
+
+```typescript
+import {
+  defaultEmbeddingFunction,
+  createTensorFlowEmbeddingFunction,
+  createSimpleEmbeddingFunction,
+  UniversalSentenceEncoder,
+  createEmbeddingFunction
+} from '@soulcraft/brainy';
+
+// Option 1: Use the default embedding function (TensorFlow Universal Sentence Encoder)
+const vector1 = await defaultEmbeddingFunction("Some text to embed");
+console.log(vector1);
+// [0.123, 0.456, 0.789, ...] - High-quality vector representation using TensorFlow
+
+// Option 2: Explicitly create a TensorFlow-based embedding function
+const tfEmbedFunction = createTensorFlowEmbeddingFunction();
+const vector2 = await tfEmbedFunction("Some text to embed");
+console.log(vector2);
+// [0.123, 0.456, 0.789, ...] - High-quality vector representation using TensorFlow
+
+// Option 3: Use the simple character-based embedding (faster but less accurate)
+const simpleEmbedFunction = createSimpleEmbeddingFunction();
+const vector3 = await simpleEmbedFunction("Some text to embed");
+console.log(vector3);
+// [0.123, 0.456, 0.789, ...] - Basic vector representation using character frequencies
+
+// Option 4: Create the model and embedding function manually
 const useModel = new UniversalSentenceEncoder();
 await useModel.init();
 
@@ -107,12 +137,25 @@ await useModel.init();
 const embedFunction = createEmbeddingFunction(useModel);
 
 // Embed text using the function
-const vector = await embedFunction("Some text to embed");
-console.log(vector);
-// [0.123, 0.456, 0.789, ...] - Vector representation of "Some text to embed"
+const vector4 = await embedFunction("Some text to embed");
+console.log(vector4);
+// [0.123, 0.456, 0.789, ...] - High-quality vector representation using TensorFlow
 
 // Don't forget to dispose of the model when done
 await useModel.dispose();
+```
+
+You can also configure BrainyData to use a different embedding function if needed:
+
+```typescript
+import { BrainyData, createSimpleEmbeddingFunction } from '@soulcraft/brainy';
+
+// Create a new vector database with the simple embedding function
+// (only if you prefer speed over accuracy)
+const db = new BrainyData({
+  embeddingFunction: createSimpleEmbeddingFunction()
+});
+await db.init();
 ```
 
 ### Configuration Options
@@ -724,7 +767,9 @@ constructor(config?: BrainyDataConfig)
 ### Embedding Functions
 
 - `createEmbeddingFunction(model: EmbeddingModel): EmbeddingFunction` - Create an embedding function from an embedding model
-- `defaultEmbeddingFunction` - Default embedding function using UniversalSentenceEncoder
+- `createTensorFlowEmbeddingFunction(): EmbeddingFunction` - Create an embedding function using TensorFlow's Universal Sentence Encoder
+- `createSimpleEmbeddingFunction(): EmbeddingFunction` - Create a simple character-based embedding function (faster but less accurate)
+- `defaultEmbeddingFunction` - Default embedding function using TensorFlow's Universal Sentence Encoder for high-quality embeddings
 
 ## Browser Compatibility
 
