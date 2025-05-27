@@ -91,8 +91,8 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
     try {
       // Dynamically import TensorFlow.js and Universal Sentence Encoder
       // Use type assertions to tell TypeScript these modules exist
-      this.tf = await import('@tensorflow/tfjs/dist/tf.esm.js' as any)
-      this.use = await import('@tensorflow-models/universal-sentence-encoder/dist/universal-sentence-encoder.esm.js' as any)
+      this.tf = await import('@tensorflow/tfjs')
+      this.use = await import('@tensorflow-models/universal-sentence-encoder')
 
       // Load the model
       this.model = await this.use.load()
