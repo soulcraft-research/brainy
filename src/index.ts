@@ -109,7 +109,11 @@ import { AugmentationType, BrainyAugmentations } from './types/augmentations.js'
 export type {
   IAugmentation,
   AugmentationResponse,
-  IWebSocketSupport,
+  IWebSocketSupport
+}
+export {
+  AugmentationType,
+  BrainyAugmentations,
   ISenseAugmentation,
   IConduitAugmentation,
   ICognitionAugmentation,
@@ -118,7 +122,6 @@ export type {
   IDialogAugmentation,
   IActivationAugmentation
 }
-export { AugmentationType, BrainyAugmentations }
 
 // Export combined WebSocket augmentation interfaces
 export type {
