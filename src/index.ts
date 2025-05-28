@@ -130,3 +130,29 @@ export type {
   IWebSocketConduitAugmentation,
   IWebSocketMemoryAugmentation
 } from './types/augmentations.js'
+
+// Export graph types
+import type {
+  GraphNoun,
+  GraphVerb,
+  EmbeddedGraphVerb,
+  Person,
+  Place,
+  Thing,
+  Event,
+  Concept,
+  Content
+} from './types/graphTypes.js'
+import { NounType, VerbType } from './types/graphTypes.js'
+export type {
+  GraphNoun,
+  GraphVerb,
+  EmbeddedGraphVerb,
+  Person,
+  Place,
+  Thing,
+  Event,
+  Concept,
+  Content
+}
+export { NounType, VerbType }
