@@ -11,6 +11,10 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./types/graphTypes": {
+      "import": "./dist/types/graphTypes.js",
+      "types": "./dist/types/graphTypes.d.ts"
     }
   },
   "engines": {

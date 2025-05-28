@@ -15,8 +15,6 @@ interface Timestamp {
 interface CreatorMetadata {
   augmentation: string    // Name of the augmentation that created this element
   version: string   // Version of the augmentation
-  model: string     // Model identifier used in creation
-  modelVersion: string  // Version of the model
 }
 
 /**
@@ -29,7 +27,9 @@ export interface GraphNoun {
   noun: NounType                       // Type classification of the noun
   createdAt: Timestamp                 // When the noun was created
   updatedAt: Timestamp                 // When the noun was last updated
+  label?: string                       // Optional descriptive label
   data?: Record<string, unknown>       // Additional flexible data storage
+  embeddedVerbs?: EmbeddedGraphVerb[]  // Optional embedded relationships
   embedding?: number[]                 // Vector representation of the noun
 }
 

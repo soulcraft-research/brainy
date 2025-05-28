@@ -203,6 +203,36 @@ const db = new BrainyData({
 });
 ```
 
+### Importing Graph Types Separately
+
+If you only need the graph type definitions without importing the entire library (supporting tree shaking), you can import them directly:
+
+```typescript
+// Import only the graph types
+import { GraphNoun, GraphVerb, NounType, VerbType } from '@soulcraft/brainy/types/graphTypes';
+
+// Example usage
+const person = {
+  id: '123',
+  createdBy: {
+    augmentation: 'manual',
+    version: '1.0',
+    model: 'none',
+    modelVersion: '1.0'
+  },
+  noun: NounType.Person,
+  createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 },
+  updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0 },
+  data: { name: 'John Doe' }
+};
+
+// Check the type
+console.log(`Person type: ${person.noun}`); // 'person'
+console.log(`Available noun types:`, Object.values(NounType));
+```
+
+This approach allows you to use just the type definitions without pulling in the entire library, which is useful for applications that only need to work with the data model.
+
 ## Publishing and Using as a Private NPM Package
 
 Soulcraft Brainy is configured as a private NPM package with restricted access. This section provides information on how to publish and use it within your organization.
