@@ -6,7 +6,16 @@
 import { v4 as uuidv4 } from 'uuid'
 import { HNSWIndex } from './hnsw/hnswIndex.js'
 import { createStorage } from './storage/opfsStorage.js'
-import { DistanceFunction, Edge, EmbeddingFunction, HNSWConfig, SearchResult, StorageAdapter, Vector, VectorDocument } from './coreTypes.js'
+import {
+  DistanceFunction,
+  Edge,
+  EmbeddingFunction,
+  HNSWConfig,
+  SearchResult,
+  StorageAdapter,
+  Vector,
+  VectorDocument
+} from './coreTypes.js'
 import { cosineDistance, defaultEmbeddingFunction, euclideanDistance } from './utils/index.js'
 
 export interface BrainyDataConfig {
@@ -181,9 +190,9 @@ export class BrainyData<T = any> {
    * @returns Array of IDs for the added items
    */
   public async addBatch(
-    items: Array<{ 
-      vectorOrData: Vector | any; 
-      metadata?: T 
+    items: Array<{
+      vectorOrData: Vector | any;
+      metadata?: T
     }>,
     options: {
       forceEmbed?: boolean // Force using the embedding function even if input is a vector
@@ -550,7 +559,7 @@ export class BrainyData<T = any> {
   /**
    * Embed text or data into a vector using the same embedding function used by this instance
    * This allows clients to use the same TensorFlow Universal Sentence Encoder throughout their application
-   * 
+   *
    * @param data Text or data to embed
    * @returns A promise that resolves to the embedded vector
    */
@@ -568,7 +577,7 @@ export class BrainyData<T = any> {
   /**
    * Search for similar documents using a text query
    * This is a convenience method that embeds the query text and performs a search
-   * 
+   *
    * @param query Text query to search for
    * @param k Number of results to return
    * @returns Array of search results
@@ -594,6 +603,54 @@ export class BrainyData<T = any> {
   private async ensureInitialized(): Promise<void> {
     if (!this.isInitialized) {
       await this.init()
+    }
+  }
+
+  /**
+   * Get information about the current storage usage and capacity
+   * @returns Object containing the storage type, used space, quota, and additional details
+   */
+  public async status(): Promise<{
+    type: string;
+    used: number;
+    quota: number | null;
+    details?: Record<string, any>;
+  }> {
+    await this.ensureInitialized()
+
+    if (!this.storage) {
+      return {
+        type: 'unknown',
+        used: 0,
+        quota: null,
+        details: { error: 'Storage not initialized' }
+      }
+    }
+
+    try {
+      // Get storage status from the storage adapter
+      const storageStatus = await this.storage.getStorageStatus()
+
+      // Add index information to the details
+      const indexInfo = {
+        indexSize: this.size()
+      }
+
+      return {
+        ...storageStatus,
+        details: {
+          ...storageStatus.details,
+          index: indexInfo
+        }
+      }
+    } catch (error) {
+      console.error('Failed to get storage status:', error)
+      return {
+        type: 'unknown',
+        used: 0,
+        quota: null,
+        details: { error: String(error) }
+      }
     }
   }
 }

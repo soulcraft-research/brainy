@@ -498,6 +498,89 @@ export class OPFSStorage implements StorageAdapter {
     }
     return obj
   }
+
+  /**
+   * Get information about storage usage and capacity
+   */
+  public async getStorageStatus(): Promise<{
+    type: string;
+    used: number;
+    quota: number | null;
+    details?: Record<string, any>;
+  }> {
+    await this.ensureInitialized()
+
+    try {
+      // Calculate the total size of all files in the storage directories
+      let totalSize = 0
+
+      // Helper function to calculate directory size
+      const calculateDirSize = async (dirHandle: FileSystemDirectoryHandle): Promise<number> => {
+        let size = 0
+        try {
+          // @ts-ignore - TypeScript doesn't recognize FileSystemDirectoryHandle.entries() properly
+          for await (const [name, handle] of dirHandle.entries()) {
+            if (handle.kind === 'file') {
+              const file = await handle.getFile()
+              size += file.size
+            } else if (handle.kind === 'directory') {
+              size += await calculateDirSize(handle)
+            }
+          }
+        } catch (error) {
+          console.warn(`Error calculating size for directory:`, error)
+        }
+        return size
+      }
+
+      // Calculate size for each directory
+      if (this.nodesDir) {
+        totalSize += await calculateDirSize(this.nodesDir)
+      }
+      if (this.edgesDir) {
+        totalSize += await calculateDirSize(this.edgesDir)
+      }
+      if (this.metadataDir) {
+        totalSize += await calculateDirSize(this.metadataDir)
+      }
+
+      // Get storage quota information using the Storage API
+      let quota = null
+      let details: Record<string, any> = {
+        isPersistent: await this.isPersistent()
+      }
+
+      try {
+        if (navigator.storage && navigator.storage.estimate) {
+          const estimate = await navigator.storage.estimate()
+          quota = estimate.quota || null
+          details = {
+            ...details,
+            usage: estimate.usage,
+            quota: estimate.quota,
+            freePercentage: estimate.quota ? ((estimate.quota - (estimate.usage || 0)) / estimate.quota) * 100 : null
+          }
+        }
+      } catch (error) {
+        console.warn('Unable to get storage estimate:', error)
+      }
+
+      return {
+        type: 'opfs',
+        used: totalSize,
+        quota,
+        details
+      }
+    } catch (error) {
+      console.error('Failed to get storage status:', error)
+      return {
+        type: 'opfs',
+        used: 0,
+        quota: null,
+        details: { error: String(error) }
+      }
+    }
+  }
 }
 
 /**
@@ -692,6 +775,114 @@ export class MemoryStorage implements StorageAdapter {
     this.nodes.clear()
     this.edges.clear()
     this.metadata.clear()
+  }
+
+  /**
+   * Get information about storage usage and capacity
+   */
+  public async getStorageStatus(): Promise<{
+    type: string;
+    used: number;
+    quota: number | null;
+    details?: Record<string, any>;
+  }> {
+    try {
+      // Estimate the size of data in memory
+      let totalSize = 0
+
+      // Helper function to estimate object size in bytes
+      const estimateSize = (obj: any): number => {
+        if (obj === null || obj === undefined) return 0
+
+        const type = typeof obj
+
+        // Handle primitive types
+        if (type === 'number') return 8
+        if (type === 'string') return obj.length * 2
+        if (type === 'boolean') return 4
+
+        // Handle arrays and objects
+        if (Array.isArray(obj)) {
+          return obj.reduce((size, item) => size + estimateSize(item), 0)
+        }
+
+        if (type === 'object') {
+          if (obj instanceof Map) {
+            let mapSize = 0
+            for (const [key, value] of obj.entries()) {
+              mapSize += estimateSize(key) + estimateSize(value)
+            }
+            return mapSize
+          }
+
+          if (obj instanceof Set) {
+            let setSize = 0
+            for (const item of obj) {
+              setSize += estimateSize(item)
+            }
+            return setSize
+          }
+
+          // Regular object
+          return Object.entries(obj).reduce(
+            (size, [key, value]) => size + key.length * 2 + estimateSize(value),
+            0
+          )
+        }
+
+        return 0
+      }
+
+      // Estimate size of nodes
+      for (const node of this.nodes.values()) {
+        totalSize += estimateSize(node)
+      }
+
+      // Estimate size of edges
+      for (const edge of this.edges.values()) {
+        totalSize += estimateSize(edge)
+      }
+
+      // Estimate size of metadata
+      for (const meta of this.metadata.values()) {
+        totalSize += estimateSize(meta)
+      }
+
+      // Get memory information if available
+      let quota = null
+      let details: Record<string, any> = {
+        nodesCount: this.nodes.size,
+        edgesCount: this.edges.size,
+        metadataCount: this.metadata.size
+      }
+
+      // Try to get memory information if in a browser environment
+      if (typeof window !== 'undefined' && (window as any).performance && (window as any).performance.memory) {
+        const memory = (window as any).performance.memory
+        quota = memory.jsHeapSizeLimit
+        details = {
+          ...details,
+          totalJSHeapSize: memory.totalJSHeapSize,
+          usedJSHeapSize: memory.usedJSHeapSize,
+          jsHeapSizeLimit: memory.jsHeapSizeLimit
+        }
+      }
+
+      return {
+        type: 'memory',
+        used: totalSize,
+        quota,
+        details
+      }
+    } catch (error) {
+      console.error('Failed to get memory storage status:', error)
+      return {
+        type: 'memory',
+        used: 0,
+        quota: null,
+        details: { error: String(error) }
+      }
+    }
   }
 }
 

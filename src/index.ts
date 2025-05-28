@@ -66,6 +66,30 @@ export {
 }
 export type { PipelineOptions }
 
+// Export plugin loader
+import {
+  loadPlugins,
+  configureAndStartPipeline,
+  createSensePluginConfig,
+  createConduitPluginConfig
+} from './pluginLoader.js'
+import type {
+  PluginLoaderOptions,
+  PluginConfig,
+  PluginLoadResult
+} from './pluginLoader.js'
+export {
+  loadPlugins,
+  configureAndStartPipeline,
+  createSensePluginConfig,
+  createConduitPluginConfig
+}
+export type {
+  PluginLoaderOptions,
+  PluginConfig,
+  PluginLoadResult
+}
+
 // Export types
 import type {
   Vector,

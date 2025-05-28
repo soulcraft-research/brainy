@@ -451,4 +451,113 @@ export class FileSystemStorage implements StorageAdapter {
     }
     return obj
   }
+
+  /**
+   * Get information about storage usage and capacity
+   */
+  public async getStorageStatus(): Promise<{
+    type: string;
+    used: number;
+    quota: number | null;
+    details?: Record<string, any>;
+  }> {
+    await this.ensureInitialized()
+
+    try {
+      // Calculate the total size of all files in the storage directories
+      let totalSize = 0
+
+      // Helper function to calculate directory size
+      const calculateDirSize = async (dirPath: string): Promise<number> => {
+        let size = 0
+        try {
+          const files = await fs.promises.readdir(dirPath)
+
+          for (const file of files) {
+            const filePath = path.join(dirPath, file)
+            const stats = await fs.promises.stat(filePath)
+
+            if (stats.isDirectory()) {
+              size += await calculateDirSize(filePath)
+            } else {
+              size += stats.size
+            }
+          }
+        } catch (error) {
+          console.warn(`Error calculating size for ${dirPath}:`, error)
+        }
+        return size
+      }
+
+      // Calculate size for each directory
+      const nodesDirSize = await calculateDirSize(this.nodesDir)
+      const edgesDirSize = await calculateDirSize(this.edgesDir)
+      const metadataDirSize = await calculateDirSize(this.metadataDir)
+
+      totalSize = nodesDirSize + edgesDirSize + metadataDirSize
+
+      // Get filesystem information
+      let quota = null
+      let details = {}
+
+      try {
+        // Try to get disk space information
+        const stats = await fs.promises.statfs(this.rootDir)
+        if (stats) {
+          const availableSpace = stats.bavail * stats.bsize
+          const totalSpace = stats.blocks * stats.bsize
+
+          quota = totalSpace
+          details = {
+            availableSpace,
+            totalSpace,
+            freePercentage: (availableSpace / totalSpace) * 100
+          }
+        }
+      } catch (error) {
+        console.warn('Unable to get filesystem stats:', error)
+        // If statfs is not available, try to use df command on Unix-like systems
+        try {
+          const { exec } = await import('child_process')
+          const util = await import('util')
+          const execPromise = util.promisify(exec)
+
+          const { stdout } = await execPromise(`df -k "${this.rootDir}"`)
+          const lines = stdout.trim().split('\n')
+          if (lines.length > 1) {
+            const parts = lines[1].split(/\s+/)
+            if (parts.length >= 4) {
+              const totalKB = parseInt(parts[1], 10)
+              const usedKB = parseInt(parts[2], 10)
+              const availableKB = parseInt(parts[3], 10)
+
+              quota = totalKB * 1024
+              details = {
+                availableSpace: availableKB * 1024,
+                totalSpace: totalKB * 1024,
+                freePercentage: (availableKB / totalKB) * 100
+              }
+            }
+          }
+        } catch (dfError) {
+          console.warn('Unable to get disk space using df command:', dfError)
+        }
+      }
+
+      return {
+        type: 'filesystem',
+        used: totalSize,
+        quota,
+        details
+      }
+    } catch (error) {
+      console.error('Failed to get storage status:', error)
+      return {
+        type: 'filesystem',
+        used: 0,
+        quota: null,
+        details: { error: String(error) }
+      }
+    }
+  }
 }

@@ -120,4 +120,30 @@ export interface StorageAdapter {
   getMetadata(id: string): Promise<any | null>;
 
   clear(): Promise<void>;
+
+  /**
+   * Get information about storage usage and capacity
+   * @returns Promise that resolves to an object containing storage status information
+   */
+  getStorageStatus(): Promise<{
+    /**
+     * The type of storage being used (e.g., 'filesystem', 'opfs', 'memory')
+     */
+    type: string;
+
+    /**
+     * The amount of storage being used in bytes
+     */
+    used: number;
+
+    /**
+     * The total amount of storage available in bytes, or null if unknown
+     */
+    quota: number | null;
+
+    /**
+     * Additional storage-specific information
+     */
+    details?: Record<string, any>;
+  }>;
 }

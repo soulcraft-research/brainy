@@ -38,7 +38,9 @@
     "hnsw",
     "opfs",
     "origin-private-file-system",
-    "embeddings"
+    "embeddings",
+    "graph-database",
+    "streaming-data"
   ],
   "author": "David Snelling (david@soulcraft.com)",
   "license": "MIT",
