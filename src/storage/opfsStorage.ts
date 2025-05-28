@@ -19,6 +19,8 @@ export class OPFSStorage implements StorageAdapter {
   private metadataDir: FileSystemDirectoryHandle | null = null
   private isInitialized = false
   private isAvailable = false
+  private isPersistentRequested = false
+  private isPersistentGranted = false
 
   constructor() {
     // Check if OPFS is available
@@ -76,6 +78,51 @@ export class OPFSStorage implements StorageAdapter {
    */
   public isOPFSAvailable(): boolean {
     return this.isAvailable
+  }
+
+  /**
+   * Request persistent storage permission from the user
+   * @returns Promise that resolves to true if permission was granted, false otherwise
+   */
+  public async requestPersistentStorage(): Promise<boolean> {
+    if (!this.isAvailable) {
+      console.warn('Cannot request persistent storage: OPFS is not available')
+      return false
+    }
+
+    try {
+      // Check if persistence is already granted
+      this.isPersistentGranted = await navigator.storage.persisted()
+
+      if (!this.isPersistentGranted) {
+        // Request permission for persistent storage
+        this.isPersistentGranted = await navigator.storage.persist()
+      }
+
+      this.isPersistentRequested = true
+      return this.isPersistentGranted
+    } catch (error) {
+      console.warn('Failed to request persistent storage:', error)
+      return false
+    }
+  }
+
+  /**
+   * Check if persistent storage is granted
+   * @returns Promise that resolves to true if persistent storage is granted, false otherwise
+   */
+  public async isPersistent(): Promise<boolean> {
+    if (!this.isAvailable) {
+      return false
+    }
+
+    try {
+      this.isPersistentGranted = await navigator.storage.persisted()
+      return this.isPersistentGranted
+    } catch (error) {
+      console.warn('Failed to check persistent storage status:', error)
+      return false
+    }
   }
 
   /**
@@ -650,8 +697,12 @@ export class MemoryStorage implements StorageAdapter {
 
 /**
  * Factory function to create the appropriate storage adapter based on the environment
+ * @param options Configuration options for storage
+ * @returns Promise that resolves to a StorageAdapter instance
  */
-export async function createStorage(): Promise<StorageAdapter> {
+export async function createStorage(options: {
+  requestPersistentStorage?: boolean
+} = {}): Promise<StorageAdapter> {
   // Check if we're in a Node.js environment
   const isNode = typeof process !== 'undefined' &&
     process.versions != null &&
@@ -671,6 +722,15 @@ export async function createStorage(): Promise<StorageAdapter> {
     const opfsStorage = new OPFSStorage()
 
     if (opfsStorage.isOPFSAvailable()) {
+      // Request persistent storage if specified
+      if (options.requestPersistentStorage) {
+        const isPersistentGranted = await opfsStorage.requestPersistentStorage()
+        if (isPersistentGranted) {
+          console.log('Persistent storage permission granted')
+        } else {
+          console.warn('Persistent storage permission denied')
+        }
+      }
       return opfsStorage
     } else {
       console.warn('OPFS is not available, falling back to in-memory storage')

@@ -29,6 +29,12 @@ export interface BrainyDataConfig {
    * Embedding function to convert data to vectors
    */
   embeddingFunction?: EmbeddingFunction
+
+  /**
+   * Request persistent storage when running in a browser
+   * This will prompt the user for permission to use persistent storage
+   */
+  requestPersistentStorage?: boolean
 }
 
 export class BrainyData<T = any> {
@@ -36,6 +42,7 @@ export class BrainyData<T = any> {
   private storage: StorageAdapter | null = null
   private isInitialized = false
   private embeddingFunction: EmbeddingFunction
+  private requestPersistentStorage: boolean
 
   /**
    * Create a new vector database
@@ -52,6 +59,9 @@ export class BrainyData<T = any> {
 
     // Set embedding function if provided, otherwise use default
     this.embeddingFunction = config.embeddingFunction || defaultEmbeddingFunction
+
+    // Set persistent storage request flag
+    this.requestPersistentStorage = config.requestPersistentStorage || false
   }
 
   /**
@@ -66,7 +76,9 @@ export class BrainyData<T = any> {
     try {
       // Initialize storage if not provided in constructor
       if (!this.storage) {
-        this.storage = await createStorage()
+        this.storage = await createStorage({
+          requestPersistentStorage: this.requestPersistentStorage
+        })
       }
 
       // Initialize storage
