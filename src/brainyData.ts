@@ -108,8 +108,8 @@ export class BrainyData<T = any> {
 
       this.isInitialized = true
     } catch (error) {
-      console.error('Failed to initialize vector database:', error)
-      throw new Error(`Failed to initialize vector database: ${error}`)
+      console.error('Failed to initialize BrainyData:', error)
+      throw new Error(`Failed to initialize BrainyData: ${error}`)
     }
   }
 
@@ -628,6 +628,22 @@ export class BrainyData<T = any> {
     }
 
     try {
+      // Check if the storage adapter has a getStorageStatus method
+      if (typeof this.storage.getStorageStatus !== 'function') {
+        // If not, determine the storage type based on the constructor name
+        const storageType = this.storage.constructor.name.toLowerCase().replace('storage', '');
+        return {
+          type: storageType || 'unknown',
+          used: 0,
+          quota: null,
+          details: { 
+            error: 'Storage adapter does not implement getStorageStatus method',
+            storageAdapter: this.storage.constructor.name,
+            indexSize: this.size()
+          }
+        }
+      }
+
       // Get storage status from the storage adapter
       const storageStatus = await this.storage.getStorageStatus()
 
@@ -636,20 +652,31 @@ export class BrainyData<T = any> {
         indexSize: this.size()
       }
 
+      // Ensure all required fields are present
       return {
-        ...storageStatus,
+        type: storageStatus.type || 'unknown',
+        used: storageStatus.used || 0,
+        quota: storageStatus.quota || null,
         details: {
-          ...storageStatus.details,
+          ...(storageStatus.details || {}),
           index: indexInfo
         }
       }
     } catch (error) {
       console.error('Failed to get storage status:', error)
+
+      // Determine the storage type based on the constructor name
+      const storageType = this.storage.constructor.name.toLowerCase().replace('storage', '');
+
       return {
-        type: 'unknown',
+        type: storageType || 'unknown',
         used: 0,
         quota: null,
-        details: { error: String(error) }
+        details: { 
+          error: String(error),
+          storageAdapter: this.storage.constructor.name,
+          indexSize: this.size()
+        }
       }
     }
   }
