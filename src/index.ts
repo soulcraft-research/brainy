@@ -96,13 +96,27 @@ export type {
 import type {
   IAugmentation,
   AugmentationResponse,
-  IWebSocketSupport
+  IWebSocketSupport,
+  ISenseAugmentation,
+  IConduitAugmentation,
+  ICognitionAugmentation,
+  IMemoryAugmentation,
+  IPerceptionAugmentation,
+  IDialogAugmentation,
+  IActivationAugmentation
 } from './types/augmentations.js'
 import { AugmentationType, BrainyAugmentations } from './types/augmentations.js'
 export type {
   IAugmentation,
   AugmentationResponse,
-  IWebSocketSupport
+  IWebSocketSupport,
+  ISenseAugmentation,
+  IConduitAugmentation,
+  ICognitionAugmentation,
+  IMemoryAugmentation,
+  IPerceptionAugmentation,
+  IDialogAugmentation,
+  IActivationAugmentation
 }
 export { AugmentationType, BrainyAugmentations }
 

@@ -348,6 +348,15 @@ export namespace BrainyAugmentations {
   }
 }
 
+/** Direct exports of augmentation interfaces for easier imports */
+export type ISenseAugmentation = BrainyAugmentations.ISenseAugmentation
+export type IConduitAugmentation = BrainyAugmentations.IConduitAugmentation
+export type ICognitionAugmentation = BrainyAugmentations.ICognitionAugmentation
+export type IMemoryAugmentation = BrainyAugmentations.IMemoryAugmentation
+export type IPerceptionAugmentation = BrainyAugmentations.IPerceptionAugmentation
+export type IDialogAugmentation = BrainyAugmentations.IDialogAugmentation
+export type IActivationAugmentation = BrainyAugmentations.IActivationAugmentation
+
 /** WebSocket-enabled augmentation interfaces */
 export type IWebSocketSenseAugmentation = BrainyAugmentations.ISenseAugmentation & IWebSocketSupport
 export type IWebSocketConduitAugmentation = BrainyAugmentations.IConduitAugmentation & IWebSocketSupport
