@@ -1,6 +1,8 @@
-import fs from 'fs'
-import path from 'path'
 import { Edge, HNSWNode, StorageAdapter } from '../coreTypes.js'
+
+// We'll dynamically import Node.js built-in modules
+let fs: any
+let path: any
 
 // Constants for directory and file names
 const ROOT_DIR = 'brainy-data'
@@ -19,11 +21,11 @@ export class FileSystemStorage implements StorageAdapter {
   private isInitialized = false
 
   constructor(rootDirectory?: string) {
-    // Use the provided root directory or default to the current working directory
-    this.rootDir = rootDirectory ? path.resolve(rootDirectory, ROOT_DIR) : path.resolve(process.cwd(), ROOT_DIR)
-    this.nodesDir = path.join(this.rootDir, NODES_DIR)
-    this.edgesDir = path.join(this.rootDir, EDGES_DIR)
-    this.metadataDir = path.join(this.rootDir, METADATA_DIR)
+    // We'll set the paths in the init method after dynamically importing the modules
+    this.rootDir = rootDirectory || ''
+    this.nodesDir = ''
+    this.edgesDir = ''
+    this.metadataDir = ''
   }
 
   /**
@@ -35,6 +37,26 @@ export class FileSystemStorage implements StorageAdapter {
     }
 
     try {
+      // Dynamically import Node.js built-in modules
+      try {
+        // Import the modules
+        const fsModule = await import('fs')
+        const pathModule = await import('path')
+
+        // Assign to our module-level variables
+        fs = fsModule.default || fsModule
+        path = pathModule.default || pathModule
+
+        // Now set up the directory paths
+        const rootDir = this.rootDir || process.cwd()
+        this.rootDir = path.resolve(rootDir, ROOT_DIR)
+        this.nodesDir = path.join(this.rootDir, NODES_DIR)
+        this.edgesDir = path.join(this.rootDir, EDGES_DIR)
+        this.metadataDir = path.join(this.rootDir, METADATA_DIR)
+      } catch (importError) {
+        throw new Error(`Failed to import Node.js modules: ${importError}. This adapter requires a Node.js environment.`)
+      }
+
       // Create directories if they don't exist
       await this.ensureDirectoryExists(this.rootDir)
       await this.ensureDirectoryExists(this.nodesDir)
@@ -118,8 +140,8 @@ export class FileSystemStorage implements StorageAdapter {
     try {
       const files = await fs.promises.readdir(this.nodesDir)
       const nodePromises = files
-        .filter(file => file.endsWith('.json'))
-        .map(file => {
+        .filter((file: string) => file.endsWith('.json'))
+        .map((file: string) => {
           const id = path.basename(file, '.json')
           return this.getNode(id)
         })
@@ -230,8 +252,8 @@ export class FileSystemStorage implements StorageAdapter {
     try {
       const files = await fs.promises.readdir(this.edgesDir)
       const edgePromises = files
-        .filter(file => file.endsWith('.json'))
-        .map(file => {
+        .filter((file: string) => file.endsWith('.json'))
+        .map((file: string) => {
           const id = path.basename(file, '.json')
           return this.getEdge(id)
         })
