@@ -900,7 +900,7 @@ export async function createStorage(options: {
     process.versions.node != null
 
   if (isNode) {
-    // In Node.js, use FileSystemStorage
+    // In Node.js, use FileSystemStorage first, then fall back to memory
     try {
       const fileSystemModule = await import('./fileSystemStorage.js')
       return new fileSystemModule.FileSystemStorage()
@@ -924,8 +924,16 @@ export async function createStorage(options: {
       }
       return opfsStorage
     } else {
-      console.warn('OPFS is not available, falling back to in-memory storage')
-      return new MemoryStorage()
+      // OPFS is not available, try to use FileSystem API if available
+      try {
+        // Try to load FileSystemStorage for browser environments
+        // Note: This will likely fail as FileSystemStorage is designed for Node.js
+        const fileSystemModule = await import('./fileSystemStorage.js')
+        return new fileSystemModule.FileSystemStorage()
+      } catch (error) {
+        console.warn('FileSystem storage is not available, falling back to in-memory storage')
+        return new MemoryStorage()
+      }
     }
   }
 }
