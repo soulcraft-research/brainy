@@ -1,6 +1,6 @@
 # Soulcraft Brainy
 
-A vector database that runs in a browser or Node.js and utilizes Origin Private File System (OPFS) for storage, with HNSW (Hierarchical Navigable Small World) for efficient vector indexing.
+A combined Graph and Vector database that runs in a browser or Node.js and utilizes Origin Private File System (OPFS) for storage, with HNSW (Hierarchical Navigable Small World) for efficient vector indexing.
 
 ## Features
 
@@ -14,7 +14,7 @@ A vector database that runs in a browser or Node.js and utilizes Origin Private 
 - **Multiple distance functions**: Supports cosine, Euclidean, Manhattan, and dot product distance metrics
 - **Augmentation system**: Extensible architecture for adding specialized capabilities
 - **Memory augmentation**: Store and retrieve data in different formats (fileSystem, in-memory, firestore)
-- **Graph data model**: Structured representation of entities and relationships
+- **Full graph database capabilities**: Structured representation of entities and relationships with support for nodes (nouns) and edges (verbs)
 
 ## Installation
 
@@ -29,7 +29,7 @@ npm install @soulcraft/brainy
 ```typescript
 import {BrainyData} from '@soulcraft/brainy';
 
-// Create a new vector database
+// Create a new graph and vector database
 const db = new BrainyData();
 await db.init();
 
@@ -82,7 +82,7 @@ You can directly use the same embedding function that the database uses internal
 ```typescript
 import {BrainyData} from '@soulcraft/brainy';
 
-// Create a new vector database
+// Create a new graph and vector database
 const db = new BrainyData();
 await db.init();
 
@@ -150,7 +150,7 @@ You can also configure BrainyData to use a different embedding function if neede
 ```typescript
 import { BrainyData, createSimpleEmbeddingFunction } from '@soulcraft/brainy';
 
-// Create a new vector database with the simple embedding function
+// Create a new graph and vector database with the simple embedding function
 // (only if you prefer speed over accuracy)
 const db = new BrainyData({
   embeddingFunction: createSimpleEmbeddingFunction()
@@ -168,7 +168,7 @@ import {
   createEmbeddingFunction
 } from '@soulcraft/brainy';
 
-// Configure the vector database
+// Configure the graph and vector database
 const db = new BrainyData({
     // HNSW index configuration
     hnsw: {
@@ -730,7 +730,7 @@ In environments where neither OPFS nor Node.js file system is available, the dat
 
 ### BrainyData
 
-The main class for interacting with the vector database.
+The main class for interacting with the graph and vector database.
 
 #### Constructor
 
