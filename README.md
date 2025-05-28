@@ -233,6 +233,67 @@ console.log(`Available noun types:`, Object.values(NounType));
 
 This approach allows you to use just the type definitions without pulling in the entire library, which is useful for applications that only need to work with the data model.
 
+### Importing Augmentation Types Separately
+
+If you need to use the augmentation interfaces in a client application without importing the entire library, you can import them directly:
+
+```typescript
+// Import the BrainyAugmentations namespace and related types
+import { BrainyAugmentations, AugmentationType, AugmentationResponse } from '@soulcraft/brainy/types/augmentations';
+
+// Example usage of augmentation interfaces
+class MyCustomCognitionAugmentation implements BrainyAugmentations.ICognitionAugmentation {
+  readonly name = 'my-custom-reasoner';
+  readonly description = 'A custom reasoning augmentation';
+
+  async initialize(): Promise<void> {
+    console.log('Initializing custom cognition augmentation');
+  }
+
+  async shutDown(): Promise<void> {
+    console.log('Shutting down custom cognition augmentation');
+  }
+
+  async getStatus(): Promise<'active' | 'inactive' | 'error'> {
+    return 'active';
+  }
+
+  reason(query: string, context?: Record<string, unknown>): AugmentationResponse<{
+    inference: string;
+    confidence: number;
+  }> {
+    return {
+      success: true,
+      data: {
+        inference: `Reasoning about: ${query}`,
+        confidence: 0.85
+      }
+    };
+  }
+
+  infer(dataSubset: Record<string, unknown>): AugmentationResponse<Record<string, unknown>> {
+    return {
+      success: true,
+      data: {
+        inferredRelationship: 'example'
+      }
+    };
+  }
+
+  executeLogic(ruleId: string, input: Record<string, unknown>): AugmentationResponse<boolean> {
+    return {
+      success: true,
+      data: true
+    };
+  }
+}
+
+// Check the augmentation type
+console.log(`Available augmentation types:`, Object.values(AugmentationType));
+```
+
+This approach allows you to use the augmentation interfaces in client applications that need to implement or interact with Brainy's augmentation system.
+
 ## Publishing and Using as a Private NPM Package
 
 Soulcraft Brainy is configured as a private NPM package with restricted access. This section provides information on how to publish and use it within your organization.
