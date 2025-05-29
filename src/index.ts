@@ -4,22 +4,24 @@
  */
 
 // Export main BrainyData class and related types
-import { BrainyData, BrainyDataConfig } from './brainyData.ts'
+import { BrainyData, BrainyDataConfig } from './brainyData.js'
+
 export { BrainyData }
 export type { BrainyDataConfig }
 
 // Export distance functions for convenience
-import { 
-  euclideanDistance, 
-  cosineDistance, 
-  manhattanDistance, 
-  dotProductDistance 
-} from './utils/index.ts'
-export { 
-  euclideanDistance, 
-  cosineDistance, 
-  manhattanDistance, 
-  dotProductDistance 
+import {
+  euclideanDistance,
+  cosineDistance,
+  manhattanDistance,
+  dotProductDistance
+} from './utils/index.js'
+
+export {
+  euclideanDistance,
+  cosineDistance,
+  manhattanDistance,
+  dotProductDistance
 }
 
 // Export embedding functionality
@@ -30,7 +32,8 @@ import {
   createTensorFlowEmbeddingFunction,
   createSimpleEmbeddingFunction,
   defaultEmbeddingFunction
-} from './utils/embedding.ts'
+} from './utils/embedding.js'
+
 export {
   SimpleEmbedding,
   UniversalSentenceEncoder,
@@ -41,15 +44,16 @@ export {
 }
 
 // Export storage adapters
-import { 
-  OPFSStorage, 
-  MemoryStorage, 
-  createStorage 
-} from './storage/opfsStorage.ts'
-export { 
-  OPFSStorage, 
-  MemoryStorage, 
-  createStorage 
+import {
+  OPFSStorage,
+  MemoryStorage,
+  createStorage
+} from './storage/opfsStorage.js'
+
+export {
+  OPFSStorage,
+  MemoryStorage,
+  createStorage
 }
 
 // Export augmentation pipeline
@@ -58,7 +62,8 @@ import {
   augmentationPipeline,
   ExecutionMode,
   PipelineOptions
-} from './augmentationPipeline.ts'
+} from './augmentationPipeline.js'
+
 export {
   AugmentationPipeline,
   augmentationPipeline,
@@ -66,29 +71,44 @@ export {
 }
 export type { PipelineOptions }
 
-// Export plugin loader
+// Export augmentation registry for build-time loading
 import {
-  loadPlugins,
-  configureAndStartPipeline,
-  createSensePluginConfig,
-  createConduitPluginConfig
-} from './pluginLoader.ts'
-import type {
-  PluginLoaderOptions,
-  PluginConfig,
-  PluginLoadResult
-} from './pluginLoader.ts'
+  availableAugmentations,
+  registerAugmentation,
+  initializeAugmentationPipeline,
+  setAugmentationEnabled,
+  getAugmentationsByType
+} from './augmentationRegistry.js'
+
 export {
-  loadPlugins,
-  configureAndStartPipeline,
-  createSensePluginConfig,
-  createConduitPluginConfig
+  availableAugmentations,
+  registerAugmentation,
+  initializeAugmentationPipeline,
+  setAugmentationEnabled,
+  getAugmentationsByType
+}
+
+// Export augmentation registry loader for build tools
+import {
+  loadAugmentationsFromModules,
+  createAugmentationRegistryPlugin,
+  createAugmentationRegistryRollupPlugin
+} from './augmentationRegistryLoader.js'
+import type {
+  AugmentationRegistryLoaderOptions,
+  AugmentationLoadResult
+} from './augmentationRegistryLoader.js'
+
+export {
+  loadAugmentationsFromModules,
+  createAugmentationRegistryPlugin,
+  createAugmentationRegistryRollupPlugin
 }
 export type {
-  PluginLoaderOptions,
-  PluginConfig,
-  PluginLoadResult
+  AugmentationRegistryLoaderOptions,
+  AugmentationLoadResult
 }
+
 
 // Export types
 import type {
@@ -102,7 +122,8 @@ import type {
   Edge,
   HNSWConfig,
   StorageAdapter
-} from './coreTypes.ts'
+} from './coreTypes.js'
+
 export type {
   Vector,
   VectorDocument,
@@ -128,8 +149,9 @@ import type {
   IPerceptionAugmentation,
   IDialogAugmentation,
   IActivationAugmentation
-} from './types/augmentations.ts'
-import { AugmentationType, BrainyAugmentations } from './types/augmentations.ts'
+} from './types/augmentations.js'
+import { AugmentationType, BrainyAugmentations } from './types/augmentations.js'
+
 export type {
   IAugmentation,
   AugmentationResponse,
@@ -156,7 +178,7 @@ export type {
   IWebSocketDialogAugmentation,
   IWebSocketConduitAugmentation,
   IWebSocketMemoryAugmentation
-} from './types/augmentations.ts'
+} from './types/augmentations.js'
 
 // Export graph types
 import type {
@@ -169,8 +191,9 @@ import type {
   Event,
   Concept,
   Content
-} from './types/graphTypes.ts'
-import { NounType, VerbType } from './types/graphTypes.ts'
+} from './types/graphTypes.js'
+import { NounType, VerbType } from './types/graphTypes.js'
+
 export type {
   GraphNoun,
   GraphVerb,

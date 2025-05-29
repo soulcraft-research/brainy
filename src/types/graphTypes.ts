@@ -124,6 +124,7 @@ export const VerbType = {
   Controls: 'controls',          // Indicates control or ownership
   Created: 'created',           // Indicates creation or authorship
   Earned: 'earned',             // Indicates achievement or acquisition
-  Owns: 'owns'                  // Indicates ownership
+  Owns: 'owns',                 // Indicates ownership
+  MemberOf: 'memberOf'          // Indicates membership or affiliation
 } as const
 export type VerbType = (typeof VerbType)[keyof typeof VerbType]

@@ -524,7 +524,10 @@ export class AugmentationPipeline {
     data: R
     error?: string
   }>[]> {
-    if (augmentations.length === 0) {
+    // Filter out disabled augmentations
+    const enabledAugmentations = augmentations.filter(aug => aug.enabled !== false)
+
+    if (enabledAugmentations.length === 0) {
       return []
     }
 
@@ -571,11 +574,11 @@ export class AugmentationPipeline {
     switch (options.mode) {
       case ExecutionMode.PARALLEL:
         // Execute all augmentations in parallel
-        return augmentations.map(executeMethod)
+        return enabledAugmentations.map(executeMethod)
 
       case ExecutionMode.FIRST_SUCCESS:
         // Execute augmentations sequentially until one succeeds
-        for (const augmentation of augmentations) {
+        for (const augmentation of enabledAugmentations) {
           const resultPromise = executeMethod(augmentation)
           const result = await resultPromise
           if (result.success) {
@@ -586,7 +589,7 @@ export class AugmentationPipeline {
 
       case ExecutionMode.FIRST_RESULT:
         // Execute augmentations sequentially until one returns a result
-        for (const augmentation of augmentations) {
+        for (const augmentation of enabledAugmentations) {
           const resultPromise = executeMethod(augmentation)
           const result = await resultPromise
           if (result.success && result.data) {
@@ -603,7 +606,7 @@ export class AugmentationPipeline {
           data: R
           error?: string
         }>[] = []
-        for (const augmentation of augmentations) {
+        for (const augmentation of enabledAugmentations) {
           const resultPromise = executeMethod(augmentation)
           results.push(resultPromise)
 

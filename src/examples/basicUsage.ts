@@ -2,7 +2,7 @@
  * Basic usage example for the Soulcraft Brainy database
  */
 
-import { BrainyData } from '../brainyData.ts'
+import { BrainyData } from '../brainyData.js'
 
 // Example data - word embeddings
 const wordEmbeddings = {

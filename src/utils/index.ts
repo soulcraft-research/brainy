@@ -1,2 +1,2 @@
-export * from './distance.ts'
-export * from './embedding.ts'
+export * from './distance.js'
+export * from './embedding.js'

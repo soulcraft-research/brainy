@@ -4,8 +4,8 @@
  */
 
 import { v4 as uuidv4 } from 'uuid'
-import { HNSWIndex } from './hnsw/hnswIndex.ts'
-import { createStorage } from './storage/opfsStorage.ts'
+import { HNSWIndex } from './hnsw/hnswIndex.js'
+import { createStorage } from './storage/opfsStorage.js'
 import {
   DistanceFunction,
   Edge,
@@ -15,8 +15,8 @@ import {
   StorageAdapter,
   Vector,
   VectorDocument
-} from './coreTypes.ts'
-import { cosineDistance, defaultEmbeddingFunction, euclideanDistance } from './utils/index.ts'
+} from './coreTypes.js'
+import { cosineDistance, defaultEmbeddingFunction, euclideanDistance } from './utils/index.js'
 
 export interface BrainyDataConfig {
   /**

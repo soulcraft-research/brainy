@@ -35,6 +35,8 @@ export interface IAugmentation {
   readonly name: string
   /** A human-readable description of the augmentation's purpose */
   readonly description: string
+  /** Whether this augmentation is enabled */
+  enabled: boolean
 
   /**
    * Initializes the augmentation. This method is called when Brainy starts up.

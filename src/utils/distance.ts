@@ -2,7 +2,7 @@
  * Distance functions for vector similarity calculations
  */
 
-import { DistanceFunction, Vector } from '../coreTypes.ts'
+import { DistanceFunction, Vector } from '../coreTypes.js'
 
 /**
  * Calculates the Euclidean distance between two vectors

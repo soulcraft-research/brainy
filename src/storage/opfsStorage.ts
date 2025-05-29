@@ -3,7 +3,7 @@
  * Provides persistent storage for the vector database using the Origin Private File System API
  */
 
-import { Edge, HNSWNode, StorageAdapter } from '../coreTypes.ts'
+import { Edge, HNSWNode, StorageAdapter } from '../coreTypes.js'
 
 // Directory and file names
 const ROOT_DIR = 'opfs-vector-db'
@@ -902,7 +902,7 @@ export async function createStorage(options: {
   if (isNode) {
     // In Node.js, use FileSystemStorage first, then fall back to memory
     try {
-      const fileSystemModule = await import('./fileSystemStorage.ts')
+      const fileSystemModule = await import('./fileSystemStorage.js')
       return new fileSystemModule.FileSystemStorage()
     } catch (error) {
       console.warn('Failed to load FileSystemStorage, falling back to in-memory storage:', error)
@@ -928,7 +928,7 @@ export async function createStorage(options: {
       try {
         // Try to load FileSystemStorage for browser environments
         // Note: This will likely fail as FileSystemStorage is designed for Node.js
-        const fileSystemModule = await import('./fileSystemStorage.ts')
+        const fileSystemModule = await import('./fileSystemStorage.js')
         return new fileSystemModule.FileSystemStorage()
       } catch (error) {
         console.warn('FileSystem storage is not available, falling back to in-memory storage')
