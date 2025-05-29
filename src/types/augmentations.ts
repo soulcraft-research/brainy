@@ -13,7 +13,7 @@ export enum AugmentationType {
   ACTIVATION = 'activation',
   WEBSOCKET = 'webSocket'
 }
-type WebSocketConnection = {
+export type WebSocketConnection = {
   connectionId: string
   url: string
   status: 'connected' | 'disconnected' | 'error'

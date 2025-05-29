@@ -109,6 +109,21 @@ export type {
   AugmentationLoadResult
 }
 
+// Export augmentation implementations
+import {
+  FirestoreSyncAugmentation,
+  createFirestoreSyncAugmentation
+} from './augmentations/firestoreSyncAugmentation.js'
+import type { FirestoreSyncConfig } from './augmentations/firestoreSyncAugmentation.js'
+
+export {
+  FirestoreSyncAugmentation,
+  createFirestoreSyncAugmentation
+}
+export type {
+  FirestoreSyncConfig
+}
+
 
 // Export types
 import type {

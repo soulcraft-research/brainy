@@ -1,20 +1,24 @@
 # Soulcraft Brainy
 
-A combined Graph and Vector database that runs in a browser or Node.js and utilizes Origin Private File System (OPFS) for storage, with HNSW (Hierarchical Navigable Small World) for efficient vector indexing.
+A combined Graph and Vector database that runs in a browser or Node.js and utilizes Origin Private File System (OPFS)
+for storage, with HNSW (Hierarchical Navigable Small World) for efficient vector indexing.
 
 ## Features
 
 - **Cross-platform**: Works in both browsers and Node.js
 - **Persistent storage**: Uses Origin Private File System (OPFS) in browsers, with fallback to in-memory storage
-- **Efficient vector search**: Implements HNSW (Hierarchical Navigable Small World) algorithm for fast approximate nearest neighbor search
+- **Efficient vector search**: Implements HNSW (Hierarchical Navigable Small World) algorithm for fast approximate
+  nearest neighbor search
 - **Automatic embedding**: Converts text and other data to vectors using embedding models
-- **TensorFlow.js integration**: Uses Universal Sentence Encoder for high-quality text embeddings (TensorFlow.js is included as a dependency)
+- **TensorFlow.js integration**: Uses Universal Sentence Encoder for high-quality text embeddings (TensorFlow.js is
+  included as a dependency)
 - **Metadata support**: Store and retrieve metadata alongside vectors
 - **TypeScript support**: Fully typed API with generics for metadata types
 - **Multiple distance functions**: Supports cosine, Euclidean, Manhattan, and dot product distance metrics
 - **Augmentation system**: Extensible architecture for adding specialized capabilities
 - **Memory augmentation**: Store and retrieve data in different formats (fileSystem, in-memory, firestore)
-- **Full graph database capabilities**: Structured representation of entities and relationships with support for nodes (nouns) and edges (verbs)
+- **Full graph database capabilities**: Structured representation of entities and relationships with support for nodes (
+  nouns) and edges (verbs)
 
 ## Installation
 
@@ -99,17 +103,18 @@ console.log(animalVectors);
 
 ### Using Embedding Functions
 
-By default, Brainy uses the TensorFlow Universal Sentence Encoder for high-quality text embeddings. The TensorFlow.js dependencies are automatically included when you install the package, so you don't need to install them separately.
+By default, Brainy uses the TensorFlow Universal Sentence Encoder for high-quality text embeddings. The TensorFlow.js
+dependencies are automatically included when you install the package, so you don't need to install them separately.
 
 You can use the default embedding function directly:
 
 ```typescript
 import {
-  defaultEmbeddingFunction,
-  createTensorFlowEmbeddingFunction,
-  createSimpleEmbeddingFunction,
-  UniversalSentenceEncoder,
-  createEmbeddingFunction
+    defaultEmbeddingFunction,
+    createTensorFlowEmbeddingFunction,
+    createSimpleEmbeddingFunction,
+    UniversalSentenceEncoder,
+    createEmbeddingFunction
 } from '@soulcraft/brainy';
 
 // Option 1: Use the default embedding function (TensorFlow Universal Sentence Encoder)
@@ -148,12 +153,12 @@ await useModel.dispose();
 You can also configure BrainyData to use a different embedding function if needed:
 
 ```typescript
-import { BrainyData, createSimpleEmbeddingFunction } from '@soulcraft/brainy';
+import {BrainyData, createSimpleEmbeddingFunction} from '@soulcraft/brainy';
 
 // Create a new graph and vector database with the simple embedding function
 // (only if you prefer speed over accuracy)
 const db = new BrainyData({
-  embeddingFunction: createSimpleEmbeddingFunction()
+    embeddingFunction: createSimpleEmbeddingFunction()
 });
 await db.init();
 ```
@@ -162,10 +167,10 @@ await db.init();
 
 ```typescript
 import {
-  BrainyData, 
-  euclideanDistance, 
-  UniversalSentenceEncoder, 
-  createEmbeddingFunction
+    BrainyData,
+    euclideanDistance,
+    UniversalSentenceEncoder,
+    createEmbeddingFunction
 } from '@soulcraft/brainy';
 
 // Configure the graph and vector database
@@ -205,25 +210,26 @@ const db = new BrainyData({
 
 ### Importing Graph Types Separately
 
-If you only need the graph type definitions without importing the entire library (supporting tree shaking), you can import them directly:
+If you only need the graph type definitions without importing the entire library (supporting tree shaking), you can
+import them directly:
 
 ```typescript
 // Import only the graph types
-import { GraphNoun, GraphVerb, NounType, VerbType } from '@soulcraft/brainy/types/graphTypes';
+import {GraphNoun, GraphVerb, NounType, VerbType} from '@soulcraft/brainy/types/graphTypes';
 
 // Example usage
 const person = {
-  id: '123',
-  createdBy: {
-    augmentation: 'manual',
-    version: '1.0',
-    model: 'none',
-    modelVersion: '1.0'
-  },
-  noun: NounType.Person,
-  createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 },
-  updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0 },
-  data: { name: 'John Doe' }
+    id: '123',
+    createdBy: {
+        augmentation: 'manual',
+        version: '1.0',
+        model: 'none',
+        modelVersion: '1.0'
+    },
+    noun: NounType.Person,
+    createdAt: {seconds: Date.now() / 1000, nanoseconds: 0},
+    updatedAt: {seconds: Date.now() / 1000, nanoseconds: 0},
+    data: {name: 'John Doe'}
 };
 
 // Check the type
@@ -231,146 +237,71 @@ console.log(`Person type: ${person.noun}`); // 'person'
 console.log(`Available noun types:`, Object.values(NounType));
 ```
 
-This approach allows you to use just the type definitions without pulling in the entire library, which is useful for applications that only need to work with the data model.
+This approach allows you to use just the type definitions without pulling in the entire library, which is useful for
+applications that only need to work with the data model.
 
 ### Importing Augmentation Types Separately
 
-If you need to use the augmentation interfaces in a client application without importing the entire library, you can import them directly:
+If you need to use the augmentation interfaces in a client application without importing the entire library, you can
+import them directly:
 
 ```typescript
 // Import the BrainyAugmentations namespace and related types
-import { BrainyAugmentations, AugmentationType, AugmentationResponse } from '@soulcraft/brainy/types/augmentations';
+import {BrainyAugmentations, AugmentationType, AugmentationResponse} from '@soulcraft/brainy/types/augmentations';
 
 // Example usage of augmentation interfaces
 class MyCustomCognitionAugmentation implements BrainyAugmentations.ICognitionAugmentation {
-  readonly name = 'my-custom-reasoner';
-  readonly description = 'A custom reasoning augmentation';
+    readonly name = 'my-custom-reasoner';
+    readonly description = 'A custom reasoning augmentation';
 
-  async initialize(): Promise<void> {
-    console.log('Initializing custom cognition augmentation');
-  }
+    async initialize(): Promise<void> {
+        console.log('Initializing custom cognition augmentation');
+    }
 
-  async shutDown(): Promise<void> {
-    console.log('Shutting down custom cognition augmentation');
-  }
+    async shutDown(): Promise<void> {
+        console.log('Shutting down custom cognition augmentation');
+    }
 
-  async getStatus(): Promise<'active' | 'inactive' | 'error'> {
-    return 'active';
-  }
+    async getStatus(): Promise<'active' | 'inactive' | 'error'> {
+        return 'active';
+    }
 
-  reason(query: string, context?: Record<string, unknown>): AugmentationResponse<{
-    inference: string;
-    confidence: number;
-  }> {
-    return {
-      success: true,
-      data: {
-        inference: `Reasoning about: ${query}`,
-        confidence: 0.85
-      }
-    };
-  }
+    reason(query: string, context?: Record<string, unknown>): AugmentationResponse<{
+        inference: string;
+        confidence: number;
+    }> {
+        return {
+            success: true,
+            data: {
+                inference: `Reasoning about: ${query}`,
+                confidence: 0.85
+            }
+        };
+    }
 
-  infer(dataSubset: Record<string, unknown>): AugmentationResponse<Record<string, unknown>> {
-    return {
-      success: true,
-      data: {
-        inferredRelationship: 'example'
-      }
-    };
-  }
+    infer(dataSubset: Record<string, unknown>): AugmentationResponse<Record<string, unknown>> {
+        return {
+            success: true,
+            data: {
+                inferredRelationship: 'example'
+            }
+        };
+    }
 
-  executeLogic(ruleId: string, input: Record<string, unknown>): AugmentationResponse<boolean> {
-    return {
-      success: true,
-      data: true
-    };
-  }
+    executeLogic(ruleId: string, input: Record<string, unknown>): AugmentationResponse<boolean> {
+        return {
+            success: true,
+            data: true
+        };
+    }
 }
 
 // Check the augmentation type
 console.log(`Available augmentation types:`, Object.values(AugmentationType));
 ```
 
-This approach allows you to use the augmentation interfaces in client applications that need to implement or interact with Brainy's augmentation system.
-
-## Publishing and Using as a Private NPM Package
-
-Soulcraft Brainy is configured as a private NPM package with restricted access. This section provides information on how to publish and use it within your organization.
-
-### Versioning
-
-This project uses semantic versioning (SemVer):
-
-- **Major version** (`x.0.0`): Breaking changes that may require updates to dependent code
-- **Minor version** (`0.x.0`): New features that don't break existing functionality
-- **Patch version** (`0.0.x`): Bug fixes and other minor changes
-
-The package includes scripts for manual version bumping:
-
-```bash
-# Increment patch version (0.0.x)
-npm run version:patch
-
-# Increment minor version (0.x.0)
-npm run version:minor
-
-# Increment major version (x.0.0)
-npm run version:major
-```
-
-These commands will update the version in package.json and create a git tag for the new version.
-
-### Publishing the Package
-
-To publish updates to the package:
-
-1. Ensure you have the appropriate npm credentials and access to the @soulcraft organization
-2. Update the version using one of the version scripts:
-   ```bash
-   npm run version:patch  # For bug fixes and minor changes
-   npm run version:minor  # For new features
-   npm run version:major  # For breaking changes
-   ```
-3. Use the deploy script to build and publish the package:
-   ```bash
-   npm run deploy
-   ```
-
-Alternatively, you can run the steps separately:
-1. Build the package:
-   ```bash
-   npm run build
-   ```
-2. Publish the package:
-   ```bash
-   npm publish
-   ```
-
-Note that the package has the following configuration in package.json:
-```json
-"private": false,
-"publishConfig": {
-  "access": "restricted"
-}
-```
-
-This ensures that the package is only accessible to users with appropriate permissions within the @soulcraft organization. The `"access": "restricted"` setting limits access to the package to members of the @soulcraft organization, while `"private": false` allows the package to be published to npm.
-
-### Installing the Private Package
-
-To install the package in another project:
-
-1. Ensure you have access to the @soulcraft organization on npm
-2. Add the package to your project:
-   ```bash
-   npm install @soulcraft/brainy
-   ```
-
-3. If you're using a private npm registry, you may need to configure npm to use your organization's registry:
-   ```bash
-   npm config set @soulcraft:registry https://your-private-registry.com/
-   ```
+This approach allows you to use the augmentation interfaces in client applications that need to implement or interact
+with Brainy's augmentation system.
 
 ### Requirements
 
@@ -378,7 +309,8 @@ To install the package in another project:
 
 ## Augmentation System
 
-Brainy includes a powerful augmentation system that allows extending its capabilities through specialized modules. Each augmentation implements a specific interface and provides additional functionality.
+Brainy includes a powerful augmentation system that allows extending its capabilities through specialized modules. Each
+augmentation implements a specific interface and provides additional functionality.
 
 ### Base Augmentation Interface
 
@@ -386,11 +318,11 @@ All augmentations implement the `IAugmentation` interface:
 
 ```typescript
 interface IAugmentation {
-  readonly name: string;          // Unique identifier for the augmentation
-  readonly description: string;   // Human-readable description
-  initialize(): Promise<void>;    // Called when Brainy starts up
-  shutDown(): Promise<void>;      // Called when shutting down
-  getStatus(): Promise<'active' | 'inactive' | 'error'>;  // Current status
+    readonly name: string;          // Unique identifier for the augmentation
+    readonly description: string;   // Human-readable description
+    initialize(): Promise<void>;    // Called when Brainy starts up
+    shutDown(): Promise<void>;      // Called when shutting down
+    getStatus(): Promise<'active' | 'inactive' | 'error'>;  // Current status
 }
 ```
 
@@ -400,10 +332,13 @@ Augmentations can optionally implement WebSocket support:
 
 ```typescript
 interface IWebSocketSupport {
-  connectWebSocket(url: string, protocols?: string | string[]): Promise<WebSocketConnection>;
-  sendWebSocketMessage(connectionId: string, data: unknown): Promise<void>;
-  onWebSocketMessage(connectionId: string, callback: DataCallback<unknown>): Promise<void>;
-  closeWebSocket(connectionId: string, code?: number, reason?: string): Promise<void>;
+    connectWebSocket(url: string, protocols?: string | string[]): Promise<WebSocketConnection>;
+
+    sendWebSocketMessage(connectionId: string, data: unknown): Promise<void>;
+
+    onWebSocketMessage(connectionId: string, callback: DataCallback<unknown>): Promise<void>;
+
+    closeWebSocket(connectionId: string, code?: number, reason?: string): Promise<void>;
 }
 ```
 
@@ -417,14 +352,15 @@ For processing raw, unstructured data:
 
 ```typescript
 interface ISenseAugmentation extends IAugmentation {
-  processRawData(rawData: Buffer | string, dataType: string): AugmentationResponse<{
-    nouns: string[];
-    verbs: string[];
-  }>;
-  listenToFeed(
-    feedUrl: string,
-    callback: DataCallback<{ nouns: string[]; verbs: string[] }>
-  ): Promise<void>;
+    processRawData(rawData: Buffer | string, dataType: string): AugmentationResponse<{
+        nouns: string[];
+        verbs: string[];
+    }>;
+
+    listenToFeed(
+        feedUrl: string,
+        callback: DataCallback<{ nouns: string[]; verbs: string[] }>
+    ): Promise<void>;
 }
 ```
 
@@ -434,21 +370,139 @@ For establishing data exchange channels:
 
 ```typescript
 interface IConduitAugmentation extends IAugmentation {
-  establishConnection(
-    targetSystemId: string,
-    config: Record<string, unknown>
-  ): AugmentationResponse<WebSocketConnection>;
-  readData(
-    query: Record<string, unknown>,
-    options?: Record<string, unknown>
-  ): AugmentationResponse<unknown>;
-  writeData(
-    data: Record<string, unknown>,
-    options?: Record<string, unknown>
-  ): AugmentationResponse<unknown>;
-  monitorStream(streamId: string, callback: DataCallback<unknown>): Promise<void>;
+    establishConnection(
+        targetSystemId: string,
+        config: Record<string, unknown>
+    ): AugmentationResponse<WebSocketConnection>;
+
+    readData(
+        query: Record<string, unknown>,
+        options?: Record<string, unknown>
+    ): AugmentationResponse<unknown>;
+
+    writeData(
+        data: Record<string, unknown>,
+        options?: Record<string, unknown>
+    ): AugmentationResponse<unknown>;
+
+    monitorStream(streamId: string, callback: DataCallback<unknown>): Promise<void>;
 }
 ```
+
+##### FirestoreSync Conduit Augmentation
+
+Brainy includes a FirestoreSync conduit augmentation that allows for syncing data to Firestore either one-way or
+two-way:
+
+- **One-way sync**: Data is only pushed from Brainy to Firestore
+- **Two-way sync**: Data is synchronized between Brainy and Firestore in both directions
+
+**Prerequisites:**
+
+1. Install Firebase: `npm install firebase`
+2. Set up a Firebase project and enable Firestore
+3. Get your Firebase configuration from the Firebase console
+
+**Usage:**
+
+```typescript
+import { 
+  registerAugmentation,
+  initializeAugmentationPipeline,
+  createFirestoreSyncAugmentation,
+  FirestoreSyncConfig
+} from '@soulcraft/brainy';
+
+// Your Firebase configuration
+const firebaseConfig = {
+  apiKey: "your-api-key",
+  authDomain: "your-project-id.firebaseapp.com",
+  projectId: "your-project-id",
+  storageBucket: "your-project-id.appspot.com",
+  messagingSenderId: "your-messaging-sender-id",
+  appId: "your-app-id"
+};
+
+// Create the FirestoreSync augmentation with one-way sync configuration
+const oneWaySyncConfig: FirestoreSyncConfig = {
+  firebaseConfig,
+  nodesCollection: 'brainy_nodes',
+  edgesCollection: 'brainy_edges',
+  metadataCollection: 'brainy_metadata',
+  syncMode: 'one-way'
+};
+
+// Create and register the augmentation
+const firestoreSync = createFirestoreSyncAugmentation(
+  'brainy-firestore-sync',
+  oneWaySyncConfig
+);
+
+registerAugmentation(firestoreSync);
+
+// Initialize the augmentation pipeline
+initializeAugmentationPipeline();
+
+// Initialize the augmentation
+await firestoreSync.initialize();
+
+// Now you can use the augmentation to sync data
+// For example, to sync a node to Firestore:
+await firestoreSync.syncNodeToFirestore(node);
+
+// Or to sync an edge to Firestore:
+await firestoreSync.syncEdgeToFirestore(edge);
+
+// Or to sync metadata to Firestore:
+await firestoreSync.syncMetadataToFirestore('metadata-id', { key: 'value' });
+
+// You can also use the standard conduit methods:
+// Read data from Firestore
+const response = await firestoreSync.readData({
+  collection: 'brainy_nodes',
+  id: 'node-id'
+});
+
+// Write data to Firestore
+await firestoreSync.writeData({
+  collection: 'custom_collection',
+  id: 'custom-doc-1',
+  document: {
+    name: 'Custom Document',
+    timestamp: new Date()
+  }
+});
+
+// Monitor changes in Firestore
+await firestoreSync.monitorStream('brainy_nodes', (data) => {
+  console.log('Node change detected:', data);
+});
+
+// When done, shut down the augmentation
+await firestoreSync.shutDown();
+```
+
+**Two-way Sync Configuration:**
+
+For two-way synchronization between Brainy and Firestore:
+
+```typescript
+const twoWaySyncConfig: FirestoreSyncConfig = {
+    firebaseConfig,
+    nodesCollection: 'brainy_nodes',
+    edgesCollection: 'brainy_edges',
+    metadataCollection: 'brainy_metadata',
+    syncMode: 'two-way',
+    syncInterval: 30000  // Sync every 30 seconds
+};
+
+const twoWaySync = createFirestoreSyncAugmentation(
+    'brainy-firestore-two-way-sync',
+    twoWaySyncConfig
+);
+```
+
+For more detailed examples, see the [firestoreSyncExample.js](examples/firestoreSyncExample.js) file.
 
 #### Cognition Augmentations
 
@@ -456,12 +510,14 @@ For reasoning, inference, and logical operations:
 
 ```typescript
 interface ICognitionAugmentation extends IAugmentation {
-  reason(query: string, context?: Record<string, unknown>): AugmentationResponse<{
-    inference: string;
-    confidence: number;
-  }>;
-  infer(dataSubset: Record<string, unknown>): AugmentationResponse<Record<string, unknown>>;
-  executeLogic(ruleId: string, input: Record<string, unknown>): AugmentationResponse<boolean>;
+    reason(query: string, context?: Record<string, unknown>): AugmentationResponse<{
+        inference: string;
+        confidence: number;
+    }>;
+
+    infer(dataSubset: Record<string, unknown>): AugmentationResponse<Record<string, unknown>>;
+
+    executeLogic(ruleId: string, input: Record<string, unknown>): AugmentationResponse<boolean>;
 }
 ```
 
@@ -471,28 +527,32 @@ For storing data in different formats (e.g., fileSystem, in-memory, or firestore
 
 ```typescript
 interface IMemoryAugmentation extends IAugmentation {
-  storeData(
-    key: string,
-    data: unknown,
-    options?: Record<string, unknown>
-  ): AugmentationResponse<boolean>;
-  retrieveData(
-    key: string,
-    options?: Record<string, unknown>
-  ): AugmentationResponse<unknown>;
-  updateData(
-    key: string,
-    data: unknown,
-    options?: Record<string, unknown>
-  ): AugmentationResponse<boolean>;
-  deleteData(
-    key: string,
-    options?: Record<string, unknown>
-  ): AugmentationResponse<boolean>;
-  listDataKeys(
-    pattern?: string,
-    options?: Record<string, unknown>
-  ): AugmentationResponse<string[]>;
+    storeData(
+        key: string,
+        data: unknown,
+        options?: Record<string, unknown>
+    ): AugmentationResponse<boolean>;
+
+    retrieveData(
+        key: string,
+        options?: Record<string, unknown>
+    ): AugmentationResponse<unknown>;
+
+    updateData(
+        key: string,
+        data: unknown,
+        options?: Record<string, unknown>
+    ): AugmentationResponse<boolean>;
+
+    deleteData(
+        key: string,
+        options?: Record<string, unknown>
+    ): AugmentationResponse<boolean>;
+
+    listDataKeys(
+        pattern?: string,
+        options?: Record<string, unknown>
+    ): AugmentationResponse<string[]>;
 }
 ```
 
@@ -502,19 +562,21 @@ For interpreting and contextualizing data:
 
 ```typescript
 interface IPerceptionAugmentation extends IAugmentation {
-  interpret(
-    nouns: string[],
-    verbs: string[],
-    context?: Record<string, unknown>
-  ): AugmentationResponse<Record<string, unknown>>;
-  organize(
-    data: Record<string, unknown>,
-    criteria?: Record<string, unknown>
-  ): AugmentationResponse<Record<string, unknown>>;
-  generateVisualization(
-    data: Record<string, unknown>,
-    visualizationType: string
-  ): AugmentationResponse<string | Buffer | Record<string, unknown>>;
+    interpret(
+        nouns: string[],
+        verbs: string[],
+        context?: Record<string, unknown>
+    ): AugmentationResponse<Record<string, unknown>>;
+
+    organize(
+        data: Record<string, unknown>,
+        criteria?: Record<string, unknown>
+    ): AugmentationResponse<Record<string, unknown>>;
+
+    generateVisualization(
+        data: Record<string, unknown>,
+        visualizationType: string
+    ): AugmentationResponse<string | Buffer | Record<string, unknown>>;
 }
 ```
 
@@ -524,18 +586,20 @@ For natural language understanding and generation:
 
 ```typescript
 interface IDialogAugmentation extends IAugmentation {
-  processUserInput(naturalLanguageQuery: string, sessionId?: string): AugmentationResponse<{
-    intent: string;
-    nouns: string[];
-    verbs: string[];
-    context: Record<string, unknown>;
-  }>;
-  generateResponse(
-    interpretedInput: Record<string, unknown>,
-    knowledgeContext: Record<string, unknown>,
-    sessionId?: string
-  ): AugmentationResponse<string>;
-  manageContext(sessionId: string, contextUpdate: Record<string, unknown>): Promise<void>;
+    processUserInput(naturalLanguageQuery: string, sessionId?: string): AugmentationResponse<{
+        intent: string;
+        nouns: string[];
+        verbs: string[];
+        context: Record<string, unknown>;
+    }>;
+
+    generateResponse(
+        interpretedInput: Record<string, unknown>,
+        knowledgeContext: Record<string, unknown>,
+        sessionId?: string
+    ): AugmentationResponse<string>;
+
+    manageContext(sessionId: string, contextUpdate: Record<string, unknown>): Promise<void>;
 }
 ```
 
@@ -545,12 +609,14 @@ For triggering actions and generating outputs:
 
 ```typescript
 interface IActivationAugmentation extends IAugmentation {
-  triggerAction(
-    actionName: string,
-    parameters?: Record<string, unknown>
-  ): AugmentationResponse<unknown>;
-  generateOutput(knowledgeId: string, format: string): AugmentationResponse<string | Record<string, unknown>>;
-  interactExternal(systemId: string, payload: Record<string, unknown>): AugmentationResponse<unknown>;
+    triggerAction(
+        actionName: string,
+        parameters?: Record<string, unknown>
+    ): AugmentationResponse<unknown>;
+
+    generateOutput(knowledgeId: string, format: string): AugmentationResponse<string | Record<string, unknown>>;
+
+    interactExternal(systemId: string, payload: Record<string, unknown>): AugmentationResponse<unknown>;
 }
 ```
 
@@ -560,14 +626,14 @@ Brainy provides an enum that lists all types of augmentations available in the s
 
 ```typescript
 enum AugmentationType {
-  SENSE = 'sense',
-  CONDUIT = 'conduit',
-  COGNITION = 'cognition',
-  MEMORY = 'memory',
-  PERCEPTION = 'perception',
-  DIALOG = 'dialog',
-  ACTIVATION = 'activation',
-  WEBSOCKET = 'webSocket'
+    SENSE = 'sense',
+    CONDUIT = 'conduit',
+    COGNITION = 'cognition',
+    MEMORY = 'memory',
+    PERCEPTION = 'perception',
+    DIALOG = 'dialog',
+    ACTIVATION = 'activation',
+    WEBSOCKET = 'webSocket'
 }
 ```
 
@@ -575,7 +641,8 @@ This enum can be used by consumers of the library to identify the different type
 
 ### Augmentation Event Pipeline
 
-Brainy provides an event pipeline that allows registering and executing multiple augmentations of each type. The pipeline supports different execution modes and provides a flexible way to manage augmentations.
+Brainy provides an event pipeline that allows registering and executing multiple augmentations of each type. The
+pipeline supports different execution modes and provides a flexible way to manage augmentations.
 
 ### Installing Custom Augmentations
 
@@ -587,11 +654,11 @@ For better performance and bundle optimization, you can register augmentations a
 
 ```typescript
 // myCustomAugmentation.ts
-import { registerAugmentation, AugmentationType } from '@soulcraft/brainy';
+import {registerAugmentation, AugmentationType} from '@soulcraft/brainy';
 
 // Create your custom augmentation
 class MyCustomAugmentation {
-  // Implement required methods...
+    // Implement required methods...
 }
 
 // Register it with the registry
@@ -602,32 +669,33 @@ Then configure your build tool (webpack or rollup) to automatically discover and
 
 ```javascript
 // webpack.config.js
-const { createAugmentationRegistryPlugin } = require('@soulcraft/brainy');
+const {createAugmentationRegistryPlugin} = require('@soulcraft/brainy');
 
 module.exports = {
-  // ... other webpack config
-  plugins: [
-    createAugmentationRegistryPlugin({
-      pattern: /augmentation\.(js|ts)$/,
-      options: { autoInitialize: true }
-    })
-  ]
+    // ... other webpack config
+    plugins: [
+        createAugmentationRegistryPlugin({
+            pattern: /augmentation\.(js|ts)$/,
+            options: {autoInitialize: true}
+        })
+    ]
 };
 ```
 
 Benefits of build-time registration:
+
 - Better performance as augmentations are available immediately at startup
 - Improved tree-shaking and bundle optimization
 - Type safety and better IDE support
 - No need for dynamic imports or async loading
 
-For detailed documentation on build-time augmentation registration, see [build-time-augmentations.md](docs/build-time-augmentations.md).
-
+For detailed documentation on build-time augmentation registration,
+see [build-time-augmentations.md](docs/build-time-augmentations.md).
 
 #### Using the Pipeline Directly
 
 ```typescript
-import { augmentationPipeline, ExecutionMode, AugmentationType } from '@soulcraft/brainy';
+import {augmentationPipeline, ExecutionMode, AugmentationType} from '@soulcraft/brainy';
 
 // Register augmentations
 augmentationPipeline.register(mySenseAugmentation);
@@ -651,33 +719,33 @@ console.log(`Available augmentation types: ${availableTypes.join(', ')}`);
 
 // Execute a sense pipeline
 const processingResults = await augmentationPipeline.executeSensePipeline(
-  'processRawData',
-  ['Some raw text data', 'text'],
-  { mode: ExecutionMode.SEQUENTIAL, stopOnError: true }
+    'processRawData',
+    ['Some raw text data', 'text'],
+    {mode: ExecutionMode.SEQUENTIAL, stopOnError: true}
 );
 
 // Execute a conduit pipeline
 const connectionResults = await augmentationPipeline.executeConduitPipeline(
-  'establishConnection',
-  ['external-system', { apiKey: 'your-api-key' }]
+    'establishConnection',
+    ['external-system', {apiKey: 'your-api-key'}]
 );
 
 // Execute a cognition pipeline
 const reasoningResults = await augmentationPipeline.executeCognitionPipeline(
-  'reason',
-  ['What is the capital of France?', { additionalContext: 'geography' }],
-  { mode: ExecutionMode.PARALLEL }
+    'reason',
+    ['What is the capital of France?', {additionalContext: 'geography'}],
+    {mode: ExecutionMode.PARALLEL}
 );
 
 // Execute a memory pipeline
 const storeResults = await augmentationPipeline.executeMemoryPipeline(
-  'storeData',
-  ['user123', { name: 'John Doe', email: 'john@example.com' }]
+    'storeData',
+    ['user123', {name: 'John Doe', email: 'john@example.com'}]
 );
 
 const retrieveResults = await augmentationPipeline.executeMemoryPipeline(
-  'retrieveData',
-  ['user123']
+    'retrieveData',
+    ['user123']
 );
 
 // Shut down all registered augmentations
@@ -699,9 +767,9 @@ You can configure the pipeline execution with options:
 
 ```typescript
 interface PipelineOptions {
-  mode?: ExecutionMode;     // Execution mode (default: SEQUENTIAL)
-  timeout?: number;         // Timeout in milliseconds (default: 30000)
-  stopOnError?: boolean;    // Whether to stop on error (default: false)
+    mode?: ExecutionMode;     // Execution mode (default: SEQUENTIAL)
+    timeout?: number;         // Timeout in milliseconds (default: 30000)
+    stopOnError?: boolean;    // Whether to stop on error (default: false)
 }
 ```
 
@@ -710,7 +778,7 @@ interface PipelineOptions {
 You can create a custom pipeline instance if needed:
 
 ```typescript
-import { AugmentationPipeline } from '@soulcraft/brainy';
+import {AugmentationPipeline} from '@soulcraft/brainy';
 
 const myPipeline = new AugmentationPipeline();
 myPipeline.register(myCustomAugmentation);
@@ -718,7 +786,8 @@ myPipeline.register(myCustomAugmentation);
 
 ## Graph Data Model
 
-Brainy uses a graph-based data model to represent entities and relationships. This model consists of nouns (nodes) and verbs (edges).
+Brainy uses a graph-based data model to represent entities and relationships. This model consists of nouns (nodes) and
+verbs (edges).
 
 ### Common Types
 
@@ -728,8 +797,8 @@ Used for tracking creation and update times:
 
 ```typescript
 interface Timestamp {
-  seconds: number;
-  nanoseconds: number;
+    seconds: number;
+    nanoseconds: number;
 }
 ```
 
@@ -739,10 +808,10 @@ Tracks which augmentation and model created an element:
 
 ```typescript
 interface CreatorMetadata {
-  augmentation: string;    // Name of the augmentation that created this element
-  version: string;         // Version of the augmentation
-  model: string;           // Model identifier used in creation
-  modelVersion: string;    // Version of the model
+    augmentation: string;    // Name of the augmentation that created this element
+    version: string;         // Version of the augmentation
+    model: string;           // Model identifier used in creation
+    modelVersion: string;    // Version of the model
 }
 ```
 
@@ -754,13 +823,13 @@ Base interface for nodes (entities) in the graph:
 
 ```typescript
 interface GraphNoun {
-  id: string;                      // Unique identifier for the noun
-  createdBy: CreatorMetadata;      // Information about what created this noun
-  noun: NounType;                  // Type classification of the noun
-  createdAt: Timestamp;            // When the noun was created
-  updatedAt: Timestamp;            // When the noun was last updated
-  data?: Record<string, unknown>;  // Additional flexible data storage
-  embedding?: number[];            // Vector representation of the noun
+    id: string;                      // Unique identifier for the noun
+    createdBy: CreatorMetadata;      // Information about what created this noun
+    noun: NounType;                  // Type classification of the noun
+    createdAt: Timestamp;            // When the noun was created
+    updatedAt: Timestamp;            // When the noun was last updated
+    data?: Record<string, unknown>;  // Additional flexible data storage
+    embedding?: number[];            // Vector representation of the noun
 }
 ```
 
@@ -770,17 +839,17 @@ Base interface for edges (relationships) in the graph:
 
 ```typescript
 interface GraphVerb {
-  id: string;                      // Unique identifier for the verb
-  source: string;                  // ID of the source noun
-  target: string;                  // ID of the target noun
-  label?: string;                  // Optional descriptive label
-  verb: VerbType;                  // Type of relationship
-  createdAt: Timestamp;            // When the verb was created
-  updatedAt: Timestamp;            // When the verb was last updated
-  data?: Record<string, unknown>;  // Additional flexible data storage
-  embedding?: number[];            // Vector representation of the relationship
-  confidence?: number;             // Confidence score (0-1)
-  weight?: number;                 // Strength/importance of the relationship
+    id: string;                      // Unique identifier for the verb
+    source: string;                  // ID of the source noun
+    target: string;                  // ID of the target noun
+    label?: string;                  // Optional descriptive label
+    verb: VerbType;                  // Type of relationship
+    createdAt: Timestamp;            // When the verb was created
+    updatedAt: Timestamp;            // When the verb was last updated
+    data?: Record<string, unknown>;  // Additional flexible data storage
+    embedding?: number[];            // Vector representation of the relationship
+    confidence?: number;             // Confidence score (0-1)
+    weight?: number;                 // Strength/importance of the relationship
 }
 ```
 
@@ -840,7 +909,8 @@ The repository also includes TypeScript examples for Node.js:
 
 ### HNSW Indexing
 
-The Hierarchical Navigable Small World (HNSW) algorithm is used for efficient approximate nearest neighbor search. It creates a multi-layered graph structure that allows for logarithmic-time search complexity.
+The Hierarchical Navigable Small World (HNSW) algorithm is used for efficient approximate nearest neighbor search. It
+creates a multi-layered graph structure that allows for logarithmic-time search complexity.
 
 Key features of the HNSW implementation:
 
@@ -850,19 +920,22 @@ Key features of the HNSW implementation:
 
 ### Origin Private File System (OPFS) Storage
 
-In browser environments, the database uses the Origin Private File System (OPFS) API for persistent storage. This provides:
+In browser environments, the database uses the Origin Private File System (OPFS) API for persistent storage. This
+provides:
 
 - Fast, local storage that persists between sessions
 - Isolation from other origins for security
 - Efficient file operations
 
-In Node.js environments, the database uses a file system-based storage adapter that stores data in JSON files. This provides:
+In Node.js environments, the database uses a file system-based storage adapter that stores data in JSON files. This
+provides:
 
 - Persistent storage between application restarts
 - Efficient file operations using Node.js fs module
 - Configurable storage location
 
-In environments where neither OPFS nor Node.js file system is available, the database automatically falls back to in-memory storage.
+In environments where neither OPFS nor Node.js file system is available, the database automatically falls back to
+in-memory storage.
 
 ## API Reference
 
@@ -873,22 +946,28 @@ The main class for interacting with the graph and vector database.
 #### Constructor
 
 ```typescript
-constructor(config?: BrainyDataConfig)
+constructor(config ? : BrainyDataConfig)
 ```
 
 #### Methods
 
 - `init(): Promise<void>` - Initialize the database
-- `add(vectorOrData: Vector | any, metadata?: T, options?: { forceEmbed?: boolean }): Promise<string>` - Add a vector or data to the database
-- `addBatch(items: Array<{ vectorOrData: Vector | any, metadata?: T }>, options?: { forceEmbed?: boolean }): Promise<string[]>` - Add multiple vectors or data items
-- `search(queryVectorOrData: Vector | any, k?: number, options?: { forceEmbed?: boolean }): Promise<SearchResult<T>[]>` - Search for similar vectors
+- `add(vectorOrData: Vector | any, metadata?: T, options?: { forceEmbed?: boolean }): Promise<string>` - Add a vector or
+  data to the database
+-
+`addBatch(items: Array<{ vectorOrData: Vector | any, metadata?: T }>, options?: { forceEmbed?: boolean }): Promise<string[]>` -
+Add multiple vectors or data items
+-
+`search(queryVectorOrData: Vector | any, k?: number, options?: { forceEmbed?: boolean }): Promise<SearchResult<T>[]>` -
+Search for similar vectors
 - `searchText(query: string, k?: number): Promise<SearchResult<T>[]>` - Search for similar documents using a text query
 - `get(id: string): Promise<VectorDocument<T> | null>` - Get a vector by ID
 - `delete(id: string): Promise<boolean>` - Delete a vector
 - `updateMetadata(id: string, metadata: T): Promise<boolean>` - Update metadata
 - `clear(): Promise<void>` - Clear the database
 - `size(): number` - Get the number of vectors in the database
-- `embed(data: string | string[]): Promise<Vector>` - Embed text or data into a vector using the same embedding function used by this instance
+- `embed(data: string | string[]): Promise<Vector>` - Embed text or data into a vector using the same embedding function
+  used by this instance
 
 ### Distance Functions
 
@@ -904,10 +983,14 @@ constructor(config?: BrainyDataConfig)
 
 ### Embedding Functions
 
-- `createEmbeddingFunction(model: EmbeddingModel): EmbeddingFunction` - Create an embedding function from an embedding model
-- `createTensorFlowEmbeddingFunction(): EmbeddingFunction` - Create an embedding function using TensorFlow's Universal Sentence Encoder
-- `createSimpleEmbeddingFunction(): EmbeddingFunction` - Create a simple character-based embedding function (faster but less accurate)
-- `defaultEmbeddingFunction` - Default embedding function using TensorFlow's Universal Sentence Encoder for high-quality embeddings
+- `createEmbeddingFunction(model: EmbeddingModel): EmbeddingFunction` - Create an embedding function from an embedding
+  model
+- `createTensorFlowEmbeddingFunction(): EmbeddingFunction` - Create an embedding function using TensorFlow's Universal
+  Sentence Encoder
+- `createSimpleEmbeddingFunction(): EmbeddingFunction` - Create a simple character-based embedding function (faster but
+  less accurate)
+- `defaultEmbeddingFunction` - Default embedding function using TensorFlow's Universal Sentence Encoder for high-quality
+  embeddings
 
 ## Browser Compatibility
 
