@@ -4,19 +4,19 @@
  */
 
 import { v4 as uuidv4 } from 'uuid'
-import { HNSWIndex } from './hnsw/hnswIndex.js'
-import { createStorage } from './storage/opfsStorage.js'
+import { HNSWIndex } from './hnsw/hnswIndex.ts'
+import { createStorage } from './storage/opfsStorage.ts'
 import {
   DistanceFunction,
   Edge,
   EmbeddingFunction,
-  HNSWConfig,
+  HNSWConfig, HNSWNode,
   SearchResult,
   StorageAdapter,
   Vector,
   VectorDocument
-} from './coreTypes.js'
-import { cosineDistance, defaultEmbeddingFunction, euclideanDistance } from './utils/index.js'
+} from './coreTypes.ts'
+import { cosineDistance, defaultEmbeddingFunction, euclideanDistance } from './utils/index.ts'
 
 export interface BrainyDataConfig {
   /**
@@ -94,7 +94,7 @@ export class BrainyData<T = any> {
       await this.storage!.init()
 
       // Load all nodes from storage
-      const nodes = await this.storage!.getAllNodes()
+      const nodes: HNSWNode[] = await this.storage!.getAllNodes()
 
       // Clear the index and add all nodes
       this.index.clear()
@@ -631,12 +631,12 @@ export class BrainyData<T = any> {
       // Check if the storage adapter has a getStorageStatus method
       if (typeof this.storage.getStorageStatus !== 'function') {
         // If not, determine the storage type based on the constructor name
-        const storageType = this.storage.constructor.name.toLowerCase().replace('storage', '');
+        const storageType = this.storage.constructor.name.toLowerCase().replace('storage', '')
         return {
           type: storageType || 'unknown',
           used: 0,
           quota: null,
-          details: { 
+          details: {
             error: 'Storage adapter does not implement getStorageStatus method',
             storageAdapter: this.storage.constructor.name,
             indexSize: this.size()
@@ -666,13 +666,13 @@ export class BrainyData<T = any> {
       console.error('Failed to get storage status:', error)
 
       // Determine the storage type based on the constructor name
-      const storageType = this.storage.constructor.name.toLowerCase().replace('storage', '');
+      const storageType = this.storage.constructor.name.toLowerCase().replace('storage', '')
 
       return {
         type: storageType || 'unknown',
         used: 0,
         quota: null,
-        details: { 
+        details: {
           error: String(error),
           storageAdapter: this.storage.constructor.name,
           indexSize: this.size()

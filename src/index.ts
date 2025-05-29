@@ -4,7 +4,7 @@
  */
 
 // Export main BrainyData class and related types
-import { BrainyData, BrainyDataConfig } from './brainyData.js'
+import { BrainyData, BrainyDataConfig } from './brainyData.ts'
 export { BrainyData }
 export type { BrainyDataConfig }
 
@@ -14,7 +14,7 @@ import {
   cosineDistance, 
   manhattanDistance, 
   dotProductDistance 
-} from './utils/index.js'
+} from './utils/index.ts'
 export { 
   euclideanDistance, 
   cosineDistance, 
@@ -30,7 +30,7 @@ import {
   createTensorFlowEmbeddingFunction,
   createSimpleEmbeddingFunction,
   defaultEmbeddingFunction
-} from './utils/embedding.js'
+} from './utils/embedding.ts'
 export {
   SimpleEmbedding,
   UniversalSentenceEncoder,
@@ -45,7 +45,7 @@ import {
   OPFSStorage, 
   MemoryStorage, 
   createStorage 
-} from './storage/opfsStorage.js'
+} from './storage/opfsStorage.ts'
 export { 
   OPFSStorage, 
   MemoryStorage, 
@@ -58,7 +58,7 @@ import {
   augmentationPipeline,
   ExecutionMode,
   PipelineOptions
-} from './augmentationPipeline.js'
+} from './augmentationPipeline.ts'
 export {
   AugmentationPipeline,
   augmentationPipeline,
@@ -72,12 +72,12 @@ import {
   configureAndStartPipeline,
   createSensePluginConfig,
   createConduitPluginConfig
-} from './pluginLoader.js'
+} from './pluginLoader.ts'
 import type {
   PluginLoaderOptions,
   PluginConfig,
   PluginLoadResult
-} from './pluginLoader.js'
+} from './pluginLoader.ts'
 export {
   loadPlugins,
   configureAndStartPipeline,
@@ -102,7 +102,7 @@ import type {
   Edge,
   HNSWConfig,
   StorageAdapter
-} from './coreTypes.js'
+} from './coreTypes.ts'
 export type {
   Vector,
   VectorDocument,
@@ -128,8 +128,8 @@ import type {
   IPerceptionAugmentation,
   IDialogAugmentation,
   IActivationAugmentation
-} from './types/augmentations.js'
-import { AugmentationType, BrainyAugmentations } from './types/augmentations.js'
+} from './types/augmentations.ts'
+import { AugmentationType, BrainyAugmentations } from './types/augmentations.ts'
 export type {
   IAugmentation,
   AugmentationResponse,
@@ -156,7 +156,7 @@ export type {
   IWebSocketDialogAugmentation,
   IWebSocketConduitAugmentation,
   IWebSocketMemoryAugmentation
-} from './types/augmentations.js'
+} from './types/augmentations.ts'
 
 // Export graph types
 import type {
@@ -169,8 +169,8 @@ import type {
   Event,
   Concept,
   Content
-} from './types/graphTypes.js'
-import { NounType, VerbType } from './types/graphTypes.js'
+} from './types/graphTypes.ts'
+import { NounType, VerbType } from './types/graphTypes.ts'
 export type {
   GraphNoun,
   GraphVerb,

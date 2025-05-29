@@ -3,8 +3,8 @@
  * Based on the paper: "Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs"
  */
 
-import { DistanceFunction, HNSWConfig, HNSWNode, Vector, VectorDocument } from '../coreTypes.js'
-import { euclideanDistance } from '../utils/index.js'
+import { DistanceFunction, HNSWConfig, HNSWNode, Vector, VectorDocument } from '../coreTypes.ts'
+import { euclideanDistance } from '../utils/index.ts'
 
 // Default HNSW parameters
 const DEFAULT_CONFIG: HNSWConfig = {

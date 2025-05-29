@@ -2,7 +2,7 @@
  * Embedding functions for converting data to vectors
  */
 
-import { EmbeddingFunction, EmbeddingModel, Vector } from '../coreTypes.js'
+import { EmbeddingFunction, EmbeddingModel, Vector } from '../coreTypes.ts'
 
 /**
  * Simple character-based embedding function

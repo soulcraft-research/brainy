@@ -1,4 +1,4 @@
-import { Edge, HNSWNode, StorageAdapter } from '../coreTypes.js'
+import { Edge, HNSWNode, StorageAdapter } from '../coreTypes.ts'
 
 // We'll dynamically import Node.js built-in modules
 let fs: any
