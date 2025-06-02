@@ -16,7 +16,7 @@ for storage, with HNSW (Hierarchical Navigable Small World) for efficient vector
 - **TypeScript support**: Fully typed API with generics for metadata types
 - **Multiple distance functions**: Supports cosine, Euclidean, Manhattan, and dot product distance metrics
 - **Augmentation system**: Extensible architecture for adding specialized capabilities
-- **Memory augmentation**: Store and retrieve data in different formats (fileSystem, in-memory, firestore)
+- **Memory augmentation**: Store and retrieve data in different formats (fileSystem, in-memory)
 - **Full graph database capabilities**: Structured representation of entities and relationships with support for nodes (
   nouns) and edges (verbs)
 
@@ -394,14 +394,6 @@ interface IConduitAugmentation extends IAugmentation {
 }
 ```
 
-##### FirestoreSync Conduit Augmentation
-
-Brainy includes a FirestoreSync conduit augmentation that allows for syncing data to Firestore either one-way or
-two-way:
-
-- **One-way sync**: Data is only pushed from Brainy to Firestore
-- **Two-way sync**: Data is synchronized between Brainy and Firestore in both directions
-
 **Prerequisites:**
 
 Brainy provides several memory augmentation implementations for different storage types:
@@ -409,8 +401,6 @@ Brainy provides several memory augmentation implementations for different storag
 1. **MemoryStorageAugmentation**: In-memory storage (volatile)
 2. **FileSystemStorageAugmentation**: File system storage (for Node.js environments)
 3. **OPFSStorageAugmentation**: Origin Private File System storage (for browser environments)
-4. **FirestoreStorageAugmentation**: Firestore database storage (requires Firebase)
-   - Note: The FirestoreStorageAugmentation includes vector search functionality that will automatically fall back to client-side search if the Firebase Extensions for Firestore Vector Search is not available.
 
 You can use the `createMemoryAugmentation` factory function to automatically select the appropriate storage type based on the environment, or you can specify a particular storage type.
 
@@ -481,41 +471,6 @@ const opfsStorage = await createMemoryAugmentation('opfs-storage', {
 });
 ```
 
-**Using Firestore Storage:**
-
-If you want to use Firestore as your storage backend:
-
-1. Install Firebase: `npm install firebase`
-2. Set up a Firebase project and enable Firestore
-3. Get your Firebase configuration from the Firebase console
-
-```typescript
-import { 
-  createMemoryAugmentation,
-  FirestoreStorageConfig
-} from '@soulcraft/brainy';
-
-// Your Firebase configuration
-const firestoreConfig: FirestoreStorageConfig = {
-  projectId: 'your-project-id',
-  collection: 'brainy_data',
-  // Optional: provide credentials, databaseURL, appName
-};
-
-// Create a memory augmentation with Firestore storage
-const firestoreStorage = await createMemoryAugmentation('firestore-storage', {
-  storageType: 'firestore',
-  firestoreConfig
-});
-
-// Or use the direct factory function
-import { createFirestoreStorageAugmentation } from '@soulcraft/brainy';
-
-const firestoreStorage = createFirestoreStorageAugmentation(
-  'firestore-storage',
-  firestoreConfig
-);
-```
 
 The memory augmentation will automatically select the appropriate storage based on the environment:
 - In Node.js: FileSystemStorage
@@ -543,7 +498,7 @@ interface ICognitionAugmentation extends IAugmentation {
 
 #### Memory Augmentations
 
-For storing data in different formats (e.g., fileSystem, in-memory, or firestore):
+For storing data in different formats (e.g., fileSystem, in-memory):
 
 ```typescript
 interface IMemoryAugmentation extends IAugmentation {
@@ -956,7 +911,7 @@ The repository also includes TypeScript examples for Node.js:
 - `src/examples/customStorage.ts`: Shows how to use a custom storage adapter
 - `src/examples/augmentationPipeline.ts`: Demonstrates the augmentation pipeline
 - `src/examples/webSocketAugmentation.ts`: Shows how to create WebSocket-supporting augmentations
-- `examples/memoryAugmentationExample.js`: Demonstrates memory augmentations for different storage types (Memory, FileSystem, OPFS, Firestore)
+- `examples/memoryAugmentationExample.js`: Demonstrates memory augmentations for different storage types (Memory, FileSystem, OPFS)
 
 ## How It Works
 

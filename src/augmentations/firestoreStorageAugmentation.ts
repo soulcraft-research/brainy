@@ -5,20 +5,22 @@ import {
 } from '../types/augmentations.js'
 import { Vector } from '../coreTypes.js'
 import { cosineDistance } from '../utils/distance.js'
-import { initializeApp, getApp } from 'firebase/app'
-import { 
-  getFirestore, 
-  collection, 
-  doc, 
-  setDoc, 
-  getDoc, 
-  updateDoc, 
-  deleteDoc,
-  query,
-  getDocs,
-  limit
-} from 'firebase/firestore'
-import { findNearest } from '@firebase/firestore-vector-search'
+
+// TEMPORARILY COMMENTED OUT: Firebase imports
+// import { initializeApp, getApp } from 'firebase/app'
+// import { 
+//   getFirestore, 
+//   collection, 
+//   doc, 
+//   setDoc, 
+//   getDoc, 
+//   updateDoc, 
+//   deleteDoc,
+//   query,
+//   getDocs,
+//   limit
+// } from 'firebase/firestore'
+// import { findNearest } from '@firebase/firestore-vector-search'
 
 /**
  * Configuration for Firestore storage augmentation
@@ -77,6 +79,8 @@ export class FirestoreStorageAugmentation implements IMemoryAugmentation {
     }
 
     try {
+      // TEMPORARILY COMMENTED OUT: Firebase initialization
+      /*
       // Initialize Firebase if not already initialized
       let app
       try {
@@ -106,6 +110,9 @@ export class FirestoreStorageAugmentation implements IMemoryAugmentation {
       // Get Firestore instance
       this.firestore = getFirestore(app)
       this.collection = collection(this.firestore, this.config.collection)
+      */
+
+      console.log(`FirestoreStorageAugmentation '${this.name}' initialization temporarily disabled`)
       this.isInitialized = true
     } catch (error) {
       console.error(`Failed to initialize FirestoreStorageAugmentation:`, error)
@@ -124,6 +131,8 @@ export class FirestoreStorageAugmentation implements IMemoryAugmentation {
       return 'inactive'
     }
 
+    // TEMPORARILY COMMENTED OUT: Firebase status check
+    /*
     try {
       // Try a simple operation to check if Firestore is working
       await getDocs(query(collection(this.firestore, '__test__'), limit(1)))
@@ -132,6 +141,10 @@ export class FirestoreStorageAugmentation implements IMemoryAugmentation {
       console.error('Firestore connection error:', error)
       return 'error'
     }
+    */
+
+    console.log('Firebase status check temporarily disabled')
+    return 'inactive'
   }
 
   async storeData(
@@ -141,6 +154,8 @@ export class FirestoreStorageAugmentation implements IMemoryAugmentation {
   ): Promise<AugmentationResponse<boolean>> {
     await this.ensureInitialized()
 
+    // TEMPORARILY COMMENTED OUT: Firebase store operation
+    /*
     try {
       await setDoc(doc(this.collection, key), this.prepareForFirestore(data))
       return { success: true, data: true }
@@ -152,6 +167,14 @@ export class FirestoreStorageAugmentation implements IMemoryAugmentation {
         error: `Failed to store data: ${error}`
       }
     }
+    */
+
+    console.log(`Firebase store operation temporarily disabled for key: ${key}`)
+    return { 
+      success: false, 
+      data: false,
+      error: 'Firebase functionality temporarily disabled'
+    }
   }
 
   async retrieveData(
@@ -160,6 +183,8 @@ export class FirestoreStorageAugmentation implements IMemoryAugmentation {
   ): Promise<AugmentationResponse<unknown>> {
     await this.ensureInitialized()
 
+    // TEMPORARILY COMMENTED OUT: Firebase retrieve operation
+    /*
     try {
       const docSnapshot = await getDoc(doc(this.collection, key))
 
@@ -182,6 +207,14 @@ export class FirestoreStorageAugmentation implements IMemoryAugmentation {
         error: `Failed to retrieve data: ${error}`
       }
     }
+    */
+
+    console.log(`Firebase retrieve operation temporarily disabled for key: ${key}`)
+    return {
+      success: false,
+      data: null,
+      error: 'Firebase functionality temporarily disabled'
+    }
   }
 
   async updateData(
@@ -191,6 +224,8 @@ export class FirestoreStorageAugmentation implements IMemoryAugmentation {
   ): Promise<AugmentationResponse<boolean>> {
     await this.ensureInitialized()
 
+    // TEMPORARILY COMMENTED OUT: Firebase update operation
+    /*
     try {
       await updateDoc(doc(this.collection, key), this.prepareForFirestore(data))
       return { success: true, data: true }
@@ -202,6 +237,14 @@ export class FirestoreStorageAugmentation implements IMemoryAugmentation {
         error: `Failed to update data: ${error}`
       }
     }
+    */
+
+    console.log(`Firebase update operation temporarily disabled for key: ${key}`)
+    return {
+      success: false,
+      data: false,
+      error: 'Firebase functionality temporarily disabled'
+    }
   }
 
   async deleteData(
@@ -210,6 +253,8 @@ export class FirestoreStorageAugmentation implements IMemoryAugmentation {
   ): Promise<AugmentationResponse<boolean>> {
     await this.ensureInitialized()
 
+    // TEMPORARILY COMMENTED OUT: Firebase delete operation
+    /*
     try {
       await deleteDoc(doc(this.collection, key))
       return { success: true, data: true }
@@ -221,6 +266,14 @@ export class FirestoreStorageAugmentation implements IMemoryAugmentation {
         error: `Failed to delete data: ${error}`
       }
     }
+    */
+
+    console.log(`Firebase delete operation temporarily disabled for key: ${key}`)
+    return {
+      success: false,
+      data: false,
+      error: 'Firebase functionality temporarily disabled'
+    }
   }
 
   async listDataKeys(
@@ -229,43 +282,21 @@ export class FirestoreStorageAugmentation implements IMemoryAugmentation {
   ): Promise<AugmentationResponse<string[]>> {
     await this.ensureInitialized()
 
-    try {
-      // Create a query from the collection
-      const q = query(this.collection)
-
-      // If pattern is provided, use it to filter keys
-      // Note: Firestore doesn't support wildcard queries directly,
-      // so we'll need to do some client-side filtering
-      const snapshot = await getDocs(q)
-
-      let keys = snapshot.docs.map((docSnapshot: any) => docSnapshot.id)
-
-      // Apply pattern filtering if provided
-      if (pattern) {
-        // Convert wildcard pattern to regex
-        const regexPattern = new RegExp(
-          '^' + pattern.replace(/\*/g, '.*') + '$'
-        )
-        keys = keys.filter((key: string) => regexPattern.test(key))
-      }
-
-      return {
-        success: true,
-        data: keys
-      }
-    } catch (error) {
-      console.error(`Failed to list data keys:`, error)
-      return {
-        success: false,
-        data: [],
-        error: `Failed to list data keys: ${error}`
-      }
+    // TEMPORARILY COMMENTED OUT: Firebase list operation
+    console.log(`Firebase list operation temporarily disabled for pattern: ${pattern || 'none'}`)
+    return {
+      success: false,
+      data: [],
+      error: 'Firebase functionality temporarily disabled'
     }
   }
 
   /**
    * Searches for data in Firestore using vector similarity.
    * Uses Firestore's built-in findNearest function for efficient vector search.
+   * 
+   * TEMPORARILY COMMENTED OUT: Firebase vector search
+   * 
    * @param queryData The query vector or data to search for
    * @param k Number of results to return (default: 10)
    * @param options Optional search options
@@ -281,134 +312,12 @@ export class FirestoreStorageAugmentation implements IMemoryAugmentation {
   }>>> {
     await this.ensureInitialized()
 
-    try {
-      // Check if queryData is a vector
-      let queryVector: Vector
-
-      if (Array.isArray(queryData) && queryData.every(item => typeof item === 'number')) {
-        queryVector = queryData as Vector
-      } else {
-        // If queryData is not a vector, we can't perform vector search
-        return {
-          success: false,
-          data: [],
-          error: 'Query must be a vector (array of numbers) for vector search'
-        }
-      }
-
-      // Get vector field name from options or use default 'vector'
-      const vectorField = options?.vectorField as string || 'vector'
-
-      // Get distance measure from options or use default 'COSINE'
-      // Firestore supports 'COSINE', 'EUCLIDEAN', and 'DOT_PRODUCT'
-      const distanceMeasure = options?.distanceMeasure as string || 'COSINE'
-
-      try {
-        // Note: In Firebase v9+, vector search requires the Firebase Extensions for Firestore Vector Search
-        // This code attempts to use it if available, but will fall back to client-side search
-
-        // Use the vector search extension imported at the top of the file
-        try {
-          const vectorSearchOptions = {
-            collection: this.collection,
-            vectorField: vectorField,
-            queryVector: queryVector,
-            limit: k,
-            distanceMeasure: distanceMeasure
-          }
-
-          const searchResults = await findNearest(vectorSearchOptions)
-
-          // Process results
-          const results: Array<{
-            id: string;
-            score: number;
-            data: unknown;
-          }> = searchResults.map((result: any) => {
-            // Calculate the similarity score based on the distance measure
-            let score: number
-
-            if (distanceMeasure === 'DOT_PRODUCT') {
-              // For dot product, higher is already better
-              score = result.distance || 0
-            } else {
-              // For COSINE and EUCLIDEAN, convert to similarity score
-              // where 1 is perfect match and 0 is completely dissimilar
-              score = 1 / (1 + (result.distance || 0))
-            }
-
-            return {
-              id: result.id,
-              score,
-              data: result.data
-            }
-          })
-
-          return {
-            success: true,
-            data: results
-          }
-        } catch (vectorSearchError) {
-          // Vector search extension not available, fall back to client-side search
-          console.warn('Firestore vector search extension not available, falling back to client-side search:', vectorSearchError)
-          throw vectorSearchError
-        }
-      } catch (vectorSearchError) {
-        console.warn('Firestore vector search failed, falling back to client-side search:', vectorSearchError)
-
-        // Fallback to client-side search if findNearest is not available
-        // This can happen if the Firestore instance doesn't support vector search
-        // or if the collection isn't configured for vector search
-
-        // Get all documents from Firestore using the modern API
-        const q = query(this.collection)
-        const snapshot = await getDocs(q)
-
-        // Calculate distances and prepare results
-        const results: Array<{
-          id: string;
-          score: number;
-          data: unknown;
-        }> = []
-
-        for (const docSnapshot of snapshot.docs) {
-          const data = docSnapshot.data() as Record<string, any>
-
-          // Skip documents that don't have a vector field
-          if (!data[vectorField] || !Array.isArray(data[vectorField])) {
-            continue
-          }
-
-          // Calculate distance between query vector and document vector
-          const distance = cosineDistance(queryVector, data[vectorField] as number[])
-
-          // Convert distance to similarity score (1 - distance for cosine)
-          // This way higher scores are better (more similar)
-          const score = 1 - distance
-
-          results.push({
-            id: docSnapshot.id,
-            score,
-            data
-          })
-        }
-
-        // Sort results by score (descending) and take top k
-        results.sort((a, b) => b.score - a.score)
-        const topResults = results.slice(0, k)
-
-        return {
-          success: true,
-          data: topResults
-        }
-      }
-    } catch (error) {
-      console.error(`Failed to search in Firestore:`, error)
-      return {
-        success: false,
-        data: [],
-        error: `Failed to search in Firestore: ${error}`
-      }
+    // TEMPORARILY COMMENTED OUT: Firebase vector search
+    console.log(`Firebase vector search temporarily disabled`)
+    return {
+      success: false,
+      data: [],
+      error: 'Firebase functionality temporarily disabled'
     }
   }
 

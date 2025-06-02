@@ -7,6 +7,8 @@
  * 
  * Note: This augmentation requires Firebase to be installed as a dependency.
  * Install with: npm install firebase
+ * 
+ * TEMPORARILY COMMENTED OUT: All Firebase/Firestore functionality
  */
 
 import { 
@@ -18,8 +20,9 @@ import {
 import { HNSWNode, Edge } from '../coreTypes.js'
 
 // Firebase imports will be dynamically loaded to avoid dependency issues
-let firebase: any = null
-let firestore: any = null
+// TEMPORARILY COMMENTED OUT: Firebase imports
+// let firebase: any = null
+// let firestore: any = null
 
 /**
  * Configuration for FirestoreSync augmentation
@@ -69,6 +72,8 @@ export class FirestoreSyncAugmentation implements IConduitAugmentation {
 
   /**
    * Initialize the augmentation
+   * 
+   * TEMPORARILY COMMENTED OUT: Firebase initialization
    */
   async initialize(): Promise<void> {
     if (this.isInitialized) {
@@ -76,6 +81,8 @@ export class FirestoreSyncAugmentation implements IConduitAugmentation {
     }
 
     try {
+      // TEMPORARILY COMMENTED OUT: Firebase initialization
+      /*
       // Dynamically import Firebase
       try {
         const firebaseModule = await import('firebase/app')
@@ -95,9 +102,10 @@ export class FirestoreSyncAugmentation implements IConduitAugmentation {
       if (this.config.syncMode === 'two-way' && this.config.syncInterval) {
         this.startSyncInterval()
       }
+      */
 
       this.isInitialized = true
-      console.log(`FirestoreSync augmentation '${this.name}' initialized successfully`)
+      console.log(`FirestoreSync augmentation '${this.name}' initialized successfully (Firebase functionality temporarily disabled)`)
     } catch (error) {
       console.error(`Failed to initialize FirestoreSync augmentation: ${error}`)
       throw new Error(`Failed to initialize FirestoreSync augmentation: ${error}`)
@@ -106,6 +114,8 @@ export class FirestoreSyncAugmentation implements IConduitAugmentation {
 
   /**
    * Shut down the augmentation
+   * 
+   * TEMPORARILY COMMENTED OUT: Firebase shutdown
    */
   async shutDown(): Promise<void> {
     if (this.syncIntervalId) {
@@ -113,9 +123,12 @@ export class FirestoreSyncAugmentation implements IConduitAugmentation {
       this.syncIntervalId = null
     }
 
+    // TEMPORARILY COMMENTED OUT: Firebase shutdown
+    /*
     if (firebase && this.isInitialized) {
       await firebase.app(this.name).delete()
     }
+    */
 
     this.isInitialized = false
     console.log(`FirestoreSync augmentation '${this.name}' shut down successfully`)
@@ -138,15 +151,20 @@ export class FirestoreSyncAugmentation implements IConduitAugmentation {
 
   /**
    * Establish a connection to Firestore
+   * 
+   * TEMPORARILY COMMENTED OUT: Firebase connection
    */
   establishConnection(
     targetSystemId: string,
     config: Record<string, unknown>
   ): AugmentationResponse<WebSocketConnection> {
+    // TEMPORARILY COMMENTED OUT: Firebase connection
+    /*
     // Ensure initialization happens before returning
     this.ensureInitialized().catch(error => {
       console.error(`Error initializing during establishConnection: ${error}`)
     })
+    */
 
     try {
       // For Firestore, the connection is already established during initialization
@@ -155,8 +173,8 @@ export class FirestoreSyncAugmentation implements IConduitAugmentation {
         success: true,
         data: {
           connectionId: targetSystemId,
-          url: `https://firestore.googleapis.com/v1/projects/${this.config.firebaseConfig.projectId}/databases/(default)/documents`,
-          status: 'connected'
+          url: `Firebase connection temporarily disabled`,
+          status: 'disabled'
         }
       }
     } catch (error) {
@@ -254,6 +272,7 @@ export class FirestoreSyncAugmentation implements IConduitAugmentation {
   }
 
   // Private async method to actually perform the write operation
+  // TEMPORARILY COMMENTED OUT: Firebase write operation
   private async writeDataAsync(
     data: Record<string, unknown>,
     options?: Record<string, unknown>
@@ -267,6 +286,8 @@ export class FirestoreSyncAugmentation implements IConduitAugmentation {
         document: Record<string, any>
       }
 
+      // TEMPORARILY COMMENTED OUT: Firebase write operation
+      /*
       // Prepare the document for Firestore
       // Convert Maps and Sets to arrays or objects for Firestore compatibility
       const firestoreDoc = this.prepareForFirestore(document)
@@ -277,21 +298,26 @@ export class FirestoreSyncAugmentation implements IConduitAugmentation {
 
       // Write to Firestore
       await this.db.collection(collection).doc(id).set(firestoreDoc, { merge: true })
+      */
 
-      console.log(`Successfully wrote data to Firestore: ${collection}/${id}`)
+      console.log(`Firebase write operation temporarily disabled: ${collection}/${id}`)
     } catch (error) {
-      console.error(`Failed to write data to Firestore: ${error}`)
+      console.error(`Failed to write data: ${error}`)
       throw error
     }
   }
 
   /**
    * Monitor a data stream in Firestore
+   * 
+   * TEMPORARILY COMMENTED OUT: Firebase monitoring
    */
   async monitorStream(streamId: string, callback: (data: unknown) => void): Promise<void> {
     await this.ensureInitialized()
 
     try {
+      // TEMPORARILY COMMENTED OUT: Firebase monitoring
+      /*
       // Set up a listener for changes in the specified collection
       const unsubscribe = this.db.collection(streamId)
         .where('_lastUpdated', '>', new Date(this.lastSyncTimestamp))
@@ -313,6 +339,12 @@ export class FirestoreSyncAugmentation implements IConduitAugmentation {
 
       // Return the unsubscribe function wrapped in a Promise
       return Promise.resolve(unsubscribe)
+      */
+
+      console.log(`Firebase monitoring temporarily disabled for stream: ${streamId}`)
+      return Promise.resolve(() => {
+        console.log('Unsubscribe function (placeholder - Firebase temporarily disabled)')
+      })
     } catch (error) {
       console.error(`Failed to monitor stream: ${error}`)
       throw new Error(`Failed to monitor stream: ${error}`)
@@ -321,60 +353,80 @@ export class FirestoreSyncAugmentation implements IConduitAugmentation {
 
   /**
    * Sync a node to Firestore
+   * 
+   * TEMPORARILY COMMENTED OUT: Firebase sync
    */
   async syncNodeToFirestore(node: HNSWNode): Promise<void> {
     await this.ensureInitialized()
 
     try {
+      // TEMPORARILY COMMENTED OUT: Firebase sync
+      /*
       const firestoreNode = this.prepareForFirestore(node)
       firestoreNode._lastUpdated = firebase.firestore.FieldValue.serverTimestamp()
       firestoreNode._source = 'brainy'
 
       await this.db.collection(this.config.nodesCollection).doc(node.id).set(firestoreNode, { merge: true })
+      */
+      console.log(`Firebase sync temporarily disabled for node: ${node.id}`)
     } catch (error) {
-      console.error(`Failed to sync node to Firestore: ${error}`)
-      throw new Error(`Failed to sync node to Firestore: ${error}`)
+      console.error(`Failed to sync node: ${error}`)
+      throw new Error(`Failed to sync node: ${error}`)
     }
   }
 
   /**
    * Sync an edge to Firestore
+   * 
+   * TEMPORARILY COMMENTED OUT: Firebase sync
    */
   async syncEdgeToFirestore(edge: Edge): Promise<void> {
     await this.ensureInitialized()
 
     try {
+      // TEMPORARILY COMMENTED OUT: Firebase sync
+      /*
       const firestoreEdge = this.prepareForFirestore(edge)
       firestoreEdge._lastUpdated = firebase.firestore.FieldValue.serverTimestamp()
       firestoreEdge._source = 'brainy'
 
       await this.db.collection(this.config.edgesCollection).doc(edge.id).set(firestoreEdge, { merge: true })
+      */
+      console.log(`Firebase sync temporarily disabled for edge: ${edge.id}`)
     } catch (error) {
-      console.error(`Failed to sync edge to Firestore: ${error}`)
-      throw new Error(`Failed to sync edge to Firestore: ${error}`)
+      console.error(`Failed to sync edge: ${error}`)
+      throw new Error(`Failed to sync edge: ${error}`)
     }
   }
 
   /**
    * Sync metadata to Firestore
+   * 
+   * TEMPORARILY COMMENTED OUT: Firebase sync
    */
   async syncMetadataToFirestore(id: string, metadata: any): Promise<void> {
     await this.ensureInitialized()
 
     try {
+      // TEMPORARILY COMMENTED OUT: Firebase sync
+      /*
       const firestoreMetadata = this.prepareForFirestore(metadata)
       firestoreMetadata._lastUpdated = firebase.firestore.FieldValue.serverTimestamp()
       firestoreMetadata._source = 'brainy'
 
       await this.db.collection(this.config.metadataCollection).doc(id).set(firestoreMetadata, { merge: true })
+      */
+      console.log(`Firebase sync temporarily disabled for metadata: ${id}`)
     } catch (error) {
-      console.error(`Failed to sync metadata to Firestore: ${error}`)
-      throw new Error(`Failed to sync metadata to Firestore: ${error}`)
+      console.error(`Failed to sync metadata: ${error}`)
+      throw new Error(`Failed to sync metadata: ${error}`)
     }
   }
 
   /**
    * Start the sync interval for two-way sync
+   * 
+   * TEMPORARILY COMMENTED OUT: Firebase sync interval
    */
   private startSyncInterval(): void {
     if (this.syncIntervalId) {
@@ -383,6 +435,8 @@ export class FirestoreSyncAugmentation implements IConduitAugmentation {
 
     this.lastSyncTimestamp = Date.now()
 
+    // TEMPORARILY COMMENTED OUT: Firebase sync interval
+    /*
     this.syncIntervalId = setInterval(async () => {
       if (!this.enabled || !this.isInitialized) {
         return
@@ -395,12 +449,19 @@ export class FirestoreSyncAugmentation implements IConduitAugmentation {
         console.error(`Error during two-way sync: ${error}`)
       }
     }, this.config.syncInterval || 60000) // Default to 1 minute if not specified
+    */
+
+    console.log('Firebase sync interval temporarily disabled')
   }
 
   /**
    * Sync data from Firestore to Brainy
+   * 
+   * TEMPORARILY COMMENTED OUT: Firebase sync
    */
   private async syncFromFirestore(): Promise<void> {
+    // TEMPORARILY COMMENTED OUT: Firebase sync
+    /*
     // This would typically call back to the Brainy system to update its data
     // For now, we'll just log that it would happen
     console.log('Syncing data from Firestore to Brainy (not implemented yet)')
@@ -409,6 +470,9 @@ export class FirestoreSyncAugmentation implements IConduitAugmentation {
     // 1. Query Firestore for documents updated since lastSyncTimestamp
     // 2. For each document, update the corresponding data in Brainy
     // 3. Update lastSyncTimestamp
+    */
+
+    console.log('Firebase sync from Firestore temporarily disabled')
   }
 
   /**

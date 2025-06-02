@@ -1,3 +1,5 @@
+// TEMPORARILY COMMENTED OUT: Firebase vector search type declarations
+/*
 declare module '@firebase/firestore-vector-search' {
   interface VectorSearchOptions {
     collection: any;
@@ -15,3 +17,4 @@ declare module '@firebase/firestore-vector-search' {
 
   export function findNearest(options: VectorSearchOptions): Promise<VectorSearchResult[]>;
 }
+*/
