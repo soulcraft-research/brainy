@@ -111,17 +111,27 @@ export type {
 
 // Export augmentation implementations
 import {
-  FirestoreSyncAugmentation,
-  createFirestoreSyncAugmentation
-} from './augmentations/firestoreSyncAugmentation.js'
-import type { FirestoreSyncConfig } from './augmentations/firestoreSyncAugmentation.js'
+  MemoryStorageAugmentation,
+  FileSystemStorageAugmentation,
+  OPFSStorageAugmentation,
+  createMemoryAugmentation
+} from './augmentations/memoryAugmentations.js'
+import {
+  FirestoreStorageAugmentation,
+  createFirestoreStorageAugmentation
+} from './augmentations/firestoreStorageAugmentation.js'
+import type { FirestoreStorageConfig } from './augmentations/firestoreStorageAugmentation.js'
 
 export {
-  FirestoreSyncAugmentation,
-  createFirestoreSyncAugmentation
+  MemoryStorageAugmentation,
+  FileSystemStorageAugmentation,
+  OPFSStorageAugmentation,
+  FirestoreStorageAugmentation,
+  createMemoryAugmentation,
+  createFirestoreStorageAugmentation
 }
 export type {
-  FirestoreSyncConfig
+  FirestoreStorageConfig
 }
 
 

@@ -216,15 +216,17 @@ export class BrainyData<T = any> {
   }
 
   /**
-   * Search for similar vectors
+   * Search for similar vectors within specific noun types
    * @param queryVectorOrData Query vector or data to search for
    * @param k Number of results to return
+   * @param nounTypes Array of noun types to search within, or null to search all
    * @param options Additional options
    * @returns Array of search results
    */
-  public async search(
+  public async searchByNounTypes(
     queryVectorOrData: Vector | any,
     k: number = 10,
+    nounTypes: string[] | null = null,
     options: {
       forceEmbed?: boolean // Force using the embedding function even if input is a vector
     } = {}
@@ -256,33 +258,108 @@ export class BrainyData<T = any> {
         throw new Error('Query vector is undefined or null')
       }
 
-      // Search in the index
-      const results = this.index.search(queryVector, k)
+      // If no noun types specified, search all nodes
+      if (!nounTypes || nounTypes.length === 0) {
+        // Search in the index
+        const results = this.index.search(queryVector, k)
 
-      // Get metadata for each result
-      const searchResults: SearchResult<T>[] = []
+        // Get metadata for each result
+        const searchResults: SearchResult<T>[] = []
 
-      for (const [id, score] of results) {
-        const node = this.index.getNodes().get(id)
-        if (!node) {
-          continue
+        for (const [id, score] of results) {
+          const node = this.index.getNodes().get(id)
+          if (!node) {
+            continue
+          }
+
+          const metadata = await this.storage!.getMetadata(id)
+
+          searchResults.push({
+            id,
+            score,
+            vector: node.vector,
+            metadata
+          })
         }
 
-        const metadata = await this.storage!.getMetadata(id)
+        return searchResults
+      } else {
+        // Get nodes for each noun type in parallel
+        const nodePromises = nounTypes.map(nounType => this.storage!.getNodesByNounType(nounType))
+        const nodeArrays = await Promise.all(nodePromises)
 
-        searchResults.push({
-          id,
-          score,
-          vector: node.vector,
-          metadata
-        })
+        // Combine all nodes
+        const nodes: HNSWNode[] = []
+        for (const nodeArray of nodeArrays) {
+          nodes.push(...nodeArray)
+        }
+
+        // Calculate distances for each node
+        const results: Array<[string, number]> = []
+        for (const node of nodes) {
+          const distance = this.index.getDistanceFunction()(queryVector, node.vector)
+          results.push([node.id, distance])
+        }
+
+        // Sort by distance (ascending)
+        results.sort((a, b) => a[1] - b[1])
+
+        // Take top k results
+        const topResults = results.slice(0, k)
+
+        // Get metadata for each result
+        const searchResults: SearchResult<T>[] = []
+
+        for (const [id, score] of topResults) {
+          const node = nodes.find(n => n.id === id)
+          if (!node) {
+            continue
+          }
+
+          const metadata = await this.storage!.getMetadata(id)
+
+          searchResults.push({
+            id,
+            score,
+            vector: node.vector,
+            metadata
+          })
+        }
+
+        return searchResults
       }
-
-      return searchResults
     } catch (error) {
-      console.error('Failed to search vectors:', error)
-      throw new Error(`Failed to search vectors: ${error}`)
+      console.error('Failed to search vectors by noun types:', error)
+      throw new Error(`Failed to search vectors by noun types: ${error}`)
     }
+  }
+
+  /**
+   * Search for similar vectors
+   * @param queryVectorOrData Query vector or data to search for
+   * @param k Number of results to return
+   * @param options Additional options
+   * @returns Array of search results
+   */
+  public async search(
+    queryVectorOrData: Vector | any,
+    k: number = 10,
+    options: {
+      forceEmbed?: boolean, // Force using the embedding function even if input is a vector
+      nounTypes?: string[] // Optional array of noun types to search within
+    } = {}
+  ): Promise<SearchResult<T>[]> {
+    // If noun types are specified, use searchByNounTypes
+    if (options.nounTypes && options.nounTypes.length > 0) {
+      return this.searchByNounTypes(queryVectorOrData, k, options.nounTypes, {
+        forceEmbed: options.forceEmbed
+      })
+    }
+
+    // Otherwise, search all nodes
+    return this.searchByNounTypes(queryVectorOrData, k, null, {
+      forceEmbed: options.forceEmbed
+    })
   }
 
   /**

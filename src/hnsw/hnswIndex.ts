@@ -365,6 +365,13 @@ export class HNSWIndex {
   }
 
   /**
+   * Get the distance function used by the index
+   */
+  public getDistanceFunction(): DistanceFunction {
+    return this.distanceFunction
+  }
+
+  /**
    * Search within a specific layer
    * Returns a map of node IDs to distances, sorted by distance
    */

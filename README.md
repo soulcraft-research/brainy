@@ -54,6 +54,11 @@ console.log(results);
 //   { id: 'dog-id', score: 0.1, vector: [0.3, 0.2, 0.4, 0.2], metadata: { type: 'mammal', name: 'dog' } }
 // ]
 
+// Search for similar vectors within specific noun types (parallel search)
+const mammalResults = await db.search([0.2, 0.3, 0.4, 0.1], 2, { nounTypes: ['person', 'thing'] });
+console.log(mammalResults);
+// Results will include vectors similar to the query vector, but only from the 'person' and 'thing' noun types
+
 // Search with text directly - it will be automatically embedded
 const catResults = await db.search("cat", 2);
 console.log(catResults);
@@ -399,110 +404,124 @@ two-way:
 
 **Prerequisites:**
 
-1. Install Firebase: `npm install firebase`
-2. Set up a Firebase project and enable Firestore
-3. Get your Firebase configuration from the Firebase console
+Brainy provides several memory augmentation implementations for different storage types:
 
-**Usage:**
+1. **MemoryStorageAugmentation**: In-memory storage (volatile)
+2. **FileSystemStorageAugmentation**: File system storage (for Node.js environments)
+3. **OPFSStorageAugmentation**: Origin Private File System storage (for browser environments)
+4. **FirestoreStorageAugmentation**: Firestore database storage (requires Firebase)
+
+You can use the `createMemoryAugmentation` factory function to automatically select the appropriate storage type based on the environment, or you can specify a particular storage type.
+
+**Basic Usage:**
 
 ```typescript
 import { 
   registerAugmentation,
   initializeAugmentationPipeline,
-  createFirestoreSyncAugmentation,
-  FirestoreSyncConfig
+  createMemoryAugmentation
 } from '@soulcraft/brainy';
 
-// Your Firebase configuration
-const firebaseConfig = {
-  apiKey: "your-api-key",
-  authDomain: "your-project-id.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project-id.appspot.com",
-  messagingSenderId: "your-messaging-sender-id",
-  appId: "your-app-id"
-};
+// Create a memory augmentation with automatic storage selection
+const memoryAug = await createMemoryAugmentation('brainy-memory');
 
-// Create the FirestoreSync augmentation with one-way sync configuration
-const oneWaySyncConfig: FirestoreSyncConfig = {
-  firebaseConfig,
-  nodesCollection: 'brainy_nodes',
-  edgesCollection: 'brainy_edges',
-  metadataCollection: 'brainy_metadata',
-  syncMode: 'one-way'
-};
-
-// Create and register the augmentation
-const firestoreSync = createFirestoreSyncAugmentation(
-  'brainy-firestore-sync',
-  oneWaySyncConfig
-);
-
-registerAugmentation(firestoreSync);
+// Register the augmentation
+registerAugmentation(memoryAug);
 
 // Initialize the augmentation pipeline
 initializeAugmentationPipeline();
 
 // Initialize the augmentation
-await firestoreSync.initialize();
+await memoryAug.initialize();
 
-// Now you can use the augmentation to sync data
-// For example, to sync a node to Firestore:
-await firestoreSync.syncNodeToFirestore(node);
-
-// Or to sync an edge to Firestore:
-await firestoreSync.syncEdgeToFirestore(edge);
-
-// Or to sync metadata to Firestore:
-await firestoreSync.syncMetadataToFirestore('metadata-id', { key: 'value' });
-
-// You can also use the standard conduit methods:
-// Read data from Firestore
-const response = await firestoreSync.readData({
-  collection: 'brainy_nodes',
-  id: 'node-id'
+// Store data
+await memoryAug.storeData('user-preferences', {
+  theme: 'dark',
+  fontSize: 14,
+  notifications: true
 });
 
-// Write data to Firestore
-await firestoreSync.writeData({
-  collection: 'custom_collection',
-  id: 'custom-doc-1',
-  document: {
-    name: 'Custom Document',
-    timestamp: new Date()
-  }
+// Retrieve data
+const response = await memoryAug.retrieveData('user-preferences');
+if (response.success) {
+  console.log('User preferences:', response.data);
+}
+
+// Update data
+await memoryAug.updateData('user-preferences', {
+  theme: 'light',
+  fontSize: 16,
+  notifications: true
 });
 
-// Monitor changes in Firestore
-await firestoreSync.monitorStream('brainy_nodes', (data) => {
-  console.log('Node change detected:', data);
-});
+// Delete data
+await memoryAug.deleteData('user-preferences');
 
 // When done, shut down the augmentation
-await firestoreSync.shutDown();
+await memoryAug.shutDown();
 ```
 
-**Two-way Sync Configuration:**
-
-For two-way synchronization between Brainy and Firestore:
+**Specifying Storage Type:**
 
 ```typescript
-const twoWaySyncConfig: FirestoreSyncConfig = {
-    firebaseConfig,
-    nodesCollection: 'brainy_nodes',
-    edgesCollection: 'brainy_edges',
-    metadataCollection: 'brainy_metadata',
-    syncMode: 'two-way',
-    syncInterval: 30000  // Sync every 30 seconds
+// Create a memory augmentation with specific storage type
+const fileSystemMemory = await createMemoryAugmentation('file-system-memory', {
+  storageType: 'filesystem',
+  rootDirectory: '/path/to/storage'
+});
+
+const memoryStorage = await createMemoryAugmentation('in-memory-storage', {
+  storageType: 'memory'
+});
+
+const opfsStorage = await createMemoryAugmentation('opfs-storage', {
+  storageType: 'opfs',
+  requestPersistentStorage: true
+});
+```
+
+**Using Firestore Storage:**
+
+If you want to use Firestore as your storage backend:
+
+1. Install Firebase: `npm install firebase`
+2. Set up a Firebase project and enable Firestore
+3. Get your Firebase configuration from the Firebase console
+
+```typescript
+import { 
+  createMemoryAugmentation,
+  FirestoreStorageConfig
+} from '@soulcraft/brainy';
+
+// Your Firebase configuration
+const firestoreConfig: FirestoreStorageConfig = {
+  projectId: 'your-project-id',
+  collection: 'brainy_data',
+  // Optional: provide credentials, databaseURL, appName
 };
 
-const twoWaySync = createFirestoreSyncAugmentation(
-    'brainy-firestore-two-way-sync',
-    twoWaySyncConfig
+// Create a memory augmentation with Firestore storage
+const firestoreStorage = await createMemoryAugmentation('firestore-storage', {
+  storageType: 'firestore',
+  firestoreConfig
+});
+
+// Or use the direct factory function
+import { createFirestoreStorageAugmentation } from '@soulcraft/brainy';
+
+const firestoreStorage = createFirestoreStorageAugmentation(
+  'firestore-storage',
+  firestoreConfig
 );
 ```
 
-For more detailed examples, see the [firestoreSyncExample.js](examples/firestoreSyncExample.js) file.
+The memory augmentation will automatically select the appropriate storage based on the environment:
+- In Node.js: FileSystemStorage
+- In browser with OPFS support: OPFSStorage
+- In browser without OPFS support: MemoryStorage
+
+You can override this behavior by specifying a storage type.
 
 #### Cognition Augmentations
 
@@ -553,6 +572,16 @@ interface IMemoryAugmentation extends IAugmentation {
         pattern?: string,
         options?: Record<string, unknown>
     ): AugmentationResponse<string[]>;
+
+    search(
+        query: unknown,
+        k?: number,
+        options?: Record<string, unknown>
+    ): AugmentationResponse<Array<{
+        id: string;
+        score: number;
+        data: unknown;
+    }>>;
 }
 ```
 
@@ -863,6 +892,29 @@ Brainy supports the following noun types:
 - **Event**: Represents an event or occurrence
 - **Concept**: Represents an abstract concept or idea
 - **Content**: Represents content (text, media, etc.)
+- **Group**: Represents groups of related entities
+- **List**: Represents ordered collections of entities
+- **Category**: Represents categories for content items including tags
+
+#### Parallel Search Across Noun Types
+
+Brainy organizes nodes by noun type to optimize retrieval and search speed. When searching for vectors, you can specify which noun types to search within:
+
+```typescript
+// Search across all noun types (default behavior)
+const allResults = await db.search(queryVector, 10);
+
+// Search only within specific noun types in parallel
+const specificResults = await db.search(queryVector, 10, {
+  nounTypes: ['person', 'place', 'thing']
+});
+```
+
+When searching within specific noun types, Brainy performs the searches in parallel for better performance, especially when dealing with large datasets. This is particularly useful when you know which types of entities you're interested in, allowing you to:
+
+1. Reduce search time by limiting the search space
+2. Improve relevance by focusing on specific entity types
+3. Leverage parallel processing for faster results when searching across multiple types
 
 ### Verb Types
 
@@ -903,7 +955,7 @@ The repository also includes TypeScript examples for Node.js:
 - `src/examples/customStorage.ts`: Shows how to use a custom storage adapter
 - `src/examples/augmentationPipeline.ts`: Demonstrates the augmentation pipeline
 - `src/examples/webSocketAugmentation.ts`: Shows how to create WebSocket-supporting augmentations
-- `src/examples/memoryAugmentation.ts`: Demonstrates memory augmentations for different storage formats
+- `examples/memoryAugmentationExample.js`: Demonstrates memory augmentations for different storage types (Memory, FileSystem, OPFS, Firestore)
 
 ## How It Works
 
@@ -955,11 +1007,15 @@ constructor(config ? : BrainyDataConfig)
 - `add(vectorOrData: Vector | any, metadata?: T, options?: { forceEmbed?: boolean }): Promise<string>` - Add a vector or
   data to the database
 -
+
 `addBatch(items: Array<{ vectorOrData: Vector | any, metadata?: T }>, options?: { forceEmbed?: boolean }): Promise<string[]>` -
 Add multiple vectors or data items
+
 -
-`search(queryVectorOrData: Vector | any, k?: number, options?: { forceEmbed?: boolean }): Promise<SearchResult<T>[]>` -
-Search for similar vectors
+
+`search(queryVectorOrData: Vector | any, k?: number, options?: { forceEmbed?: boolean, nounTypes?: string[] }): Promise<SearchResult<T>[]>` -
+Search for similar vectors, optionally filtering by noun types
+
 - `searchText(query: string, k?: number): Promise<SearchResult<T>[]>` - Search for similar documents using a text query
 - `get(id: string): Promise<VectorDocument<T> | null>` - Get a vector by ID
 - `delete(id: string): Promise<boolean>` - Delete a vector

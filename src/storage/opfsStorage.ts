@@ -12,11 +12,27 @@ const EDGES_DIR = 'edges'
 const METADATA_DIR = 'metadata'
 const DB_INFO_FILE = 'db-info.json'
 
+// Constants for noun type directories
+const PERSON_DIR = 'person'
+const PLACE_DIR = 'place'
+const THING_DIR = 'thing'
+const EVENT_DIR = 'event'
+const CONCEPT_DIR = 'concept'
+const CONTENT_DIR = 'content'
+const DEFAULT_DIR = 'default' // For nodes without a noun type
+
 export class OPFSStorage implements StorageAdapter {
   private rootDir: FileSystemDirectoryHandle | null = null
   private nodesDir: FileSystemDirectoryHandle | null = null
   private edgesDir: FileSystemDirectoryHandle | null = null
   private metadataDir: FileSystemDirectoryHandle | null = null
+  private personDir: FileSystemDirectoryHandle | null = null
+  private placeDir: FileSystemDirectoryHandle | null = null
+  private thingDir: FileSystemDirectoryHandle | null = null
+  private eventDir: FileSystemDirectoryHandle | null = null
+  private conceptDir: FileSystemDirectoryHandle | null = null
+  private contentDir: FileSystemDirectoryHandle | null = null
+  private defaultDir: FileSystemDirectoryHandle | null = null
   private isInitialized = false
   private isAvailable = false
   private isPersistentRequested = false
@@ -63,6 +79,29 @@ export class OPFSStorage implements StorageAdapter {
 
       // Create or get metadata directory
       this.metadataDir = await this.rootDir.getDirectoryHandle(METADATA_DIR, {
+        create: true
+      })
+
+      // Create or get noun type directories
+      this.personDir = await this.nodesDir.getDirectoryHandle(PERSON_DIR, {
+        create: true
+      })
+      this.placeDir = await this.nodesDir.getDirectoryHandle(PLACE_DIR, {
+        create: true
+      })
+      this.thingDir = await this.nodesDir.getDirectoryHandle(THING_DIR, {
+        create: true
+      })
+      this.eventDir = await this.nodesDir.getDirectoryHandle(EVENT_DIR, {
+        create: true
+      })
+      this.conceptDir = await this.nodesDir.getDirectoryHandle(CONCEPT_DIR, {
+        create: true
+      })
+      this.contentDir = await this.nodesDir.getDirectoryHandle(CONTENT_DIR, {
+        create: true
+      })
+      this.defaultDir = await this.nodesDir.getDirectoryHandle(DEFAULT_DIR, {
         create: true
       })
 
@@ -140,8 +179,11 @@ export class OPFSStorage implements StorageAdapter {
         )
       }
 
+      // Get the appropriate directory based on the node's metadata
+      const nodeDir = await this.getNodeDirectory(node.id)
+
       // Create or get the file for this node
-      const fileHandle = await this.nodesDir!.getFileHandle(node.id, {
+      const fileHandle = await nodeDir.getFileHandle(node.id, {
         create: true
       })
 
@@ -162,33 +204,178 @@ export class OPFSStorage implements StorageAdapter {
     await this.ensureInitialized()
 
     try {
-      // Get the file handle for this node
-      const fileHandle = await this.nodesDir!.getFileHandle(id)
+      // Get the appropriate directory based on the node's metadata
+      const nodeDir = await this.getNodeDirectory(id)
 
-      // Read the node data from the file
-      const file = await fileHandle.getFile()
-      const text = await file.text()
-      const data = JSON.parse(text)
+      try {
+        // Get the file handle for this node
+        const fileHandle = await nodeDir.getFileHandle(id)
 
-      // Convert serialized connections back to Map<number, Set<string>>
-      const connections = new Map<number, Set<string>>()
-      for (const [level, nodeIds] of Object.entries(data.connections)) {
-        connections.set(Number(level), new Set(nodeIds as string[]))
-      }
+        // Read the node data from the file
+        const file = await fileHandle.getFile()
+        const text = await file.text()
+        const data = JSON.parse(text)
 
-      return {
-        id: data.id,
-        vector: data.vector,
-        connections
+        // Convert serialized connections back to Map<number, Set<string>>
+        const connections = new Map<number, Set<string>>()
+        for (const [level, nodeIds] of Object.entries(data.connections)) {
+          connections.set(Number(level), new Set(nodeIds as string[]))
+        }
+
+        return {
+          id: data.id,
+          vector: data.vector,
+          connections
+        }
+      } catch (dirError) {
+        // If the file doesn't exist in the expected directory, try the default directory
+        if (nodeDir !== this.defaultDir) {
+          try {
+            // Get the file handle from the default directory
+            const fileHandle = await this.defaultDir!.getFileHandle(id)
+
+            // Read the node data from the file
+            const file = await fileHandle.getFile()
+            const text = await file.text()
+            const data = JSON.parse(text)
+
+            // Convert serialized connections back to Map<number, Set<string>>
+            const connections = new Map<number, Set<string>>()
+            for (const [level, nodeIds] of Object.entries(data.connections)) {
+              connections.set(Number(level), new Set(nodeIds as string[]))
+            }
+
+            return {
+              id: data.id,
+              vector: data.vector,
+              connections
+            }
+          } catch (defaultDirError) {
+            // If not found in default directory either, try all noun type directories
+            const directories = [
+              this.personDir!,
+              this.placeDir!,
+              this.thingDir!,
+              this.eventDir!,
+              this.conceptDir!,
+              this.contentDir!
+            ]
+
+            for (const dir of directories) {
+              if (dir === nodeDir) continue // Skip the already checked directory
+
+              try {
+                // Get the file handle from this directory
+                const fileHandle = await dir.getFileHandle(id)
+
+                // Read the node data from the file
+                const file = await fileHandle.getFile()
+                const text = await file.text()
+                const data = JSON.parse(text)
+
+                // Convert serialized connections back to Map<number, Set<string>>
+                const connections = new Map<number, Set<string>>()
+                for (const [level, nodeIds] of Object.entries(data.connections)) {
+                  connections.set(Number(level), new Set(nodeIds as string[]))
+                }
+
+                return {
+                  id: data.id,
+                  vector: data.vector,
+                  connections
+                }
+              } catch {
+                // Continue to the next directory
+              }
+            }
+
+            return null // File doesn't exist in any directory
+          }
+        }
+        return null // File doesn't exist
       }
     } catch (error) {
-      // If the file doesn't exist, return null
-      if ((error as any).name === 'NotFoundError') {
-        return null
-      }
-
       console.error(`Failed to get node ${id}:`, error)
       throw new Error(`Failed to get node ${id}: ${error}`)
+    }
+  }
+
+  /**
+   * Get nodes by noun type
+   * @param nounType The noun type to filter by
+   * @returns Promise that resolves to an array of nodes of the specified noun type
+   */
+  public async getNodesByNounType(nounType: string): Promise<HNSWNode[]> {
+    await this.ensureInitialized()
+
+    try {
+      const nodes: HNSWNode[] = []
+
+      // Determine the directory based on the noun type
+      let dir: FileSystemDirectoryHandle
+      switch (nounType) {
+        case 'person':
+          dir = this.personDir!
+          break
+        case 'place':
+          dir = this.placeDir!
+          break
+        case 'thing':
+          dir = this.thingDir!
+          break
+        case 'event':
+          dir = this.eventDir!
+          break
+        case 'concept':
+          dir = this.conceptDir!
+          break
+        case 'content':
+          dir = this.contentDir!
+          break
+        default:
+          dir = this.defaultDir!
+      }
+
+      try {
+        // Get all keys (filenames) in this directory
+        // @ts-ignore - TypeScript doesn't recognize FileSystemDirectoryHandle.keys() properly
+        const keys = dir.keys()
+
+        // Iterate through all keys and get the corresponding nodes
+        for await (const name of keys) {
+          try {
+            // Get the file handle for this node
+            const fileHandle = await dir.getFileHandle(name)
+
+            // Read the node data from the file
+            const file = await fileHandle.getFile()
+            const text = await file.text()
+            const data = JSON.parse(text)
+
+            // Convert serialized connections back to Map<number, Set<string>>
+            const connections = new Map<number, Set<string>>()
+            for (const [level, nodeIds] of Object.entries(data.connections)) {
+              connections.set(Number(level), new Set(nodeIds as string[]))
+            }
+
+            nodes.push({
+              id: data.id,
+              vector: data.vector,
+              connections
+            })
+          } catch (nodeError) {
+            console.warn(`Failed to read node ${name} from directory:`, nodeError)
+            // Continue to the next node
+          }
+        }
+      } catch (dirError) {
+        console.warn(`Failed to read directory for noun type ${nounType}:`, dirError)
+      }
+
+      return nodes
+    } catch (error) {
+      console.error(`Failed to get nodes for noun type ${nounType}:`, error)
+      throw new Error(`Failed to get nodes for noun type ${nounType}: ${error}`)
     }
   }
 
@@ -199,21 +386,28 @@ export class OPFSStorage implements StorageAdapter {
     await this.ensureInitialized()
 
     try {
-      const nodes: HNSWNode[] = []
+      // Get all noun types
+      const nounTypes = [
+        'person',
+        'place',
+        'thing',
+        'event',
+        'concept',
+        'content',
+        'default'
+      ]
 
-      // Get all keys (filenames) in the nodes directory
-      // @ts-ignore - TypeScript doesn't recognize FileSystemDirectoryHandle.keys() properly
-      const keys = this.nodesDir!.keys()
+      // Run searches in parallel for all noun types
+      const nodePromises = nounTypes.map(nounType => this.getNodesByNounType(nounType))
+      const nodeArrays = await Promise.all(nodePromises)
 
-      // Iterate through all keys and get the corresponding nodes
-      for await (const name of keys) {
-        const node = await this.getNode(name)
-        if (node) {
-          nodes.push(node)
-        }
+      // Combine all results
+      const allNodes: HNSWNode[] = []
+      for (const nodes of nodeArrays) {
+        allNodes.push(...nodes)
       }
 
-      return nodes
+      return allNodes
     } catch (error) {
       console.error('Failed to get all nodes:', error)
       throw new Error(`Failed to get all nodes: ${error}`)
@@ -227,13 +421,51 @@ export class OPFSStorage implements StorageAdapter {
     await this.ensureInitialized()
 
     try {
-      await this.nodesDir!.removeEntry(id)
-    } catch (error) {
-      // Ignore if the file doesn't exist
-      if ((error as any).name !== 'NotFoundError') {
-        console.error(`Failed to delete node ${id}:`, error)
-        throw new Error(`Failed to delete node ${id}: ${error}`)
+      // Get the appropriate directory based on the node's metadata
+      const nodeDir = await this.getNodeDirectory(id)
+
+      try {
+        // Try to delete the node from the appropriate directory
+        await nodeDir.removeEntry(id)
+        return // Node deleted successfully
+      } catch (dirError) {
+        // If the file doesn't exist in the expected directory, try the default directory
+        if (nodeDir !== this.defaultDir) {
+          try {
+            await this.defaultDir!.removeEntry(id)
+            return // Node deleted successfully
+          } catch (defaultDirError) {
+            // If not found in default directory either, try all noun type directories
+            const directories = [
+              this.personDir!,
+              this.placeDir!,
+              this.thingDir!,
+              this.eventDir!,
+              this.conceptDir!,
+              this.contentDir!
+            ]
+
+            for (const dir of directories) {
+              if (dir === nodeDir) continue // Skip the already checked directory
+
+              try {
+                await dir.removeEntry(id)
+                return // Node deleted successfully
+              } catch {
+                // Continue to the next directory
+              }
+            }
+
+            // If we get here, the node wasn't found in any directory
+            return
+          }
+        }
+        // If the file doesn't exist, that's fine
+        return
       }
+    } catch (error) {
+      console.error(`Failed to delete node ${id}:`, error)
+      throw new Error(`Failed to delete node ${id}: ${error}`)
     }
   }
 
@@ -459,6 +691,29 @@ export class OPFSStorage implements StorageAdapter {
         create: true
       })
 
+      // Create noun type directories
+      this.personDir = await this.nodesDir.getDirectoryHandle(PERSON_DIR, {
+        create: true
+      })
+      this.placeDir = await this.nodesDir.getDirectoryHandle(PLACE_DIR, {
+        create: true
+      })
+      this.thingDir = await this.nodesDir.getDirectoryHandle(THING_DIR, {
+        create: true
+      })
+      this.eventDir = await this.nodesDir.getDirectoryHandle(EVENT_DIR, {
+        create: true
+      })
+      this.conceptDir = await this.nodesDir.getDirectoryHandle(CONCEPT_DIR, {
+        create: true
+      })
+      this.contentDir = await this.nodesDir.getDirectoryHandle(CONTENT_DIR, {
+        create: true
+      })
+      this.defaultDir = await this.nodesDir.getDirectoryHandle(DEFAULT_DIR, {
+        create: true
+      })
+
       // Delete and recreate the edges directory
       await this.rootDir!.removeEntry(EDGES_DIR, { recursive: true })
       this.edgesDir = await this.rootDir!.getDirectoryHandle(EDGES_DIR, {
@@ -500,6 +755,42 @@ export class OPFSStorage implements StorageAdapter {
   }
 
   /**
+   * Get the appropriate directory for a node based on its metadata
+   */
+  private async getNodeDirectory(id: string): Promise<FileSystemDirectoryHandle> {
+    try {
+      // Try to get the metadata for the node
+      const metadata = await this.getMetadata(id)
+
+      // If metadata exists and has a noun field, use the corresponding directory
+      if (metadata && metadata.noun) {
+        switch (metadata.noun) {
+          case 'person':
+            return this.personDir!
+          case 'place':
+            return this.placeDir!
+          case 'thing':
+            return this.thingDir!
+          case 'event':
+            return this.eventDir!
+          case 'concept':
+            return this.conceptDir!
+          case 'content':
+            return this.contentDir!
+          default:
+            return this.defaultDir!
+        }
+      }
+
+      // If no metadata or no noun field, use the default directory
+      return this.defaultDir!
+    } catch (error) {
+      // If there's an error getting the metadata, use the default directory
+      return this.defaultDir!
+    }
+  }
+
+  /**
    * Get information about storage usage and capacity
    */
   public async getStorageStatus(): Promise<{
@@ -533,6 +824,22 @@ export class OPFSStorage implements StorageAdapter {
         return size
       }
 
+      // Helper function to count files in a directory
+      const countFilesInDirectory = async (dirHandle: FileSystemDirectoryHandle): Promise<number> => {
+        let count = 0
+        try {
+          // @ts-ignore - TypeScript doesn't recognize FileSystemDirectoryHandle.entries() properly
+          for await (const [name, handle] of dirHandle.entries()) {
+            if (handle.kind === 'file') {
+              count++
+            }
+          }
+        } catch (error) {
+          console.warn(`Error counting files in directory:`, error)
+        }
+        return count
+      }
+
       // Calculate size for each directory
       if (this.nodesDir) {
         totalSize += await calculateDirSize(this.nodesDir)
@@ -544,10 +851,49 @@ export class OPFSStorage implements StorageAdapter {
         totalSize += await calculateDirSize(this.metadataDir)
       }
 
+      // Calculate sizes of noun type directories
+      const personDirSize = this.personDir ? await calculateDirSize(this.personDir) : 0
+      const placeDirSize = this.placeDir ? await calculateDirSize(this.placeDir) : 0
+      const thingDirSize = this.thingDir ? await calculateDirSize(this.thingDir) : 0
+      const eventDirSize = this.eventDir ? await calculateDirSize(this.eventDir) : 0
+      const conceptDirSize = this.conceptDir ? await calculateDirSize(this.conceptDir) : 0
+      const contentDirSize = this.contentDir ? await calculateDirSize(this.contentDir) : 0
+      const defaultDirSize = this.defaultDir ? await calculateDirSize(this.defaultDir) : 0
+
       // Get storage quota information using the Storage API
       let quota = null
       let details: Record<string, any> = {
-        isPersistent: await this.isPersistent()
+        isPersistent: await this.isPersistent(),
+        nounTypes: {
+          person: {
+            size: personDirSize,
+            count: this.personDir ? await countFilesInDirectory(this.personDir) : 0
+          },
+          place: {
+            size: placeDirSize,
+            count: this.placeDir ? await countFilesInDirectory(this.placeDir) : 0
+          },
+          thing: {
+            size: thingDirSize,
+            count: this.thingDir ? await countFilesInDirectory(this.thingDir) : 0
+          },
+          event: {
+            size: eventDirSize,
+            count: this.eventDir ? await countFilesInDirectory(this.eventDir) : 0
+          },
+          concept: {
+            size: conceptDirSize,
+            count: this.conceptDir ? await countFilesInDirectory(this.conceptDir) : 0
+          },
+          content: {
+            size: contentDirSize,
+            count: this.contentDir ? await countFilesInDirectory(this.contentDir) : 0
+          },
+          default: {
+            size: defaultDirSize,
+            count: this.defaultDir ? await countFilesInDirectory(this.defaultDir) : 0
+          }
+        }
       }
 
       try {
@@ -587,12 +933,60 @@ export class OPFSStorage implements StorageAdapter {
  * In-memory storage adapter for environments where OPFS is not available
  */
 export class MemoryStorage implements StorageAdapter {
-  private nodes: Map<string, HNSWNode> = new Map()
+  // Map of noun type to Map of node ID to node
+  private nodes: Map<string, Map<string, HNSWNode>> = new Map()
   private edges: Map<string, Edge> = new Map()
   private metadata: Map<string, any> = new Map()
 
+  // Initialize maps for each noun type
+  constructor() {
+    this.nodes.set(PERSON_DIR, new Map())
+    this.nodes.set(PLACE_DIR, new Map())
+    this.nodes.set(THING_DIR, new Map())
+    this.nodes.set(EVENT_DIR, new Map())
+    this.nodes.set(CONCEPT_DIR, new Map())
+    this.nodes.set(CONTENT_DIR, new Map())
+    this.nodes.set(DEFAULT_DIR, new Map())
+  }
+
   public async init(): Promise<void> {
     // Nothing to initialize for in-memory storage
+  }
+
+  /**
+   * Get the appropriate node type for a node based on its metadata
+   */
+  private async getNodeType(id: string): Promise<string> {
+    try {
+      // Try to get the metadata for the node
+      const metadata = await this.getMetadata(id)
+
+      // If metadata exists and has a noun field, use the corresponding type
+      if (metadata && metadata.noun) {
+        switch (metadata.noun) {
+          case 'person':
+            return PERSON_DIR
+          case 'place':
+            return PLACE_DIR
+          case 'thing':
+            return THING_DIR
+          case 'event':
+            return EVENT_DIR
+          case 'concept':
+            return CONCEPT_DIR
+          case 'content':
+            return CONTENT_DIR
+          default:
+            return DEFAULT_DIR
+        }
+      }
+
+      // If no metadata or no noun field, use the default type
+      return DEFAULT_DIR
+    } catch (error) {
+      // If there's an error getting the metadata, use the default type
+      return DEFAULT_DIR
+    }
   }
 
   public async saveNode(node: HNSWNode): Promise<void> {
@@ -608,13 +1002,50 @@ export class MemoryStorage implements StorageAdapter {
       nodeCopy.connections.set(level, new Set(connections))
     }
 
-    this.nodes.set(node.id, nodeCopy)
+    // Get the appropriate node type based on the node's metadata
+    const nodeType = await this.getNodeType(node.id)
+
+    // Get the map for this node type
+    const nodeMap = this.nodes.get(nodeType)!
+
+    // Save the node in the appropriate map
+    nodeMap.set(node.id, nodeCopy)
   }
 
   public async getNode(id: string): Promise<HNSWNode | null> {
-    const node = this.nodes.get(id)
+    // Get the appropriate node type based on the node's metadata
+    const nodeType = await this.getNodeType(id)
+
+    // Get the map for this node type
+    const nodeMap = this.nodes.get(nodeType)!
+
+    // Try to get the node from the appropriate map
+    let node = nodeMap.get(id)
+
+    // If not found in the expected map, try other maps
     if (!node) {
-      return null
+      // If the node type is not the default type, try the default map
+      if (nodeType !== DEFAULT_DIR) {
+        const defaultMap = this.nodes.get(DEFAULT_DIR)!
+        node = defaultMap.get(id)
+
+        // If still not found, try all other maps
+        if (!node) {
+          const nodeTypes = [PERSON_DIR, PLACE_DIR, THING_DIR, EVENT_DIR, CONCEPT_DIR, CONTENT_DIR]
+          for (const type of nodeTypes) {
+            if (type === nodeType) continue // Skip the already checked map
+
+            const typeMap = this.nodes.get(type)!
+            node = typeMap.get(id)
+            if (node) break // Found the node, exit the loop
+          }
+        }
+      }
+
+      // If still not found, return null
+      if (!node) {
+        return null
+      }
     }
 
     // Return a deep copy to avoid reference issues
@@ -632,10 +1063,41 @@ export class MemoryStorage implements StorageAdapter {
     return nodeCopy
   }
 
-  public async getAllNodes(): Promise<HNSWNode[]> {
+  /**
+   * Get nodes by noun type
+   * @param nounType The noun type to filter by
+   * @returns Promise that resolves to an array of nodes of the specified noun type
+   */
+  public async getNodesByNounType(nounType: string): Promise<HNSWNode[]> {
     const nodes: HNSWNode[] = []
 
-    for (const nodeId of this.nodes.keys()) {
+    // Get the map for this noun type
+    let typeMap: Map<string, HNSWNode>
+    switch (nounType) {
+      case 'person':
+        typeMap = this.nodes.get(PERSON_DIR)!
+        break
+      case 'place':
+        typeMap = this.nodes.get(PLACE_DIR)!
+        break
+      case 'thing':
+        typeMap = this.nodes.get(THING_DIR)!
+        break
+      case 'event':
+        typeMap = this.nodes.get(EVENT_DIR)!
+        break
+      case 'concept':
+        typeMap = this.nodes.get(CONCEPT_DIR)!
+        break
+      case 'content':
+        typeMap = this.nodes.get(CONTENT_DIR)!
+        break
+      default:
+        typeMap = this.nodes.get(DEFAULT_DIR)!
+    }
+
+    // Get all nodes from this map
+    for (const nodeId of typeMap.keys()) {
       const node = await this.getNode(nodeId)
       if (node) {
         nodes.push(node)
@@ -645,8 +1107,61 @@ export class MemoryStorage implements StorageAdapter {
     return nodes
   }
 
+  public async getAllNodes(): Promise<HNSWNode[]> {
+    // Get all noun types
+    const nounTypes = [
+      'person',
+      'place',
+      'thing',
+      'event',
+      'concept',
+      'content',
+      'default'
+    ]
+
+    // Run searches in parallel for all noun types
+    const nodePromises = nounTypes.map(nounType => this.getNodesByNounType(nounType))
+    const nodeArrays = await Promise.all(nodePromises)
+
+    // Combine all results
+    const allNodes: HNSWNode[] = []
+    for (const nodes of nodeArrays) {
+      allNodes.push(...nodes)
+    }
+
+    return allNodes
+  }
+
   public async deleteNode(id: string): Promise<void> {
-    this.nodes.delete(id)
+    // Get the appropriate node type based on the node's metadata
+    const nodeType = await this.getNodeType(id)
+
+    // Get the map for this node type
+    const nodeMap = this.nodes.get(nodeType)!
+
+    // Try to delete the node from the appropriate map
+    const deleted = nodeMap.delete(id)
+
+    // If not found in the expected map, try other maps
+    if (!deleted) {
+      // If the node type is not the default type, try the default map
+      if (nodeType !== DEFAULT_DIR) {
+        const defaultMap = this.nodes.get(DEFAULT_DIR)!
+        const deletedFromDefault = defaultMap.delete(id)
+
+        // If still not found, try all other maps
+        if (!deletedFromDefault) {
+          const nodeTypes = [PERSON_DIR, PLACE_DIR, THING_DIR, EVENT_DIR, CONCEPT_DIR, CONTENT_DIR]
+          for (const type of nodeTypes) {
+            if (type === nodeType) continue // Skip the already checked map
+
+            const typeMap = this.nodes.get(type)!
+            const deletedFromType = typeMap.delete(id)
+            if (deletedFromType) break // Node deleted, exit the loop
+          }
+        }
+      }
+    }
   }
 
   public async saveMetadata(id: string, metadata: any): Promise<void> {
@@ -772,7 +1287,13 @@ export class MemoryStorage implements StorageAdapter {
   }
 
   public async clear(): Promise<void> {
-    this.nodes.clear()
+    // Clear all noun type maps
+    const nodeTypes = [PERSON_DIR, PLACE_DIR, THING_DIR, EVENT_DIR, CONCEPT_DIR, CONTENT_DIR, DEFAULT_DIR]
+    for (const type of nodeTypes) {
+      const typeMap = this.nodes.get(type)!
+      typeMap.clear()
+    }
+
     this.edges.clear()
     this.metadata.clear()
   }
@@ -833,27 +1354,56 @@ export class MemoryStorage implements StorageAdapter {
         return 0
       }
 
-      // Estimate size of nodes
-      for (const node of this.nodes.values()) {
-        totalSize += estimateSize(node)
+      // Calculate sizes and counts for each noun type
+      const nounTypeDetails: Record<string, { size: number; count: number }> = {}
+      const nodeTypes = [PERSON_DIR, PLACE_DIR, THING_DIR, EVENT_DIR, CONCEPT_DIR, CONTENT_DIR, DEFAULT_DIR]
+
+      let totalNodeCount = 0
+      let nodesSize = 0
+
+      for (const type of nodeTypes) {
+        const typeMap = this.nodes.get(type)!
+        let typeSize = 0
+
+        for (const node of typeMap.values()) {
+          typeSize += estimateSize(node)
+        }
+
+        nounTypeDetails[type] = {
+          size: typeSize,
+          count: typeMap.size
+        }
+
+        nodesSize += typeSize
+        totalNodeCount += typeMap.size
       }
+
+      totalSize += nodesSize
 
       // Estimate size of edges
+      let edgesSize = 0
       for (const edge of this.edges.values()) {
-        totalSize += estimateSize(edge)
+        edgesSize += estimateSize(edge)
       }
+      totalSize += edgesSize
 
       // Estimate size of metadata
+      let metadataSize = 0
       for (const meta of this.metadata.values()) {
-        totalSize += estimateSize(meta)
+        metadataSize += estimateSize(meta)
       }
+      totalSize += metadataSize
 
       // Get memory information if available
       let quota = null
       let details: Record<string, any> = {
-        nodesCount: this.nodes.size,
-        edgesCount: this.edges.size,
-        metadataCount: this.metadata.size
+        nodeCount: totalNodeCount,
+        edgeCount: this.edges.size,
+        metadataCount: this.metadata.size,
+        nounTypes: nounTypeDetails,
+        nodesSize,
+        edgesSize,
+        metadataSize
       }
 
       // Try to get memory information if in a browser environment

@@ -94,6 +94,15 @@ export interface Concept extends GraphNoun {
   noun: typeof NounType.Concept
 }
 
+
+export interface Group extends GraphNoun {
+  noun: typeof NounType.Group
+}
+
+export interface List extends GraphNoun {
+  noun: typeof NounType.List
+}
+
 /**
  * Represents content (text, media, etc.) in the graph
  */
@@ -105,13 +114,17 @@ export interface Content extends GraphNoun {
  * Defines valid noun types for graph entities
  * Used for categorizing different types of nodes
  */
+
 export const NounType = {
   Person: 'person',    // Person entities
   Place: 'place',     // Physical locations
   Thing: 'thing',     // Physical or virtual objects
   Event: 'event',     // Events or occurrences
   Concept: 'concept',  // Abstract concepts or ideas
-  Content: 'content'  // Content items
+  Content: 'content', // Content items
+  Group: 'group',    // Groups of related entities
+  List: 'list',      // Ordered collections of entities
+  Category: 'category' // Categories for content items including tags
 } as const
 export type NounType = (typeof NounType)[keyof typeof NounType]
 
@@ -125,6 +138,12 @@ export const VerbType = {
   Created: 'created',           // Indicates creation or authorship
   Earned: 'earned',             // Indicates achievement or acquisition
   Owns: 'owns',                 // Indicates ownership
-  MemberOf: 'memberOf'          // Indicates membership or affiliation
+  MemberOf: 'memberOf',         // Indicates membership or affiliation
+  RelatedTo: 'relatedTo',       // Indicates family relationship
+  WorksWith: 'worksWith',       // Indicates professional relationship
+  FriendOf: 'friendOf',        // Indicates friendship
+  ReportsTo: 'reportsTo',          // Indicates reporting relationship
+  Supervises: 'supervises',    // Indicates supervisory relationship
+  Mentors: 'mentors'          // Indicates mentorship relationship
 } as const
 export type VerbType = (typeof VerbType)[keyof typeof VerbType]

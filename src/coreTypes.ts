@@ -99,6 +99,13 @@ export interface StorageAdapter {
 
   getAllNodes(): Promise<HNSWNode[]>;
 
+  /**
+   * Get nodes by noun type
+   * @param nounType The noun type to filter by
+   * @returns Promise that resolves to an array of nodes of the specified noun type
+   */
+  getNodesByNounType(nounType: string): Promise<HNSWNode[]>;
+
   deleteNode(id: string): Promise<void>;
 
   saveEdge(edge: Edge): Promise<void>;
