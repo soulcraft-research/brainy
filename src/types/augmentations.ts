@@ -1,4 +1,4 @@
-/** Common types for augmentation system */
+/** Common types for the augmentation system */
 
 /**
  * Enum representing all types of augmentations available in the Brainy system.
@@ -13,6 +13,7 @@ export enum AugmentationType {
   ACTIVATION = 'activation',
   WEBSOCKET = 'webSocket'
 }
+
 export type WebSocketConnection = {
   connectionId: string
   url: string
@@ -199,7 +200,7 @@ export namespace BrainyAugmentations {
       key: string,
       data: unknown,
       options?: Record<string, unknown>
-    ): AugmentationResponse<boolean>
+    ): Promise<AugmentationResponse<boolean>>
 
     /**
      * Retrieves data from the memory system.
@@ -209,7 +210,7 @@ export namespace BrainyAugmentations {
     retrieveData(
       key: string,
       options?: Record<string, unknown>
-    ): AugmentationResponse<unknown>
+    ): Promise<AugmentationResponse<unknown>>
 
     /**
      * Updates existing data in the memory system.
@@ -221,7 +222,7 @@ export namespace BrainyAugmentations {
       key: string,
       data: unknown,
       options?: Record<string, unknown>
-    ): AugmentationResponse<boolean>
+    ): Promise<AugmentationResponse<boolean>>
 
     /**
      * Deletes data from the memory system.
@@ -231,7 +232,7 @@ export namespace BrainyAugmentations {
     deleteData(
       key: string,
       options?: Record<string, unknown>
-    ): AugmentationResponse<boolean>
+    ): Promise<AugmentationResponse<boolean>>
 
     /**
      * Lists available data keys in the memory system.
@@ -241,7 +242,23 @@ export namespace BrainyAugmentations {
     listDataKeys(
       pattern?: string,
       options?: Record<string, unknown>
-    ): AugmentationResponse<string[]>
+    ): Promise<AugmentationResponse<string[]>>
+
+    /**
+     * Searches for data in the memory system using vector similarity.
+     * @param query The query vector or data to search for
+     * @param k Number of results to return
+     * @param options Optional search options
+     */
+    search(
+      query: unknown,
+      k?: number,
+      options?: Record<string, unknown>
+    ): Promise<AugmentationResponse<Array<{
+      id: string;
+      score: number;
+      data: unknown;
+    }>>>
   }
 
   /**
@@ -351,13 +368,26 @@ export namespace BrainyAugmentations {
 }
 
 /** Direct exports of augmentation interfaces for easier imports */
-export interface ISenseAugmentation extends BrainyAugmentations.ISenseAugmentation {}
-export interface IConduitAugmentation extends BrainyAugmentations.IConduitAugmentation {}
-export interface ICognitionAugmentation extends BrainyAugmentations.ICognitionAugmentation {}
-export interface IMemoryAugmentation extends BrainyAugmentations.IMemoryAugmentation {}
-export interface IPerceptionAugmentation extends BrainyAugmentations.IPerceptionAugmentation {}
-export interface IDialogAugmentation extends BrainyAugmentations.IDialogAugmentation {}
-export interface IActivationAugmentation extends BrainyAugmentations.IActivationAugmentation {}
+export interface ISenseAugmentation extends BrainyAugmentations.ISenseAugmentation {
+}
+
+export interface IConduitAugmentation extends BrainyAugmentations.IConduitAugmentation {
+}
+
+export interface ICognitionAugmentation extends BrainyAugmentations.ICognitionAugmentation {
+}
+
+export interface IMemoryAugmentation extends BrainyAugmentations.IMemoryAugmentation {
+}
+
+export interface IPerceptionAugmentation extends BrainyAugmentations.IPerceptionAugmentation {
+}
+
+export interface IDialogAugmentation extends BrainyAugmentations.IDialogAugmentation {
+}
+
+export interface IActivationAugmentation extends BrainyAugmentations.IActivationAugmentation {
+}
 
 /** WebSocket-enabled augmentation interfaces */
 export type IWebSocketSenseAugmentation = BrainyAugmentations.ISenseAugmentation & IWebSocketSupport
