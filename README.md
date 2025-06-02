@@ -410,6 +410,7 @@ Brainy provides several memory augmentation implementations for different storag
 2. **FileSystemStorageAugmentation**: File system storage (for Node.js environments)
 3. **OPFSStorageAugmentation**: Origin Private File System storage (for browser environments)
 4. **FirestoreStorageAugmentation**: Firestore database storage (requires Firebase)
+   - Note: The FirestoreStorageAugmentation includes vector search functionality that will automatically fall back to client-side search if the Firebase Extensions for Firestore Vector Search is not available.
 
 You can use the `createMemoryAugmentation` factory function to automatically select the appropriate storage type based on the environment, or you can specify a particular storage type.
 
