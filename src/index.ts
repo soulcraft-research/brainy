@@ -116,22 +116,12 @@ import {
   OPFSStorageAugmentation,
   createMemoryAugmentation
 } from './augmentations/memoryAugmentations.js'
-import {
-  FirestoreStorageAugmentation,
-  createFirestoreStorageAugmentation
-} from './augmentations/firestoreStorageAugmentation.js'
-import type { FirestoreStorageConfig } from './augmentations/firestoreStorageAugmentation.js'
 
 export {
   MemoryStorageAugmentation,
   FileSystemStorageAugmentation,
   OPFSStorageAugmentation,
-  FirestoreStorageAugmentation,
-  createMemoryAugmentation,
-  createFirestoreStorageAugmentation
-}
-export type {
-  FirestoreStorageConfig
+  createMemoryAugmentation
 }
 
 

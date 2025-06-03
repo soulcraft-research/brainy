@@ -8,11 +8,6 @@ import { MemoryStorage } from '../storage/opfsStorage.js'
 import { FileSystemStorage } from '../storage/fileSystemStorage.js'
 import { OPFSStorage } from '../storage/opfsStorage.js'
 import { cosineDistance } from '../utils/distance.js'
-import {
-  FirestoreStorageAugmentation,
-  FirestoreStorageConfig,
-  createFirestoreStorageAugmentation
-} from './firestoreStorageAugmentation.js'
 
 /**
  * Base class for memory augmentations that wrap a StorageAdapter
@@ -292,10 +287,9 @@ export class OPFSStorageAugmentation extends BaseMemoryAugmentation {
 export async function createMemoryAugmentation(
   name: string,
   options: {
-    storageType?: 'memory' | 'filesystem' | 'opfs' | 'firestore'
+    storageType?: 'memory' | 'filesystem' | 'opfs'
     rootDirectory?: string
     requestPersistentStorage?: boolean
-    firestoreConfig?: FirestoreStorageConfig
   } = {}
 ): Promise<IMemoryAugmentation> {
   // If a specific storage type is requested, use that
@@ -307,11 +301,6 @@ export async function createMemoryAugmentation(
         return new FileSystemStorageAugmentation(name, options.rootDirectory)
       case 'opfs':
         return new OPFSStorageAugmentation(name)
-      case 'firestore':
-        if (!options.firestoreConfig) {
-          throw new Error('firestoreConfig is required when using Firestore storage')
-        }
-        return createFirestoreStorageAugmentation(name, options.firestoreConfig)
     }
   }
 

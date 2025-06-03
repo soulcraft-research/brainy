@@ -7,15 +7,12 @@
  * The example shows:
  * 1. Using the default memory augmentation (auto-selected based on environment)
  * 2. Using specific storage types (Memory, FileSystem, OPFS)
- * 3. Using Firestore storage
  */
 
 import {
   registerAugmentation,
   initializeAugmentationPipeline,
-  createMemoryAugmentation,
-  createFirestoreStorageAugmentation,
-  FirestoreStorageConfig
+  createMemoryAugmentation
 } from '../dist/index.js'
 
 // Example 1: Using the default memory augmentation
@@ -123,66 +120,6 @@ async function useOPFSStorage() {
     console.error('Failed to initialize OPFS storage:', error)
     console.log('This might be because you are not in a browser environment or OPFS is not supported')
     return null
-  }
-}
-
-// Example 5: Using Firestore storage
-async function useFirestoreStorage() {
-  console.log('Setting up Firestore storage...')
-
-  // Your Firebase configuration
-  // Replace with your actual Firebase project configuration
-  const firebaseConfig = {
-    projectId: 'your-project-id',
-    collection: 'brainy_data',
-    // Optional: provide credentials, databaseURL, appName
-  }
-
-  try {
-    // Method 1: Using createMemoryAugmentation with 'firestore' storage type
-    const memoryAug = await createMemoryAugmentation('brainy-firestore-storage', {
-      storageType: 'firestore',
-      firestoreConfig: firebaseConfig
-    })
-
-    // Register the augmentation
-    registerAugmentation(memoryAug)
-
-    // Initialize the augmentation
-    await memoryAug.initialize()
-
-    console.log('Firestore storage initialized successfully')
-
-    // Store some data
-    await storeAndRetrieveData(memoryAug)
-
-    return memoryAug
-  } catch (error) {
-    console.error('Failed to initialize Firestore storage:', error)
-    console.log('This might be because Firebase is not properly configured or installed')
-
-    // Method 2: Using createFirestoreStorageAugmentation directly
-    console.log('Trying alternative method...')
-
-    try {
-      const firestoreStorage = createFirestoreStorageAugmentation(
-        'firestore-storage-direct',
-        firebaseConfig
-      )
-
-      registerAugmentation(firestoreStorage)
-      await firestoreStorage.initialize()
-
-      console.log('Firestore storage initialized successfully (direct method)')
-
-      // Store some data
-      await storeAndRetrieveData(firestoreStorage)
-
-      return firestoreStorage
-    } catch (directError) {
-      console.error('Failed to initialize Firestore storage (direct method):', directError)
-      return null
-    }
   }
 }
 
@@ -320,12 +257,6 @@ async function runExamples() {
   const opfsStorage = await useOPFSStorage()
   if (opfsStorage) {
     await opfsStorage.shutDown()
-  }
-
-  // Example 5: Firestore storage
-  const firestoreStorage = await useFirestoreStorage()
-  if (firestoreStorage) {
-    await firestoreStorage.shutDown()
   }
 
   console.log('All examples completed')

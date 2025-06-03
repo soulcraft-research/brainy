@@ -187,7 +187,7 @@ export namespace BrainyAugmentations {
 
   /**
    * Interface for Memory augmentations.
-   * These augmentations provide storage capabilities for data in different formats (e.g., fileSystem, in-memory, or firestore).
+   * These augmentations provide storage capabilities for data in different formats (e.g., fileSystem, in-memory).
    */
   export interface IMemoryAugmentation extends IAugmentation {
     /**
