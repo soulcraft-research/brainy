@@ -49,10 +49,15 @@ import {
   MemoryStorage,
   createStorage
 } from './storage/opfsStorage.js'
+import { FileSystemStorage } from './storage/fileSystemStorage.js'
+import { R2Storage, S3CompatibleStorage } from './storage/s3CompatibleStorage.js'
 
 export {
   OPFSStorage,
   MemoryStorage,
+  FileSystemStorage,
+  R2Storage,
+  S3CompatibleStorage,
   createStorage
 }
 
@@ -64,12 +69,22 @@ import {
   PipelineOptions
 } from './augmentationPipeline.js'
 
+// Export sequential pipeline
+import {
+  SequentialPipeline,
+  sequentialPipeline,
+  PipelineResult,
+  SequentialPipelineOptions
+} from './sequentialPipeline.js'
+
 export {
   AugmentationPipeline,
   augmentationPipeline,
-  ExecutionMode
+  ExecutionMode,
+  SequentialPipeline,
+  sequentialPipeline
 }
-export type { PipelineOptions }
+export type { PipelineOptions, PipelineResult, SequentialPipelineOptions }
 
 // Export augmentation registry for build-time loading
 import {
