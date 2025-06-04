@@ -13,6 +13,8 @@ import {
   AugmentationResponse,
   AugmentationType
 } from './types/augmentations.js'
+import { isThreadingAvailable, isBrowser, isNode } from './utils/environment.js'
+import { executeInThread } from './utils/workerUtils.js'
 
 /**
  * Type definitions for the augmentation registry
@@ -35,7 +37,8 @@ export enum ExecutionMode {
   SEQUENTIAL = 'sequential',
   PARALLEL = 'parallel',
   FIRST_SUCCESS = 'firstSuccess',
-  FIRST_RESULT = 'firstResult'
+  FIRST_RESULT = 'firstResult',
+  THREADED = 'threaded'  // Execute in separate threads when available
 }
 
 /**
@@ -45,6 +48,8 @@ export interface PipelineOptions {
   mode?: ExecutionMode;
   timeout?: number;
   stopOnError?: boolean;
+  forceThreading?: boolean;  // Force threading even if not in THREADED mode
+  disableThreading?: boolean;  // Disable threading even if in THREADED mode
 }
 
 /**
@@ -53,7 +58,9 @@ export interface PipelineOptions {
 const DEFAULT_PIPELINE_OPTIONS: PipelineOptions = {
   mode: ExecutionMode.SEQUENTIAL,
   timeout: 30000,
-  stopOnError: false
+  stopOnError: false,
+  forceThreading: false,
+  disableThreading: false
 }
 
 /**
@@ -502,6 +509,32 @@ export class AugmentationPipeline {
   }
 
   /**
+   * Determines if threading should be used based on options and environment
+   * 
+   * @param options The pipeline options
+   * @returns True if threading should be used, false otherwise
+   */
+  private shouldUseThreading(options: PipelineOptions): boolean {
+    // If threading is explicitly disabled, don't use it
+    if (options.disableThreading) {
+      return false;
+    }
+
+    // If threading is explicitly forced, use it if available
+    if (options.forceThreading) {
+      return isThreadingAvailable();
+    }
+
+    // If in THREADED mode, use threading if available
+    if (options.mode === ExecutionMode.THREADED) {
+      return isThreadingAvailable();
+    }
+
+    // Otherwise, don't use threading
+    return false;
+  }
+
+  /**
    * Execute a pipeline for a specific augmentation type
    *
    * @param augmentations The augmentations to execute
@@ -551,8 +584,33 @@ export class AugmentationPipeline {
           })
           : null
 
-        // Execute the method on the augmentation
-        const methodPromise = (augmentation[method] as Function)(...args) as AugmentationResponse<R>
+        // Check if threading should be used
+        const useThreading = this.shouldUseThreading(options);
+
+        // Execute the method on the augmentation, using threading if appropriate
+        let methodPromise: Promise<AugmentationResponse<R>>;
+
+        if (useThreading) {
+          // Execute in a separate thread
+          try {
+            // Create a function that can be serialized and executed in a worker
+            const workerFn = (...workerArgs: any[]) => {
+              // This function will be stringified and executed in the worker
+              // It needs to be self-contained
+              const augFn = augmentation[method as string] as Function;
+              return augFn.apply(augmentation, workerArgs);
+            };
+
+            methodPromise = executeInThread<AugmentationResponse<R>>(workerFn, ...args);
+          } catch (threadError) {
+            console.warn(`Failed to execute in thread, falling back to main thread: ${threadError}`);
+            // Fall back to executing in the main thread
+            methodPromise = Promise.resolve((augmentation[method] as Function)(...args) as AugmentationResponse<R>);
+          }
+        } else {
+          // Execute in the main thread
+          methodPromise = Promise.resolve((augmentation[method] as Function)(...args) as AugmentationResponse<R>);
+        }
 
         // Race the method promise against the timeout promise if a timeout is specified
         const result = timeoutPromise
@@ -575,6 +633,30 @@ export class AugmentationPipeline {
       case ExecutionMode.PARALLEL:
         // Execute all augmentations in parallel
         return enabledAugmentations.map(executeMethod)
+
+      case ExecutionMode.THREADED:
+        // Execute all augmentations in parallel with threading enabled
+        // Force threading for this mode
+        const threadedOptions = { ...options, forceThreading: true };
+
+        // Create a new executeMethod function that uses the threaded options
+        const executeMethodThreaded = async (augmentation: T) => {
+          // Save the original options
+          const originalOptions = options;
+
+          // Set the options to the threaded options
+          options = threadedOptions;
+
+          // Execute the method
+          const result = await executeMethod(augmentation);
+
+          // Restore the original options
+          options = originalOptions;
+
+          return result;
+        };
+
+        return enabledAugmentations.map(executeMethodThreaded);
 
       case ExecutionMode.FIRST_SUCCESS:
         // Execute augmentations sequentially until one succeeds

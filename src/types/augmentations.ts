@@ -48,6 +48,9 @@ export interface IAugmentation {
   shutDown(): Promise<void>
 
   getStatus(): Promise<'active' | 'inactive' | 'error'>
+
+  // Allow string indexing for dynamic method access
+  [key: string]: any;
 }
 
 /**
