@@ -35,6 +35,41 @@ export interface BrainyDataConfig {
   storageAdapter?: StorageAdapter
 
   /**
+   * Storage configuration options
+   * These will be passed to createStorage if storageAdapter is not provided
+   */
+  storage?: {
+    requestPersistentStorage?: boolean;
+    r2Storage?: {
+      bucketName?: string;
+      accountId?: string;
+      accessKeyId?: string;
+      secretAccessKey?: string;
+    };
+    s3Storage?: {
+      bucketName?: string;
+      accessKeyId?: string;
+      secretAccessKey?: string;
+      region?: string;
+    };
+    gcsStorage?: {
+      bucketName?: string;
+      accessKeyId?: string;
+      secretAccessKey?: string;
+      endpoint?: string;
+    };
+    customS3Storage?: {
+      bucketName?: string;
+      accessKeyId?: string;
+      secretAccessKey?: string;
+      endpoint?: string;
+      region?: string;
+    };
+    forceFileSystemStorage?: boolean;
+    forceMemoryStorage?: boolean;
+  }
+
+  /**
    * Embedding function to convert data to vectors
    */
   embeddingFunction?: EmbeddingFunction
@@ -42,8 +77,15 @@ export interface BrainyDataConfig {
   /**
    * Request persistent storage when running in a browser
    * This will prompt the user for permission to use persistent storage
+   * @deprecated Use storage.requestPersistentStorage instead
    */
   requestPersistentStorage?: boolean
+
+  /**
+   * Set the database to read-only mode
+   * When true, all write operations will throw an error
+   */
+  readOnly?: boolean
 }
 
 export class BrainyData<T = any> {
@@ -52,6 +94,8 @@ export class BrainyData<T = any> {
   private isInitialized = false
   private embeddingFunction: EmbeddingFunction
   private requestPersistentStorage: boolean
+  private readOnly: boolean
+  private storageConfig: BrainyDataConfig['storage'] = {}
 
   /**
    * Create a new vector database
@@ -69,8 +113,27 @@ export class BrainyData<T = any> {
     // Set embedding function if provided, otherwise use default
     this.embeddingFunction = config.embeddingFunction || defaultEmbeddingFunction
 
-    // Set persistent storage request flag
-    this.requestPersistentStorage = config.requestPersistentStorage || false
+    // Set persistent storage request flag (support both new and deprecated options)
+    this.requestPersistentStorage = 
+      (config.storage?.requestPersistentStorage !== undefined) 
+        ? config.storage.requestPersistentStorage 
+        : (config.requestPersistentStorage || false)
+
+    // Set read-only flag
+    this.readOnly = config.readOnly || false
+
+    // Store storage configuration for later use in init()
+    this.storageConfig = config.storage || {}
+  }
+
+  /**
+   * Check if the database is in read-only mode and throw an error if it is
+   * @throws Error if the database is in read-only mode
+   */
+  private checkReadOnly(): void {
+    if (this.readOnly) {
+      throw new Error('Cannot perform write operation: database is in read-only mode')
+    }
   }
 
   /**
@@ -85,9 +148,13 @@ export class BrainyData<T = any> {
     try {
       // Initialize storage if not provided in constructor
       if (!this.storage) {
-        this.storage = await createStorage({
+        // Combine storage config with requestPersistentStorage for backward compatibility
+        const storageOptions = {
+          ...this.storageConfig,
           requestPersistentStorage: this.requestPersistentStorage
-        })
+        };
+
+        this.storage = await createStorage(storageOptions);
       }
 
       // Initialize storage
@@ -129,6 +196,9 @@ export class BrainyData<T = any> {
     } = {}
   ): Promise<string> {
     await this.ensureInitialized()
+
+    // Check if database is in read-only mode
+    this.checkReadOnly()
 
     try {
       let vector: Vector
@@ -199,6 +269,9 @@ export class BrainyData<T = any> {
     } = {}
   ): Promise<string[]> {
     await this.ensureInitialized()
+
+    // Check if database is in read-only mode
+    this.checkReadOnly()
 
     const ids: string[] = []
 
@@ -395,6 +468,9 @@ export class BrainyData<T = any> {
   public async delete(id: string): Promise<boolean> {
     await this.ensureInitialized()
 
+    // Check if database is in read-only mode
+    this.checkReadOnly()
+
     try {
       // Remove from index
       const removed = this.index.removeItem(id)
@@ -424,6 +500,9 @@ export class BrainyData<T = any> {
    */
   public async updateMetadata(id: string, metadata: T): Promise<boolean> {
     await this.ensureInitialized()
+
+    // Check if database is in read-only mode
+    this.checkReadOnly()
 
     try {
       // Check if a vector exists
@@ -456,6 +535,9 @@ export class BrainyData<T = any> {
     } = {}
   ): Promise<string> {
     await this.ensureInitialized()
+
+    // Check if database is in read-only mode
+    this.checkReadOnly()
 
     try {
       // Check if source and target nodes exist
@@ -591,6 +673,9 @@ export class BrainyData<T = any> {
   public async deleteEdge(id: string): Promise<boolean> {
     await this.ensureInitialized()
 
+    // Check if database is in read-only mode
+    this.checkReadOnly()
+
     try {
       // Remove from index
       const removed = this.index.removeItem(id)
@@ -614,6 +699,9 @@ export class BrainyData<T = any> {
   public async clear(): Promise<void> {
     await this.ensureInitialized()
 
+    // Check if database is in read-only mode
+    this.checkReadOnly()
+
     try {
       // Clear index
       this.index.clear()
@@ -631,6 +719,22 @@ export class BrainyData<T = any> {
    */
   public size(): number {
     return this.index.size()
+  }
+
+  /**
+   * Check if the database is in read-only mode
+   * @returns True if the database is in read-only mode, false otherwise
+   */
+  public isReadOnly(): boolean {
+    return this.readOnly
+  }
+
+  /**
+   * Set the database to read-only mode
+   * @param readOnly True to set the database to read-only mode, false to allow writes
+   */
+  public setReadOnly(readOnly: boolean): void {
+    this.readOnly = readOnly
   }
 
   /**
