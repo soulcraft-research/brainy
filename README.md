@@ -82,6 +82,44 @@ await db.delete(fishId);
 
 // Clear the database
 await db.clear();
+
+// Using read-only mode
+// Create a database in read-only mode
+const readOnlyDb = new BrainyData({ readOnly: true });
+await readOnlyDb.init();
+
+// Attempting to write will throw an error
+try {
+  await readOnlyDb.add([0.1, 0.2, 0.3], { name: 'test' });
+} catch (error) {
+  console.error(error); // Error: Cannot perform write operation: database is in read-only mode
+}
+
+// You can also toggle read-only mode at runtime
+const db2 = new BrainyData();
+await db2.init();
+
+// Add data while writable
+const itemId = await db2.add([0.1, 0.2, 0.3], { name: 'test' });
+
+// Set to read-only mode
+db2.setReadOnly(true);
+
+// Check if database is in read-only mode
+console.log(db2.isReadOnly()); // true
+
+// Attempting to write now will throw an error
+try {
+  await db2.delete(itemId);
+} catch (error) {
+  console.error(error); // Error: Cannot perform write operation: database is in read-only mode
+}
+
+// Set back to writable mode
+db2.setReadOnly(false);
+
+// Now writing is allowed again
+await db2.delete(itemId);
 ```
 
 ### Using the Embedding Function
@@ -202,15 +240,85 @@ const db = new BrainyData({
     //   return [0.1, 0.2, 0.3, 0.4]; // Return a vector
     // },
 
-    // Custom storage adapter (optional)
-    // By default, it uses OPFS in browsers, FileSystemStorage in Node.js,
-    // or falls back to in-memory storage if neither is available
-    // storageAdapter: myCustomStorageAdapter
+    // Storage configuration (optional)
+    // By default, it automatically selects the best storage option based on the environment:
+    // - In browsers: OPFS (Origin Private File System) if available, otherwise in-memory
+    // - In Node.js: FileSystemStorage if available, otherwise in-memory
+    // - In server environments: Checks for environment variables for cloud storage credentials
+    storage: {
+      // Request persistent storage when running in a browser (optional)
+      requestPersistentStorage: true,
 
-    // You can also explicitly use the FileSystemStorage with a custom directory:
-    // import { FileSystemStorage } from '@soulcraft/brainy/storage/fileSystemStorage';
-    // storageAdapter: new FileSystemStorage('/custom/path')
+      // Force specific storage type (optional)
+      // forceFileSystemStorage: true,  // Force file system storage
+      // forceMemoryStorage: true,      // Force in-memory storage
+
+      // Cloud storage configuration (optional)
+      // These can also be set via environment variables
+
+      // Cloudflare R2 (can also use R2_* environment variables)
+      // r2Storage: {
+      //   bucketName: 'your-bucket-name',
+      //   accountId: 'your-cloudflare-account-id',
+      //   accessKeyId: 'your-r2-access-key-id',
+      //   secretAccessKey: 'your-r2-secret-access-key'
+      // },
+
+      // Amazon S3 (can also use S3_* or AWS_* environment variables)
+      // s3Storage: {
+      //   bucketName: 'your-s3-bucket-name',
+      //   accessKeyId: 'your-aws-access-key-id',
+      //   secretAccessKey: 'your-aws-secret-access-key',
+      //   region: 'us-east-1'
+      // },
+
+      // Google Cloud Storage (can also use GCS_* environment variables)
+      // gcsStorage: {
+      //   bucketName: 'your-gcs-bucket-name',
+      //   accessKeyId: 'your-hmac-access-key',
+      //   secretAccessKey: 'your-hmac-secret',
+      //   endpoint: 'https://storage.googleapis.com'
+      // },
+
+      // Custom S3-compatible storage
+      // customS3Storage: {
+      //   bucketName: 'your-bucket-name',
+      //   accessKeyId: 'your-access-key-id',
+      //   secretAccessKey: 'your-secret-access-key',
+      //   endpoint: 'https://your-endpoint.com',
+      //   region: 'your-region'
+      // }
+    },
+
+    // Custom storage adapter (optional)
+    // If provided, this overrides the storage configuration above
+    // storageAdapter: myCustomStorageAdapter,
+
+    // Set the database to read-only mode (optional)
+    // When true, all write operations (add, delete, updateMetadata, etc.) will throw an error
+    // readOnly: true
 });
+
+// Environment Variables Support
+// The library automatically detects and uses these environment variables if available:
+//
+// Cloudflare R2:
+// - R2_BUCKET_NAME
+// - R2_ACCOUNT_ID
+// - R2_ACCESS_KEY_ID
+// - R2_SECRET_ACCESS_KEY
+//
+// Amazon S3:
+// - S3_BUCKET_NAME
+// - S3_ACCESS_KEY_ID (or AWS_ACCESS_KEY_ID)
+// - S3_SECRET_ACCESS_KEY (or AWS_SECRET_ACCESS_KEY)
+// - S3_REGION (or AWS_REGION)
+//
+// Google Cloud Storage:
+// - GCS_BUCKET_NAME
+// - GCS_ACCESS_KEY_ID
+// - GCS_SECRET_ACCESS_KEY
+// - GCS_ENDPOINT
 ```
 
 ### Importing Graph Types Separately
@@ -402,6 +510,8 @@ Brainy provides several memory augmentation implementations for different storag
 2. **FileSystemStorageAugmentation**: File system storage (for Node.js environments)
 3. **OPFSStorageAugmentation**: Origin Private File System storage (for browser environments)
 
+Additionally, you can use R2Storage with memory augmentations by specifying the r2Storage option when creating a storage adapter.
+
 You can use the `createMemoryAugmentation` factory function to automatically select the appropriate storage type based on the environment, or you can specify a particular storage type.
 
 **Basic Usage:**
@@ -469,6 +579,38 @@ const opfsStorage = await createMemoryAugmentation('opfs-storage', {
   storageType: 'opfs',
   requestPersistentStorage: true
 });
+
+// For server environments, you can use S3-compatible storage:
+
+// Cloudflare R2:
+const r2Storage = await createMemoryAugmentation('r2-storage', {
+  r2Storage: {
+    bucketName: 'your-bucket-name',
+    accountId: 'your-cloudflare-account-id',
+    accessKeyId: 'your-r2-access-key-id',
+    secretAccessKey: 'your-r2-secret-access-key'
+  }
+});
+
+// Amazon S3:
+const s3Storage = await createMemoryAugmentation('s3-storage', {
+  s3Storage: {
+    bucketName: 'your-s3-bucket-name',
+    accessKeyId: 'your-aws-access-key-id',
+    secretAccessKey: 'your-aws-secret-access-key',
+    region: 'us-east-1'
+  }
+});
+
+// Google Cloud Storage:
+const gcsStorage = await createMemoryAugmentation('gcs-storage', {
+  gcsStorage: {
+    bucketName: 'your-gcs-bucket-name',
+    accessKeyId: 'your-hmac-access-key',
+    secretAccessKey: 'your-hmac-secret',
+    endpoint: 'https://storage.googleapis.com'
+  }
+});
 ```
 
 
@@ -476,8 +618,13 @@ The memory augmentation will automatically select the appropriate storage based 
 - In Node.js: FileSystemStorage
 - In browser with OPFS support: OPFSStorage
 - In browser without OPFS support: MemoryStorage
+- For server environments: You can explicitly use S3-compatible storage services by specifying the appropriate option:
+  - Cloudflare R2: Use the r2Storage option
+  - Amazon S3: Use the s3Storage option
+  - Google Cloud Storage: Use the gcsStorage option
+  - Other S3-compatible services: Use the customS3Storage option
 
-You can override this behavior by specifying a storage type.
+You can override this behavior by specifying a storage type or configuration options.
 
 #### Cognition Augmentations
 
@@ -743,6 +890,7 @@ The pipeline supports several execution modes:
 
 - `ExecutionMode.SEQUENTIAL`: Execute augmentations one after another (default)
 - `ExecutionMode.PARALLEL`: Execute all augmentations simultaneously
+- `ExecutionMode.THREADED`: Execute all augmentations simultaneously in separate threads when available
 - `ExecutionMode.FIRST_SUCCESS`: Execute augmentations until one succeeds
 - `ExecutionMode.FIRST_RESULT`: Execute augmentations until one returns a result
 
@@ -755,8 +903,12 @@ interface PipelineOptions {
     mode?: ExecutionMode;     // Execution mode (default: SEQUENTIAL)
     timeout?: number;         // Timeout in milliseconds (default: 30000)
     stopOnError?: boolean;    // Whether to stop on error (default: false)
+    forceThreading?: boolean; // Force threading even if not in THREADED mode (default: false)
+    disableThreading?: boolean; // Disable threading even if in THREADED mode (default: false)
 }
 ```
+
+Threading is automatically used in the `THREADED` execution mode when available, but you can also force threading in other modes with the `forceThreading` option, or disable it with the `disableThreading` option. Threading is available in browser environments (using Web Workers) and Node.js environments (using Worker Threads).
 
 #### Creating a Custom Pipeline
 
@@ -767,6 +919,123 @@ import {AugmentationPipeline} from '@soulcraft/brainy';
 
 const myPipeline = new AugmentationPipeline();
 myPipeline.register(myCustomAugmentation);
+```
+
+### Sequential Pipeline
+
+Brainy provides a sequential pipeline that executes augmentations in a specific sequence:
+
+1. **ISense** augmentations process raw data
+2. **IMemory** augmentations store the data in BrainyData
+3. **ICognition** augmentations analyze the data
+4. **IConduit** augmentations receive notifications about the data
+5. **IActivation** augmentations trigger actions based on the data
+6. **IPerception** augmentations interpret and contextualize the data
+
+This pipeline is designed for high-performance streaming data processing, particularly from WebSockets, without blocking.
+
+#### Using the Sequential Pipeline
+
+```typescript
+import { 
+  sequentialPipeline, 
+  registerAugmentation, 
+  initializeAugmentationPipeline,
+  createMemoryAugmentation
+} from '@soulcraft/brainy';
+
+// Register your augmentations
+registerAugmentation(mySenseAugmentation);
+registerAugmentation(myCognitionAugmentation);
+registerAugmentation(myConduitAugmentation);
+registerAugmentation(myActivationAugmentation);
+registerAugmentation(myPerceptionAugmentation);
+
+// Create and register a memory augmentation
+const memoryAugmentation = await createMemoryAugmentation('my-memory', { storageType: 'memory' });
+registerAugmentation(memoryAugmentation);
+
+// Initialize the augmentation pipeline
+initializeAugmentationPipeline();
+
+// Initialize the sequential pipeline
+await sequentialPipeline.initialize();
+
+// Process data through the sequential pipeline
+const result = await sequentialPipeline.processData(
+  'This is some raw data to process',
+  'text'
+);
+
+console.log('Pipeline execution result:', result.success);
+console.log('Data:', result.data);
+
+// Check results from each stage
+for (const stage in result.stageResults) {
+  console.log(`${stage} stage:`, result.stageResults[stage].success);
+}
+```
+
+#### WebSocket Support
+
+The sequential pipeline provides built-in support for processing WebSocket data:
+
+```typescript
+import { sequentialPipeline } from '@soulcraft/brainy';
+
+// Set up a WebSocket connection to process data through the pipeline
+const connection = await sequentialPipeline.setupWebSocketPipeline(
+  'wss://example.com/data-stream',
+  'text'
+);
+
+// The pipeline will automatically process incoming WebSocket messages
+// without blocking, following the sequence:
+// ISense -> IMemory -> ICognition -> IConduit -> IActivation -> IPerception
+
+// When done, close the connection
+const webSocketAugmentations = augmentationPipeline.getWebSocketAugmentations();
+if (webSocketAugmentations.length > 0) {
+  await webSocketAugmentations[0].closeWebSocket(connection.connectionId);
+}
+```
+
+#### Sequential Pipeline Options
+
+You can configure the sequential pipeline with options:
+
+```typescript
+interface SequentialPipelineOptions {
+  timeout?: number;         // Timeout in milliseconds (default: 30000)
+  stopOnError?: boolean;    // Whether to stop on error (default: false)
+  brainyData?: BrainyData;  // Custom BrainyData instance to use
+}
+```
+
+Example with options:
+
+```typescript
+// Create a custom BrainyData instance
+const customBrainyData = new BrainyData({
+  distanceFunction: euclideanDistance
+});
+await customBrainyData.init();
+
+// Create a custom sequential pipeline
+const customSequentialPipeline = new SequentialPipeline({
+  timeout: 10000,
+  stopOnError: true,
+  brainyData: customBrainyData
+});
+
+// Initialize the pipeline
+await customSequentialPipeline.initialize();
+
+// Process data with the custom pipeline
+const result = await customSequentialPipeline.processData(
+  'Custom pipeline data',
+  'text'
+);
 ```
 
 ## Graph Data Model
@@ -912,6 +1181,7 @@ The repository also includes TypeScript examples for Node.js:
 - `src/examples/augmentationPipeline.ts`: Demonstrates the augmentation pipeline
 - `src/examples/webSocketAugmentation.ts`: Shows how to create WebSocket-supporting augmentations
 - `examples/memoryAugmentationExample.js`: Demonstrates memory augmentations for different storage types (Memory, FileSystem, OPFS)
+- `examples/sequentialPipelineExample.js`: Demonstrates the sequential pipeline flow (ISense -> IMemory -> ICognition -> IConduit -> IActivation -> IPerception)
 
 ## How It Works
 
@@ -942,8 +1212,30 @@ provides:
 - Efficient file operations using Node.js fs module
 - Configurable storage location
 
-In environments where neither OPFS nor Node.js file system is available, the database automatically falls back to
-in-memory storage.
+For server environments, you can also use S3-compatible storage services, which provide:
+
+- Cloud-based persistent storage
+- Scalable storage for production applications
+- Geographic distribution
+
+Supported S3-compatible services include:
+
+1. **Cloudflare R2**:
+   - Compatible with S3 API
+   - Lower egress costs compared to other cloud providers
+   - Global distribution
+
+2. **Amazon S3**:
+   - The original S3 service
+   - Extensive feature set
+   - Available in multiple regions worldwide
+
+3. **Google Cloud Storage**:
+   - S3-compatible when using HMAC authentication
+   - Integration with other Google Cloud services
+   - Global infrastructure
+
+In environments where neither OPFS, Node.js file system, nor any S3-compatible storage service is available, the database automatically falls back to in-memory storage.
 
 ## API Reference
 
@@ -978,6 +1270,8 @@ Search for similar vectors, optionally filtering by noun types
 - `updateMetadata(id: string, metadata: T): Promise<boolean>` - Update metadata
 - `clear(): Promise<void>` - Clear the database
 - `size(): number` - Get the number of vectors in the database
+- `isReadOnly(): boolean` - Check if the database is in read-only mode
+- `setReadOnly(readOnly: boolean): void` - Set the database to read-only mode or allow writes
 - `embed(data: string | string[]): Promise<Vector>` - Embed text or data into a vector using the same embedding function
   used by this instance
 
