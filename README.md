@@ -1,8 +1,8 @@
-# 🧠 Soulcraft Brainy
-
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-0.7.1-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
+# 🧠 Soulcraft Brainy
+
+[![Version](https://img.shields.io/badge/version-0.7.3-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
 
@@ -20,9 +20,11 @@ What makes Brainy special? It intelligently adapts to you and your environment! 
 
 - **Vector Search** - Find semantically similar content using embeddings (like having ESP for your data!)
 - **Graph Relationships** - Connect data with meaningful relationships (your data's social network)
+- **Streaming Pipeline** - Process data in real-time as it flows through the system (like a data waterslide!)
+- **Extensible Augmentations** - Customize and extend functionality with pluggable components (LEGO blocks for your data!)
 - **Adaptive Intelligence** - Automatically optimizes for your environment and usage patterns
 - **Cross-Platform** - Works everywhere you do: browsers, Node.js, and server environments
-- **Persistent Storage** - Data persists across sessions (no memory loss here!)
+- **Persistent Storage** - Data persists across sessions and scales to any size (no memory loss here, even for elephant-sized data!)
 - **TypeScript Support** - Fully typed API with generics (for those who like their code tidy)
 - **CLI Tools** - Powerful command-line interface for data management (command line wizardry)
 
@@ -85,7 +87,7 @@ Brainy combines four key technologies to create its adaptive intelligence:
    - Adjusts performance parameters based on available resources
    - Learns from query patterns to optimize future searches
    - Tunes itself for your specific use cases the more you use it
-4. **Intelligent Storage Selection** - Uses the best available storage option for your environment:
+4. **Intelligent Storage Selection** - Uses the best available storage option for your environment, scaling effortlessly to any data size (from bytes to petabytes!):
    - Browser: Origin Private File System (OPFS)
    - Node.js: File system
    - Server: S3-compatible storage (optional)
@@ -133,6 +135,7 @@ Each time data flows through this pipeline, Brainy learns a little more about yo
    - Data is saved using the optimal storage for your environment (finds the coziest home for your data)
    - Automatic selection between OPFS, filesystem, S3, or memory (no manual configuration needed!)
    - Migrates between storage types as your application's needs evolve (moves houses without you noticing)
+   - Scales effortlessly from tiny datasets to massive data collections (from ant-sized to elephant-sized data, no problem!)
    - Configurable storage adapters for custom persistence needs (design your own dream data home)
 
 ### 🧩 Augmentation Types

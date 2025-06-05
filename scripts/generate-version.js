@@ -6,6 +6,8 @@
  * This script generates a version.js file that exports the version from package.json.
  * This allows the CLI to access the version without having to read package.json directly,
  * which can be problematic when the package is installed globally.
+ * 
+ * It also updates the version in the README.md file to ensure it stays in sync with package.json.
  */
 
 import fs from 'fs';
@@ -28,8 +30,12 @@ const outputDir = path.join(rootDir, 'src', 'utils');
 // Path to the output file
 const outputFile = path.join(outputDir, 'version.ts');
 
+// Path to README.md
+const readmePath = path.join(rootDir, 'README.md');
+
 // Read package.json
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+const version = packageJson.version;
 
 // Create the output directory if it doesn't exist
 if (!fs.existsSync(outputDir)) {
@@ -42,10 +48,27 @@ const content = `/**
  * Do not modify this file directly.
  */
 
-export const VERSION = '${packageJson.version}';
+export const VERSION = '${version}';
 `;
 
 // Write the file
 fs.writeFileSync(outputFile, content);
 
-console.log(`Generated version.ts with version ${packageJson.version}`);
+console.log(`Generated version.ts with version ${version}`);
+
+// Update README.md with the current version
+try {
+  let readmeContent = fs.readFileSync(readmePath, 'utf8');
+
+  // Replace the version in the badge URL
+  const updatedReadme = readmeContent.replace(
+    /\[\!\[Version\]\(https:\/\/img\.shields\.io\/badge\/version-[0-9]+\.[0-9]+\.[0-9]+-blue\.svg\)\]/g,
+    `[![Version](https://img.shields.io/badge/version-${version}-blue.svg)]`
+  );
+
+  // Write the updated README back to disk
+  fs.writeFileSync(readmePath, updatedReadme);
+  console.log(`Updated README.md with version ${version}`);
+} catch (error) {
+  console.error('Error updating README.md:', error);
+}
