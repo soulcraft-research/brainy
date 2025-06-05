@@ -2,9 +2,9 @@
 
 # 🧠 Soulcraft Brainy
 
-[![Version](https://img.shields.io/badge/version-0.7.3-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
+[![Version](https://img.shields.io/badge/version-0.7.4-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D23.11.0-brightgreen.svg)](https://nodejs.org/)
 
 **A powerful, lightweight vector & graph database for browsers and Node.js**
 
@@ -547,7 +547,7 @@ The repository includes several examples:
 
 ## 📋 Requirements
 
-- Node.js >= 18.0.0
+- Node.js >= 23.11.0
 
 ## 📄 License
 

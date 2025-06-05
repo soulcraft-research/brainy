@@ -18,6 +18,10 @@ export type WebSocketConnection = {
   connectionId: string
   url: string
   status: 'connected' | 'disconnected' | 'error'
+  send?: (data: string | ArrayBufferLike | Blob | ArrayBufferView) => Promise<void>
+  close?: () => Promise<void>
+  _streamMessageHandler?: (event: { data: unknown }) => void
+  _messageHandlerWrapper?: (data: unknown) => void
 }
 
 type DataCallback<T> = (data: T) => void
@@ -79,6 +83,13 @@ export interface IWebSocketSupport extends IAugmentation {
    * @param callback The function to call when a message is received
    */
   onWebSocketMessage(connectionId: string, callback: DataCallback<unknown>): Promise<void>
+
+  /**
+   * Removes a callback for incoming WebSocket messages.
+   * @param connectionId The identifier of the established connection
+   * @param callback The function to remove from the callbacks
+   */
+  offWebSocketMessage(connectionId: string, callback: DataCallback<unknown>): Promise<void>
 
   /**
    * Closes an established WebSocket connection.
