@@ -89,6 +89,18 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
    */
   public async init(): Promise<void> {
     try {
+      // Save original console.warn
+      const originalWarn = console.warn
+
+      // Override console.warn to suppress TensorFlow.js Node.js backend message
+      console.warn = function(message?: any, ...optionalParams: any[]) {
+        if (message && typeof message === 'string' && 
+            message.includes('Hi, looks like you are running TensorFlow.js in Node.js')) {
+          return // Suppress the specific warning
+        }
+        originalWarn(message, ...optionalParams)
+      }
+
       // Dynamically import TensorFlow.js and Universal Sentence Encoder
       // Use type assertions to tell TypeScript these modules exist
       this.tf = await import('@tensorflow/tfjs')
@@ -97,6 +109,9 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
       // Load the model
       this.model = await this.use.load()
       this.initialized = true
+
+      // Restore original console.warn
+      console.warn = originalWarn
     } catch (error) {
       console.error('Failed to initialize Universal Sentence Encoder:', error)
       throw new Error(

@@ -30,14 +30,14 @@ Brainy combines three key technologies:
 Brainy uses a graph-based data model with two primary concepts:
 
 1. **Nouns**: The main entities in your data (nodes in the graph)
-   - Each noun has a unique ID, vector representation, and metadata
-   - Nouns can be categorized by type (Person, Place, Thing, Event, Concept, etc.)
-   - Nouns are automatically vectorized for similarity search
+    - Each noun has a unique ID, vector representation, and metadata
+    - Nouns can be categorized by type (Person, Place, Thing, Event, Concept, etc.)
+    - Nouns are automatically vectorized for similarity search
 
 2. **Verbs**: Relationships between nouns (edges in the graph)
-   - Each verb connects a source noun to a target noun
-   - Verbs have types that define the relationship (RelatedTo, Controls, Contains, etc.)
-   - Verbs can have their own metadata to describe the relationship
+    - Each verb connects a source noun to a target noun
+    - Verbs have types that define the relationship (RelatedTo, Controls, Contains, etc.)
+    - Verbs can have their own metadata to describe the relationship
 
 ## What Can You Use It For?
 
@@ -49,13 +49,27 @@ Brainy uses a graph-based data model with two primary concepts:
 
 ## Installation
 
+Due to a dependency conflict between TensorFlow.js packages, you need to use the `--legacy-peer-deps` flag when
+installing:
+
 ```bash
-npm install @soulcraft/brainy
+npm install @soulcraft/brainy --legacy-peer-deps
 ```
+
+If you encounter an error like this:
+
+```
+npm error ERESOLVE unable to resolve dependency tree
+npm error Found: @tensorflow/tfjs-core@4.22.0
+npm error Could not resolve dependency: peer @tensorflow/tfjs-core@"3.21.0" from @tensorflow/tfjs-converter@3.21.0
+```
+
+Use the `--legacy-peer-deps` flag as shown above to resolve it.
 
 ## Command Line Interface
 
-Brainy includes a command-line interface (CLI) that allows you to experiment with the API and data directly from the terminal.
+Brainy includes a command-line interface (CLI) that allows you to experiment with the API and data directly from the
+terminal.
 
 ### Using the CLI during development
 
@@ -83,8 +97,8 @@ npm run cli status
 ### Installing the CLI globally
 
 ```bash
-# Install the package globally
-npm install -g @soulcraft/brainy
+# Install the package globally (with --legacy-peer-deps to resolve TensorFlow.js dependency conflicts)
+npm install -g @soulcraft/brainy --legacy-peer-deps
 
 # Now you can use the 'brainy' command directly
 brainy help
@@ -102,6 +116,28 @@ brainy add "Some text" '{"noun":"Thing"}'
 - `addVerb <sourceId> <targetId> <verbType> [metadata]` - Add a relationship between nouns
 - `getVerbs <id>` - Get all relationships for a noun
 - `status` - Show database status
+- `completion-setup` - Setup shell autocomplete for the Brainy CLI
+
+### Autocomplete
+
+The CLI supports autocomplete for commands, noun types, and verb types. To enable autocomplete:
+
+```bash
+# Set up autocomplete for your shell
+brainy completion-setup
+
+# Restart your shell or source your shell configuration file
+# For bash:
+source ~/.bashrc
+
+# For zsh:
+source ~/.zshrc
+```
+
+Once enabled, you can use tab completion for:
+- Commands (e.g., `brainy a<tab>` completes to `brainy add`)
+- Noun types in metadata (e.g., when adding nouns)
+- Verb types (e.g., when adding relationships)
 
 ## Basic Usage
 
@@ -237,8 +273,8 @@ const status = await db.status();
 ```typescript
 // Add a noun (automatically vectorized)
 const id = await db.add(textOrVector, {
-  noun: NounType.Thing,
-  // other metadata...
+    noun: NounType.Thing,
+    // other metadata...
 });
 
 // Retrieve a noun
@@ -246,8 +282,8 @@ const noun = await db.get(id);
 
 // Update noun metadata
 await db.updateMetadata(id, {
-  noun: NounType.Thing,
-  // updated metadata...
+    noun: NounType.Thing,
+    // updated metadata...
 });
 
 // Delete a noun
@@ -266,8 +302,8 @@ const thingNouns = await db.searchByNounTypes([NounType.Thing], numResults);
 ```typescript
 // Add a relationship between nouns
 await db.addVerb(sourceId, targetId, {
-  verb: VerbType.RelatedTo,
-  // other metadata...
+    verb: VerbType.RelatedTo,
+    // other metadata...
 });
 
 // Get all relationships

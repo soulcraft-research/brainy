@@ -32,7 +32,8 @@
     "version:patch": "npm version patch",
     "version:minor": "npm version minor",
     "version:major": "npm version major",
-    "deploy": "npm run build && npm publish"
+    "deploy": "npm run build && npm publish",
+    "postinstall": "echo 'Note: If you encounter dependency conflicts with TensorFlow.js packages, please use: npm install --legacy-peer-deps'"
   },
   "bin": {
     "brainy": "dist/cli.js"
@@ -55,6 +56,7 @@
   "devDependencies": {
     "@types/jest": "^29.5.3",
     "@types/node": "^20.4.5",
+    "@types/omelette": "^0.4.5",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
@@ -71,6 +73,7 @@
     "@tensorflow/tfjs-core": "^4.22.0",
     "@tensorflow/tfjs-layers": "^4.22.0",
     "commander": "^14.0.0",
+    "omelette": "^0.4.17",
     "uuid": "^9.0.0"
   },
   "prettier": {
