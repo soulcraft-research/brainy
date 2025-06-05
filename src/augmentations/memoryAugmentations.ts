@@ -176,7 +176,7 @@ abstract class BaseMemoryAugmentation implements IMemoryAugmentation {
       }
 
       // Get all nodes from storage
-      const nodes = await this.storage.getAllNodes()
+      const nodes = await this.storage.getAllNouns()
 
       // Calculate distances and prepare results
       const results: Array<{

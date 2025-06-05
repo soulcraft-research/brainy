@@ -1,4 +1,4 @@
-import { Edge, HNSWNode, StorageAdapter } from '../coreTypes.js'
+import { GraphVerb, HNSWNoun, StorageAdapter } from '../coreTypes.js'
 
 // We'll dynamically import Node.js built-in modules
 let fs: any
@@ -114,35 +114,35 @@ export class FileSystemStorage implements StorageAdapter {
   /**
    * Save a node to storage
    */
-  public async saveNode(node: HNSWNode): Promise<void> {
+  public async saveNoun(noun: HNSWNoun): Promise<void> {
     await this.ensureInitialized()
 
     try {
       // Convert connections Map to a serializable format
       const serializableNode = {
-        ...node,
-        connections: this.mapToObject(node.connections, (set) => Array.from(set))
+        ...noun,
+        connections: this.mapToObject(noun.connections, (set) => Array.from(set as Set<string>))
       }
 
       // Get the appropriate directory based on the node's metadata
-      const nodeDir = await this.getNodeDirectory(node.id)
+      const nodeDir = await this.getNodeDirectory(noun.id)
 
-      const filePath = path.join(nodeDir, `${node.id}.json`)
+      const filePath = path.join(nodeDir, `${noun.id}.json`)
       await fs.promises.writeFile(
         filePath,
         JSON.stringify(serializableNode, null, 2),
         'utf8'
       )
     } catch (error) {
-      console.error(`Failed to save node ${node.id}:`, error)
-      throw new Error(`Failed to save node ${node.id}: ${error}`)
+      console.error(`Failed to save node ${noun.id}:`, error)
+      throw new Error(`Failed to save node ${noun.id}: ${error}`)
     }
   }
 
   /**
    * Get a node from storage
    */
-  public async getNode(id: string): Promise<HNSWNode | null> {
+  public async getNoun(id: string): Promise<HNSWNoun | null> {
     await this.ensureInitialized()
 
     try {
@@ -243,7 +243,7 @@ export class FileSystemStorage implements StorageAdapter {
    * @param nounType The noun type to filter by
    * @returns Promise that resolves to an array of nodes of the specified noun type
    */
-  public async getNodesByNounType(nounType: string): Promise<HNSWNode[]> {
+  public async getNounsByNounType(nounType: string): Promise<HNSWNoun[]> {
     await this.ensureInitialized()
 
     try {
@@ -272,7 +272,7 @@ export class FileSystemStorage implements StorageAdapter {
           dir = this.defaultDir
       }
 
-      const nodes: HNSWNode[] = []
+      const nodes: HNSWNoun[] = []
 
       try {
         const files = await fs.promises.readdir(dir)
@@ -284,7 +284,7 @@ export class FileSystemStorage implements StorageAdapter {
           })
 
         const dirNodes = await Promise.all(nodePromises)
-        nodes.push(...dirNodes.filter((node): node is HNSWNode => node !== null))
+        nodes.push(...dirNodes.filter((node): node is HNSWNoun => node !== null))
       } catch (dirError) {
         // If directory doesn't exist or can't be read, log a warning
         console.warn(`Could not read directory for noun type ${nounType}:`, dirError)
@@ -300,7 +300,7 @@ export class FileSystemStorage implements StorageAdapter {
   /**
    * Get all nodes from storage
    */
-  public async getAllNodes(): Promise<HNSWNode[]> {
+  public async getAllNouns(): Promise<HNSWNoun[]> {
     await this.ensureInitialized()
 
     try {
@@ -316,11 +316,11 @@ export class FileSystemStorage implements StorageAdapter {
       ]
 
       // Run searches in parallel for all noun types
-      const nodePromises = nounTypes.map(nounType => this.getNodesByNounType(nounType))
+      const nodePromises = nounTypes.map(nounType => this.getNounsByNounType(nounType))
       const nodeArrays = await Promise.all(nodePromises)
 
       // Combine all results
-      const allNodes: HNSWNode[] = []
+      const allNodes: HNSWNoun[] = []
       for (const nodes of nodeArrays) {
         allNodes.push(...nodes)
       }
@@ -335,7 +335,7 @@ export class FileSystemStorage implements StorageAdapter {
   /**
    * Read a node from a file
    */
-  private async readNodeFromFile(filePath: string): Promise<HNSWNode | null> {
+  private async readNodeFromFile(filePath: string): Promise<HNSWNoun | null> {
     try {
       const data = await fs.promises.readFile(filePath, 'utf8')
       const parsedNode = JSON.parse(data)
@@ -360,7 +360,7 @@ export class FileSystemStorage implements StorageAdapter {
   /**
    * Delete a node from storage
    */
-  public async deleteNode(id: string): Promise<void> {
+  public async deleteNoun(id: string): Promise<void> {
     await this.ensureInitialized()
 
     try {
@@ -420,32 +420,32 @@ export class FileSystemStorage implements StorageAdapter {
   /**
    * Save an edge to storage
    */
-  public async saveEdge(edge: Edge): Promise<void> {
+  public async saveVerb(verb: GraphVerb): Promise<void> {
     await this.ensureInitialized()
 
     try {
       // Convert connections Map to a serializable format
       const serializableEdge = {
-        ...edge,
-        connections: this.mapToObject(edge.connections, (set) => Array.from(set))
+        ...verb,
+        connections: this.mapToObject(verb.connections, (set) => Array.from(set as Set<string>))
       }
 
-      const filePath = path.join(this.edgesDir, `${edge.id}.json`)
+      const filePath = path.join(this.edgesDir, `${verb.id}.json`)
       await fs.promises.writeFile(
         filePath,
         JSON.stringify(serializableEdge, null, 2),
         'utf8'
       )
     } catch (error) {
-      console.error(`Failed to save edge ${edge.id}:`, error)
-      throw new Error(`Failed to save edge ${edge.id}: ${error}`)
+      console.error(`Failed to save edge ${verb.id}:`, error)
+      throw new Error(`Failed to save edge ${verb.id}: ${error}`)
     }
   }
 
   /**
    * Get an edge from storage
    */
-  public async getEdge(id: string): Promise<Edge | null> {
+  public async getVerb(id: string): Promise<GraphVerb | null> {
     await this.ensureInitialized()
 
     try {
@@ -486,7 +486,7 @@ export class FileSystemStorage implements StorageAdapter {
   /**
    * Get all edges from storage
    */
-  public async getAllEdges(): Promise<Edge[]> {
+  public async getAllVerbs(): Promise<GraphVerb[]> {
     await this.ensureInitialized()
 
     try {
@@ -495,11 +495,11 @@ export class FileSystemStorage implements StorageAdapter {
         .filter((file: string) => file.endsWith('.json'))
         .map((file: string) => {
           const id = path.basename(file, '.json')
-          return this.getEdge(id)
+          return this.getVerb(id)
         })
 
       const edges = await Promise.all(edgePromises)
-      return edges.filter((edge): edge is Edge => edge !== null)
+      return edges.filter((edge): edge is GraphVerb => edge !== null)
     } catch (error) {
       console.error('Failed to get all edges:', error)
       throw new Error(`Failed to get all edges: ${error}`)
@@ -509,11 +509,11 @@ export class FileSystemStorage implements StorageAdapter {
   /**
    * Get edges by source node ID
    */
-  public async getEdgesBySource(sourceId: string): Promise<Edge[]> {
+  public async getVerbsBySource(sourceId: string): Promise<GraphVerb[]> {
     await this.ensureInitialized()
 
     try {
-      const allEdges = await this.getAllEdges()
+      const allEdges = await this.getAllVerbs()
       return allEdges.filter(edge => edge.sourceId === sourceId)
     } catch (error) {
       console.error(`Failed to get edges by source ${sourceId}:`, error)
@@ -524,11 +524,11 @@ export class FileSystemStorage implements StorageAdapter {
   /**
    * Get edges by target node ID
    */
-  public async getEdgesByTarget(targetId: string): Promise<Edge[]> {
+  public async getVerbsByTarget(targetId: string): Promise<GraphVerb[]> {
     await this.ensureInitialized()
 
     try {
-      const allEdges = await this.getAllEdges()
+      const allEdges = await this.getAllVerbs()
       return allEdges.filter(edge => edge.targetId === targetId)
     } catch (error) {
       console.error(`Failed to get edges by target ${targetId}:`, error)
@@ -539,11 +539,11 @@ export class FileSystemStorage implements StorageAdapter {
   /**
    * Get edges by type
    */
-  public async getEdgesByType(type: string): Promise<Edge[]> {
+  public async getVerbsByType(type: string): Promise<GraphVerb[]> {
     await this.ensureInitialized()
 
     try {
-      const allEdges = await this.getAllEdges()
+      const allEdges = await this.getAllVerbs()
       return allEdges.filter(edge => edge.type === type)
     } catch (error) {
       console.error(`Failed to get edges by type ${type}:`, error)
@@ -554,7 +554,7 @@ export class FileSystemStorage implements StorageAdapter {
   /**
    * Delete an edge from storage
    */
-  public async deleteEdge(id: string): Promise<void> {
+  public async deleteVerb(id: string): Promise<void> {
     await this.ensureInitialized()
 
     try {

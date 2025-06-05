@@ -3,19 +3,19 @@
  * Based on the paper: "Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs"
  */
 
-import { DistanceFunction, HNSWConfig, HNSWNode, Vector, VectorDocument } from '../coreTypes.js'
+import { DistanceFunction, HNSWConfig, HNSWNoun, Vector, VectorDocument } from '../coreTypes.js'
 import { euclideanDistance } from '../utils/index.js'
 
 // Default HNSW parameters
 const DEFAULT_CONFIG: HNSWConfig = {
-  M: 16, // Max number of connections per node
+  M: 16, // Max number of connections per noun
   efConstruction: 200, // Size of a dynamic candidate list during construction
   efSearch: 50, // Size of a dynamic candidate list during search
   ml: 16 // Max level
 }
 
 export class HNSWIndex {
-  private nodes: Map<string, HNSWNode> = new Map()
+  private nouns: Map<string, HNSWNoun> = new Map()
   private entryPointId: string | null = null
   private maxLevel = 0
   private config: HNSWConfig
@@ -55,55 +55,55 @@ export class HNSWIndex {
       )
     }
 
-    // Generate random level for this node
-    const nodeLevel = this.getRandomLevel()
+    // Generate random level for this noun
+    const nounLevel = this.getRandomLevel()
 
-    // Create new node
-    const node: HNSWNode = {
+    // Create new noun
+    const noun: HNSWNoun = {
       id,
       vector,
       connections: new Map()
     }
 
     // Initialize empty connection sets for each level
-    for (let level = 0; level <= nodeLevel; level++) {
-      node.connections.set(level, new Set<string>())
+    for (let level = 0; level <= nounLevel; level++) {
+      noun.connections.set(level, new Set<string>())
     }
 
-    // If this is the first node, make it the entry point
-    if (this.nodes.size === 0) {
+    // If this is the first noun, make it the entry point
+    if (this.nouns.size === 0) {
       this.entryPointId = id
-      this.maxLevel = nodeLevel
-      this.nodes.set(id, node)
+      this.maxLevel = nounLevel
+      this.nouns.set(id, noun)
       return id
     }
 
     // Find entry point
     if (!this.entryPointId) {
       console.error('Entry point ID is null')
-      // If there's no entry point, this is the first node, so we should have returned earlier
+      // If there's no entry point, this is the first noun, so we should have returned earlier
       // This is a safety check
       this.entryPointId = id
-      this.maxLevel = nodeLevel
-      this.nodes.set(id, node)
+      this.maxLevel = nounLevel
+      this.nouns.set(id, noun)
       return id
     }
 
-    const entryPoint = this.nodes.get(this.entryPointId)
+    const entryPoint = this.nouns.get(this.entryPointId)
     if (!entryPoint) {
       console.error(`Entry point with ID ${this.entryPointId} not found`)
-      // If the entry point doesn't exist, treat this as the first node
+      // If the entry point doesn't exist, treat this as the first noun
       this.entryPointId = id
-      this.maxLevel = nodeLevel
-      this.nodes.set(id, node)
+      this.maxLevel = nounLevel
+      this.nouns.set(id, noun)
       return id
     }
 
     let currObj = entryPoint
     let currDist = this.distanceFunction(vector, entryPoint.vector)
 
-    // Traverse the graph from top to bottom to find the closest node
-    for (let level = this.maxLevel; level > nodeLevel; level--) {
+    // Traverse the graph from top to bottom to find the closest noun
+    for (let level = this.maxLevel; level > nounLevel; level--) {
       let changed = true
       while (changed) {
         changed = false
@@ -112,7 +112,7 @@ export class HNSWIndex {
         const connections = currObj.connections.get(level) || new Set<string>()
 
         for (const neighborId of connections) {
-          const neighbor = this.nodes.get(neighborId)
+          const neighbor = this.nouns.get(neighborId)
           if (!neighbor) {
             console.error(`Neighbor with ID ${neighborId} not found in addItem traversal`)
             continue
@@ -128,10 +128,10 @@ export class HNSWIndex {
       }
     }
 
-    // For each level from nodeLevel down to 0
-    for (let level = Math.min(nodeLevel, this.maxLevel); level >= 0; level--) {
+    // For each level from nounLevel down to 0
+    for (let level = Math.min(nounLevel, this.maxLevel); level >= 0; level--) {
       // Find ef nearest elements using greedy search
-      const nearestNodes = this.searchLayer(
+      const nearestNouns = this.searchLayer(
         vector,
         currObj,
         this.config.efConstruction,
@@ -141,19 +141,19 @@ export class HNSWIndex {
       // Select M nearest neighbors
       const neighbors = this.selectNeighbors(
         vector,
-        nearestNodes,
+        nearestNouns,
         this.config.M
       )
 
       // Add bidirectional connections
       for (const [neighborId, _] of neighbors) {
-        const neighbor = this.nodes.get(neighborId)
+        const neighbor = this.nouns.get(neighborId)
         if (!neighbor) {
           console.error(`Neighbor with ID ${neighborId} not found`)
           continue
         }
 
-        node.connections.get(level)!.add(neighborId)
+        noun.connections.get(level)!.add(neighborId)
 
         // Add reverse connection
         if (!neighbor.connections.has(level)) {
@@ -168,29 +168,29 @@ export class HNSWIndex {
       }
 
       // Update entry point for the next level
-      if (nearestNodes.size > 0) {
-        const [nearestId, nearestDist] = [...nearestNodes][0]
+      if (nearestNouns.size > 0) {
+        const [nearestId, nearestDist] = [...nearestNouns][0]
         if (nearestDist < currDist) {
           currDist = nearestDist
-          const nearestNode = this.nodes.get(nearestId)
-          if (!nearestNode) {
-            console.error(`Nearest node with ID ${nearestId} not found in addItem`)
+          const nearestNoun = this.nouns.get(nearestId)
+          if (!nearestNoun) {
+            console.error(`Nearest noun with ID ${nearestId} not found in addItem`)
             // Keep the current object as is
           } else {
-            currObj = nearestNode
+            currObj = nearestNoun
           }
         }
       }
     }
 
     // Update max level and entry point if needed
-    if (nodeLevel > this.maxLevel) {
-      this.maxLevel = nodeLevel
+    if (nounLevel > this.maxLevel) {
+      this.maxLevel = nounLevel
       this.entryPointId = id
     }
 
-    // Add node to the index
-    this.nodes.set(id, node)
+    // Add noun to the index
+    this.nouns.set(id, noun)
     return id
   }
 
@@ -198,7 +198,7 @@ export class HNSWIndex {
    * Search for nearest neighbors
    */
   public search(queryVector: Vector, k: number = 10): Array<[string, number]> {
-    if (this.nodes.size === 0) {
+    if (this.nouns.size === 0) {
       return []
     }
 
@@ -219,7 +219,7 @@ export class HNSWIndex {
       return []
     }
 
-    const entryPoint = this.nodes.get(this.entryPointId)
+    const entryPoint = this.nouns.get(this.entryPointId)
     if (!entryPoint) {
       console.error(`Entry point with ID ${this.entryPointId} not found`)
       return []
@@ -228,7 +228,7 @@ export class HNSWIndex {
     let currObj = entryPoint
     let currDist = this.distanceFunction(queryVector, currObj.vector)
 
-    // Traverse the graph from top to bottom to find the closest node
+    // Traverse the graph from top to bottom to find the closest noun
     for (let level = this.maxLevel; level > 0; level--) {
       let changed = true
       while (changed) {
@@ -238,7 +238,7 @@ export class HNSWIndex {
         const connections = currObj.connections.get(level) || new Set<string>()
 
         for (const neighborId of connections) {
-          const neighbor = this.nodes.get(neighborId)
+          const neighbor = this.nouns.get(neighborId)
           if (!neighbor) {
             console.error(`Neighbor with ID ${neighborId} not found in search`)
             continue
@@ -258,7 +258,7 @@ export class HNSWIndex {
     }
 
     // Search at level 0 with ef = k
-    const nearestNodes = this.searchLayer(
+    const nearestNouns = this.searchLayer(
       queryVector,
       currObj,
       Math.max(this.config.efSearch, k),
@@ -266,23 +266,23 @@ export class HNSWIndex {
     )
 
     // Convert to array and sort by distance
-    return [...nearestNodes].slice(0, k)
+    return [...nearestNouns].slice(0, k)
   }
 
   /**
    * Remove an item from the index
    */
   public removeItem(id: string): boolean {
-    if (!this.nodes.has(id)) {
+    if (!this.nouns.has(id)) {
       return false
     }
 
-    const node = this.nodes.get(id)!
+    const noun = this.nouns.get(id)!
 
-    // Remove connections to this node from all neighbors
-    for (const [level, connections] of node.connections.entries()) {
+    // Remove connections to this noun from all neighbors
+    for (const [level, connections] of noun.connections.entries()) {
       for (const neighborId of connections) {
-        const neighbor = this.nodes.get(neighborId)
+        const neighbor = this.nouns.get(neighborId)
         if (!neighbor) {
           console.error(`Neighbor with ID ${neighborId} not found in removeItem`)
           continue
@@ -290,46 +290,46 @@ export class HNSWIndex {
         if (neighbor.connections.has(level)) {
           neighbor.connections.get(level)!.delete(id)
 
-          // Prune connections after removing this node to ensure consistency
+          // Prune connections after removing this noun to ensure consistency
           this.pruneConnections(neighbor, level)
         }
       }
     }
 
-    // Also check all other nodes for references to this node and remove them
-    for (const [nodeId, otherNode] of this.nodes.entries()) {
-      if (nodeId === id) continue // Skip the node being removed
+    // Also check all other nouns for references to this noun and remove them
+    for (const [nounId, otherNoun] of this.nouns.entries()) {
+      if (nounId === id) continue // Skip the noun being removed
 
-      for (const [level, connections] of otherNode.connections.entries()) {
+      for (const [level, connections] of otherNoun.connections.entries()) {
         if (connections.has(id)) {
           connections.delete(id)
 
           // Prune connections after removing this reference
-          this.pruneConnections(otherNode, level)
+          this.pruneConnections(otherNoun, level)
         }
       }
     }
 
-    // Remove the node
-    this.nodes.delete(id)
+    // Remove the noun
+    this.nouns.delete(id)
 
     // If we removed the entry point, find a new one
     if (this.entryPointId === id) {
-      if (this.nodes.size === 0) {
+      if (this.nouns.size === 0) {
         this.entryPointId = null
         this.maxLevel = 0
       } else {
-        // Find the node with the highest level
+        // Find the noun with the highest level
         let maxLevel = 0
         let newEntryPointId = null
 
-        for (const [nodeId, node] of this.nodes.entries()) {
-          if (node.connections.size === 0) continue // Skip nodes with no connections
+        for (const [nounId, noun] of this.nouns.entries()) {
+          if (noun.connections.size === 0) continue // Skip nouns with no connections
 
-          const nodeLevel = Math.max(...node.connections.keys())
-          if (nodeLevel >= maxLevel) {
-            maxLevel = nodeLevel
-            newEntryPointId = nodeId
+          const nounLevel = Math.max(...noun.connections.keys())
+          if (nounLevel >= maxLevel) {
+            maxLevel = nounLevel
+            newEntryPointId = nounId
           }
         }
 
@@ -342,17 +342,25 @@ export class HNSWIndex {
   }
 
   /**
-   * Get all nodes in the index
+   * Get all nouns in the index
    */
-  public getNodes(): Map<string, HNSWNode> {
-    return new Map(this.nodes)
+  public getNouns(): Map<string, HNSWNoun> {
+    return new Map(this.nouns)
+  }
+
+  /**
+   * Get all nodes in the index (alias for getNouns for backward compatibility)
+   * @deprecated Use getNouns() instead
+   */
+  public getNodes(): Map<string, HNSWNoun> {
+    return this.getNouns()
   }
 
   /**
    * Clear the index
    */
   public clear(): void {
-    this.nodes.clear()
+    this.nouns.clear()
     this.entryPointId = null
     this.maxLevel = 0
   }
@@ -361,7 +369,7 @@ export class HNSWIndex {
    * Get the size of the index
    */
   public size(): number {
-    return this.nodes.size
+    return this.nouns.size
   }
 
   /**
@@ -373,15 +381,15 @@ export class HNSWIndex {
 
   /**
    * Search within a specific layer
-   * Returns a map of node IDs to distances, sorted by distance
+   * Returns a map of noun IDs to distances, sorted by distance
    */
   private searchLayer(
     queryVector: Vector,
-    entryPoint: HNSWNode,
+    entryPoint: HNSWNoun,
     ef: number,
     level: number
   ): Map<string, number> {
-    // Set of visited nodes
+    // Set of visited nouns
     const visited = new Set<string>([entryPoint.id])
 
     // Priority queue of candidates (closest first)
@@ -411,18 +419,18 @@ export class HNSWIndex {
       }
 
       // Explore neighbors of the closest candidate
-      const node = this.nodes.get(closestId)
-      if (!node) {
-        console.error(`Node with ID ${closestId} not found in searchLayer`)
+      const noun = this.nouns.get(closestId)
+      if (!noun) {
+        console.error(`Noun with ID ${closestId} not found in searchLayer`)
         continue
       }
-      const connections = node.connections.get(level) || new Set<string>()
+      const connections = noun.connections.get(level) || new Set<string>()
 
       for (const neighborId of connections) {
         if (!visited.has(neighborId)) {
           visited.add(neighborId)
 
-          const neighbor = this.nodes.get(neighborId)
+          const neighbor = this.nouns.get(neighborId)
           if (!neighbor) {
             console.error(`Neighbor with ID ${neighborId} not found in searchLayer`)
             continue
@@ -478,10 +486,10 @@ export class HNSWIndex {
   }
 
   /**
-   * Ensure a node doesn't have too many connections at a given level
+   * Ensure a noun doesn't have too many connections at a given level
    */
-  private pruneConnections(node: HNSWNode, level: number): void {
-    const connections = node.connections.get(level)!
+  private pruneConnections(noun: HNSWNoun, level: number): void {
+    const connections = noun.connections.get(level)!
     if (connections.size <= this.config.M) {
       return
     }
@@ -491,7 +499,7 @@ export class HNSWIndex {
     const validNeighborIds = new Set<string>()
 
     for (const neighborId of connections) {
-      const neighbor = this.nodes.get(neighborId)
+      const neighbor = this.nouns.get(neighborId)
       if (!neighbor) {
         console.error(`Neighbor with ID ${neighborId} not found in pruneConnections`)
         continue
@@ -500,7 +508,7 @@ export class HNSWIndex {
       // Only add valid neighbors to the distances map
       distances.set(
         neighborId,
-        this.distanceFunction(node.vector, neighbor.vector)
+        this.distanceFunction(noun.vector, neighbor.vector)
       )
       validNeighborIds.add(neighborId)
     }
@@ -508,23 +516,23 @@ export class HNSWIndex {
     // Only proceed if we have valid neighbors
     if (distances.size === 0) {
       // If no valid neighbors, clear connections at this level
-      node.connections.set(level, new Set())
+      noun.connections.set(level, new Set())
       return
     }
 
     // Select M closest neighbors from valid ones
     const selectedNeighbors = this.selectNeighbors(
-      node.vector,
+      noun.vector,
       distances,
       this.config.M
     )
 
     // Update connections with only valid neighbors
-    node.connections.set(level, new Set(selectedNeighbors.keys()))
+    noun.connections.set(level, new Set(selectedNeighbors.keys()))
   }
 
   /**
-   * Generate a random level for a new node
+   * Generate a random level for a new noun
    * Uses the same distribution as in the original HNSW paper
    */
   private getRandomLevel(): number {

@@ -57,31 +57,31 @@ export interface EmbeddingModel {
 }
 
 /**
- * HNSW graph node
+ * HNSW graph noun
  */
-export interface HNSWNode {
+export interface HNSWNoun {
   id: string;
   vector: Vector;
-  connections: Map<number, Set<string>>;  // level -> set of connected node ids
+  connections: Map<number, Set<string>>;  // level -> set of connected noun ids
 }
 
 /**
- * Edge representing a relationship between nodes
- * Extends HNSWNode to allow edges to be first-class entities in the data model
+ * Verb representing a relationship between nouns
+ * Extends HNSWNoun to allow verbs to be first-class entities in the data model
  */
-export interface Edge extends HNSWNode {
-  sourceId: string;      // ID of the source node
-  targetId: string;      // ID of the target node
+export interface GraphVerb extends HNSWNoun {
+  sourceId: string;      // ID of the source noun
+  targetId: string;      // ID of the target noun
   type?: string;         // Optional type of the relationship
   weight?: number;       // Optional weight of the relationship
-  metadata?: any;        // Optional metadata for the edge
+  metadata?: any;        // Optional metadata for the verb
 }
 
 /**
  * HNSW index configuration
  */
 export interface HNSWConfig {
-  M: number;           // Maximum number of connections per node
+  M: number;           // Maximum number of connections per noun
   efConstruction: number;  // Size of the dynamic candidate list during construction
   efSearch: number;    // Size of the dynamic candidate list during search
   ml: number;          // Maximum level
@@ -93,34 +93,34 @@ export interface HNSWConfig {
 export interface StorageAdapter {
   init(): Promise<void>;
 
-  saveNode(node: HNSWNode): Promise<void>;
+  saveNoun(noun: HNSWNoun): Promise<void>;
 
-  getNode(id: string): Promise<HNSWNode | null>;
+  getNoun(id: string): Promise<HNSWNoun | null>;
 
-  getAllNodes(): Promise<HNSWNode[]>;
+  getAllNouns(): Promise<HNSWNoun[]>;
 
   /**
-   * Get nodes by noun type
+   * Get nouns by noun type
    * @param nounType The noun type to filter by
-   * @returns Promise that resolves to an array of nodes of the specified noun type
+   * @returns Promise that resolves to an array of nouns of the specified noun type
    */
-  getNodesByNounType(nounType: string): Promise<HNSWNode[]>;
+  getNounsByNounType(nounType: string): Promise<HNSWNoun[]>;
 
-  deleteNode(id: string): Promise<void>;
+  deleteNoun(id: string): Promise<void>;
 
-  saveEdge(edge: Edge): Promise<void>;
+  saveVerb(verb: GraphVerb): Promise<void>;
 
-  getEdge(id: string): Promise<Edge | null>;
+  getVerb(id: string): Promise<GraphVerb | null>;
 
-  getAllEdges(): Promise<Edge[]>;
+  getAllVerbs(): Promise<GraphVerb[]>;
 
-  getEdgesBySource(sourceId: string): Promise<Edge[]>;
+  getVerbsBySource(sourceId: string): Promise<GraphVerb[]>;
 
-  getEdgesByTarget(targetId: string): Promise<Edge[]>;
+  getVerbsByTarget(targetId: string): Promise<GraphVerb[]>;
 
-  getEdgesByType(type: string): Promise<Edge[]>;
+  getVerbsByType(type: string): Promise<GraphVerb[]>;
 
-  deleteEdge(id: string): Promise<void>;
+  deleteVerb(id: string): Promise<void>;
 
   saveMetadata(id: string, metadata: any): Promise<void>;
 

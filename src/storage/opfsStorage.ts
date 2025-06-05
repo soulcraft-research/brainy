@@ -3,7 +3,11 @@
  * Provides persistent storage for the vector database using the Origin Private File System API
  */
 
-import { Edge, HNSWNode, StorageAdapter } from '../coreTypes.js'
+import { GraphVerb, HNSWNoun, StorageAdapter } from '../coreTypes.js'
+
+// Type aliases for compatibility
+type HNSWNode = HNSWNoun;
+type Edge = GraphVerb;
 
 // Directory and file names
 const ROOT_DIR = 'opfs-vector-db'
@@ -165,42 +169,42 @@ export class OPFSStorage implements StorageAdapter {
   }
 
   /**
-   * Save a node to storage
+   * Save a noun to storage
    */
-  public async saveNode(node: HNSWNode): Promise<void> {
+  public async saveNoun(noun: HNSWNoun): Promise<void> {
     await this.ensureInitialized()
 
     try {
       // Convert connections Map to a serializable format
-      const serializableNode = {
-        ...node,
-        connections: this.mapToObject(node.connections, (set) =>
-          Array.from(set)
+      const serializableNoun = {
+        ...noun,
+        connections: this.mapToObject(noun.connections, (set) =>
+          Array.from(set as Set<string>)
         )
       }
 
-      // Get the appropriate directory based on the node's metadata
-      const nodeDir = await this.getNodeDirectory(node.id)
+      // Get the appropriate directory based on the noun's metadata
+      const nounDir = await this.getNodeDirectory(noun.id)
 
-      // Create or get the file for this node
-      const fileHandle = await nodeDir.getFileHandle(node.id, {
+      // Create or get the file for this noun
+      const fileHandle = await nounDir.getFileHandle(noun.id, {
         create: true
       })
 
-      // Write the node data to the file
+      // Write the noun data to the file
       const writable = await fileHandle.createWritable()
-      await writable.write(JSON.stringify(serializableNode))
+      await writable.write(JSON.stringify(serializableNoun))
       await writable.close()
     } catch (error) {
-      console.error(`Failed to save node ${node.id}:`, error)
-      throw new Error(`Failed to save node ${node.id}: ${error}`)
+      console.error(`Failed to save noun ${noun.id}:`, error)
+      throw new Error(`Failed to save noun ${noun.id}: ${error}`)
     }
   }
 
   /**
-   * Get a node from storage
+   * Get a noun from storage
    */
-  public async getNode(id: string): Promise<HNSWNode | null> {
+  public async getNoun(id: string): Promise<HNSWNoun | null> {
     await this.ensureInitialized()
 
     try {
@@ -301,15 +305,15 @@ export class OPFSStorage implements StorageAdapter {
   }
 
   /**
-   * Get nodes by noun type
+   * Get nouns by noun type
    * @param nounType The noun type to filter by
-   * @returns Promise that resolves to an array of nodes of the specified noun type
+   * @returns Promise that resolves to an array of nouns of the specified noun type
    */
-  public async getNodesByNounType(nounType: string): Promise<HNSWNode[]> {
+  public async getNounsByNounType(nounType: string): Promise<HNSWNoun[]> {
     await this.ensureInitialized()
 
     try {
-      const nodes: HNSWNode[] = []
+      const nouns: HNSWNoun[] = []
 
       // Determine the directory based on the noun type
       let dir: FileSystemDirectoryHandle
@@ -358,7 +362,7 @@ export class OPFSStorage implements StorageAdapter {
               connections.set(Number(level), new Set(nodeIds as string[]))
             }
 
-            nodes.push({
+            nouns.push({
               id: data.id,
               vector: data.vector,
               connections
@@ -372,17 +376,17 @@ export class OPFSStorage implements StorageAdapter {
         console.warn(`Failed to read directory for noun type ${nounType}:`, dirError)
       }
 
-      return nodes
+      return nouns
     } catch (error) {
-      console.error(`Failed to get nodes for noun type ${nounType}:`, error)
-      throw new Error(`Failed to get nodes for noun type ${nounType}: ${error}`)
+      console.error(`Failed to get nouns for noun type ${nounType}:`, error)
+      throw new Error(`Failed to get nouns for noun type ${nounType}: ${error}`)
     }
   }
 
   /**
-   * Get all nodes from storage
+   * Get all nouns from storage
    */
-  public async getAllNodes(): Promise<HNSWNode[]> {
+  public async getAllNouns(): Promise<HNSWNoun[]> {
     await this.ensureInitialized()
 
     try {
@@ -398,42 +402,42 @@ export class OPFSStorage implements StorageAdapter {
       ]
 
       // Run searches in parallel for all noun types
-      const nodePromises = nounTypes.map(nounType => this.getNodesByNounType(nounType))
-      const nodeArrays = await Promise.all(nodePromises)
+      const nounPromises = nounTypes.map(nounType => this.getNounsByNounType(nounType))
+      const nounArrays = await Promise.all(nounPromises)
 
       // Combine all results
-      const allNodes: HNSWNode[] = []
-      for (const nodes of nodeArrays) {
-        allNodes.push(...nodes)
+      const allNouns: HNSWNoun[] = []
+      for (const nouns of nounArrays) {
+        allNouns.push(...nouns)
       }
 
-      return allNodes
+      return allNouns
     } catch (error) {
-      console.error('Failed to get all nodes:', error)
-      throw new Error(`Failed to get all nodes: ${error}`)
+      console.error('Failed to get all nouns:', error)
+      throw new Error(`Failed to get all nouns: ${error}`)
     }
   }
 
   /**
-   * Delete a node from storage
+   * Delete a noun from storage
    */
-  public async deleteNode(id: string): Promise<void> {
+  public async deleteNoun(id: string): Promise<void> {
     await this.ensureInitialized()
 
     try {
-      // Get the appropriate directory based on the node's metadata
-      const nodeDir = await this.getNodeDirectory(id)
+      // Get the appropriate directory based on the noun's metadata
+      const nounDir = await this.getNodeDirectory(id)
 
       try {
-        // Try to delete the node from the appropriate directory
-        await nodeDir.removeEntry(id)
-        return // Node deleted successfully
+        // Try to delete the noun from the appropriate directory
+        await nounDir.removeEntry(id)
+        return // Noun deleted successfully
       } catch (dirError) {
         // If the file doesn't exist in the expected directory, try the default directory
-        if (nodeDir !== this.defaultDir) {
+        if (nounDir !== this.defaultDir) {
           try {
             await this.defaultDir!.removeEntry(id)
-            return // Node deleted successfully
+            return // Noun deleted successfully
           } catch (defaultDirError) {
             // If not found in default directory either, try all noun type directories
             const directories = [
@@ -446,7 +450,7 @@ export class OPFSStorage implements StorageAdapter {
             ]
 
             for (const dir of directories) {
-              if (dir === nodeDir) continue // Skip the already checked directory
+              if (dir === nounDir) continue // Skip the already checked directory
 
               try {
                 await dir.removeEntry(id)
@@ -464,52 +468,52 @@ export class OPFSStorage implements StorageAdapter {
         return
       }
     } catch (error) {
-      console.error(`Failed to delete node ${id}:`, error)
-      throw new Error(`Failed to delete node ${id}: ${error}`)
+      console.error(`Failed to delete noun ${id}:`, error)
+      throw new Error(`Failed to delete noun ${id}: ${error}`)
     }
   }
 
   /**
-   * Save an edge to storage
+   * Save a verb to storage
    */
-  public async saveEdge(edge: Edge): Promise<void> {
+  public async saveVerb(verb: GraphVerb): Promise<void> {
     await this.ensureInitialized()
 
     try {
       // Convert connections Map to a serializable format
-      const serializableEdge = {
-        ...edge,
-        connections: this.mapToObject(edge.connections, (set) =>
-          Array.from(set)
+      const serializableVerb = {
+        ...verb,
+        connections: this.mapToObject(verb.connections, (set) =>
+          Array.from(set as Set<string>)
         )
       }
 
-      // Create or get the file for this edge
-      const fileHandle = await this.edgesDir!.getFileHandle(edge.id, {
+      // Create or get the file for this verb
+      const fileHandle = await this.edgesDir!.getFileHandle(verb.id, {
         create: true
       })
 
-      // Write the edge data to the file
+      // Write the verb data to the file
       const writable = await fileHandle.createWritable()
-      await writable.write(JSON.stringify(serializableEdge))
+      await writable.write(JSON.stringify(serializableVerb))
       await writable.close()
     } catch (error) {
-      console.error(`Failed to save edge ${edge.id}:`, error)
-      throw new Error(`Failed to save edge ${edge.id}: ${error}`)
+      console.error(`Failed to save verb ${verb.id}:`, error)
+      throw new Error(`Failed to save verb ${verb.id}: ${error}`)
     }
   }
 
   /**
-   * Get an edge from storage
+   * Get a verb from storage
    */
-  public async getEdge(id: string): Promise<Edge | null> {
+  public async getVerb(id: string): Promise<GraphVerb | null> {
     await this.ensureInitialized()
 
     try {
-      // Get the file handle for this edge
+      // Get the file handle for this verb
       const fileHandle = await this.edgesDir!.getFileHandle(id)
 
-      // Read the edge data from the file
+      // Read the verb data from the file
       const file = await fileHandle.getFile()
       const text = await file.text()
       const data = JSON.parse(text)
@@ -536,8 +540,8 @@ export class OPFSStorage implements StorageAdapter {
         return null
       }
 
-      console.error(`Failed to get edge ${id}:`, error)
-      throw new Error(`Failed to get edge ${id}: ${error}`)
+      console.error(`Failed to get verb ${id}:`, error)
+      throw new Error(`Failed to get verb ${id}: ${error}`)
     }
   }
 
@@ -556,7 +560,7 @@ export class OPFSStorage implements StorageAdapter {
 
       // Iterate through all keys and get the corresponding edges
       for await (const name of keys) {
-        const edge = await this.getEdge(name)
+        const edge = await this.getVerb(name)
         if (edge) {
           edges.push(edge)
         }
@@ -567,6 +571,13 @@ export class OPFSStorage implements StorageAdapter {
       console.error('Failed to get all edges:', error)
       throw new Error(`Failed to get all edges: ${error}`)
     }
+  }
+
+  /**
+   * Get all verbs from storage (alias for getAllEdges)
+   */
+  public async getAllVerbs(): Promise<GraphVerb[]> {
+    return this.getAllEdges();
   }
 
   /**
@@ -587,6 +598,13 @@ export class OPFSStorage implements StorageAdapter {
   }
 
   /**
+   * Delete a verb from storage (alias for deleteEdge)
+   */
+  public async deleteVerb(id: string): Promise<void> {
+    return this.deleteEdge(id);
+  }
+
+  /**
    * Get edges by source node ID
    */
   public async getEdgesBySource(sourceId: string): Promise<Edge[]> {
@@ -599,6 +617,13 @@ export class OPFSStorage implements StorageAdapter {
       console.error(`Failed to get edges by source ${sourceId}:`, error)
       throw new Error(`Failed to get edges by source ${sourceId}: ${error}`)
     }
+  }
+
+  /**
+   * Get verbs by source node ID (alias for getEdgesBySource)
+   */
+  public async getVerbsBySource(sourceId: string): Promise<GraphVerb[]> {
+    return this.getEdgesBySource(sourceId);
   }
 
   /**
@@ -617,6 +642,13 @@ export class OPFSStorage implements StorageAdapter {
   }
 
   /**
+   * Get verbs by target node ID (alias for getEdgesByTarget)
+   */
+  public async getVerbsByTarget(targetId: string): Promise<GraphVerb[]> {
+    return this.getEdgesByTarget(targetId);
+  }
+
+  /**
    * Get edges by type
    */
   public async getEdgesByType(type: string): Promise<Edge[]> {
@@ -629,6 +661,13 @@ export class OPFSStorage implements StorageAdapter {
       console.error(`Failed to get edges by type ${type}:`, error)
       throw new Error(`Failed to get edges by type ${type}: ${error}`)
     }
+  }
+
+  /**
+   * Get verbs by type (alias for getEdgesByType)
+   */
+  public async getVerbsByType(type: string): Promise<GraphVerb[]> {
+    return this.getEdgesByType(type);
   }
 
   /**
@@ -947,6 +986,55 @@ export class MemoryStorage implements StorageAdapter {
     this.nodes.set(CONCEPT_DIR, new Map())
     this.nodes.set(CONTENT_DIR, new Map())
     this.nodes.set(DEFAULT_DIR, new Map())
+  }
+
+  // Alias methods to match StorageAdapter interface
+  public async saveNoun(noun: HNSWNoun): Promise<void> {
+    return this.saveNode(noun);
+  }
+
+  public async getNoun(id: string): Promise<HNSWNoun | null> {
+    return this.getNode(id);
+  }
+
+  public async getAllNouns(): Promise<HNSWNoun[]> {
+    return this.getAllNodes();
+  }
+
+  public async getNounsByNounType(nounType: string): Promise<HNSWNoun[]> {
+    return this.getNodesByNounType(nounType);
+  }
+
+  public async deleteNoun(id: string): Promise<void> {
+    return this.deleteNode(id);
+  }
+
+  public async saveVerb(verb: GraphVerb): Promise<void> {
+    return this.saveEdge(verb);
+  }
+
+  public async getVerb(id: string): Promise<GraphVerb | null> {
+    return this.getEdge(id);
+  }
+
+  public async getAllVerbs(): Promise<GraphVerb[]> {
+    return this.getAllEdges();
+  }
+
+  public async getVerbsBySource(sourceId: string): Promise<GraphVerb[]> {
+    return this.getEdgesBySource(sourceId);
+  }
+
+  public async getVerbsByTarget(targetId: string): Promise<GraphVerb[]> {
+    return this.getEdgesByTarget(targetId);
+  }
+
+  public async getVerbsByType(type: string): Promise<GraphVerb[]> {
+    return this.getEdgesByType(type);
+  }
+
+  public async deleteVerb(id: string): Promise<void> {
+    return this.deleteEdge(id);
   }
 
   public async init(): Promise<void> {

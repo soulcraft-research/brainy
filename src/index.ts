@@ -148,8 +148,8 @@ import type {
   DistanceFunction,
   EmbeddingFunction,
   EmbeddingModel,
-  HNSWNode,
-  Edge,
+  HNSWNoun,
+  GraphVerb,
   HNSWConfig,
   StorageAdapter
 } from './coreTypes.js'
@@ -161,8 +161,8 @@ export type {
   DistanceFunction,
   EmbeddingFunction,
   EmbeddingModel,
-  HNSWNode,
-  Edge,
+  HNSWNoun,
+  GraphVerb,
   HNSWConfig,
   StorageAdapter
 }
@@ -213,7 +213,6 @@ export type {
 // Export graph types
 import type {
   GraphNoun,
-  GraphVerb,
   EmbeddedGraphVerb,
   Person,
   Place,
@@ -226,7 +225,6 @@ import { NounType, VerbType } from './types/graphTypes.js'
 
 export type {
   GraphNoun,
-  GraphVerb,
   EmbeddedGraphVerb,
   Person,
   Place,

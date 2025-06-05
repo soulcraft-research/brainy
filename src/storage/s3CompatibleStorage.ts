@@ -1,4 +1,8 @@
-import { Edge, HNSWNode, StorageAdapter } from '../coreTypes.js'
+import { GraphVerb, HNSWNoun, StorageAdapter } from '../coreTypes.js'
+
+// Type aliases for compatibility
+type HNSWNode = HNSWNoun;
+type Edge = GraphVerb;
 
 // Constants for S3 bucket prefixes
 const NODES_PREFIX = 'nodes/'
@@ -58,6 +62,55 @@ export class S3CompatibleStorage implements StorageAdapter {
   private serviceType: 'r2' | 's3' | 'gcs' | 'custom'
   private s3Client: any // Will be initialized in init()
   private isInitialized = false
+
+  // Alias methods to match StorageAdapter interface
+  public async saveNoun(noun: HNSWNoun): Promise<void> {
+    return this.saveNode(noun);
+  }
+
+  public async getNoun(id: string): Promise<HNSWNoun | null> {
+    return this.getNode(id);
+  }
+
+  public async getAllNouns(): Promise<HNSWNoun[]> {
+    return this.getAllNodes();
+  }
+
+  public async getNounsByNounType(nounType: string): Promise<HNSWNoun[]> {
+    return this.getNodesByNounType(nounType);
+  }
+
+  public async deleteNoun(id: string): Promise<void> {
+    return this.deleteNode(id);
+  }
+
+  public async saveVerb(verb: GraphVerb): Promise<void> {
+    return this.saveEdge(verb);
+  }
+
+  public async getVerb(id: string): Promise<GraphVerb | null> {
+    return this.getEdge(id);
+  }
+
+  public async getAllVerbs(): Promise<GraphVerb[]> {
+    return this.getAllEdges();
+  }
+
+  public async getVerbsBySource(sourceId: string): Promise<GraphVerb[]> {
+    return this.getEdgesBySource(sourceId);
+  }
+
+  public async getVerbsByTarget(targetId: string): Promise<GraphVerb[]> {
+    return this.getEdgesByTarget(targetId);
+  }
+
+  public async getVerbsByType(type: string): Promise<GraphVerb[]> {
+    return this.getEdgesByType(type);
+  }
+
+  public async deleteVerb(id: string): Promise<void> {
+    return this.deleteEdge(id);
+  }
 
   constructor(options: {
     bucketName: string
@@ -161,7 +214,7 @@ export class S3CompatibleStorage implements StorageAdapter {
       // Convert connections Map to a serializable format
       const serializableNode = {
         ...node,
-        connections: this.mapToObject(node.connections, (set) => Array.from(set))
+        connections: this.mapToObject(node.connections, (set) => Array.from(set as Set<string>))
       }
 
       // Get the appropriate prefix based on the node's metadata
@@ -529,7 +582,7 @@ export class S3CompatibleStorage implements StorageAdapter {
       // Convert connections Map to a serializable format
       const serializableEdge = {
         ...edge,
-        connections: this.mapToObject(edge.connections, (set) => Array.from(set))
+        connections: this.mapToObject(edge.connections, (set) => Array.from(set as Set<string>))
       }
 
       // Import the PutObjectCommand only when needed

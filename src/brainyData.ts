@@ -8,15 +8,16 @@ import { HNSWIndex } from './hnsw/hnswIndex.js'
 import { createStorage } from './storage/opfsStorage.js'
 import {
   DistanceFunction,
-  Edge,
+  GraphVerb,
   EmbeddingFunction,
-  HNSWConfig, HNSWNode,
+  HNSWConfig, HNSWNoun,
   SearchResult,
   StorageAdapter,
   Vector,
   VectorDocument
 } from './coreTypes.js'
 import { cosineDistance, defaultEmbeddingFunction, euclideanDistance } from './utils/index.js'
+import { NounType, VerbType, GraphNoun } from './types/graphTypes.js'
 
 export interface BrainyDataConfig {
   /**
@@ -160,16 +161,16 @@ export class BrainyData<T = any> {
       // Initialize storage
       await this.storage!.init()
 
-      // Load all nodes from storage
-      const nodes: HNSWNode[] = await this.storage!.getAllNodes()
+      // Load all nouns from storage
+      const nouns: HNSWNoun[] = await this.storage!.getAllNouns()
 
-      // Clear the index and add all nodes
+      // Clear the index and add all nouns
       this.index.clear()
-      for (const node of nodes) {
+      for (const noun of nouns) {
         // Add to index
         this.index.addItem({
-          id: node.id,
-          vector: node.vector
+          id: noun.id,
+          vector: noun.vector
         })
       }
 
@@ -231,18 +232,32 @@ export class BrainyData<T = any> {
       // Add to index
       this.index.addItem({ id, vector })
 
-      // Get the node from the index
-      const node = this.index.getNodes().get(id)
+      // Get the noun from the index
+      const noun = this.index.getNodes().get(id)
 
-      if (!node) {
-        throw new Error(`Failed to retrieve newly created node with ID ${id}`)
+      if (!noun) {
+        throw new Error(`Failed to retrieve newly created noun with ID ${id}`)
       }
 
-      // Save node to storage
-      await this.storage!.saveNode(node)
+      // Save noun to storage
+      await this.storage!.saveNoun(noun)
 
       // Save metadata if provided
       if (metadata !== undefined) {
+        // Validate noun type if metadata is for a GraphNoun
+        if (metadata && typeof metadata === 'object' && 'noun' in metadata) {
+          const nounType = (metadata as any).noun;
+
+          // Check if the noun type is valid
+          const isValidNounType = Object.values(NounType).includes(nounType);
+
+          if (!isValidNounType) {
+            console.warn(`Invalid noun type: ${nounType}. Falling back to GraphNoun.`);
+            // Set a default noun type
+            (metadata as any).noun = NounType.Concept;
+          }
+        }
+
         await this.storage!.saveMetadata(id, metadata)
       }
 
@@ -331,7 +346,7 @@ export class BrainyData<T = any> {
         throw new Error('Query vector is undefined or null')
       }
 
-      // If no noun types specified, search all nodes
+      // If no noun types specified, search all nouns
       if (!nounTypes || nounTypes.length === 0) {
         // Search in the index
         const results = this.index.search(queryVector, k)
@@ -340,8 +355,8 @@ export class BrainyData<T = any> {
         const searchResults: SearchResult<T>[] = []
 
         for (const [id, score] of results) {
-          const node = this.index.getNodes().get(id)
-          if (!node) {
+          const noun = this.index.getNodes().get(id)
+          if (!noun) {
             continue
           }
 
@@ -350,28 +365,28 @@ export class BrainyData<T = any> {
           searchResults.push({
             id,
             score,
-            vector: node.vector,
+            vector: noun.vector,
             metadata
           })
         }
 
         return searchResults
       } else {
-        // Get nodes for each noun type in parallel
-        const nodePromises = nounTypes.map(nounType => this.storage!.getNodesByNounType(nounType))
-        const nodeArrays = await Promise.all(nodePromises)
+        // Get nouns for each noun type in parallel
+        const nounPromises = nounTypes.map(nounType => this.storage!.getNounsByNounType(nounType))
+        const nounArrays = await Promise.all(nounPromises)
 
-        // Combine all nodes
-        const nodes: HNSWNode[] = []
-        for (const nodeArray of nodeArrays) {
-          nodes.push(...nodeArray)
+        // Combine all nouns
+        const nouns: HNSWNoun[] = []
+        for (const nounArray of nounArrays) {
+          nouns.push(...nounArray)
         }
 
-        // Calculate distances for each node
+        // Calculate distances for each noun
         const results: Array<[string, number]> = []
-        for (const node of nodes) {
-          const distance = this.index.getDistanceFunction()(queryVector, node.vector)
-          results.push([node.id, distance])
+        for (const noun of nouns) {
+          const distance = this.index.getDistanceFunction()(queryVector, noun.vector)
+          results.push([noun.id, distance])
         }
 
         // Sort by distance (ascending)
@@ -384,8 +399,8 @@ export class BrainyData<T = any> {
         const searchResults: SearchResult<T>[] = []
 
         for (const [id, score] of topResults) {
-          const node = nodes.find(n => n.id === id)
-          if (!node) {
+          const noun = nouns.find(n => n.id === id)
+          if (!noun) {
             continue
           }
 
@@ -394,7 +409,7 @@ export class BrainyData<T = any> {
           searchResults.push({
             id,
             score,
-            vector: node.vector,
+            vector: noun.vector,
             metadata
           })
         }
@@ -447,22 +462,22 @@ export class BrainyData<T = any> {
     if (options.includeVerbs && this.storage) {
       for (const result of searchResults) {
         try {
-          // Get outgoing edges (verbs) for this noun
-          const outgoingEdges = await this.storage.getEdgesBySource(result.id);
+          // Get outgoing verbs for this noun
+          const outgoingVerbs = await this.storage.getVerbsBySource(result.id);
 
-          // Get incoming edges (verbs) for this noun
-          const incomingEdges = await this.storage.getEdgesByTarget(result.id);
+          // Get incoming verbs for this noun
+          const incomingVerbs = await this.storage.getVerbsByTarget(result.id);
 
-          // Combine all edges
-          const allEdges = [...outgoingEdges, ...incomingEdges];
+          // Combine all verbs
+          const allVerbs = [...outgoingVerbs, ...incomingVerbs];
 
-          // Add edges to the result metadata
+          // Add verbs to the result metadata
           if (!result.metadata) {
             result.metadata = {} as T;
           }
 
-          // Add the edges to the metadata
-          (result.metadata as any).associatedVerbs = allEdges;
+          // Add the verbs to the metadata
+          (result.metadata as any).associatedVerbs = allVerbs;
         } catch (error) {
           console.warn(`Failed to retrieve verbs for noun ${result.id}:`, error);
         }
@@ -479,9 +494,9 @@ export class BrainyData<T = any> {
     await this.ensureInitialized()
 
     try {
-      // Get node from index
-      const node = this.index.getNodes().get(id)
-      if (!node) {
+      // Get noun from index
+      const noun = this.index.getNodes().get(id)
+      if (!noun) {
         return null
       }
 
@@ -490,7 +505,7 @@ export class BrainyData<T = any> {
 
       return {
         id,
-        vector: node.vector,
+        vector: noun.vector,
         metadata
       }
     } catch (error) {
@@ -516,7 +531,7 @@ export class BrainyData<T = any> {
       }
 
       // Remove from storage
-      await this.storage!.deleteNode(id)
+      await this.storage!.deleteNoun(id)
 
       // Try to remove metadata (ignore errors)
       try {
@@ -543,9 +558,23 @@ export class BrainyData<T = any> {
 
     try {
       // Check if a vector exists
-      const node = this.index.getNodes().get(id)
-      if (!node) {
+      const noun = this.index.getNodes().get(id)
+      if (!noun) {
         return false
+      }
+
+      // Validate noun type if metadata is for a GraphNoun
+      if (metadata && typeof metadata === 'object' && 'noun' in metadata) {
+        const nounType = (metadata as any).noun;
+
+        // Check if the noun type is valid
+        const isValidNounType = Object.values(NounType).includes(nounType);
+
+        if (!isValidNounType) {
+          console.warn(`Invalid noun type: ${nounType}. Falling back to GraphNoun.`);
+          // Set a default noun type
+          (metadata as any).noun = NounType.Concept;
+        }
       }
 
       // Update metadata
@@ -559,10 +588,10 @@ export class BrainyData<T = any> {
   }
 
   /**
-   * Add an edge between two nodes
+   * Add a verb between two nouns
    * If metadata is provided and vector is not, the metadata will be vectorized using the embedding function
    */
-  public async addEdge(
+  public async addVerb(
     sourceId: string,
     targetId: string,
     vector?: Vector,
@@ -579,148 +608,161 @@ export class BrainyData<T = any> {
     this.checkReadOnly()
 
     try {
-      // Check if source and target nodes exist
-      const sourceNode = this.index.getNodes().get(sourceId)
-      const targetNode = this.index.getNodes().get(targetId)
+      // Check if source and target nouns exist
+      const sourceNoun = this.index.getNodes().get(sourceId)
+      const targetNoun = this.index.getNodes().get(targetId)
 
-      if (!sourceNode) {
-        throw new Error(`Source node with ID ${sourceId} not found`)
+      if (!sourceNoun) {
+        throw new Error(`Source noun with ID ${sourceId} not found`)
       }
 
-      if (!targetNode) {
-        throw new Error(`Target node with ID ${targetId} not found`)
+      if (!targetNoun) {
+        throw new Error(`Target noun with ID ${targetId} not found`)
       }
 
-      // Generate ID for the edge
+      // Generate ID for the verb
       const id = uuidv4()
 
-      let edgeVector: Vector
+      let verbVector: Vector
 
       // If metadata is provided and no vector is provided or forceEmbed is true, vectorize the metadata
       if (options.metadata && (!vector || options.forceEmbed)) {
         try {
-          edgeVector = await this.embeddingFunction(options.metadata)
+          verbVector = await this.embeddingFunction(options.metadata)
         } catch (embedError) {
-          throw new Error(`Failed to vectorize edge metadata: ${embedError}`)
+          throw new Error(`Failed to vectorize verb metadata: ${embedError}`)
         }
       } else {
         // Use a provided vector or average of source and target vectors
-        edgeVector =
+        verbVector =
           vector ||
-          sourceNode.vector.map((val, i) => (val + targetNode.vector[i]) / 2)
+          sourceNoun.vector.map((val, i) => (val + targetNoun.vector[i]) / 2)
       }
 
-      // Create edge
-      const edge: Edge = {
+      // Validate verb type if provided
+      let verbType = options.type;
+      if (verbType) {
+        // Check if the verb type is valid
+        const isValidVerbType = Object.values(VerbType).includes(verbType as any);
+
+        if (!isValidVerbType) {
+          console.warn(`Invalid verb type: ${verbType}. Using RelatedTo as default.`);
+          // Set a default verb type
+          verbType = VerbType.RelatedTo;
+        }
+      }
+
+      // Create verb
+      const verb: GraphVerb = {
         id,
-        vector: edgeVector,
+        vector: verbVector,
         connections: new Map(),
         sourceId,
         targetId,
-        type: options.type,
+        type: verbType,
         weight: options.weight,
         metadata: options.metadata
       }
 
       // Add to index
-      this.index.addItem({ id, vector: edgeVector })
+      this.index.addItem({ id, vector: verbVector })
 
-      // Get the node from the index
-      const indexNode = this.index.getNodes().get(id)
+      // Get the noun from the index
+      const indexNoun = this.index.getNodes().get(id)
 
-      if (!indexNode) {
+      if (!indexNoun) {
         throw new Error(
-          `Failed to retrieve newly created edge node with ID ${id}`
+          `Failed to retrieve newly created verb noun with ID ${id}`
         )
       }
 
-      // Update edge connections from index
-      edge.connections = indexNode.connections
+      // Update verb connections from index
+      verb.connections = indexNoun.connections
 
-      // Save edge to storage
-      await this.storage!.saveEdge(edge)
+      // Save verb to storage
+      await this.storage!.saveVerb(verb)
 
       return id
     } catch (error) {
-      console.error('Failed to add edge:', error)
-      throw new Error(`Failed to add edge: ${error}`)
+      console.error('Failed to add verb:', error)
+      throw new Error(`Failed to add verb: ${error}`)
     }
   }
 
   /**
-   * Get an edge by ID
+   * Get a verb by ID
    */
-  public async getEdge(id: string): Promise<Edge | null> {
+  public async getVerb(id: string): Promise<GraphVerb | null> {
     await this.ensureInitialized()
 
     try {
-      return await this.storage!.getEdge(id)
+      return await this.storage!.getVerb(id)
     } catch (error) {
-      console.error(`Failed to get edge ${id}:`, error)
-      throw new Error(`Failed to get edge ${id}: ${error}`)
+      console.error(`Failed to get verb ${id}:`, error)
+      throw new Error(`Failed to get verb ${id}: ${error}`)
     }
   }
 
   /**
-   * Get all edges
+   * Get all verbs
    */
-  public async getAllEdges(): Promise<Edge[]> {
+  public async getAllVerbs(): Promise<GraphVerb[]> {
     await this.ensureInitialized()
 
     try {
-      return await this.storage!.getAllEdges()
+      return await this.storage!.getAllVerbs()
     } catch (error) {
-      console.error('Failed to get all edges:', error)
-      throw new Error(`Failed to get all edges: ${error}`)
+      console.error('Failed to get all verbs:', error)
+      throw new Error(`Failed to get all verbs: ${error}`)
     }
   }
 
   /**
-   * Get edges by source node ID
+   * Get verbs by source noun ID
    */
-  public async getEdgesBySource(sourceId: string): Promise<Edge[]> {
+  public async getVerbsBySource(sourceId: string): Promise<GraphVerb[]> {
     await this.ensureInitialized()
 
     try {
-      return await this.storage!.getEdgesBySource(sourceId)
+      return await this.storage!.getVerbsBySource(sourceId)
     } catch (error) {
-      console.error(`Failed to get edges by source ${sourceId}:`, error)
-      throw new Error(`Failed to get edges by source ${sourceId}: ${error}`)
+      console.error(`Failed to get verbs by source ${sourceId}:`, error)
+      throw new Error(`Failed to get verbs by source ${sourceId}: ${error}`)
     }
   }
 
   /**
-   * Get edges by target node ID
+   * Get verbs by target noun ID
    */
-  public async getEdgesByTarget(targetId: string): Promise<Edge[]> {
+  public async getVerbsByTarget(targetId: string): Promise<GraphVerb[]> {
     await this.ensureInitialized()
 
     try {
-      return await this.storage!.getEdgesByTarget(targetId)
+      return await this.storage!.getVerbsByTarget(targetId)
     } catch (error) {
-      console.error(`Failed to get edges by target ${targetId}:`, error)
-      throw new Error(`Failed to get edges by target ${targetId}: ${error}`)
+      console.error(`Failed to get verbs by target ${targetId}:`, error)
+      throw new Error(`Failed to get verbs by target ${targetId}: ${error}`)
     }
   }
 
   /**
-   * Get edges by type
+   * Get verbs by type
    */
-  public async getEdgesByType(type: string): Promise<Edge[]> {
+  public async getVerbsByType(type: string): Promise<GraphVerb[]> {
     await this.ensureInitialized()
 
     try {
-      return await this.storage!.getEdgesByType(type)
+      return await this.storage!.getVerbsByType(type)
     } catch (error) {
-      console.error(`Failed to get edges by type ${type}:`, error)
-      throw new Error(`Failed to get edges by type ${type}: ${error}`)
+      console.error(`Failed to get verbs by type ${type}:`, error)
+      throw new Error(`Failed to get verbs by type ${type}: ${error}`)
     }
   }
 
   /**
-   * Delete an edge
+   * Delete a verb
    */
-  public async deleteEdge(id: string): Promise<boolean> {
+  public async deleteVerb(id: string): Promise<boolean> {
     await this.ensureInitialized()
 
     // Check if database is in read-only mode
@@ -734,12 +776,12 @@ export class BrainyData<T = any> {
       }
 
       // Remove from storage
-      await this.storage!.deleteEdge(id)
+      await this.storage!.deleteVerb(id)
 
       return true
     } catch (error) {
-      console.error(`Failed to delete edge ${id}:`, error)
-      throw new Error(`Failed to delete edge ${id}: ${error}`)
+      console.error(`Failed to delete verb ${id}:`, error)
+      throw new Error(`Failed to delete verb ${id}: ${error}`)
     }
   }
 

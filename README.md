@@ -25,6 +25,20 @@ Brainy combines three key technologies:
     - Server: S3-compatible storage (optional)
     - Fallback: In-memory storage
 
+## Data Model
+
+Brainy uses a graph-based data model with two primary concepts:
+
+1. **Nouns**: The main entities in your data (nodes in the graph)
+   - Each noun has a unique ID, vector representation, and metadata
+   - Nouns can be categorized by type (Person, Place, Thing, Event, Concept, etc.)
+   - Nouns are automatically vectorized for similarity search
+
+2. **Verbs**: Relationships between nouns (edges in the graph)
+   - Each verb connects a source noun to a target noun
+   - Verbs have types that define the relationship (RelatedTo, Controls, Contains, etc.)
+   - Verbs can have their own metadata to describe the relationship
+
 ## What Can You Use It For?
 
 - **Semantic Search**: Find content based on meaning, not just keywords
@@ -39,35 +53,103 @@ Brainy combines three key technologies:
 npm install @soulcraft/brainy
 ```
 
+## Command Line Interface
+
+Brainy includes a command-line interface (CLI) that allows you to experiment with the API and data directly from the terminal.
+
+### Using the CLI during development
+
+```bash
+# Run the CLI directly from the source
+npm run cli help
+
+# Initialize a database
+npm run cli init
+
+# Add some data
+npm run cli add "Cats are independent pets" '{"noun":"Thing","category":"animal"}'
+npm run cli add "Dogs are loyal companions" '{"noun":"Thing","category":"animal"}'
+
+# Search for similar items
+npm run cli search "feline pets" 5
+
+# Add relationships between items
+npm run cli addVerb <sourceId> <targetId> RelatedTo '{"description":"Both are pets"}'
+
+# View database status
+npm run cli status
+```
+
+### Installing the CLI globally
+
+```bash
+# Install the package globally
+npm install -g @soulcraft/brainy
+
+# Now you can use the 'brainy' command directly
+brainy help
+brainy init
+brainy add "Some text" '{"noun":"Thing"}'
+```
+
+### Available Commands
+
+- `init` - Initialize a new database
+- `add <text> [metadata]` - Add a new noun with the given text and optional metadata
+- `search <query> [limit]` - Search for nouns similar to the query
+- `get <id>` - Get a noun by ID
+- `delete <id>` - Delete a noun by ID
+- `addVerb <sourceId> <targetId> <verbType> [metadata]` - Add a relationship between nouns
+- `getVerbs <id>` - Get all relationships for a noun
+- `status` - Show database status
+
 ## Basic Usage
 
 ```typescript
-import {BrainyData} from '@soulcraft/brainy';
+import {BrainyData, NounType, VerbType} from '@soulcraft/brainy';
 
 // Create and initialize the database
 const db = new BrainyData();
 await db.init();
 
-// Add text data (automatically converted to vectors)
-const catId = await db.add("Cats are independent pets", {type: 'animal'});
-const dogId = await db.add("Dogs are loyal companions", {type: 'animal'});
+// Add nouns (automatically converted to vectors)
+const catId = await db.add("Cats are independent pets", {
+  noun: NounType.Thing,
+  category: 'animal'
+});
 
-// Search for similar content
+const dogId = await db.add("Dogs are loyal companions", {
+  noun: NounType.Thing,
+  category: 'animal'
+});
+
+// Search for similar nouns
 const results = await db.searchText("feline pets", 2);
 console.log(results);
-// Returns items similar to "feline pets" with their similarity scores
+// Returns nouns similar to "feline pets" with their similarity scores
 
-// Add relationships between items
-await db.addEdge(catId, dogId, {type: 'related_to'});
+// Add a verb (relationship) between nouns
+await db.addVerb(catId, dogId, {
+  verb: VerbType.RelatedTo,
+  description: 'Both are common household pets'
+});
 
-// Retrieve data
+// Retrieve a noun
 const cat = await db.get(catId);
 console.log(cat);
 
-// Update metadata
-await db.updateMetadata(catId, {type: 'animal', size: 'small'});
+// Get all relationships for a noun
+const catRelationships = await db.getVerbsBySource(catId);
+console.log(catRelationships);
 
-// Delete data
+// Update noun metadata
+await db.updateMetadata(catId, {
+  noun: NounType.Thing,
+  category: 'animal',
+  size: 'small'
+});
+
+// Delete a noun
 await db.delete(dogId);
 ```
 
@@ -75,9 +157,10 @@ await db.delete(dogId);
 
 - **Automatic Vectorization**: Converts text and data to vector embeddings
 - **Fast Similarity Search**: Uses HNSW algorithm for efficient retrieval
+- **Noun-Based Data Model**: Organize entities with typed categorization (Person, Place, Thing, etc.)
+- **Verb-Based Relationships**: Create meaningful connections between nouns with typed relationships
 - **Cross-Platform**: Works in browsers, Node.js, and server environments
 - **Persistent Storage**: Multiple storage options (OPFS, filesystem, cloud)
-- **Graph Capabilities**: Create relationships between data points
 - **TypeScript Support**: Fully typed API with generics
 - **Flexible Configuration**: Customize distance functions, embedding models, and more
 
@@ -110,9 +193,15 @@ const db = new BrainyData({
 
     // HNSW index configuration for search performance
     hnsw: {
-        M: 16,              // Max connections per node
+        M: 16,              // Max connections per noun
         efConstruction: 200, // Construction candidate list size
         efSearch: 50,       // Search candidate list size
+    },
+
+    // Noun and Verb type validation
+    typeValidation: {
+        enforceNounTypes: true,  // Validate noun types against NounType enum
+        enforceVerbTypes: true,  // Validate verb types against VerbType enum
     },
 
     // Storage configuration
@@ -131,32 +220,73 @@ const db = new BrainyData({
 
 ## API Reference
 
-### Core Methods
+### Database Methods
 
 ```typescript
 // Initialize the database
 await db.init();
 
-// Add data (automatically vectorized)
-const id = await db.add(textOrVector, metadata);
-
-// Search by vector or text
-const results = await db.search(vectorOrText, numResults);
-const textResults = await db.searchText("query text", numResults);
-
-// Manage data
-const item = await db.get(id);
-await db.updateMetadata(id, newMetadata);
-await db.delete(id);
-
-// Graph relationships
-await db.addEdge(sourceId, targetId, metadata);
-const edges = await db.getAllEdges();
-
 // Database management
 await db.clear();
 const size = db.size();
 const status = await db.status();
+```
+
+### Noun Methods (Entities)
+
+```typescript
+// Add a noun (automatically vectorized)
+const id = await db.add(textOrVector, {
+  noun: NounType.Thing,
+  // other metadata...
+});
+
+// Retrieve a noun
+const noun = await db.get(id);
+
+// Update noun metadata
+await db.updateMetadata(id, {
+  noun: NounType.Thing,
+  // updated metadata...
+});
+
+// Delete a noun
+await db.delete(id);
+
+// Search for similar nouns
+const results = await db.search(vectorOrText, numResults);
+const textResults = await db.searchText("query text", numResults);
+
+// Search by noun type
+const thingNouns = await db.searchByNounTypes([NounType.Thing], numResults);
+```
+
+### Verb Methods (Relationships)
+
+```typescript
+// Add a relationship between nouns
+await db.addVerb(sourceId, targetId, {
+  verb: VerbType.RelatedTo,
+  // other metadata...
+});
+
+// Get all relationships
+const verbs = await db.getAllVerbs();
+
+// Get relationships by source noun
+const outgoingVerbs = await db.getVerbsBySource(sourceId);
+
+// Get relationships by target noun
+const incomingVerbs = await db.getVerbsByTarget(targetId);
+
+// Get relationships by type
+const containsVerbs = await db.getVerbsByType(VerbType.Contains);
+
+// Get a specific relationship
+const verb = await db.getVerb(verbId);
+
+// Delete a relationship
+await db.deleteVerb(verbId);
 ```
 
 ### Distance Functions
