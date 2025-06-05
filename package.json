@@ -25,10 +25,13 @@
     "node": ">=18.0.0"
   },
   "scripts": {
+    "prebuild": "node scripts/generate-version.js",
     "build": "tsc",
     "test": "jest",
     "start": "node dist/index.js",
-    "cli": "node dist/cli.js",
+    "cli": "node ./cli-wrapper.js",
+    "cli:version": "node ./cli-wrapper.js --version",
+    "cli:v": "node ./cli-wrapper.js -V",
     "version:patch": "npm version patch",
     "version:minor": "npm version minor",
     "version:major": "npm version major",
@@ -36,7 +39,7 @@
     "postinstall": "echo 'Note: If you encounter dependency conflicts with TensorFlow.js packages, please use: npm install --legacy-peer-deps'"
   },
   "bin": {
-    "brainy": "dist/cli.js"
+    "brainy": "cli-wrapper.js"
   },
   "keywords": [
     "vector-database",

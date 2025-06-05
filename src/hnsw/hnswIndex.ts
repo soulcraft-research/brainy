@@ -114,7 +114,7 @@ export class HNSWIndex {
         for (const neighborId of connections) {
           const neighbor = this.nouns.get(neighborId)
           if (!neighbor) {
-            console.error(`Neighbor with ID ${neighborId} not found in addItem traversal`)
+            // Skip neighbors that don't exist (expected during rapid additions/deletions)
             continue
           }
           const distToNeighbor = this.distanceFunction(vector, neighbor.vector)
@@ -149,7 +149,7 @@ export class HNSWIndex {
       for (const [neighborId, _] of neighbors) {
         const neighbor = this.nouns.get(neighborId)
         if (!neighbor) {
-          console.error(`Neighbor with ID ${neighborId} not found`)
+          // Skip neighbors that don't exist (expected during rapid additions/deletions)
           continue
         }
 
@@ -240,7 +240,7 @@ export class HNSWIndex {
         for (const neighborId of connections) {
           const neighbor = this.nouns.get(neighborId)
           if (!neighbor) {
-            console.error(`Neighbor with ID ${neighborId} not found in search`)
+            // Skip neighbors that don't exist (expected during rapid additions/deletions)
             continue
           }
           const distToNeighbor = this.distanceFunction(
@@ -284,7 +284,7 @@ export class HNSWIndex {
       for (const neighborId of connections) {
         const neighbor = this.nouns.get(neighborId)
         if (!neighbor) {
-          console.error(`Neighbor with ID ${neighborId} not found in removeItem`)
+          // Skip neighbors that don't exist (expected during rapid additions/deletions)
           continue
         }
         if (neighbor.connections.has(level)) {
@@ -432,7 +432,7 @@ export class HNSWIndex {
 
           const neighbor = this.nouns.get(neighborId)
           if (!neighbor) {
-            console.error(`Neighbor with ID ${neighborId} not found in searchLayer`)
+            // Skip neighbors that don't exist (expected during rapid additions/deletions)
             continue
           }
           const distToNeighbor = this.distanceFunction(
@@ -501,7 +501,7 @@ export class HNSWIndex {
     for (const neighborId of connections) {
       const neighbor = this.nouns.get(neighborId)
       if (!neighbor) {
-        console.error(`Neighbor with ID ${neighborId} not found in pruneConnections`)
+        // Skip neighbors that don't exist (expected during rapid additions/deletions)
         continue
       }
 

@@ -628,7 +628,23 @@ export class BrainyData<T = any> {
       // If metadata is provided and no vector is provided or forceEmbed is true, vectorize the metadata
       if (options.metadata && (!vector || options.forceEmbed)) {
         try {
-          verbVector = await this.embeddingFunction(options.metadata)
+          // Extract a string representation from metadata for embedding
+          let textToEmbed: string;
+          if (typeof options.metadata === 'string') {
+            textToEmbed = options.metadata;
+          } else if (options.metadata.description && typeof options.metadata.description === 'string') {
+            textToEmbed = options.metadata.description;
+          } else {
+            // Convert to JSON string as fallback
+            textToEmbed = JSON.stringify(options.metadata);
+          }
+
+          // Ensure textToEmbed is a string
+          if (typeof textToEmbed !== 'string') {
+            textToEmbed = String(textToEmbed);
+          }
+
+          verbVector = await this.embeddingFunction(textToEmbed)
         } catch (embedError) {
           throw new Error(`Failed to vectorize verb metadata: ${embedError}`)
         }
@@ -962,6 +978,144 @@ export class BrainyData<T = any> {
           indexSize: this.size()
         }
       }
+    }
+  }
+
+  /**
+   * Generate a random graph of data with typed nouns and verbs for testing and experimentation
+   * @param options Configuration options for the random graph
+   * @returns Object containing the IDs of the generated nouns and verbs
+   */
+  public async generateRandomGraph(options: {
+    nounCount?: number;           // Number of nouns to generate (default: 10)
+    verbCount?: number;           // Number of verbs to generate (default: 20)
+    nounTypes?: NounType[];       // Types of nouns to generate (default: all types)
+    verbTypes?: VerbType[];       // Types of verbs to generate (default: all types)
+    clearExisting?: boolean;      // Whether to clear existing data before generating (default: false)
+    seed?: string;                // Seed for random generation (default: random)
+  } = {}): Promise<{
+    nounIds: string[];
+    verbIds: string[];
+  }> {
+    await this.ensureInitialized();
+
+    // Check if database is in read-only mode
+    this.checkReadOnly();
+
+    // Set default options
+    const nounCount = options.nounCount || 10;
+    const verbCount = options.verbCount || 20;
+    const nounTypes = options.nounTypes || Object.values(NounType);
+    const verbTypes = options.verbTypes || Object.values(VerbType);
+    const clearExisting = options.clearExisting || false;
+
+    // Clear existing data if requested
+    if (clearExisting) {
+      await this.clear();
+    }
+
+    try {
+      // Generate random nouns
+      const nounIds: string[] = [];
+      const nounDescriptions: Record<string, string> = {
+        [NounType.Person]: "A person with unique characteristics",
+        [NounType.Place]: "A location with specific attributes",
+        [NounType.Thing]: "An object with distinct properties",
+        [NounType.Event]: "An occurrence with temporal aspects",
+        [NounType.Concept]: "An abstract idea or notion",
+        [NounType.Content]: "A piece of content or information",
+        [NounType.Group]: "A collection of related entities",
+        [NounType.List]: "An ordered sequence of items",
+        [NounType.Category]: "A classification or grouping"
+      };
+
+      for (let i = 0; i < nounCount; i++) {
+        // Select a random noun type
+        const nounType = nounTypes[Math.floor(Math.random() * nounTypes.length)];
+
+        // Generate a random label
+        const label = `Random ${nounType} ${i + 1}`;
+
+        // Create metadata
+        const metadata = {
+          noun: nounType,
+          label,
+          description: nounDescriptions[nounType] || `A random ${nounType}`,
+          randomAttributes: {
+            value: Math.random() * 100,
+            priority: Math.floor(Math.random() * 5) + 1,
+            tags: [`tag-${i % 5}`, `category-${i % 3}`]
+          }
+        };
+
+        // Add the noun
+        const id = await this.add(metadata.description, metadata as T);
+        nounIds.push(id);
+      }
+
+      // Generate random verbs between nouns
+      const verbIds: string[] = [];
+      const verbDescriptions: Record<string, string> = {
+        [VerbType.AttributedTo]: "Attribution relationship",
+        [VerbType.Controls]: "Control relationship",
+        [VerbType.Created]: "Creation relationship",
+        [VerbType.Earned]: "Achievement relationship",
+        [VerbType.Owns]: "Ownership relationship",
+        [VerbType.MemberOf]: "Membership relationship",
+        [VerbType.RelatedTo]: "General relationship",
+        [VerbType.WorksWith]: "Collaboration relationship",
+        [VerbType.FriendOf]: "Friendship relationship",
+        [VerbType.ReportsTo]: "Reporting relationship",
+        [VerbType.Supervises]: "Supervision relationship",
+        [VerbType.Mentors]: "Mentorship relationship"
+      };
+
+      for (let i = 0; i < verbCount; i++) {
+        // Select random source and target nouns
+        const sourceIndex = Math.floor(Math.random() * nounIds.length);
+        let targetIndex = Math.floor(Math.random() * nounIds.length);
+
+        // Ensure source and target are different
+        while (targetIndex === sourceIndex && nounIds.length > 1) {
+          targetIndex = Math.floor(Math.random() * nounIds.length);
+        }
+
+        const sourceId = nounIds[sourceIndex];
+        const targetId = nounIds[targetIndex];
+
+        // Select a random verb type
+        const verbType = verbTypes[Math.floor(Math.random() * verbTypes.length)];
+
+        // Create metadata
+        const metadata = {
+          verb: verbType,
+          description: verbDescriptions[verbType] || `A random ${verbType} relationship`,
+          weight: Math.random(),
+          confidence: Math.random(),
+          randomAttributes: {
+            strength: Math.random() * 100,
+            duration: Math.floor(Math.random() * 365) + 1,
+            tags: [`relation-${i % 5}`, `strength-${i % 3}`]
+          }
+        };
+
+        // Add the verb
+        const id = await this.addVerb(sourceId, targetId, undefined, {
+          type: verbType,
+          weight: metadata.weight,
+          metadata
+        });
+
+        verbIds.push(id);
+      }
+
+      return {
+        nounIds,
+        verbIds
+      };
+    } catch (error) {
+      console.error('Failed to generate random graph:', error);
+      throw new Error(`Failed to generate random graph: ${error}`);
     }
   }
 }

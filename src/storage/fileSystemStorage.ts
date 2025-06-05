@@ -669,7 +669,7 @@ export class FileSystemStorage implements StorageAdapter {
   }
 
   /**
-   * Delete a directory and all its contents
+   * Delete a directory and all its contents recursively
    */
   private async deleteDirectory(dirPath: string): Promise<void> {
     try {
@@ -677,8 +677,19 @@ export class FileSystemStorage implements StorageAdapter {
 
       for (const file of files) {
         const filePath = path.join(dirPath, file)
-        await fs.promises.unlink(filePath)
+        const stats = await fs.promises.stat(filePath)
+
+        if (stats.isDirectory()) {
+          // Recursively delete subdirectories
+          await this.deleteDirectory(filePath)
+        } else {
+          // Delete files
+          await fs.promises.unlink(filePath)
+        }
       }
+
+      // After all contents are deleted, remove the directory itself
+      await fs.promises.rmdir(dirPath)
     } catch (error) {
       // If the directory doesn't exist, that's fine
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
