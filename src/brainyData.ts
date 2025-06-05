@@ -419,20 +419,57 @@ export class BrainyData<T = any> {
     k: number = 10,
     options: {
       forceEmbed?: boolean, // Force using the embedding function even if input is a vector
-      nounTypes?: string[] // Optional array of noun types to search within
+      nounTypes?: string[], // Optional array of noun types to search within
+      includeVerbs?: boolean // Whether to include associated GraphVerbs in the results
     } = {}
   ): Promise<SearchResult<T>[]> {
-    // If noun types are specified, use searchByNounTypes
-    if (options.nounTypes && options.nounTypes.length > 0) {
-      return this.searchByNounTypes(queryVectorOrData, k, options.nounTypes, {
-        forceEmbed: options.forceEmbed
-      })
+    // If input is a string and not a vector, automatically vectorize it
+    let queryToUse = queryVectorOrData;
+    if (typeof queryVectorOrData === 'string' && !options.forceEmbed) {
+      queryToUse = await this.embed(queryVectorOrData);
+      options.forceEmbed = false; // Already embedded, don't force again
     }
 
-    // Otherwise, search all nodes
-    return this.searchByNounTypes(queryVectorOrData, k, null, {
-      forceEmbed: options.forceEmbed
-    })
+    // If noun types are specified, use searchByNounTypes
+    let searchResults;
+    if (options.nounTypes && options.nounTypes.length > 0) {
+      searchResults = await this.searchByNounTypes(queryToUse, k, options.nounTypes, {
+        forceEmbed: options.forceEmbed
+      });
+    } else {
+      // Otherwise, search all GraphNouns
+      searchResults = await this.searchByNounTypes(queryToUse, k, null, {
+        forceEmbed: options.forceEmbed
+      });
+    }
+
+    // If includeVerbs is true, retrieve associated GraphVerbs for each result
+    if (options.includeVerbs && this.storage) {
+      for (const result of searchResults) {
+        try {
+          // Get outgoing edges (verbs) for this noun
+          const outgoingEdges = await this.storage.getEdgesBySource(result.id);
+
+          // Get incoming edges (verbs) for this noun
+          const incomingEdges = await this.storage.getEdgesByTarget(result.id);
+
+          // Combine all edges
+          const allEdges = [...outgoingEdges, ...incomingEdges];
+
+          // Add edges to the result metadata
+          if (!result.metadata) {
+            result.metadata = {} as T;
+          }
+
+          // Add the edges to the metadata
+          (result.metadata as any).associatedVerbs = allEdges;
+        } catch (error) {
+          console.warn(`Failed to retrieve verbs for noun ${result.id}:`, error);
+        }
+      }
+    }
+
+    return searchResults;
   }
 
   /**
@@ -523,6 +560,7 @@ export class BrainyData<T = any> {
 
   /**
    * Add an edge between two nodes
+   * If metadata is provided and vector is not, the metadata will be vectorized using the embedding function
    */
   public async addEdge(
     sourceId: string,
@@ -532,6 +570,7 @@ export class BrainyData<T = any> {
       type?: string
       weight?: number
       metadata?: any
+      forceEmbed?: boolean // Force using the embedding function for metadata even if vector is provided
     } = {}
   ): Promise<string> {
     await this.ensureInitialized()
@@ -555,10 +594,21 @@ export class BrainyData<T = any> {
       // Generate ID for the edge
       const id = uuidv4()
 
-      // Use a provided vector or average of source and target vectors
-      const edgeVector =
-        vector ||
-        sourceNode.vector.map((val, i) => (val + targetNode.vector[i]) / 2)
+      let edgeVector: Vector
+
+      // If metadata is provided and no vector is provided or forceEmbed is true, vectorize the metadata
+      if (options.metadata && (!vector || options.forceEmbed)) {
+        try {
+          edgeVector = await this.embeddingFunction(options.metadata)
+        } catch (embedError) {
+          throw new Error(`Failed to vectorize edge metadata: ${embedError}`)
+        }
+      } else {
+        // Use a provided vector or average of source and target vectors
+        edgeVector =
+          vector ||
+          sourceNode.vector.map((val, i) => (val + targetNode.vector[i]) / 2)
+      }
 
       // Create edge
       const edge: Edge = {
@@ -761,9 +811,17 @@ export class BrainyData<T = any> {
    *
    * @param query Text query to search for
    * @param k Number of results to return
+   * @param options Additional options
    * @returns Array of search results
    */
-  public async searchText(query: string, k: number = 10): Promise<SearchResult<T>[]> {
+  public async searchText(
+    query: string, 
+    k: number = 10, 
+    options: {
+      nounTypes?: string[],
+      includeVerbs?: boolean
+    } = {}
+  ): Promise<SearchResult<T>[]> {
     await this.ensureInitialized()
 
     try {
@@ -771,7 +829,10 @@ export class BrainyData<T = any> {
       const queryVector = await this.embed(query)
 
       // Search using the embedded vector
-      return await this.search(queryVector, k)
+      return await this.search(queryVector, k, {
+        nounTypes: options.nounTypes,
+        includeVerbs: options.includeVerbs
+      })
     } catch (error) {
       console.error('Failed to search with text query:', error)
       throw new Error(`Failed to search with text query: ${error}`)
