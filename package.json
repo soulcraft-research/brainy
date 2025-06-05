@@ -1,7 +1,7 @@
 {
   "name": "@soulcraft/brainy",
   "version": "0.7.3",
-  "description": "A vector database using HNSW indexing with Origin Private File System storage",
+  "description": "A vector graph database using HNSW indexing with Origin Private File System storage",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
