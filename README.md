@@ -2,9 +2,14 @@
 
 # 🧠 Brainy
 
-[![Version](https://img.shields.io/badge/version-0.7.5-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D23.11.0-brightgreen.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.1.6-blue.svg)](https://www.typescriptlang.org/)
+[![npm package](https://img.shields.io/badge/npm-@soulcraft/brainy-blue)](https://www.npmjs.com/package/@soulcraft/brainy)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
+[![TensorFlow](https://img.shields.io/badge/TensorFlow-4.22.0-orange.svg)](https://www.tensorflow.org/)
+[![Cartographer](https://img.shields.io/badge/Cartographer-Official%20Standard-brightgreen)](https://github.com/sodal-project/cartographer)
 
 **A powerful, lightweight vector & graph database for browsers and Node.js**
 
@@ -29,6 +34,7 @@ and connections.
 - **Streaming Pipeline** - Process data in real-time as it flows through the system (like a data waterslide!)
 - **Extensible Augmentations** - Customize and extend functionality with pluggable components (LEGO blocks for your
   data!)
+- **Built-in Conduits** - Sync and scale across instances with WebSocket and WebRTC (your data's teleportation system!)
 - **Adaptive Intelligence** - Automatically optimizes for your environment and usage patterns
 - **Cross-Platform** - Works everywhere you do: browsers, Node.js, and server environments
 - **Persistent Storage** - Data persists across sessions and scales to any size (no memory loss here, even for
@@ -176,6 +182,9 @@ Brainy uses a powerful augmentation system to extend functionality. Augmentation
 4. **CONDUIT** 🔌
     - Establishes high-bandwidth channels for structured data exchange
     - Connects with external systems and syncs between Brainy instances
+    - Two built-in iConduit augmentations for scaling out and syncing:
+      - **WebSocket iConduit** - Syncs data between browsers and servers (like a digital postal service with superpowers!)
+      - **WebRTC iConduit** - Direct peer-to-peer syncing between browsers (like telepathy for your data, no middleman required!)
     - Examples: 
       - Integrating with third-party APIs
       - Syncing Brainy instances between browsers using WebSockets
@@ -578,6 +587,10 @@ Key features of the cloud wrapper:
 
 To get started with cloud deployment, see the [Cloud Wrapper README](cloud-wrapper/README.md).
 
+## 🔗 Related Projects
+
+- **[sodal-project cartographer](https://github.com/sodal-project/cartographer)** - The defacto standard for interacting with Brainy
+
 ## 📚 Examples
 
 The repository includes several examples:
@@ -592,8 +605,8 @@ The repository includes several examples:
 
 You can use the conduit augmentations to sync Brainy instances:
 
-- **WebSocket Conduit**: For syncing between browsers and servers, or between servers. WebSockets cannot be used for direct browser-to-browser communication without a server in the middle.
-- **WebRTC Conduit**: For direct peer-to-peer syncing between browsers. This is the recommended approach for browser-to-browser communication.
+- **WebSocket iConduit**: For syncing between browsers and servers, or between servers (like a digital postal service with superpowers!). WebSockets cannot be used for direct browser-to-browser communication without a server in the middle.
+- **WebRTC iConduit**: For direct peer-to-peer syncing between browsers (like telepathy for your data, no middleman required!). This is the recommended approach for browser-to-browser communication.
 
 #### WebSocket Sync Example
 
