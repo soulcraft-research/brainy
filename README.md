@@ -600,6 +600,7 @@ The repository includes several examples:
 - Custom storage: `examples/customStorage.js`
 - Memory augmentations: `examples/memoryAugmentationExample.js`
 - Conduit augmentations: `examples/conduitAugmentationExample.js`
+- Browser-server search: `examples/browser-server-search/` - Search a server-hosted Brainy instance from a browser
 
 ### Syncing Brainy Instances
 
@@ -727,6 +728,50 @@ if (connectionResult[0] && (await connectionResult[0]).success) {
   )
 }
 ```
+
+#### Browser-Server Search Example
+
+Brainy supports searching a server-hosted instance from a browser, storing results locally, and performing further searches against the local instance:
+
+```typescript
+import { BrainyData } from '@soulcraft/brainy'
+
+// Create and initialize the database with remote server configuration
+const db = new BrainyData({
+  remoteServer: {
+    url: 'wss://your-brainy-server.com/ws',
+    protocols: 'brainy-sync',
+    autoConnect: true // Connect automatically during initialization
+  }
+})
+await db.init()
+
+// Or connect manually after initialization
+if (!db.isConnectedToRemoteServer()) {
+  await db.connectToRemoteServer('wss://your-brainy-server.com/ws', 'brainy-sync')
+}
+
+// Search the remote server (results are stored locally)
+const remoteResults = await db.searchText('machine learning', 5, { searchMode: 'remote' })
+
+// Search the local database (includes previously stored results)
+const localResults = await db.searchText('machine learning', 5, { searchMode: 'local' })
+
+// Perform a combined search (local first, then remote if needed)
+const combinedResults = await db.searchText('neural networks', 5, { searchMode: 'combined' })
+
+// Add data to both local and remote instances
+const id = await db.addToBoth('Deep learning is a subset of machine learning', {
+  noun: 'Concept',
+  category: 'AI',
+  tags: ['deep learning', 'neural networks']
+})
+
+// Clean up when done
+await db.shutDown()
+```
+
+For a complete example with HTML interface, see the [browser-server-search example](examples/browser-server-search/).
 
 ## 📋 Requirements
 

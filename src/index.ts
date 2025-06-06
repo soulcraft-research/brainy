@@ -136,6 +136,11 @@ import {
   WebRTCConduitAugmentation,
   createConduitAugmentation
 } from './augmentations/conduitAugmentations.js'
+import {
+  ServerSearchConduitAugmentation,
+  ServerSearchActivationAugmentation,
+  createServerSearchAugmentations
+} from './augmentations/serverSearchAugmentations.js'
 
 export {
   MemoryStorageAugmentation,
@@ -144,7 +149,10 @@ export {
   createMemoryAugmentation,
   WebSocketConduitAugmentation,
   WebRTCConduitAugmentation,
-  createConduitAugmentation
+  createConduitAugmentation,
+  ServerSearchConduitAugmentation,
+  ServerSearchActivationAugmentation,
+  createServerSearchAugmentations
 }
 
 

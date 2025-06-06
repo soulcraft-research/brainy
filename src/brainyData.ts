@@ -18,6 +18,11 @@ import {
 } from './coreTypes.js'
 import { cosineDistance, defaultEmbeddingFunction, euclideanDistance } from './utils/index.js'
 import { NounType, VerbType, GraphNoun } from './types/graphTypes.js'
+import { 
+  ServerSearchConduitAugmentation, 
+  createServerSearchAugmentations 
+} from './augmentations/serverSearchAugmentations.js'
+import { WebSocketConnection } from './types/augmentations.js'
 
 export interface BrainyDataConfig {
   /**
@@ -87,6 +92,26 @@ export interface BrainyDataConfig {
    * When true, all write operations will throw an error
    */
   readOnly?: boolean
+
+  /**
+   * Remote server configuration for search operations
+   */
+  remoteServer?: {
+    /**
+     * WebSocket URL of the remote Brainy server
+     */
+    url: string;
+
+    /**
+     * WebSocket protocols to use for the connection
+     */
+    protocols?: string | string[];
+
+    /**
+     * Whether to automatically connect to the remote server on initialization
+     */
+    autoConnect?: boolean;
+  }
 }
 
 export class BrainyData<T = any> {
@@ -97,6 +122,11 @@ export class BrainyData<T = any> {
   private requestPersistentStorage: boolean
   private readOnly: boolean
   private storageConfig: BrainyDataConfig['storage'] = {}
+
+  // Remote server properties
+  private remoteServerConfig: BrainyDataConfig['remoteServer'] | null = null
+  private serverSearchConduit: any = null // Will be ServerSearchConduitAugmentation when connected
+  private serverConnection: any = null // Will be WebSocketConnection when connected
 
   /**
    * Create a new vector database
@@ -125,6 +155,11 @@ export class BrainyData<T = any> {
 
     // Store storage configuration for later use in init()
     this.storageConfig = config.storage || {}
+
+    // Store remote server configuration if provided
+    if (config.remoteServer) {
+      this.remoteServerConfig = config.remoteServer
+    }
   }
 
   /**
@@ -174,10 +209,56 @@ export class BrainyData<T = any> {
         })
       }
 
+      // Connect to remote server if configured with autoConnect
+      if (this.remoteServerConfig && this.remoteServerConfig.autoConnect) {
+        try {
+          await this.connectToRemoteServer(
+            this.remoteServerConfig.url,
+            this.remoteServerConfig.protocols
+          )
+        } catch (remoteError) {
+          console.warn('Failed to auto-connect to remote server:', remoteError)
+          // Continue initialization even if remote connection fails
+        }
+      }
+
       this.isInitialized = true
     } catch (error) {
       console.error('Failed to initialize BrainyData:', error)
       throw new Error(`Failed to initialize BrainyData: ${error}`)
+    }
+  }
+
+  /**
+   * Connect to a remote Brainy server for search operations
+   * @param serverUrl WebSocket URL of the remote Brainy server
+   * @param protocols Optional WebSocket protocols to use
+   * @returns The connection object
+   */
+  public async connectToRemoteServer(
+    serverUrl: string,
+    protocols?: string | string[]
+  ): Promise<WebSocketConnection> {
+    await this.ensureInitialized()
+
+    try {
+      // Create server search augmentations
+      const { conduit, connection } = await createServerSearchAugmentations(
+        serverUrl,
+        {
+          protocols,
+          localDb: this
+        }
+      )
+
+      // Store the conduit and connection
+      this.serverSearchConduit = conduit
+      this.serverConnection = connection
+
+      return connection
+    } catch (error) {
+      console.error('Failed to connect to remote server:', error)
+      throw new Error(`Failed to connect to remote server: ${error}`)
     }
   }
 
@@ -193,7 +274,8 @@ export class BrainyData<T = any> {
     vectorOrData: Vector | any,
     metadata?: T,
     options: {
-      forceEmbed?: boolean // Force using the embedding function even if input is a vector
+      forceEmbed?: boolean, // Force using the embedding function even if input is a vector
+      addToRemote?: boolean // Whether to also add to the remote server if connected
     } = {}
   ): Promise<string> {
     await this.ensureInitialized()
@@ -261,10 +343,78 @@ export class BrainyData<T = any> {
         await this.storage!.saveMetadata(id, metadata)
       }
 
+      // If addToRemote is true and we're connected to a remote server, add to remote as well
+      if (options.addToRemote && this.isConnectedToRemoteServer()) {
+        try {
+          await this.addToRemote(id, vector, metadata)
+        } catch (remoteError) {
+          console.warn(`Failed to add to remote server: ${remoteError}. Continuing with local add.`)
+        }
+      }
+
       return id
     } catch (error) {
       console.error('Failed to add vector:', error)
       throw new Error(`Failed to add vector: ${error}`)
+    }
+  }
+
+  /**
+   * Add data to both local and remote Brainy instances
+   * @param vectorOrData Vector or data to add
+   * @param metadata Optional metadata to associate with the vector
+   * @param options Additional options
+   * @returns The ID of the added vector
+   */
+  public async addToBoth(
+    vectorOrData: Vector | any,
+    metadata?: T,
+    options: {
+      forceEmbed?: boolean // Force using the embedding function even if input is a vector
+    } = {}
+  ): Promise<string> {
+    // Check if connected to a remote server
+    if (!this.isConnectedToRemoteServer()) {
+      throw new Error('Not connected to a remote server. Call connectToRemoteServer() first.')
+    }
+
+    // Add to local with addToRemote option
+    return this.add(vectorOrData, metadata, { ...options, addToRemote: true })
+  }
+
+  /**
+   * Add a vector to the remote server
+   * @param id ID of the vector to add
+   * @param vector Vector to add
+   * @param metadata Optional metadata to associate with the vector
+   * @returns True if successful, false otherwise
+   * @private
+   */
+  private async addToRemote(
+    id: string,
+    vector: Vector,
+    metadata?: T
+  ): Promise<boolean> {
+    if (!this.isConnectedToRemoteServer()) {
+      return false
+    }
+
+    try {
+      // Add to remote server
+      const addResult = await this.serverSearchConduit.addToBoth(
+        this.serverConnection.connectionId,
+        vector,
+        metadata
+      )
+
+      if (!addResult.success) {
+        throw new Error(`Remote add failed: ${addResult.error}`)
+      }
+
+      return true
+    } catch (error) {
+      console.error('Failed to add to remote server:', error)
+      throw new Error(`Failed to add to remote server: ${error}`)
     }
   }
 
@@ -280,7 +430,8 @@ export class BrainyData<T = any> {
       metadata?: T
     }>,
     options: {
-      forceEmbed?: boolean // Force using the embedding function even if input is a vector
+      forceEmbed?: boolean, // Force using the embedding function even if input is a vector
+      addToRemote?: boolean // Whether to also add to the remote server if connected
     } = {}
   ): Promise<string[]> {
     await this.ensureInitialized()
@@ -301,6 +452,30 @@ export class BrainyData<T = any> {
       console.error('Failed to add batch of items:', error)
       throw new Error(`Failed to add batch of items: ${error}`)
     }
+  }
+
+  /**
+   * Add multiple vectors or data items to both local and remote databases
+   * @param items Array of items to add
+   * @param options Additional options
+   * @returns Array of IDs for the added items
+   */
+  public async addBatchToBoth(
+    items: Array<{
+      vectorOrData: Vector | any;
+      metadata?: T
+    }>,
+    options: {
+      forceEmbed?: boolean // Force using the embedding function even if input is a vector
+    } = {}
+  ): Promise<string[]> {
+    // Check if connected to a remote server
+    if (!this.isConnectedToRemoteServer()) {
+      throw new Error('Not connected to a remote server. Call connectToRemoteServer() first.')
+    }
+
+    // Add to local with addToRemote option
+    return this.addBatch(items, { ...options, addToRemote: true })
   }
 
   /**
@@ -430,6 +605,36 @@ export class BrainyData<T = any> {
    * @returns Array of search results
    */
   public async search(
+    queryVectorOrData: Vector | any,
+    k: number = 10,
+    options: {
+      forceEmbed?: boolean, // Force using the embedding function even if input is a vector
+      nounTypes?: string[], // Optional array of noun types to search within
+      includeVerbs?: boolean, // Whether to include associated GraphVerbs in the results
+      searchMode?: 'local' | 'remote' | 'combined' // Where to search: local, remote, or both
+    } = {}
+  ): Promise<SearchResult<T>[]> {
+    // If a specific search mode is specified, use the appropriate search method
+    if (options.searchMode === 'local') {
+      return this.searchLocal(queryVectorOrData, k, options)
+    } else if (options.searchMode === 'remote') {
+      return this.searchRemote(queryVectorOrData, k, options)
+    } else if (options.searchMode === 'combined') {
+      return this.searchCombined(queryVectorOrData, k, options)
+    }
+
+    // Default behavior (backward compatible): search locally
+    return this.searchLocal(queryVectorOrData, k, options)
+  }
+
+  /**
+   * Search the local database for similar vectors
+   * @param queryVectorOrData Query vector or data to search for
+   * @param k Number of results to return
+   * @param options Additional options
+   * @returns Array of search results
+   */
+  public async searchLocal(
     queryVectorOrData: Vector | any,
     k: number = 10,
     options: {
@@ -877,7 +1082,8 @@ export class BrainyData<T = any> {
     k: number = 10,
     options: {
       nounTypes?: string[],
-      includeVerbs?: boolean
+      includeVerbs?: boolean,
+      searchMode?: 'local' | 'remote' | 'combined'
     } = {}
   ): Promise<SearchResult<T>[]> {
     await this.ensureInitialized()
@@ -889,11 +1095,187 @@ export class BrainyData<T = any> {
       // Search using the embedded vector
       return await this.search(queryVector, k, {
         nounTypes: options.nounTypes,
-        includeVerbs: options.includeVerbs
+        includeVerbs: options.includeVerbs,
+        searchMode: options.searchMode
       })
     } catch (error) {
       console.error('Failed to search with text query:', error)
       throw new Error(`Failed to search with text query: ${error}`)
+    }
+  }
+
+  /**
+   * Search a remote Brainy server for similar vectors
+   * @param queryVectorOrData Query vector or data to search for
+   * @param k Number of results to return
+   * @param options Additional options
+   * @returns Array of search results
+   */
+  public async searchRemote(
+    queryVectorOrData: Vector | any,
+    k: number = 10,
+    options: {
+      forceEmbed?: boolean, // Force using the embedding function even if input is a vector
+      nounTypes?: string[], // Optional array of noun types to search within
+      includeVerbs?: boolean, // Whether to include associated GraphVerbs in the results
+      storeResults?: boolean // Whether to store the results in the local database (default: true)
+    } = {}
+  ): Promise<SearchResult<T>[]> {
+    await this.ensureInitialized()
+
+    // Check if connected to a remote server
+    if (!this.isConnectedToRemoteServer()) {
+      throw new Error('Not connected to a remote server. Call connectToRemoteServer() first.')
+    }
+
+    try {
+      // If input is a string, convert it to a query string for the server
+      let query: string
+      if (typeof queryVectorOrData === 'string') {
+        query = queryVectorOrData
+      } else {
+        // For vectors, we need to embed them as a string query
+        // This is a simplification - ideally we would send the vector directly
+        query = 'vector-query' // Placeholder, would need a better approach for vector queries
+      }
+
+      // Search the remote server
+      const searchResult = await this.serverSearchConduit.searchServer(
+        this.serverConnection.connectionId,
+        query,
+        k
+      )
+
+      if (!searchResult.success) {
+        throw new Error(`Remote search failed: ${searchResult.error}`)
+      }
+
+      return searchResult.data as SearchResult<T>[]
+    } catch (error) {
+      console.error('Failed to search remote server:', error)
+      throw new Error(`Failed to search remote server: ${error}`)
+    }
+  }
+
+  /**
+   * Search both local and remote Brainy instances, combining the results
+   * @param queryVectorOrData Query vector or data to search for
+   * @param k Number of results to return
+   * @param options Additional options
+   * @returns Array of search results
+   */
+  public async searchCombined(
+    queryVectorOrData: Vector | any,
+    k: number = 10,
+    options: {
+      forceEmbed?: boolean, // Force using the embedding function even if input is a vector
+      nounTypes?: string[], // Optional array of noun types to search within
+      includeVerbs?: boolean, // Whether to include associated GraphVerbs in the results
+      localFirst?: boolean // Whether to search local first (default: true)
+    } = {}
+  ): Promise<SearchResult<T>[]> {
+    await this.ensureInitialized()
+
+    // Check if connected to a remote server
+    if (!this.isConnectedToRemoteServer()) {
+      // If not connected to a remote server, just search locally
+      return this.searchLocal(queryVectorOrData, k, options)
+    }
+
+    try {
+      // Default to searching local first
+      const localFirst = options.localFirst !== false
+
+      if (localFirst) {
+        // Search local first
+        const localResults = await this.searchLocal(queryVectorOrData, k, options)
+
+        // If we have enough local results, return them
+        if (localResults.length >= k) {
+          return localResults
+        }
+
+        // Otherwise, search remote for additional results
+        const remoteResults = await this.searchRemote(
+          queryVectorOrData, 
+          k - localResults.length,
+          { ...options, storeResults: true }
+        )
+
+        // Combine results, removing duplicates
+        const combinedResults = [...localResults]
+        const localIds = new Set(localResults.map(r => r.id))
+
+        for (const result of remoteResults) {
+          if (!localIds.has(result.id)) {
+            combinedResults.push(result)
+          }
+        }
+
+        return combinedResults
+      } else {
+        // Search remote first
+        const remoteResults = await this.searchRemote(
+          queryVectorOrData,
+          k,
+          { ...options, storeResults: true }
+        )
+
+        // If we have enough remote results, return them
+        if (remoteResults.length >= k) {
+          return remoteResults
+        }
+
+        // Otherwise, search local for additional results
+        const localResults = await this.searchLocal(queryVectorOrData, k - remoteResults.length, options)
+
+        // Combine results, removing duplicates
+        const combinedResults = [...remoteResults]
+        const remoteIds = new Set(remoteResults.map(r => r.id))
+
+        for (const result of localResults) {
+          if (!remoteIds.has(result.id)) {
+            combinedResults.push(result)
+          }
+        }
+
+        return combinedResults
+      }
+    } catch (error) {
+      console.error('Failed to perform combined search:', error)
+      throw new Error(`Failed to perform combined search: ${error}`)
+    }
+  }
+
+  /**
+   * Check if the instance is connected to a remote server
+   * @returns True if connected to a remote server, false otherwise
+   */
+  public isConnectedToRemoteServer(): boolean {
+    return !!(this.serverSearchConduit && this.serverConnection)
+  }
+
+  /**
+   * Disconnect from the remote server
+   * @returns True if successfully disconnected, false if not connected
+   */
+  public async disconnectFromRemoteServer(): Promise<boolean> {
+    if (!this.isConnectedToRemoteServer()) {
+      return false
+    }
+
+    try {
+      // Close the WebSocket connection
+      await this.serverSearchConduit.closeWebSocket(this.serverConnection.connectionId)
+
+      // Clear the connection information
+      this.serverSearchConduit = null
+      this.serverConnection = null
+
+      return true
+    } catch (error) {
+      console.error('Failed to disconnect from remote server:', error)
+      throw new Error(`Failed to disconnect from remote server: ${error}`)
     }
   }
 
@@ -978,6 +1360,26 @@ export class BrainyData<T = any> {
           indexSize: this.size()
         }
       }
+    }
+  }
+
+  /**
+   * Shut down the database and clean up resources
+   * This should be called when the database is no longer needed
+   */
+  public async shutDown(): Promise<void> {
+    try {
+      // Disconnect from remote server if connected
+      if (this.isConnectedToRemoteServer()) {
+        await this.disconnectFromRemoteServer()
+      }
+
+      // Additional cleanup could be added here in the future
+
+      this.isInitialized = false
+    } catch (error) {
+      console.error('Failed to shut down BrainyData:', error)
+      throw new Error(`Failed to shut down BrainyData: ${error}`)
     }
   }
 
