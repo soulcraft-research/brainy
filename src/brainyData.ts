@@ -115,9 +115,9 @@ export class BrainyData<T = any> {
     this.embeddingFunction = config.embeddingFunction || defaultEmbeddingFunction
 
     // Set persistent storage request flag (support both new and deprecated options)
-    this.requestPersistentStorage = 
-      (config.storage?.requestPersistentStorage !== undefined) 
-        ? config.storage.requestPersistentStorage 
+    this.requestPersistentStorage =
+      (config.storage?.requestPersistentStorage !== undefined)
+        ? config.storage.requestPersistentStorage
         : (config.requestPersistentStorage || false)
 
     // Set read-only flag
@@ -153,9 +153,9 @@ export class BrainyData<T = any> {
         const storageOptions = {
           ...this.storageConfig,
           requestPersistentStorage: this.requestPersistentStorage
-        };
+        }
 
-        this.storage = await createStorage(storageOptions);
+        this.storage = await createStorage(storageOptions)
       }
 
       // Initialize storage
@@ -246,15 +246,15 @@ export class BrainyData<T = any> {
       if (metadata !== undefined) {
         // Validate noun type if metadata is for a GraphNoun
         if (metadata && typeof metadata === 'object' && 'noun' in metadata) {
-          const nounType = (metadata as any).noun;
+          const nounType = (metadata as any).noun
 
           // Check if the noun type is valid
-          const isValidNounType = Object.values(NounType).includes(nounType);
+          const isValidNounType = Object.values(NounType).includes(nounType)
 
           if (!isValidNounType) {
             console.warn(`Invalid noun type: ${nounType}. Falling back to GraphNoun.`);
             // Set a default noun type
-            (metadata as any).noun = NounType.Concept;
+            (metadata as any).noun = NounType.Concept
           }
         }
 
@@ -439,23 +439,23 @@ export class BrainyData<T = any> {
     } = {}
   ): Promise<SearchResult<T>[]> {
     // If input is a string and not a vector, automatically vectorize it
-    let queryToUse = queryVectorOrData;
+    let queryToUse = queryVectorOrData
     if (typeof queryVectorOrData === 'string' && !options.forceEmbed) {
-      queryToUse = await this.embed(queryVectorOrData);
-      options.forceEmbed = false; // Already embedded, don't force again
+      queryToUse = await this.embed(queryVectorOrData)
+      options.forceEmbed = false // Already embedded, don't force again
     }
 
     // If noun types are specified, use searchByNounTypes
-    let searchResults;
+    let searchResults
     if (options.nounTypes && options.nounTypes.length > 0) {
       searchResults = await this.searchByNounTypes(queryToUse, k, options.nounTypes, {
         forceEmbed: options.forceEmbed
-      });
+      })
     } else {
       // Otherwise, search all GraphNouns
       searchResults = await this.searchByNounTypes(queryToUse, k, null, {
         forceEmbed: options.forceEmbed
-      });
+      })
     }
 
     // If includeVerbs is true, retrieve associated GraphVerbs for each result
@@ -463,28 +463,28 @@ export class BrainyData<T = any> {
       for (const result of searchResults) {
         try {
           // Get outgoing verbs for this noun
-          const outgoingVerbs = await this.storage.getVerbsBySource(result.id);
+          const outgoingVerbs = await this.storage.getVerbsBySource(result.id)
 
           // Get incoming verbs for this noun
-          const incomingVerbs = await this.storage.getVerbsByTarget(result.id);
+          const incomingVerbs = await this.storage.getVerbsByTarget(result.id)
 
           // Combine all verbs
-          const allVerbs = [...outgoingVerbs, ...incomingVerbs];
+          const allVerbs = [...outgoingVerbs, ...incomingVerbs]
 
           // Add verbs to the result metadata
           if (!result.metadata) {
-            result.metadata = {} as T;
+            result.metadata = {} as T
           }
 
           // Add the verbs to the metadata
-          (result.metadata as any).associatedVerbs = allVerbs;
+          (result.metadata as any).associatedVerbs = allVerbs
         } catch (error) {
-          console.warn(`Failed to retrieve verbs for noun ${result.id}:`, error);
+          console.warn(`Failed to retrieve verbs for noun ${result.id}:`, error)
         }
       }
     }
 
-    return searchResults;
+    return searchResults
   }
 
   /**
@@ -565,15 +565,15 @@ export class BrainyData<T = any> {
 
       // Validate noun type if metadata is for a GraphNoun
       if (metadata && typeof metadata === 'object' && 'noun' in metadata) {
-        const nounType = (metadata as any).noun;
+        const nounType = (metadata as any).noun
 
         // Check if the noun type is valid
-        const isValidNounType = Object.values(NounType).includes(nounType);
+        const isValidNounType = Object.values(NounType).includes(nounType)
 
         if (!isValidNounType) {
           console.warn(`Invalid noun type: ${nounType}. Falling back to GraphNoun.`);
           // Set a default noun type
-          (metadata as any).noun = NounType.Concept;
+          (metadata as any).noun = NounType.Concept
         }
       }
 
@@ -629,19 +629,19 @@ export class BrainyData<T = any> {
       if (options.metadata && (!vector || options.forceEmbed)) {
         try {
           // Extract a string representation from metadata for embedding
-          let textToEmbed: string;
+          let textToEmbed: string
           if (typeof options.metadata === 'string') {
-            textToEmbed = options.metadata;
+            textToEmbed = options.metadata
           } else if (options.metadata.description && typeof options.metadata.description === 'string') {
-            textToEmbed = options.metadata.description;
+            textToEmbed = options.metadata.description
           } else {
             // Convert to JSON string as fallback
-            textToEmbed = JSON.stringify(options.metadata);
+            textToEmbed = JSON.stringify(options.metadata)
           }
 
           // Ensure textToEmbed is a string
           if (typeof textToEmbed !== 'string') {
-            textToEmbed = String(textToEmbed);
+            textToEmbed = String(textToEmbed)
           }
 
           verbVector = await this.embeddingFunction(textToEmbed)
@@ -656,15 +656,15 @@ export class BrainyData<T = any> {
       }
 
       // Validate verb type if provided
-      let verbType = options.type;
+      let verbType = options.type
       if (verbType) {
         // Check if the verb type is valid
-        const isValidVerbType = Object.values(VerbType).includes(verbType as any);
+        const isValidVerbType = Object.values(VerbType).includes(verbType as any)
 
         if (!isValidVerbType) {
-          console.warn(`Invalid verb type: ${verbType}. Using RelatedTo as default.`);
+          console.warn(`Invalid verb type: ${verbType}. Using RelatedTo as default.`)
           // Set a default verb type
-          verbType = VerbType.RelatedTo;
+          verbType = VerbType.RelatedTo
         }
       }
 
@@ -873,8 +873,8 @@ export class BrainyData<T = any> {
    * @returns Array of search results
    */
   public async searchText(
-    query: string, 
-    k: number = 10, 
+    query: string,
+    k: number = 10,
     options: {
       nounTypes?: string[],
       includeVerbs?: boolean
@@ -997,44 +997,44 @@ export class BrainyData<T = any> {
     nounIds: string[];
     verbIds: string[];
   }> {
-    await this.ensureInitialized();
+    await this.ensureInitialized()
 
     // Check if database is in read-only mode
-    this.checkReadOnly();
+    this.checkReadOnly()
 
     // Set default options
-    const nounCount = options.nounCount || 10;
-    const verbCount = options.verbCount || 20;
-    const nounTypes = options.nounTypes || Object.values(NounType);
-    const verbTypes = options.verbTypes || Object.values(VerbType);
-    const clearExisting = options.clearExisting || false;
+    const nounCount = options.nounCount || 10
+    const verbCount = options.verbCount || 20
+    const nounTypes = options.nounTypes || Object.values(NounType)
+    const verbTypes = options.verbTypes || Object.values(VerbType)
+    const clearExisting = options.clearExisting || false
 
     // Clear existing data if requested
     if (clearExisting) {
-      await this.clear();
+      await this.clear()
     }
 
     try {
       // Generate random nouns
-      const nounIds: string[] = [];
+      const nounIds: string[] = []
       const nounDescriptions: Record<string, string> = {
-        [NounType.Person]: "A person with unique characteristics",
-        [NounType.Place]: "A location with specific attributes",
-        [NounType.Thing]: "An object with distinct properties",
-        [NounType.Event]: "An occurrence with temporal aspects",
-        [NounType.Concept]: "An abstract idea or notion",
-        [NounType.Content]: "A piece of content or information",
-        [NounType.Group]: "A collection of related entities",
-        [NounType.List]: "An ordered sequence of items",
-        [NounType.Category]: "A classification or grouping"
-      };
+        [NounType.Person]: 'A person with unique characteristics',
+        [NounType.Place]: 'A location with specific attributes',
+        [NounType.Thing]: 'An object with distinct properties',
+        [NounType.Event]: 'An occurrence with temporal aspects',
+        [NounType.Concept]: 'An abstract idea or notion',
+        [NounType.Content]: 'A piece of content or information',
+        [NounType.Group]: 'A collection of related entities',
+        [NounType.List]: 'An ordered sequence of items',
+        [NounType.Category]: 'A classification or grouping'
+      }
 
       for (let i = 0; i < nounCount; i++) {
         // Select a random noun type
-        const nounType = nounTypes[Math.floor(Math.random() * nounTypes.length)];
+        const nounType = nounTypes[Math.floor(Math.random() * nounTypes.length)]
 
         // Generate a random label
-        const label = `Random ${nounType} ${i + 1}`;
+        const label = `Random ${nounType} ${i + 1}`
 
         // Create metadata
         const metadata = {
@@ -1046,45 +1046,45 @@ export class BrainyData<T = any> {
             priority: Math.floor(Math.random() * 5) + 1,
             tags: [`tag-${i % 5}`, `category-${i % 3}`]
           }
-        };
+        }
 
         // Add the noun
-        const id = await this.add(metadata.description, metadata as T);
-        nounIds.push(id);
+        const id = await this.add(metadata.description, metadata as T)
+        nounIds.push(id)
       }
 
       // Generate random verbs between nouns
-      const verbIds: string[] = [];
+      const verbIds: string[] = []
       const verbDescriptions: Record<string, string> = {
-        [VerbType.AttributedTo]: "Attribution relationship",
-        [VerbType.Controls]: "Control relationship",
-        [VerbType.Created]: "Creation relationship",
-        [VerbType.Earned]: "Achievement relationship",
-        [VerbType.Owns]: "Ownership relationship",
-        [VerbType.MemberOf]: "Membership relationship",
-        [VerbType.RelatedTo]: "General relationship",
-        [VerbType.WorksWith]: "Collaboration relationship",
-        [VerbType.FriendOf]: "Friendship relationship",
-        [VerbType.ReportsTo]: "Reporting relationship",
-        [VerbType.Supervises]: "Supervision relationship",
-        [VerbType.Mentors]: "Mentorship relationship"
-      };
+        [VerbType.AttributedTo]: 'Attribution relationship',
+        [VerbType.Controls]: 'Control relationship',
+        [VerbType.Created]: 'Creation relationship',
+        [VerbType.Earned]: 'Achievement relationship',
+        [VerbType.Owns]: 'Ownership relationship',
+        [VerbType.MemberOf]: 'Membership relationship',
+        [VerbType.RelatedTo]: 'General relationship',
+        [VerbType.WorksWith]: 'Collaboration relationship',
+        [VerbType.FriendOf]: 'Friendship relationship',
+        [VerbType.ReportsTo]: 'Reporting relationship',
+        [VerbType.Supervises]: 'Supervision relationship',
+        [VerbType.Mentors]: 'Mentorship relationship'
+      }
 
       for (let i = 0; i < verbCount; i++) {
         // Select random source and target nouns
-        const sourceIndex = Math.floor(Math.random() * nounIds.length);
-        let targetIndex = Math.floor(Math.random() * nounIds.length);
+        const sourceIndex = Math.floor(Math.random() * nounIds.length)
+        let targetIndex = Math.floor(Math.random() * nounIds.length)
 
         // Ensure source and target are different
         while (targetIndex === sourceIndex && nounIds.length > 1) {
-          targetIndex = Math.floor(Math.random() * nounIds.length);
+          targetIndex = Math.floor(Math.random() * nounIds.length)
         }
 
-        const sourceId = nounIds[sourceIndex];
-        const targetId = nounIds[targetIndex];
+        const sourceId = nounIds[sourceIndex]
+        const targetId = nounIds[targetIndex]
 
         // Select a random verb type
-        const verbType = verbTypes[Math.floor(Math.random() * verbTypes.length)];
+        const verbType = verbTypes[Math.floor(Math.random() * verbTypes.length)]
 
         // Create metadata
         const metadata = {
@@ -1097,25 +1097,25 @@ export class BrainyData<T = any> {
             duration: Math.floor(Math.random() * 365) + 1,
             tags: [`relation-${i % 5}`, `strength-${i % 3}`]
           }
-        };
+        }
 
         // Add the verb
         const id = await this.addVerb(sourceId, targetId, undefined, {
           type: verbType,
           weight: metadata.weight,
           metadata
-        });
+        })
 
-        verbIds.push(id);
+        verbIds.push(id)
       }
 
       return {
         nounIds,
         verbIds
-      };
+      }
     } catch (error) {
-      console.error('Failed to generate random graph:', error);
-      throw new Error(`Failed to generate random graph: ${error}`);
+      console.error('Failed to generate random graph:', error)
+      throw new Error(`Failed to generate random graph: ${error}`)
     }
   }
 }
