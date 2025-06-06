@@ -1,0 +1,85 @@
+{
+  "name": "@soulcraft/brainy-cloud",
+  "version": "0.1.0",
+  "description": "Cloud deployment wrapper for Brainy vector graph database",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "nodemon --exec node --experimental-specifier-resolution=node --loader ts-node/esm src/index.ts",
+    "deploy:aws": "node scripts/deploy-aws.js",
+    "deploy:gcp": "node scripts/deploy-gcp.js",
+    "deploy:cloudflare": "node scripts/deploy-cloudflare.js"
+  },
+  "keywords": [
+    "brainy",
+    "vector-database",
+    "cloud",
+    "aws",
+    "google-cloud",
+    "cloudflare"
+  ],
+  "author": "David Snelling (david@soulcraft.com)",
+  "license": "MIT",
+  "dependencies": {
+    "@soulcraft/brainy": "^0.7.5",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "uuid": "^9.0.1",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^20.10.5",
+    "@types/uuid": "^9.0.7",
+    "@types/ws": "^8.5.10",
+    "nodemon": "^3.0.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=23.11.0"
+  },
+  "prettier": {
+    "arrowParens": "always",
+    "bracketSameLine": true,
+    "bracketSpacing": true,
+    "htmlWhitespaceSensitivity": "css",
+    "printWidth": 80,
+    "proseWrap": "preserve",
+    "semi": false,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "none",
+    "useTabs": false
+  },
+  "eslintConfig": {
+    "root": true,
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/recommended"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+      "@typescript-eslint"
+    ],
+    "rules": {
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          "args": "after-used",
+          "argsIgnorePattern": "^_"
+        }
+      ],
+      "semi": ["error", "never"],
+      "@typescript-eslint/semi": ["error", "never"]
+    }
+  }
+}

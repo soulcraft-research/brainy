@@ -110,7 +110,9 @@
           "args": "after-used",
           "argsIgnorePattern": "^_"
         }
-      ]
+      ],
+      "semi": ["error", "never"],
+      "@typescript-eslint/semi": ["error", "never"]
     }
   }
 }

@@ -559,6 +559,25 @@ Works in all modern browsers:
 
 For browsers without OPFS support, falls back to in-memory storage.
 
+## ☁️ Cloud Deployment
+
+Brainy can be deployed as a standalone web service on various cloud platforms using the included cloud wrapper:
+
+- **AWS Lambda and API Gateway**: Deploy as a serverless function with API Gateway
+- **Google Cloud Run**: Deploy as a containerized service
+- **Cloudflare Workers**: Deploy as a serverless function on the edge
+
+The cloud wrapper provides both RESTful and WebSocket APIs for all Brainy operations, enabling both request-response and real-time communication patterns. It supports multiple storage backends and can be configured via environment variables.
+
+Key features of the cloud wrapper:
+- RESTful API for standard CRUD operations
+- WebSocket API for real-time updates and subscriptions
+- Support for multiple storage backends (Memory, FileSystem, S3)
+- Configurable via environment variables
+- Deployment scripts for AWS, Google Cloud, and Cloudflare
+
+To get started with cloud deployment, see the [Cloud Wrapper README](cloud-wrapper/README.md).
+
 ## 📚 Examples
 
 The repository includes several examples:
@@ -699,6 +718,67 @@ if (connectionResult[0] && (await connectionResult[0]).success) {
 ## 📋 Requirements
 
 - Node.js >= 23.11.0
+
+## 🤝 Contributing
+
+### Code Style Guidelines
+
+Brainy follows a specific code style to maintain consistency throughout the codebase:
+
+1. **No Semicolons**: All code in the project should avoid using semicolons wherever possible. This applies to:
+   - Source code files (.ts, .js)
+   - Generated code
+   - Code examples in documentation
+   - Templates and snippets
+
+2. **Formatting**: The project uses Prettier for code formatting with the following settings:
+   - No semicolons (`"semi": false`)
+   - Single quotes for strings (`"singleQuote": true`)
+   - 2-space indentation (`"tabWidth": 2`)
+   - Always use parentheses around arrow function parameters (`"arrowParens": "always"`)
+   - Place the closing bracket of JSX elements on the same line (`"bracketSameLine": true`)
+   - Add spaces between brackets and object literals (`"bracketSpacing": true`)
+   - Line width of 80 characters (`"printWidth": 80`)
+   - No trailing commas (`"trailingComma": "none"`)
+   - Use spaces instead of tabs (`"useTabs": false`)
+
+3. **Linting**: ESLint is configured with the following rules:
+   - No semicolons:
+     ```json
+     "semi": ["error", "never"],
+     "@typescript-eslint/semi": ["error", "never"]
+     ```
+   - Unused variables handling:
+     ```json
+     "no-unused-vars": "off",
+     "@typescript-eslint/no-unused-vars": ["warn", {
+       "args": "after-used",
+       "argsIgnorePattern": "^_"
+     }]
+     ```
+   - Extends recommended ESLint and TypeScript ESLint configurations
+
+4. **TypeScript Configuration**:
+   - Strict type checking enabled (`"strict": true`)
+   - Consistent casing in file names enforced (`"forceConsistentCasingInFileNames": true`)
+   - ES2020 target with Node.js module system
+   - Source maps generated for debugging
+
+5. **Commit Messages**:
+   - Use the imperative mood ("Add feature" not "Added feature")
+   - Keep the first line concise (under 50 characters)
+   - Reference issues and pull requests where appropriate
+   - Provide detailed explanations in the commit body when necessary
+
+When contributing to the project, please ensure your code follows these guidelines. The project's CI/CD pipeline will automatically check for style violations.
+
+### Development Workflow
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests with `npm test`
+5. Submit a pull request
 
 ## 📄 License
 
