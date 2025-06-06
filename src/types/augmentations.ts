@@ -140,7 +140,7 @@ export namespace BrainyAugmentations {
     establishConnection(
       targetSystemId: string,
       config: Record<string, unknown>
-    ): AugmentationResponse<WebSocketConnection>
+    ): Promise<AugmentationResponse<WebSocketConnection>>
 
     /**
      * Reads structured data directly from Brainy's knowledge graph.
@@ -150,7 +150,7 @@ export namespace BrainyAugmentations {
     readData(
       query: Record<string, unknown>,
       options?: Record<string, unknown>
-    ): AugmentationResponse<unknown>
+    ): Promise<AugmentationResponse<unknown>>
 
     /**
      * Writes or updates structured data directly into Brainy's knowledge graph.
@@ -160,7 +160,7 @@ export namespace BrainyAugmentations {
     writeData(
       data: Record<string, unknown>,
       options?: Record<string, unknown>
-    ): AugmentationResponse<unknown>
+    ): Promise<AugmentationResponse<unknown>>
 
     /**
      * Monitors a specific data stream or event within Brainy for external systems.
