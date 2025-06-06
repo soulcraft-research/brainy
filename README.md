@@ -2,7 +2,7 @@
 
 # 🧠 Brainy
 
-[![Version](https://img.shields.io/badge/version-0.7.4-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
+[![Version](https://img.shields.io/badge/version-0.7.5-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D23.11.0-brightgreen.svg)](https://nodejs.org/)
 
@@ -58,33 +58,33 @@ npm install @soulcraft/brainy --legacy-peer-deps
 ## 🏁 Quick Start
 
 ```typescript
-import {BrainyData, NounType, VerbType} from '@soulcraft/brainy';
+import {BrainyData, NounType, VerbType} from '@soulcraft/brainy'
 
 // Create and initialize the database
-const db = new BrainyData();
-await db.init();
+const db = new BrainyData()
+await db.init()
 
 // Add data (automatically converted to vectors)
 const catId = await db.add("Cats are independent pets", {
     noun: NounType.Thing,
     category: 'animal'
-});
+})
 
 const dogId = await db.add("Dogs are loyal companions", {
     noun: NounType.Thing,
     category: 'animal'
-});
+})
 
 // Search for similar items
-const results = await db.searchText("feline pets", 2);
-console.log(results);
+const results = await db.searchText("feline pets", 2)
+console.log(results)
 // Returns items similar to "feline pets" with similarity scores
 
 // Add a relationship between items
 await db.addVerb(catId, dogId, {
     verb: VerbType.RelatedTo,
     description: 'Both are common household pets'
-});
+})
 ```
 
 ## 🧩 How It Works (The Magic Behind the Curtain)
@@ -175,8 +175,11 @@ Brainy uses a powerful augmentation system to extend functionality. Augmentation
 
 4. **CONDUIT** 🔌
     - Establishes high-bandwidth channels for structured data exchange
-    - Connects with external systems
-    - Example: Integrating with third-party APIs
+    - Connects with external systems and syncs between Brainy instances
+    - Examples: 
+      - Integrating with third-party APIs
+      - Syncing Brainy instances between browsers using WebSockets
+      - Peer-to-peer syncing between browsers using WebRTC
 
 5. **ACTIVATION** ⚡
     - Initiates actions, responses, or data manipulations
@@ -228,13 +231,13 @@ The pipeline runs automatically when you:
 
 ```typescript
 // Add data (runs embedding → indexing → storage)
-const id = await db.add("Your text data here", {metadata});
+const id = await db.add("Your text data here", {metadata})
 
 // Search (runs embedding → similarity search)
-const results = await db.searchText("Your query here", 5);
+const results = await db.searchText("Your query here", 5)
 
 // Connect entities (runs graph construction → storage)
-await db.addVerb(sourceId, targetId, {verb: VerbType.RelatedTo});
+await db.addVerb(sourceId, targetId, {verb: VerbType.RelatedTo})
 ```
 
 Using the CLI:
@@ -259,13 +262,13 @@ Brainy's pipeline is designed for extensibility at every stage:
    // Create your own embedding function
    const myEmbedder = async (text) => {
      // Your custom embedding logic here
-     return [0.1, 0.2, 0.3, ...]; // Return a vector
-   };
+     return [0.1, 0.2, 0.3, ...] // Return a vector
+   }
 
    // Use it in Brainy
    const db = new BrainyData({
      embeddingFunction: myEmbedder
-   });
+   })
    ```
 
 2. **Custom Distance Functions** 📏
@@ -273,13 +276,13 @@ Brainy's pipeline is designed for extensibility at every stage:
    // Define your own distance function
    const myDistance = (a, b) => {
      // Your custom distance calculation
-     return Math.sqrt(a.reduce((sum, val, i) => sum + Math.pow(val - b[i], 2), 0));
-   };
+     return Math.sqrt(a.reduce((sum, val, i) => sum + Math.pow(val - b[i], 2), 0))
+   }
 
    // Use it in Brainy
    const db = new BrainyData({
      distanceFunction: myDistance
-   });
+   })
    ```
 
 3. **Custom Storage Adapters** 📦
@@ -292,7 +295,7 @@ Brainy's pipeline is designed for extensibility at every stage:
    // Use it in Brainy
    const db = new BrainyData({
      storageAdapter: new MyStorage()
-   });
+   })
    ```
 
 4. **Augmentations System** 🧠
@@ -302,10 +305,10 @@ Brainy's pipeline is designed for extensibility at every stage:
      type: 'memory',
      name: 'my-custom-storage',
      // Implementation details
-   };
+   }
 
    // Register with Brainy
-   db.registerAugmentation(myAugmentation);
+   db.registerAugmentation(myAugmentation)
    ```
 
 ## 📝 Data Model
@@ -402,13 +405,13 @@ npm run cli generate-random-graph --noun-count 20 --verb-count 40
 
 ```typescript
 // Initialize the database
-await db.init();
+await db.init()
 
 // Clear all data
-await db.clear();
+await db.clear()
 
 // Get database status
-const status = await db.status();
+const status = await db.status()
 ```
 
 ### Working with Nouns (Entities)
@@ -418,26 +421,26 @@ const status = await db.status();
 const id = await db.add(textOrVector, {
     noun: NounType.Thing,
     // other metadata...
-});
+})
 
 // Retrieve a noun
-const noun = await db.get(id);
+const noun = await db.get(id)
 
 // Update noun metadata
 await db.updateMetadata(id, {
     noun: NounType.Thing,
     // updated metadata...
-});
+})
 
 // Delete a noun
-await db.delete(id);
+await db.delete(id)
 
 // Search for similar nouns
-const results = await db.search(vectorOrText, numResults);
-const textResults = await db.searchText("query text", numResults);
+const results = await db.search(vectorOrText, numResults)
+const textResults = await db.searchText("query text", numResults)
 
 // Search by noun type
-const thingNouns = await db.searchByNounTypes([NounType.Thing], numResults);
+const thingNouns = await db.searchByNounTypes([NounType.Thing], numResults)
 ```
 
 ### Working with Verbs (Relationships)
@@ -447,25 +450,25 @@ const thingNouns = await db.searchByNounTypes([NounType.Thing], numResults);
 await db.addVerb(sourceId, targetId, {
     verb: VerbType.RelatedTo,
     // other metadata...
-});
+})
 
 // Get all relationships
-const verbs = await db.getAllVerbs();
+const verbs = await db.getAllVerbs()
 
 // Get relationships by source noun
-const outgoingVerbs = await db.getVerbsBySource(sourceId);
+const outgoingVerbs = await db.getVerbsBySource(sourceId)
 
 // Get relationships by target noun
-const incomingVerbs = await db.getVerbsByTarget(targetId);
+const incomingVerbs = await db.getVerbsByTarget(targetId)
 
 // Get relationships by type
-const containsVerbs = await db.getVerbsByType(VerbType.Contains);
+const containsVerbs = await db.getVerbsByType(VerbType.Contains)
 
 // Get a specific relationship
-const verb = await db.getVerb(verbId);
+const verb = await db.getVerb(verbId)
 
 // Delete a relationship
-await db.deleteVerb(verbId);
+await db.deleteVerb(verbId)
 ```
 
 ## ⚙️ Advanced Configuration
@@ -473,22 +476,22 @@ await db.deleteVerb(verbId);
 ### Custom Embedding
 
 ```typescript
-import {BrainyData, createSimpleEmbeddingFunction} from '@soulcraft/brainy';
+import {BrainyData, createSimpleEmbeddingFunction} from '@soulcraft/brainy'
 
 // Use a custom embedding function (faster but less accurate)
 const db = new BrainyData({
     embeddingFunction: createSimpleEmbeddingFunction()
-});
-await db.init();
+})
+await db.init()
 
 // Directly embed text to vectors
-const vector = await db.embed("Some text to convert to a vector");
+const vector = await db.embed("Some text to convert to a vector")
 ```
 
 ### Performance Tuning
 
 ```typescript
-import {BrainyData, euclideanDistance} from '@soulcraft/brainy';
+import {BrainyData, euclideanDistance} from '@soulcraft/brainy'
 
 // Configure with custom options
 const db = new BrainyData({
@@ -519,7 +522,7 @@ const db = new BrainyData({
         //   region: 'us-east-1'
         // }
     }
-});
+})
 ```
 
 ## 🧪 Distance Functions
@@ -564,6 +567,134 @@ The repository includes several examples:
 - Basic usage: `examples/basicUsage.js`
 - Custom storage: `examples/customStorage.js`
 - Memory augmentations: `examples/memoryAugmentationExample.js`
+- Conduit augmentations: `examples/conduitAugmentationExample.js`
+
+### Syncing Brainy Instances
+
+You can use the conduit augmentations to sync Brainy instances:
+
+- **WebSocket Conduit**: For syncing between browsers and servers, or between servers. WebSockets cannot be used for direct browser-to-browser communication without a server in the middle.
+- **WebRTC Conduit**: For direct peer-to-peer syncing between browsers. This is the recommended approach for browser-to-browser communication.
+
+#### WebSocket Sync Example
+
+```typescript
+import { 
+  BrainyData, 
+  augmentationPipeline, 
+  createConduitAugmentation 
+} from '@soulcraft/brainy'
+
+// Create and initialize the database
+const db = new BrainyData()
+await db.init()
+
+// Create a WebSocket conduit augmentation
+const wsConduit = await createConduitAugmentation('websocket', 'my-websocket-sync')
+
+// Register the augmentation with the pipeline
+augmentationPipeline.register(wsConduit)
+
+// Connect to another Brainy instance (server or browser)
+const connectionResult = await augmentationPipeline.executeConduitPipeline(
+  'establishConnection',
+  ['wss://your-websocket-server.com/brainy-sync', { protocols: 'brainy-sync' }]
+)
+
+if (connectionResult[0] && (await connectionResult[0]).success) {
+  const connection = (await connectionResult[0]).data
+
+  // Read data from the remote instance
+  const readResult = await augmentationPipeline.executeConduitPipeline(
+    'readData',
+    [{ connectionId: connection.connectionId, query: { type: 'getAllNouns' } }]
+  )
+
+  // Process and add the received data to the local instance
+  if (readResult[0] && (await readResult[0]).success) {
+    const remoteNouns = (await readResult[0]).data
+    for (const noun of remoteNouns) {
+      await db.add(noun.vector, noun.metadata)
+    }
+  }
+
+  // Set up real-time sync by monitoring the stream
+  await wsConduit.monitorStream(connection.connectionId, async (data) => {
+    // Handle incoming data (e.g., new nouns, verbs, updates)
+    if (data.type === 'newNoun') {
+      await db.add(data.vector, data.metadata)
+    } else if (data.type === 'newVerb') {
+      await db.addVerb(data.sourceId, data.targetId, data.vector, data.options)
+    }
+  })
+}
+```
+
+#### WebRTC Peer-to-Peer Sync Example
+
+```typescript
+import { 
+  BrainyData, 
+  augmentationPipeline, 
+  createConduitAugmentation 
+} from '@soulcraft/brainy'
+
+// Create and initialize the database
+const db = new BrainyData()
+await db.init()
+
+// Create a WebRTC conduit augmentation
+const webrtcConduit = await createConduitAugmentation('webrtc', 'my-webrtc-sync')
+
+// Register the augmentation with the pipeline
+augmentationPipeline.register(webrtcConduit)
+
+// Connect to a peer using a signaling server
+const connectionResult = await augmentationPipeline.executeConduitPipeline(
+  'establishConnection',
+  [
+    'peer-id-to-connect-to', 
+    { 
+      signalServerUrl: 'wss://your-signal-server.com',
+      localPeerId: 'my-peer-id',
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    }
+  ]
+)
+
+if (connectionResult[0] && (await connectionResult[0]).success) {
+  const connection = (await connectionResult[0]).data
+
+  // Set up real-time sync by monitoring the stream
+  await webrtcConduit.monitorStream(connection.connectionId, async (data) => {
+    // Handle incoming data (e.g., new nouns, verbs, updates)
+    if (data.type === 'newNoun') {
+      await db.add(data.vector, data.metadata)
+    } else if (data.type === 'newVerb') {
+      await db.addVerb(data.sourceId, data.targetId, data.vector, data.options)
+    }
+  })
+
+  // When adding new data locally, also send to the peer
+  const nounId = await db.add("New data to sync", { noun: "Thing" })
+
+  // Send the new noun to the peer
+  await augmentationPipeline.executeConduitPipeline(
+    'writeData',
+    [
+      { 
+        connectionId: connection.connectionId, 
+        data: { 
+          type: 'newNoun',
+          id: nounId,
+          vector: (await db.get(nounId)).vector,
+          metadata: (await db.get(nounId)).metadata
+        } 
+      }
+    ]
+  )
+}
+```
 
 ## 📋 Requirements
 

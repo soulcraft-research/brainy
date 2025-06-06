@@ -131,12 +131,20 @@ import {
   OPFSStorageAugmentation,
   createMemoryAugmentation
 } from './augmentations/memoryAugmentations.js'
+import {
+  WebSocketConduitAugmentation,
+  WebRTCConduitAugmentation,
+  createConduitAugmentation
+} from './augmentations/conduitAugmentations.js'
 
 export {
   MemoryStorageAugmentation,
   FileSystemStorageAugmentation,
   OPFSStorageAugmentation,
-  createMemoryAugmentation
+  createMemoryAugmentation,
+  WebSocketConduitAugmentation,
+  WebRTCConduitAugmentation,
+  createConduitAugmentation
 }
 
 
