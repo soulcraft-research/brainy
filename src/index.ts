@@ -141,6 +141,11 @@ import {
   ServerSearchActivationAugmentation,
   createServerSearchAugmentations
 } from './augmentations/serverSearchAugmentations.js'
+import {
+  LLMCognitionAugmentation,
+  LLMActivationAugmentation,
+  createLLMAugmentations
+} from './augmentations/llmAugmentations.js'
 
 export {
   MemoryStorageAugmentation,
@@ -152,7 +157,10 @@ export {
   createConduitAugmentation,
   ServerSearchConduitAugmentation,
   ServerSearchActivationAugmentation,
-  createServerSearchAugmentations
+  createServerSearchAugmentations,
+  LLMCognitionAugmentation,
+  LLMActivationAugmentation,
+  createLLMAugmentations
 }
 
 

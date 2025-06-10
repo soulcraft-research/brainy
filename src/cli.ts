@@ -15,6 +15,7 @@ import { VERSION } from './utils/version.js'
 import { sequentialPipeline } from './sequentialPipeline.js'
 import { augmentationPipeline, ExecutionMode } from './augmentationPipeline.js'
 import { AugmentationType } from './types/augmentations.js'
+import { createLLMAugmentations } from './augmentations/llmAugmentations.js'
 
 // Get the directory of the current module
 const __filename = fileURLToPath(import.meta.url)
@@ -605,6 +606,20 @@ Examples:
   $ brainy generate-random-graph --noun-types Person,Thing --verb-types RelatedTo,Owns
   $ brainy visualize --type Thing --limit 10
   $ brainy visualize --root id1 --depth 3
+
+  # Augmentation commands
+  $ brainy augment list
+  $ brainy augment info cognition
+  $ brainy augment test-pipeline "Test data" --data-type text --mode sequential
+  $ brainy augment stream-test --count 3 --interval 500
+
+  # LLM commands
+  $ brainy llm create --name my-model --type simple
+  $ brainy llm train model-id --epochs 20 --batch-size 64
+  $ brainy llm test model-id --generate-samples
+  $ brainy llm export model-id --format json --include-metadata
+  $ brainy llm deploy model-id --target browser
+  $ brainy llm generate model-id "Once upon a time" --temperature 0.8
 `)
 
 // Setup autocomplete
@@ -633,10 +648,8 @@ completion.tree({
     'completion-setup',
     'init',
     'help',
-    'list-augmentations',
-    'augmentation-info',
-    'test-pipeline',
-    'stream-test'
+    'augment',
+    'llm'
   ],
   // Command-specific completions
   add: {
@@ -679,40 +692,116 @@ completion.tree({
       `--verb-types ${getVerbTypes().join(',')}`
     ]
   },
-  'list-augmentations': {},
-  'augmentation-info': {
+  augment: {
     _: () => [
-      'sense',
-      'memory',
-      'cognition',
-      'conduit',
-      'activation',
-      'perception',
-      'dialog',
-      'websocket'
-    ]
-  },
-  'test-pipeline': {
-    _: () => [
-      '--data-type text',
-      '--mode sequential',
-      '--mode parallel',
-      '--mode threaded',
-      '--stop-on-error',
-      '--verbose'
-    ]
-  },
-  'stream-test': {
-    _: () => [
-      '--count 5',
-      '--interval 1000',
-      '--data-type text',
-      '--verbose'
-    ]
+      'list',
+      'info',
+      'test-pipeline',
+      'stream-test'
+    ],
+    info: {
+      _: () => [
+        'sense',
+        'memory',
+        'cognition',
+        'conduit',
+        'activation',
+        'perception',
+        'dialog',
+        'websocket'
+      ]
+    },
+    'test-pipeline': {
+      _: () => [
+        '--data-type text',
+        '--mode sequential',
+        '--mode parallel',
+        '--mode threaded',
+        '--stop-on-error',
+        '--verbose'
+      ]
+    },
+    'stream-test': {
+      _: () => [
+        '--count 5',
+        '--interval 1000',
+        '--data-type text',
+        '--verbose'
+      ]
+    }
   },
   'completion-setup': {},
   init: {},
-  help: {}
+  help: {},
+  llm: {
+    _: () => [
+      'create',
+      'train',
+      'test',
+      'export',
+      'deploy',
+      'generate'
+    ],
+    create: {
+      _: () => [
+        '--name my-model',
+        '--description "My custom LLM model"',
+        '--type simple',
+        '--type transformer',
+        '--vocab-size 5000',
+        '--embedding-dim 64',
+        '--hidden-dim 128',
+        '--layers 2',
+        '--heads 4',
+        '--dropout 0.1',
+        '--max-seq-length 100'
+      ]
+    },
+    train: {
+      _: () => [
+        '--max-samples 1000',
+        '--validation-split 0.2',
+        '--epochs 10',
+        '--batch-size 32',
+        '--patience 3'
+      ]
+    },
+    test: {
+      _: () => [
+        '--test-size 100',
+        '--generate-samples',
+        '--sample-count 5'
+      ]
+    },
+    export: {
+      _: () => [
+        '--format json',
+        '--format tfjs',
+        '--output ./models',
+        '--include-metadata',
+        '--include-vocab'
+      ]
+    },
+    deploy: {
+      _: () => [
+        '--target browser',
+        '--target node',
+        '--target cloud',
+        '--provider aws',
+        '--provider gcp',
+        '--provider azure',
+        '--endpoint https://example.com/api',
+        '--region us-east-1'
+      ]
+    },
+    generate: {
+      _: () => [
+        '--temperature 0.7',
+        '--top-k 5',
+        '--max-length 100'
+      ]
+    }
+  }
 })
 
 // Initialize autocomplete
@@ -726,8 +815,11 @@ if (process.argv.includes('--completion-setup')) {
 }
 
 // Pipeline and Augmentation Commands
-program
-  .command('list-augmentations')
+const augmentCommand = new Command('augment')
+  .description('Augmentation pipeline operations')
+
+augmentCommand
+  .command('list')
   .description('List all available augmentation types and registered augmentations')
   .action(async () => {
     try {
@@ -773,7 +865,7 @@ program
     }
   })
 
-program
+augmentCommand
   .command('test-pipeline')
   .description('Test the sequential pipeline with sample data')
   .argument('[text]', 'Sample text to process through the pipeline', 'This is a test of the Brainy pipeline')
@@ -855,7 +947,7 @@ program
     }
   })
 
-program
+augmentCommand
   .command('stream-test')
   .description('Test streaming data through the pipeline (simulated)')
   .option('-c, --count <number>', 'Number of data items to stream', '5')
@@ -949,8 +1041,8 @@ program
     }
   })
 
-program
-  .command('augmentation-info')
+augmentCommand
+  .command('info')
   .description('Get detailed information about a specific augmentation type')
   .argument('<type>', 'Augmentation type (sense, memory, cognition, conduit, activation, perception, dialog, websocket)')
   .action(async (typeArg) => {
@@ -1045,6 +1137,9 @@ program
     }
   })
 
+// Add the augment command to the program
+program.addCommand(augmentCommand)
+
 // Add a command for setting up autocomplete
 program
   .command('completion-setup')
@@ -1055,4 +1150,374 @@ program
   })
 
 // Parse command line arguments
+// LLM Commands
+const llmCommand = new Command('llm')
+  .description('LLM (Language Learning Model) operations')
+
+llmCommand
+  .command('create')
+  .description('Create a new LLM model from Brainy data')
+  .option('-n, --name <name>', 'Name of the model')
+  .option('-d, --description <description>', 'Description of the model')
+  .option('-t, --type <type>', 'Type of model (simple, transformer, custom)', 'simple')
+  .option('-v, --vocab-size <size>', 'Vocabulary size', '5000')
+  .option('-e, --embedding-dim <dim>', 'Embedding dimension', '64')
+  .option('-h, --hidden-dim <dim>', 'Hidden dimension', '128')
+  .option('-l, --layers <count>', 'Number of layers', '2')
+  .option('--heads <count>', 'Number of attention heads (for transformer models)', '4')
+  .option('--dropout <rate>', 'Dropout rate', '0.1')
+  .option('--max-seq-length <length>', 'Maximum sequence length', '100')
+  .action(async (options) => {
+    try {
+      const db = createDb()
+      await db.init()
+
+      console.log('Creating LLM model...')
+
+      // Initialize LLM augmentations
+      const { cognition, activation } = await createLLMAugmentations()
+
+      // Set the database for the cognition augmentation
+      cognition.setBrainyDb(db)
+
+      // Parse options
+      const config = {
+        name: options.name || 'model-' + Date.now(),
+        description: options.description || 'Created via CLI',
+        modelType: options.type,
+        vocabSize: parseInt(options.vocabSize, 10),
+        embeddingDim: parseInt(options.embeddingDim, 10),
+        hiddenDim: parseInt(options.hiddenDim, 10),
+        layers: parseInt(options.layers, 10),
+        heads: parseInt(options.heads, 10),
+        dropout: parseFloat(options.dropout),
+        maxSeqLength: parseInt(options.maxSeqLength, 10)
+      }
+
+      // Create the model
+      const result = await cognition.createModel(config)
+
+      if (result.success) {
+        console.log(`Model created successfully with ID: ${result.data.modelId}`)
+        console.log(`Model type: ${config.modelType}`)
+        console.log(`Vocabulary size: ${config.vocabSize}`)
+      } else {
+        console.error(`Failed to create model: ${result.error}`)
+      }
+
+    } catch (error) {
+      console.error('Error:', (error as Error).message)
+      process.exit(1)
+    }
+  })
+
+llmCommand
+  .command('train')
+  .description('Train an LLM model on Brainy data')
+  .argument('<modelId>', 'ID of the model to train')
+  .option('-s, --max-samples <count>', 'Maximum number of training samples')
+  .option('-v, --validation-split <ratio>', 'Validation split ratio', '0.2')
+  .option('-e, --epochs <count>', 'Number of training epochs', '10')
+  .option('-b, --batch-size <size>', 'Batch size', '32')
+  .option('-p, --patience <count>', 'Early stopping patience', '3')
+  .action(async (modelId, options) => {
+    try {
+      const db = createDb()
+      await db.init()
+
+      console.log(`Training LLM model ${modelId}...`)
+
+      // Initialize LLM augmentations
+      const { cognition, activation } = await createLLMAugmentations()
+
+      // Set the database for the cognition augmentation
+      cognition.setBrainyDb(db)
+
+      // Parse options
+      const trainingOptions = {
+        maxSamples: options.maxSamples ? parseInt(options.maxSamples, 10) : undefined,
+        validationSplit: parseFloat(options.validationSplit),
+        epochs: parseInt(options.epochs, 10),
+        batchSize: parseInt(options.batchSize, 10),
+        patience: parseInt(options.patience, 10)
+      }
+
+      console.log('Training with options:')
+      console.log(`  Max samples: ${trainingOptions.maxSamples || 'All available'}`)
+      console.log(`  Validation split: ${trainingOptions.validationSplit}`)
+      console.log(`  Epochs: ${trainingOptions.epochs}`)
+      console.log(`  Batch size: ${trainingOptions.batchSize}`)
+      console.log(`  Early stopping patience: ${trainingOptions.patience}`)
+
+      // Train the model
+      const result = await cognition.trainModel(modelId, trainingOptions)
+
+      if (result.success) {
+        console.log(`\nModel ${modelId} trained successfully!`)
+        console.log(`Training metrics:`)
+        if (result.data.metrics) {
+          console.log(`  Final loss: ${result.data.metrics.loss.toFixed(4)}`)
+          console.log(`  Final accuracy: ${result.data.metrics.accuracy.toFixed(4)}`)
+          console.log(`  Epochs completed: ${result.data.metrics.epochs}`)
+        }
+      } else {
+        console.error(`\nFailed to train model: ${result.error}`)
+      }
+
+    } catch (error) {
+      console.error('Error:', (error as Error).message)
+      process.exit(1)
+    }
+  })
+
+llmCommand
+  .command('test')
+  .description('Test an LLM model on Brainy data')
+  .argument('<modelId>', 'ID of the model to test')
+  .option('-s, --test-size <count>', 'Number of test samples', '100')
+  .option('-g, --generate-samples', 'Generate sample predictions')
+  .option('-c, --sample-count <count>', 'Number of samples to generate', '5')
+  .action(async (modelId, options) => {
+    try {
+      const db = createDb()
+      await db.init()
+
+      console.log(`Testing LLM model ${modelId}...`)
+
+      // Initialize LLM augmentations
+      const { cognition, activation } = await createLLMAugmentations()
+
+      // Set the database for the cognition augmentation
+      cognition.setBrainyDb(db)
+
+      // Parse options
+      const testingOptions = {
+        testSize: parseInt(options.testSize, 10),
+        generateSamples: options.generateSamples,
+        sampleCount: parseInt(options.sampleCount, 10)
+      }
+
+      console.log('Testing with options:')
+      console.log(`  Test size: ${testingOptions.testSize}`)
+      console.log(`  Generate samples: ${testingOptions.generateSamples ? 'Yes' : 'No'}`)
+      if (testingOptions.generateSamples) {
+        console.log(`  Sample count: ${testingOptions.sampleCount}`)
+      }
+
+      // Test the model
+      const result = await cognition.testModel(modelId, testingOptions)
+
+      if (result.success) {
+        console.log(`\nModel ${modelId} tested successfully!`)
+        console.log(`Test metrics:`)
+        if (result.data.metrics) {
+          console.log(`  Test loss: ${result.data.metrics.loss.toFixed(4)}`)
+          console.log(`  Test accuracy: ${result.data.metrics.accuracy.toFixed(4)}`)
+          console.log(`  Test samples: ${result.data.metrics.samples}`)
+        }
+
+        // Display generated samples if available
+        if (result.data.samples && result.data.samples.length > 0) {
+          console.log(`\nGenerated samples:`)
+          result.data.samples.forEach((sample: { input: string; expected: string; generated: string }, index: number) => {
+            console.log(`\nSample ${index + 1}:`)
+            console.log(`  Input: ${sample.input}`)
+            console.log(`  Predicted: ${sample.generated}`)
+            if (sample.expected) {
+              console.log(`  Actual: ${sample.expected}`)
+            }
+          })
+        }
+      } else {
+        console.error(`\nFailed to test model: ${result.error}`)
+      }
+
+    } catch (error) {
+      console.error('Error:', (error as Error).message)
+      process.exit(1)
+    }
+  })
+
+llmCommand
+  .command('export')
+  .description('Export an LLM model for deployment')
+  .argument('<modelId>', 'ID of the model to export')
+  .option('-f, --format <format>', 'Export format (tfjs, json)', 'json')
+  .option('-o, --output <path>', 'Output path')
+  .option('-m, --include-metadata', 'Include metadata')
+  .option('-v, --include-vocab', 'Include vocabulary')
+  .action(async (modelId, options) => {
+    try {
+      const db = createDb()
+      await db.init()
+
+      console.log(`Exporting LLM model ${modelId}...`)
+
+      // Initialize LLM augmentations
+      const { cognition, activation } = await createLLMAugmentations()
+
+      // Set the database for the cognition augmentation
+      cognition.setBrainyDb(db)
+
+      // Parse options
+      const exportOptions = {
+        format: options.format,
+        outputPath: options.output,
+        includeMetadata: options.includeMetadata,
+        includeVocab: options.includeVocab
+      }
+
+      console.log('Exporting with options:')
+      console.log(`  Format: ${exportOptions.format}`)
+      if (exportOptions.outputPath) {
+        console.log(`  Output path: ${exportOptions.outputPath}`)
+      }
+      console.log(`  Include metadata: ${exportOptions.includeMetadata ? 'Yes' : 'No'}`)
+      console.log(`  Include vocabulary: ${exportOptions.includeVocab ? 'Yes' : 'No'}`)
+
+      // Export the model
+      const result = await cognition.exportModel(modelId, exportOptions)
+
+      if (result.success) {
+        console.log(`\nModel ${modelId} exported successfully!`)
+        if (result.data.path) {
+          console.log(`Exported to: ${result.data.path}`)
+        }
+        if (result.data.size) {
+          console.log(`Export size: ${(result.data.size / 1024).toFixed(2)} KB`)
+        }
+      } else {
+        console.error(`\nFailed to export model: ${result.error}`)
+      }
+
+    } catch (error) {
+      console.error('Error:', (error as Error).message)
+      process.exit(1)
+    }
+  })
+
+llmCommand
+  .command('deploy')
+  .description('Deploy an LLM model to the specified target')
+  .argument('<modelId>', 'ID of the model to deploy')
+  .option('-t, --target <target>', 'Deployment target (browser, node, cloud)', 'browser')
+  .option('-p, --provider <provider>', 'Cloud provider (aws, gcp, azure)')
+  .option('-e, --endpoint <url>', 'Endpoint URL for cloud deployment')
+  .option('-r, --region <region>', 'Region for cloud deployment')
+  .action(async (modelId, options) => {
+    try {
+      const db = createDb()
+      await db.init()
+
+      console.log(`Deploying LLM model ${modelId} to ${options.target}...`)
+
+      // Initialize LLM augmentations
+      const { cognition, activation } = await createLLMAugmentations()
+
+      // Set the database for the cognition augmentation
+      cognition.setBrainyDb(db)
+
+      // Parse options
+      const deploymentOptions = {
+        target: options.target,
+        provider: options.provider,
+        endpoint: options.endpoint,
+        region: options.region
+      }
+
+      console.log('Deploying with options:')
+      console.log(`  Target: ${deploymentOptions.target}`)
+      if (deploymentOptions.provider) {
+        console.log(`  Provider: ${deploymentOptions.provider}`)
+      }
+      if (deploymentOptions.endpoint) {
+        console.log(`  Endpoint: ${deploymentOptions.endpoint}`)
+      }
+      if (deploymentOptions.region) {
+        console.log(`  Region: ${deploymentOptions.region}`)
+      }
+
+      // Deploy the model
+      const result = await cognition.deployModel(modelId, deploymentOptions)
+
+      if (result.success) {
+        console.log(`\nModel ${modelId} deployed successfully!`)
+        if (result.data.url) {
+          console.log(`Deployment URL: ${result.data.url}`)
+        }
+        if (result.data.deploymentId) {
+          console.log(`Deployment ID: ${result.data.deploymentId}`)
+        }
+      } else {
+        console.error(`\nFailed to deploy model: ${result.error}`)
+      }
+
+    } catch (error) {
+      console.error('Error:', (error as Error).message)
+      process.exit(1)
+    }
+  })
+
+llmCommand
+  .command('generate')
+  .description('Generate text using an LLM model')
+  .argument('<modelId>', 'ID of the model to use')
+  .argument('<prompt>', 'Input prompt for text generation')
+  .option('-t, --temperature <temp>', 'Temperature for sampling', '0.7')
+  .option('-k, --top-k <count>', 'Number of top tokens to consider', '5')
+  .option('-l, --max-length <length>', 'Maximum length of generated text', '100')
+  .action(async (modelId, prompt, options) => {
+    try {
+      const db = createDb()
+      await db.init()
+
+      console.log(`Generating text using LLM model ${modelId}...`)
+      console.log(`Prompt: "${prompt}"`)
+
+      // Initialize LLM augmentations
+      const { cognition, activation } = await createLLMAugmentations()
+
+      // Set the database for the cognition augmentation
+      cognition.setBrainyDb(db)
+
+      // Parse options
+      const generateOptions = {
+        temperature: parseFloat(options.temperature),
+        topK: parseInt(options.topK, 10),
+        maxLength: parseInt(options.maxLength, 10)
+      }
+
+      console.log('Generation options:')
+      console.log(`  Temperature: ${generateOptions.temperature}`)
+      console.log(`  Top-K: ${generateOptions.topK}`)
+      console.log(`  Max length: ${generateOptions.maxLength}`)
+
+      // Generate text
+      const result = await cognition.generateText(modelId, prompt, generateOptions)
+
+      if (result.success) {
+        console.log(`\nGenerated text:`)
+        console.log(`--------------`)
+        console.log(result.data.text)
+        console.log(`--------------`)
+
+        if (result.data.tokens) {
+          console.log(`\nTokens generated: ${result.data.tokens}`)
+        }
+        if (result.data.timeMs) {
+          console.log(`Generation time: ${result.data.timeMs}ms`)
+        }
+      } else {
+        console.error(`\nFailed to generate text: ${result.error}`)
+      }
+
+    } catch (error) {
+      console.error('Error:', (error as Error).message)
+      process.exit(1)
+    }
+  })
+
+// Add the LLM command to the program
+program.addCommand(llmCommand)
+
 program.parse()

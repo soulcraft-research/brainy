@@ -35,6 +35,7 @@ and connections.
 - **Extensible Augmentations** - Customize and extend functionality with pluggable components (LEGO blocks for your
   data!)
 - **Built-in Conduits** - Sync and scale across instances with WebSocket and WebRTC (your data's teleportation system!)
+- **LLM Creation & Training** - Build, train, and deploy language models from your graph data (your own personal AI factory!)
 - **Adaptive Intelligence** - Automatically optimizes for your environment and usage patterns
 - **Cross-Platform** - Works everywhere you do: browsers, Node.js, and server environments
 - **Persistent Storage** - Data persists across sessions and scales to any size (no memory loss here, even for
@@ -49,6 +50,7 @@ and connections.
   taste)
 - **Knowledge Graphs** - Build connected data structures with relationships (your data's family tree)
 - **AI Applications** - Store and retrieve embeddings for machine learning models (brain food for your AI)
+- **Custom Language Models** - Create, train, and deploy LLMs from your graph data (your personal GPT factory!)
 - **Data Organization Tools** - Automatically categorize and connect related information (like having a librarian in
   your code)
 - **Adaptive Experiences** - Create applications that learn and evolve with your users (digital chameleons!)
@@ -177,7 +179,10 @@ Brainy uses a powerful augmentation system to extend functionality. Augmentation
 3. **COGNITION** 🧠
     - Enables advanced reasoning, inference, and logical operations
     - Analyzes relationships between entities
-    - Example: Inferring new connections between existing data
+    - Creates and trains language models from graph data
+    - Examples: 
+      - Inferring new connections between existing data
+      - Building custom LLMs from your nouns and verbs
 
 4. **CONDUIT** 🔌
     - Establishes high-bandwidth channels for structured data exchange
@@ -408,6 +413,42 @@ npm run cli generate-random-graph --noun-count 20 --verb-count 40
     - `-t, --data-type <type>` - Type of data to process (default: 'text')
     - `-v, --verbose` - Show detailed output
 
+#### LLM Commands:
+
+- `llm create` - Create a new LLM model from Brainy data
+    - `-n, --name <name>` - Name of the model
+    - `-d, --description <description>` - Description of the model
+    - `-t, --type <type>` - Type of model (simple, transformer, custom)
+    - `-v, --vocab-size <size>` - Vocabulary size
+    - `-e, --embedding-dim <dim>` - Embedding dimension
+    - `-h, --hidden-dim <dim>` - Hidden dimension
+    - `-l, --layers <count>` - Number of layers
+    - `--heads <count>` - Number of attention heads (for transformer models)
+- `llm train <modelId>` - Train an LLM model on Brainy data
+    - `-s, --max-samples <count>` - Maximum number of training samples
+    - `-v, --validation-split <ratio>` - Validation split ratio
+    - `-e, --epochs <count>` - Number of training epochs
+    - `-b, --batch-size <size>` - Batch size
+    - `-p, --patience <count>` - Early stopping patience
+- `llm test <modelId>` - Test an LLM model on Brainy data
+    - `-s, --test-size <count>` - Number of test samples
+    - `-g, --generate-samples` - Generate sample predictions
+    - `-c, --sample-count <count>` - Number of samples to generate
+- `llm export <modelId>` - Export an LLM model for deployment
+    - `-f, --format <format>` - Export format (tfjs, json)
+    - `-o, --output <path>` - Output path
+    - `-m, --include-metadata` - Include metadata
+    - `-v, --include-vocab` - Include vocabulary
+- `llm deploy <modelId>` - Deploy an LLM model to the specified target
+    - `-t, --target <target>` - Deployment target (browser, node, cloud)
+    - `-p, --provider <provider>` - Cloud provider (aws, gcp, azure)
+    - `-e, --endpoint <url>` - Endpoint URL for cloud deployment
+    - `-r, --region <region>` - Region for cloud deployment
+- `llm generate <modelId> <prompt>` - Generate text using an LLM model
+    - `-t, --temperature <temp>` - Temperature for sampling
+    - `-k, --top-k <count>` - Number of top tokens to consider
+    - `-l, --max-length <length>` - Maximum length of generated text
+
 ## 🔌 API Reference
 
 ### Database Management
@@ -478,6 +519,71 @@ const verb = await db.getVerb(verbId)
 
 // Delete a relationship
 await db.deleteVerb(verbId)
+```
+
+### Working with LLM Models
+
+```typescript
+import { createLLMAugmentations } from '@soulcraft/brainy'
+
+// Create LLM augmentations
+const { cognition, activation } = await createLLMAugmentations()
+
+// Create a new LLM model
+const createResult = await cognition.createModel({
+  name: 'my-model',
+  description: 'A simple LLM model trained on Brainy data',
+  modelType: 'simple',
+  vocabSize: 5000,
+  embeddingDim: 64,
+  hiddenDim: 128,
+  numLayers: 1
+})
+
+const modelId = createResult.data.modelId
+
+// Train the model
+const trainResult = await cognition.trainModel(modelId, {
+  maxSamples: 100,
+  validationSplit: 0.2,
+  earlyStoppingPatience: 2
+})
+
+// Test the model
+const testResult = await cognition.testModel(modelId, {
+  testSize: 20,
+  generateSamples: true,
+  sampleCount: 3
+})
+
+// Generate text with the model
+const generateResult = await cognition.generateText(modelId, 'What is a', {
+  temperature: 0.7,
+  topK: 5
+})
+
+// Export the model
+const exportResult = await cognition.exportModel(modelId, {
+  format: 'json',
+  includeMetadata: true,
+  includeVocab: true
+})
+
+// Deploy the model
+const deployResult = await cognition.deployModel(modelId, {
+  target: 'browser'
+})
+
+// Using the augmentation pipeline
+const pipelineResult = await augmentationPipeline.executeCognitionPipeline(
+  'createModel',
+  [{
+    name: 'pipeline-model',
+    modelType: 'transformer',
+    numHeads: 2,
+    numLayers: 1
+  }]
+)
 ```
 
 ## ⚙️ Advanced Configuration
