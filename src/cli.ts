@@ -1149,14 +1149,58 @@ program
     console.log('Autocomplete setup complete. Please restart your shell.')
   })
 
+// Helper function to initialize LLM augmentations and database
+async function initializeLLM() {
+  const db = createDb();
+  await db.init();
+
+  // Initialize LLM augmentations
+  const { cognition, activation } = await createLLMAugmentations();
+
+  // Set the database for the cognition augmentation
+  cognition.setBrainyDb(db);
+
+  return { db, cognition, activation };
+}
+
 // Parse command line arguments
 // LLM Commands
 const llmCommand = new Command('llm')
   .description('LLM (Language Learning Model) operations')
 
 llmCommand
+  .command('create-simple')
+  .description('Create a new LLM model using a preset (tiny, small, medium, large)')
+  .argument('[preset]', 'Model preset to use (tiny, small, medium, large)', 'small')
+  .option('-n, --name <name>', 'Custom name for the model')
+  .action(async (preset, options) => {
+    try {
+      console.log(`Creating LLM model using '${preset}' preset...`)
+
+      // Initialize LLM
+      const { cognition } = await initializeLLM();
+
+      // Create the model using preset
+      const result = await cognition.createModelFromPreset(preset, options.name);
+
+      if (result.success) {
+        console.log(`Model created successfully with ID: ${result.data.modelId}`)
+        console.log(`Model name: ${result.data.metadata.name}`)
+        console.log(`Model type: ${result.data.metadata.modelType}`)
+        console.log(`\nUse this ID with other commands, for example:`)
+        console.log(`  brainy llm train-simple ${result.data.modelId} standard`)
+      } else {
+        console.error(`Failed to create model: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('Error:', (error as Error).message)
+      process.exit(1)
+    }
+  })
+
+llmCommand
   .command('create')
-  .description('Create a new LLM model from Brainy data')
+  .description('Create a new LLM model from Brainy data (advanced)')
   .option('-n, --name <name>', 'Name of the model')
   .option('-d, --description <description>', 'Description of the model')
   .option('-t, --type <type>', 'Type of model (simple, transformer, custom)', 'simple')
@@ -1169,16 +1213,10 @@ llmCommand
   .option('--max-seq-length <length>', 'Maximum sequence length', '100')
   .action(async (options) => {
     try {
-      const db = createDb()
-      await db.init()
+      console.log('Creating LLM model with advanced options...')
 
-      console.log('Creating LLM model...')
-
-      // Initialize LLM augmentations
-      const { cognition, activation } = await createLLMAugmentations()
-
-      // Set the database for the cognition augmentation
-      cognition.setBrainyDb(db)
+      // Initialize LLM
+      const { cognition } = await initializeLLM();
 
       // Parse options
       const config = {
@@ -1212,8 +1250,58 @@ llmCommand
   })
 
 llmCommand
+  .command('train-simple')
+  .description('Train an LLM model with simplified options')
+  .argument('<modelId>', 'ID of the model to train')
+  .argument('[level]', 'Training level (quick, standard, thorough)', 'standard')
+  .action(async (modelId, level) => {
+    try {
+      console.log(`Training LLM model ${modelId} with '${level}' training level...`)
+
+      // Initialize LLM
+      const { cognition } = await initializeLLM();
+
+      // Display training level details
+      switch (level) {
+        case 'quick':
+          console.log('Quick training: Faster but less accurate (100 samples, 5 epochs)')
+          break;
+        case 'standard':
+          console.log('Standard training: Balanced speed and accuracy (500 samples, 10 epochs)')
+          break;
+        case 'thorough':
+          console.log('Thorough training: Slower but more accurate (1000 samples, 20 epochs)')
+          break;
+        default:
+          console.log(`Unknown level '${level}', using 'standard' instead`)
+          level = 'standard';
+      }
+
+      // Train the model
+      const result = await cognition.trainModelSimple(modelId, level as any)
+
+      if (result.success) {
+        console.log(`\nModel ${modelId} trained successfully!`)
+        console.log(`Training metrics:`)
+        if (result.data.metrics) {
+          console.log(`  Final loss: ${result.data.metrics.loss.toFixed(4)}`)
+          console.log(`  Final accuracy: ${result.data.metrics.accuracy.toFixed(4)}`)
+          console.log(`  Epochs completed: ${result.data.metrics.epochs}`)
+        }
+        console.log(`\nYou can now generate text with:`)
+        console.log(`  brainy llm generate-simple ${modelId} "Your prompt here"`)
+      } else {
+        console.error(`\nFailed to train model: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('Error:', (error as Error).message)
+      process.exit(1)
+    }
+  })
+
+llmCommand
   .command('train')
-  .description('Train an LLM model on Brainy data')
+  .description('Train an LLM model on Brainy data (advanced)')
   .argument('<modelId>', 'ID of the model to train')
   .option('-s, --max-samples <count>', 'Maximum number of training samples')
   .option('-v, --validation-split <ratio>', 'Validation split ratio', '0.2')
@@ -1222,16 +1310,10 @@ llmCommand
   .option('-p, --patience <count>', 'Early stopping patience', '3')
   .action(async (modelId, options) => {
     try {
-      const db = createDb()
-      await db.init()
+      console.log(`Training LLM model ${modelId} with advanced options...`)
 
-      console.log(`Training LLM model ${modelId}...`)
-
-      // Initialize LLM augmentations
-      const { cognition, activation } = await createLLMAugmentations()
-
-      // Set the database for the cognition augmentation
-      cognition.setBrainyDb(db)
+      // Initialize LLM
+      const { cognition } = await initializeLLM();
 
       // Parse options
       const trainingOptions = {
@@ -1459,8 +1541,62 @@ llmCommand
   })
 
 llmCommand
+  .command('generate-simple')
+  .description('Generate text using an LLM model with simplified creativity options')
+  .argument('<modelId>', 'ID of the model to use')
+  .argument('<prompt>', 'Input prompt for text generation')
+  .argument('[creativity]', 'Creativity level (conservative, balanced, creative)', 'balanced')
+  .action(async (modelId, prompt, creativity) => {
+    try {
+      console.log(`Generating text using LLM model ${modelId}...`)
+      console.log(`Prompt: "${prompt}"`)
+
+      // Initialize LLM
+      const { cognition } = await initializeLLM();
+
+      // Display creativity level details
+      switch (creativity) {
+        case 'conservative':
+          console.log('Conservative creativity: More predictable, focused output')
+          break;
+        case 'balanced':
+          console.log('Balanced creativity: Mix of predictability and creativity')
+          break;
+        case 'creative':
+          console.log('High creativity: More varied, unexpected output')
+          break;
+        default:
+          console.log(`Unknown creativity level '${creativity}', using 'balanced' instead`)
+          creativity = 'balanced';
+      }
+
+      // Generate text
+      const result = await cognition.generateTextSimple(modelId, prompt, creativity as any)
+
+      if (result.success) {
+        console.log(`\nGenerated text:`)
+        console.log(`--------------`)
+        console.log(result.data.text)
+        console.log(`--------------`)
+
+        if (result.data.tokens) {
+          console.log(`\nTokens generated: ${result.data.tokens}`)
+        }
+        if (result.data.timeMs) {
+          console.log(`Generation time: ${result.data.timeMs}ms`)
+        }
+      } else {
+        console.error(`\nFailed to generate text: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('Error:', (error as Error).message)
+      process.exit(1)
+    }
+  })
+
+llmCommand
   .command('generate')
-  .description('Generate text using an LLM model')
+  .description('Generate text using an LLM model (advanced)')
   .argument('<modelId>', 'ID of the model to use')
   .argument('<prompt>', 'Input prompt for text generation')
   .option('-t, --temperature <temp>', 'Temperature for sampling', '0.7')
@@ -1468,17 +1604,11 @@ llmCommand
   .option('-l, --max-length <length>', 'Maximum length of generated text', '100')
   .action(async (modelId, prompt, options) => {
     try {
-      const db = createDb()
-      await db.init()
-
-      console.log(`Generating text using LLM model ${modelId}...`)
+      console.log(`Generating text using LLM model ${modelId} with advanced options...`)
       console.log(`Prompt: "${prompt}"`)
 
-      // Initialize LLM augmentations
-      const { cognition, activation } = await createLLMAugmentations()
-
-      // Set the database for the cognition augmentation
-      cognition.setBrainyDb(db)
+      // Initialize LLM
+      const { cognition } = await initializeLLM();
 
       // Parse options
       const generateOptions = {

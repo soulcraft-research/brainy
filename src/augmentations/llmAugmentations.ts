@@ -74,6 +74,8 @@ interface LLMTrainingOptions {
   includeEmbeddings?: boolean
   augmentData?: boolean
   earlyStoppingPatience?: number
+  epochs?: number
+  batchSize?: number
 }
 
 /**
@@ -145,6 +147,60 @@ export class LLMCognitionAugmentation implements ICognitionAugmentation {
     epochs: 10
   }
 
+  // Simplified model presets for easy model creation
+  private modelPresets: Record<string, Partial<LLMModelConfig>> = {
+    'tiny': {
+      name: 'tiny-llm-model',
+      modelType: 'simple',
+      vocabSize: 3000,
+      embeddingDim: 32,
+      hiddenDim: 64,
+      numLayers: 1,
+      dropoutRate: 0.1,
+      maxSequenceLength: 50,
+      batchSize: 16,
+      epochs: 5
+    },
+    'small': {
+      name: 'small-llm-model',
+      modelType: 'simple',
+      vocabSize: 5000,
+      embeddingDim: 64,
+      hiddenDim: 128,
+      numLayers: 2,
+      dropoutRate: 0.1,
+      maxSequenceLength: 100,
+      batchSize: 32,
+      epochs: 10
+    },
+    'medium': {
+      name: 'medium-llm-model',
+      modelType: 'transformer',
+      vocabSize: 8000,
+      embeddingDim: 128,
+      hiddenDim: 256,
+      numLayers: 3,
+      numHeads: 4,
+      dropoutRate: 0.1,
+      maxSequenceLength: 200,
+      batchSize: 32,
+      epochs: 15
+    },
+    'large': {
+      name: 'large-llm-model',
+      modelType: 'transformer',
+      vocabSize: 10000,
+      embeddingDim: 256,
+      hiddenDim: 512,
+      numLayers: 4,
+      numHeads: 8,
+      dropoutRate: 0.1,
+      maxSequenceLength: 300,
+      batchSize: 16,
+      epochs: 20
+    }
+  }
+
   constructor(name: string = 'llm-cognition') {
     this.name = name
   }
@@ -212,6 +268,33 @@ export class LLMCognitionAugmentation implements ICognitionAugmentation {
    */
   getBrainyDb(): BrainyData | null {
     return this.brainyDb
+  }
+
+  /**
+   * Create a new LLM model from Brainy data using a preset
+   * @param presetName Name of the preset to use ('tiny', 'small', 'medium', 'large')
+   * @param customName Optional custom name for the model
+   * @returns Model ID and metadata
+   */
+  async createModelFromPreset(
+    presetName: string = 'small',
+    customName?: string
+  ): Promise<AugmentationResponse<{ modelId: string, metadata: LLMModelMetadata }>> {
+    const preset = this.modelPresets[presetName];
+    if (!preset) {
+      return {
+        success: false,
+        data: null as any,
+        error: `Unknown preset: ${presetName}. Available presets: ${Object.keys(this.modelPresets).join(', ')}`
+      };
+    }
+
+    const config = { ...preset };
+    if (customName) {
+      config.name = customName;
+    }
+
+    return this.createModel(config);
   }
 
   /**
@@ -466,6 +549,53 @@ export class LLMCognitionAugmentation implements ICognitionAugmentation {
   }
 
   /**
+   * Train an LLM model with simplified options
+   * @param modelId ID of the model to train
+   * @param trainingLevel Training level ('quick', 'standard', 'thorough')
+   * @returns Training results
+   */
+  async trainModelSimple(
+    modelId: string,
+    trainingLevel: 'quick' | 'standard' | 'thorough' = 'standard'
+  ): Promise<AugmentationResponse<{
+    modelId: string,
+    metadata: LLMModelMetadata,
+    trainingHistory: tf.History,
+    metrics?: {
+      loss: number,
+      accuracy: number,
+      epochs: number
+    }
+  }>> {
+    // Define training options based on level
+    const trainingOptions: LLMTrainingOptions = {};
+
+    switch (trainingLevel) {
+      case 'quick':
+        trainingOptions.maxSamples = 100;
+        trainingOptions.epochs = 5;
+        trainingOptions.batchSize = 32;
+        trainingOptions.validationSplit = 0.1;
+        break;
+      case 'standard':
+        trainingOptions.maxSamples = 500;
+        trainingOptions.epochs = 10;
+        trainingOptions.batchSize = 32;
+        trainingOptions.validationSplit = 0.2;
+        break;
+      case 'thorough':
+        trainingOptions.maxSamples = 1000;
+        trainingOptions.epochs = 20;
+        trainingOptions.batchSize = 16;
+        trainingOptions.validationSplit = 0.2;
+        trainingOptions.earlyStoppingPatience = 5;
+        break;
+    }
+
+    return this.trainModel(modelId, trainingOptions);
+  }
+
+  /**
    * Train an LLM model on Brainy data
    * @param modelId ID of the model to train
    * @param options Training options
@@ -537,8 +667,8 @@ export class LLMCognitionAugmentation implements ICognitionAugmentation {
 
       // Train the model
       const history = await model.fit(xs, ys, {
-        epochs: this.defaultModelConfig.epochs,
-        batchSize: this.defaultModelConfig.batchSize,
+        epochs: options.epochs || this.defaultModelConfig.epochs,
+        batchSize: options.batchSize || this.defaultModelConfig.batchSize,
         validationSplit: options.validationSplit || 0.2,
         callbacks: tf.callbacks.earlyStopping({
           monitor: 'val_loss',
@@ -1154,6 +1284,50 @@ export class LLMCognitionAugmentation implements ICognitionAugmentation {
   }
 
   /**
+   * Generate text using the LLM model with simplified creativity options
+   * @param modelId ID of the model to use
+   * @param prompt Input prompt
+   * @param creativity Creativity level ('conservative', 'balanced', 'creative')
+   * @returns Generated text
+   */
+  async generateTextSimple(
+    modelId: string,
+    prompt: string,
+    creativity: 'conservative' | 'balanced' | 'creative' = 'balanced'
+  ): Promise<AugmentationResponse<{
+    text: string,
+    tokens?: number,
+    timeMs?: number
+  }>> {
+    // Define generation options based on creativity level
+    const generationOptions: {
+      maxLength?: number,
+      temperature?: number,
+      topK?: number
+    } = {};
+
+    switch (creativity) {
+      case 'conservative':
+        generationOptions.temperature = 0.3;
+        generationOptions.topK = 3;
+        generationOptions.maxLength = 50;
+        break;
+      case 'balanced':
+        generationOptions.temperature = 0.7;
+        generationOptions.topK = 5;
+        generationOptions.maxLength = 100;
+        break;
+      case 'creative':
+        generationOptions.temperature = 1.0;
+        generationOptions.topK = 10;
+        generationOptions.maxLength = 200;
+        break;
+    }
+
+    return this.generateText(modelId, prompt, generationOptions);
+  }
+
+  /**
    * Generate text using the LLM model
    * @param modelId ID of the model to use
    * @param prompt Input prompt
@@ -1440,8 +1614,12 @@ export class LLMActivationAugmentation implements IActivationAugmentation {
     switch (actionName) {
       case 'createModel':
         return this.handleCreateModel(parameters || {})
+      case 'createModelSimple':
+        return this.handleCreateModelSimple(parameters || {})
       case 'trainModel':
         return this.handleTrainModel(parameters || {})
+      case 'trainModelSimple':
+        return this.handleTrainModelSimple(parameters || {})
       case 'testModel':
         return this.handleTestModel(parameters || {})
       case 'exportModel':
@@ -1450,6 +1628,8 @@ export class LLMActivationAugmentation implements IActivationAugmentation {
         return this.handleDeployModel(parameters || {})
       case 'generateText':
         return this.handleGenerateText(parameters || {})
+      case 'generateTextSimple':
+        return this.handleGenerateTextSimple(parameters || {})
       default:
         return {
           success: false,
@@ -1581,6 +1761,79 @@ export class LLMActivationAugmentation implements IActivationAugmentation {
     return {
       success: true,
       data: this.cognitionAugmentation!.deployModel(modelId, options)
+    }
+  }
+
+  /**
+   * Handle the createModelSimple action
+   * @param parameters Action parameters
+   */
+  private handleCreateModelSimple(
+    parameters: Record<string, unknown>
+  ): AugmentationResponse<unknown> {
+    const presetName = parameters.preset as string || 'small'
+    const customName = parameters.name as string
+
+    return {
+      success: true,
+      data: this.cognitionAugmentation!.createModelFromPreset(presetName, customName)
+    }
+  }
+
+  /**
+   * Handle the trainModelSimple action
+   * @param parameters Action parameters
+   */
+  private handleTrainModelSimple(
+    parameters: Record<string, unknown>
+  ): AugmentationResponse<unknown> {
+    const modelId = parameters.modelId as string
+    const trainingLevel = parameters.level as 'quick' | 'standard' | 'thorough' || 'standard'
+
+    if (!modelId) {
+      return {
+        success: false,
+        data: null,
+        error: 'modelId parameter is required'
+      }
+    }
+
+    return {
+      success: true,
+      data: this.cognitionAugmentation!.trainModelSimple(modelId, trainingLevel)
+    }
+  }
+
+  /**
+   * Handle the generateTextSimple action
+   * @param parameters Action parameters
+   */
+  private handleGenerateTextSimple(
+    parameters: Record<string, unknown>
+  ): AugmentationResponse<unknown> {
+    const modelId = parameters.modelId as string
+    const prompt = parameters.prompt as string
+    const creativity = parameters.creativity as 'conservative' | 'balanced' | 'creative' || 'balanced'
+
+    if (!modelId) {
+      return {
+        success: false,
+        data: null,
+        error: 'modelId parameter is required'
+      }
+    }
+
+    if (!prompt) {
+      return {
+        success: false,
+        data: null,
+        error: 'prompt parameter is required'
+      }
+    }
+
+    return {
+      success: true,
+      data: this.cognitionAugmentation!.generateTextSimple(modelId, prompt, creativity)
     }
   }
 

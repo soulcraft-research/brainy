@@ -30,7 +30,7 @@ npm install @soulcraft/brainy --legacy-peer-deps
 
 ## Usage
 
-### Basic Usage
+### Simplified Usage (Recommended for New Users)
 
 ```javascript
 import { BrainyData, augmentationPipeline } from '@soulcraft/brainy'
@@ -51,7 +51,42 @@ const { cognition, activation } = await createLLMAugmentations({
 augmentationPipeline.register(cognition)
 augmentationPipeline.register(activation)
 
-// Create a model
+// Create a model using a preset (tiny, small, medium, large)
+const createResult = await cognition.createModelFromPreset('small', 'my-model')
+
+const modelId = createResult.data.modelId
+
+// Train the model with simplified options (quick, standard, thorough)
+await cognition.trainModelSimple(modelId, 'standard')
+
+// Generate text with simplified creativity options (conservative, balanced, creative)
+const generateResult = await cognition.generateTextSimple(modelId, 'What is a', 'balanced')
+
+console.log(`Generated text: ${generateResult.data.text}`)
+```
+
+### Advanced Usage
+
+```javascript
+import { BrainyData, augmentationPipeline } from '@soulcraft/brainy'
+import { createLLMAugmentations } from '@soulcraft/brainy/src/augmentations/llmAugmentations.js'
+
+// Initialize Brainy
+const db = new BrainyData()
+await db.init()
+
+// Create LLM augmentations
+const { cognition, activation } = await createLLMAugmentations({
+  cognitionName: 'my-llm-cognition',
+  activationName: 'my-llm-activation',
+  brainyDb: db
+})
+
+// Register augmentations with the pipeline
+augmentationPipeline.register(cognition)
+augmentationPipeline.register(activation)
+
+// Create a model with advanced configuration
 const createResult = await cognition.createModel({
   name: 'my-model',
   modelType: 'simple',
@@ -63,18 +98,18 @@ const createResult = await cognition.createModel({
 
 const modelId = createResult.data.modelId
 
-// Train the model
+// Train the model with advanced options
 await cognition.trainModel(modelId, {
   maxSamples: 100,
   validationSplit: 0.2
 })
 
-// Generate text
+// Generate text with advanced options
 const generateResult = await cognition.generateText(modelId, 'What is a', {
   temperature: 0.7
 })
 
-console.log(`Generated text: ${generateResult.data}`)
+console.log(`Generated text: ${generateResult.data.text}`)
 ```
 
 ### Using the Augmentation Pipeline
@@ -93,7 +128,7 @@ const pipelineCreateResult = await augmentationPipeline.executeCognitionPipeline
 
 if (pipelineCreateResult[0] && (await pipelineCreateResult[0]).success) {
   const pipelineModelId = (await pipelineCreateResult[0]).data.modelId
-  
+
   // Train the model through the pipeline
   await augmentationPipeline.executeCognitionPipeline(
     'trainModel',
@@ -102,11 +137,122 @@ if (pipelineCreateResult[0] && (await pipelineCreateResult[0]).success) {
 }
 ```
 
+## CLI Usage
+
+The LLM functionality is also available through the Brainy CLI. The CLI provides both simplified and advanced commands for working with LLM models.
+
+### Simplified CLI Commands (Recommended for New Users)
+
+```bash
+# Create a model using a preset (tiny, small, medium, large)
+brainy llm create-simple [preset] --name my-model
+
+# Train a model with simplified options (quick, standard, thorough)
+brainy llm train-simple <modelId> [level]
+
+# Generate text with simplified creativity options (conservative, balanced, creative)
+brainy llm generate-simple <modelId> "Your prompt here" [creativity]
+```
+
+### Advanced CLI Commands
+
+```bash
+# Create a model with advanced configuration
+brainy llm create --name my-model --type simple --vocab-size 5000
+
+# Train a model with advanced options
+brainy llm train <modelId> --max-samples 100 --epochs 10
+
+# Test a model
+brainy llm test <modelId> --generate-samples
+
+# Export a model
+brainy llm export <modelId> --format json --include-metadata
+
+# Deploy a model
+brainy llm deploy <modelId> --target browser
+
+# Generate text with advanced options
+brainy llm generate <modelId> "Your prompt here" --temperature 0.7
+```
+
 ## API Reference
 
 ### LLMCognitionAugmentation
 
-#### Creating Models
+#### Simplified Methods (Recommended for New Users)
+
+##### Creating Models with Presets
+
+```javascript
+createModelFromPreset(presetName: string = 'small', customName?: string): Promise<AugmentationResponse<{ modelId: string, metadata: LLMModelMetadata }>>
+```
+
+Creates a new LLM model using a predefined preset.
+
+**Parameters:**
+- `presetName`: Name of the preset to use ('tiny', 'small', 'medium', 'large')
+- `customName`: Optional custom name for the model
+
+**Returns:**
+- `modelId`: Unique identifier for the created model
+- `metadata`: Metadata about the model
+
+**Preset Details:**
+- `tiny`: Simple model with minimal parameters, fast but less accurate
+- `small`: Simple model with balanced parameters, good for most use cases
+- `medium`: Transformer model with moderate parameters, better accuracy
+- `large`: Transformer model with more parameters, best accuracy but slower
+
+##### Training Models with Simplified Options
+
+```javascript
+trainModelSimple(modelId: string, trainingLevel: 'quick' | 'standard' | 'thorough' = 'standard'): Promise<AugmentationResponse<{ modelId: string, metadata: LLMModelMetadata, trainingHistory: tf.History, metrics?: { loss: number, accuracy: number, epochs: number } }>>
+```
+
+Trains an LLM model with simplified options.
+
+**Parameters:**
+- `modelId`: ID of the model to train
+- `trainingLevel`: Training level ('quick', 'standard', 'thorough')
+
+**Returns:**
+- `modelId`: ID of the trained model
+- `metadata`: Updated metadata about the model
+- `trainingHistory`: Training history with metrics
+- `metrics`: Training metrics (loss, accuracy, epochs)
+
+**Training Level Details:**
+- `quick`: Faster training with fewer samples (100 samples, 5 epochs)
+- `standard`: Balanced training (500 samples, 10 epochs)
+- `thorough`: More thorough training for better results (1000 samples, 20 epochs)
+
+##### Generating Text with Simplified Creativity Options
+
+```javascript
+generateTextSimple(modelId: string, prompt: string, creativity: 'conservative' | 'balanced' | 'creative' = 'balanced'): Promise<AugmentationResponse<{ text: string, tokens?: number, timeMs?: number }>>
+```
+
+Generates text using the LLM model with simplified creativity options.
+
+**Parameters:**
+- `modelId`: ID of the model to use
+- `prompt`: Input prompt for text generation
+- `creativity`: Creativity level ('conservative', 'balanced', 'creative')
+
+**Returns:**
+- `text`: Generated text
+- `tokens`: Number of tokens generated (if available)
+- `timeMs`: Generation time in milliseconds (if available)
+
+**Creativity Level Details:**
+- `conservative`: More predictable, focused output (temperature: 0.3, topK: 3)
+- `balanced`: Mix of predictability and creativity (temperature: 0.7, topK: 5)
+- `creative`: More varied, unexpected output (temperature: 1.0, topK: 10)
+
+#### Advanced Methods
+
+##### Creating Models
 
 ```javascript
 createModel(config: Partial<LLMModelConfig>): Promise<AugmentationResponse<{ modelId: string, metadata: LLMModelMetadata }>>
