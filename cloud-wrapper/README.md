@@ -1,4 +1,8 @@
+<div align="center">
+<img src="../brainy.png" alt="Brainy Logo" width="200"/>
+
 # Brainy Cloud Wrapper
+</div>
 
 A standalone web service wrapper for the [Brainy](https://github.com/soulcraft/brainy) vector graph database. This wrapper allows you to deploy Brainy as a RESTful API service on various cloud platforms including AWS, Google Cloud, and Cloudflare.
 

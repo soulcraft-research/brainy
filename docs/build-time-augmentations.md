@@ -1,4 +1,8 @@
+<div align="center">
+<img src="../brainy.png" alt="Brainy Logo" width="200"/>
+
 # Build-Time Augmentation Registration
+</div>
 
 This document explains how to register custom augmentations at build time using the Brainy library's augmentation
 registry system.

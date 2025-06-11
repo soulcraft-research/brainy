@@ -1,4 +1,8 @@
+<div align="center">
+<img src="../../brainy.png" alt="Brainy Logo" width="200"/>
+
 # Brainy Browser-Server Search Example
+</div>
 
 This example demonstrates how to use Brainy in a browser, call a server-hosted version for search, store the results locally, and then perform further searches against the local instance.
 

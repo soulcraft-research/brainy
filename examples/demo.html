@@ -12,9 +12,11 @@
             padding: 20px;
             line-height: 1.6;
         }
+
         h1, h2 {
             color: #4361ee;
         }
+
         button {
             background-color: #4361ee;
             color: white;
@@ -24,34 +26,41 @@
             cursor: pointer;
             margin: 5px 0;
         }
+
         button:hover {
             background-color: #3a56d4;
         }
+
         button:disabled {
             background-color: #cccccc;
             cursor: not-allowed;
         }
+
         pre {
             background-color: #f5f5f5;
             padding: 10px;
             border-radius: 4px;
             overflow-x: auto;
         }
+
         .container {
             display: flex;
             flex-direction: column;
             gap: 20px;
         }
+
         .panel {
             border: 1px solid #ddd;
             border-radius: 4px;
             padding: 15px;
         }
+
         .search-container {
             display: flex;
             gap: 10px;
             margin-bottom: 10px;
         }
+
         input, select {
             padding: 8px;
             border: 1px solid #ddd;
@@ -60,490 +69,524 @@
     </style>
 </head>
 <body>
+<div style="display: flex; align-items: center; margin-bottom: 20px;">
+    <img src="../brainy.png" alt="Brainy Logo" width="100" style="margin-right: 20px;"/>
     <h1>Brainy - Vector and Graph Database Demo</h1>
-    <p>This demo shows how to use Brainy as both a vector database (with embeddings and similarity search) and a graph database (with GraphNoun nodes and GraphVerb relationships).</p>
+</div>
+<p>This demo shows how to use Brainy as both a vector database (with embeddings and similarity search) and a graph
+    database (with GraphNoun nodes and GraphVerb relationships).</p>
 
-    <div class="container">
-        <div class="panel">
-            <h2>1. Initialize Database</h2>
-            <button id="initBtn">Initialize BrainyData</button>
-            <div id="initStatus"></div>
-        </div>
-
-        <div class="panel">
-            <h2>2. Configure Pipeline</h2>
-            <button id="setupPipelineBtn" disabled>Setup Augmentation Pipeline</button>
-            <div id="pipelineStatus"></div>
-        </div>
-
-        <div class="panel">
-            <h2>3. Add Sample Data</h2>
-            <button id="addDataBtn" disabled>Add Sample Vectors</button>
-            <div id="dataStatus"></div>
-        </div>
-
-        <div class="panel">
-            <h2>4. Vector Search</h2>
-            <div class="search-container">
-                <select id="searchVector" disabled>
-                    <option value="">Select a vector</option>
-                </select>
-                <input type="number" id="searchK" value="3" min="1" max="10" disabled>
-                <button id="searchBtn" disabled>Search</button>
-            </div>
-            <pre id="searchResults">// Search results will appear here</pre>
-        </div>
-
-        <div class="panel">
-            <h2>5. Text Search</h2>
-            <div class="search-container">
-                <input type="text" id="textQuery" placeholder="Enter text to search" disabled>
-                <input type="number" id="textSearchK" value="3" min="1" max="10" disabled>
-                <button id="textSearchBtn" disabled>Search</button>
-            </div>
-            <pre id="textSearchResults">// Text search results will appear here</pre>
-        </div>
-
-        <div class="panel">
-            <h2>6. Graph Operations</h2>
-            <div>
-                <button id="addRelationsBtn" disabled>Add Relationships</button>
-                <button id="getRelationsBtn" disabled>Get Relationships</button>
-            </div>
-            <pre id="graphResults">// Graph operation results will appear here</pre>
-        </div>
-
-        <div class="panel">
-            <h2>Console Output</h2>
-            <pre id="output">// Output will appear here</pre>
-        </div>
+<div class="container">
+    <div class="panel">
+        <h2>1. Initialize Database</h2>
+        <button id="initBtn">Initialize BrainyData</button>
+        <div id="initStatus"></div>
     </div>
 
-    <script type="importmap">
-        {
-          "imports": {
-            "uuid": "https://cdn.jsdelivr.net/npm/uuid@9.0.0/dist/esm-browser/index.js",
-            "@tensorflow/tfjs/dist/tf.esm.js": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.esm.js",
-            "@tensorflow-models/universal-sentence-encoder/dist/universal-sentence-encoder.esm.js": "https://cdn.jsdelivr.net/npm/@tensorflow-models/universal-sentence-encoder/dist/universal-sentence-encoder.esm.js",
-            "@tensorflow/tfjs-core": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core/dist/tf-core.esm.js",
-            "@tensorflow/tfjs-layers": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-layers/dist/tf-layers.esm.js",
-            "@tensorflow/tfjs-backend-cpu": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu/dist/tf-backend-cpu.esm.js"
-          }
-        }
-    </script>
+    <div class="panel">
+        <h2>2. Configure Pipeline</h2>
+        <button id="setupPipelineBtn" disabled>Setup Augmentation Pipeline</button>
+        <div id="pipelineStatus"></div>
+    </div>
 
-    <script type="module">
-        // Import the necessary components from Brainy
-        import { 
-            BrainyData, 
-            configureAndStartPipeline, 
-            createSensePluginConfig, 
-            createConduitPluginConfig,
-            AugmentationType,
-            cosineDistance,
-            VerbType
-        } from '../dist/index.js';
+    <div class="panel">
+        <h2>3. Add Sample Data</h2>
+        <button id="addDataBtn" disabled>Add Sample Vectors</button>
+        <div id="dataStatus"></div>
+    </div>
 
-        // Get DOM elements
-        const initBtn = document.getElementById('initBtn');
-        const setupPipelineBtn = document.getElementById('setupPipelineBtn');
-        const addDataBtn = document.getElementById('addDataBtn');
-        const searchBtn = document.getElementById('searchBtn');
-        const textSearchBtn = document.getElementById('textSearchBtn');
-        const addRelationsBtn = document.getElementById('addRelationsBtn');
-        const getRelationsBtn = document.getElementById('getRelationsBtn');
-        const searchVector = document.getElementById('searchVector');
-        const searchK = document.getElementById('searchK');
-        const textQuery = document.getElementById('textQuery');
-        const textSearchK = document.getElementById('textSearchK');
-        const initStatus = document.getElementById('initStatus');
-        const pipelineStatus = document.getElementById('pipelineStatus');
-        const dataStatus = document.getElementById('dataStatus');
-        const searchResults = document.getElementById('searchResults');
-        const textSearchResults = document.getElementById('textSearchResults');
-        const graphResults = document.getElementById('graphResults');
-        const output = document.getElementById('output');
+    <div class="panel">
+        <h2>4. Vector Search</h2>
+        <div class="search-container">
+            <select id="searchVector" disabled>
+                <option value="">Select a vector</option>
+            </select>
+            <input type="number" id="searchK" value="3" min="1" max="10" disabled>
+            <button id="searchBtn" disabled>Search</button>
+        </div>
+        <pre id="searchResults">// Search results will appear here</pre>
+    </div>
 
-        // Global variables
-        let db;
-        let pipeline;
-        const ids = {};
-        const relationshipIds = {};
+    <div class="panel">
+        <h2>5. Text Search</h2>
+        <div class="search-container">
+            <input type="text" id="textQuery" placeholder="Enter text to search" disabled>
+            <input type="number" id="textSearchK" value="3" min="1" max="10" disabled>
+            <button id="textSearchBtn" disabled>Search</button>
+        </div>
+        <pre id="textSearchResults">// Text search results will appear here</pre>
+    </div>
 
-        // Sample data - word embeddings
-        const wordEmbeddings = {
-            cat: [0.2, 0.3, 0.4, 0.1],
-            dog: [0.3, 0.2, 0.4, 0.2],
-            fish: [0.1, 0.1, 0.8, 0.2],
-            bird: [0.1, 0.4, 0.2, 0.5],
-            tiger: [0.3, 0.4, 0.3, 0.1],
-            lion: [0.4, 0.3, 0.2, 0.1],
-            shark: [0.2, 0.1, 0.7, 0.3],
-            eagle: [0.2, 0.5, 0.1, 0.4]
-        };
+    <div class="panel">
+        <h2>6. Graph Operations</h2>
+        <div>
+            <button id="addRelationsBtn" disabled>Add Relationships</button>
+            <button id="getRelationsBtn" disabled>Get Relationships</button>
+        </div>
+        <pre id="graphResults">// Graph operation results will appear here</pre>
+    </div>
 
-        // Sample metadata with GraphNoun structure
-        const metadata = {
-            cat: {
-                noun: 'thing',
-                label: 'Cat',
-                data: {
-                    type: 'mammal', 
-                    domesticated: true,
-                    description: 'A small domesticated carnivorous mammal'
-                }
-            },
-            dog: {
-                noun: 'thing',
-                label: 'Dog',
-                data: {
-                    type: 'mammal', 
-                    domesticated: true,
-                    description: 'A domesticated carnivorous mammal'
-                }
-            },
-            fish: {
-                noun: 'thing',
-                label: 'Fish',
-                data: {
-                    type: 'fish', 
-                    domesticated: false,
-                    description: 'A limbless cold-blooded vertebrate animal with gills'
-                }
-            },
-            bird: {
-                noun: 'thing',
-                label: 'Bird',
-                data: {
-                    type: 'bird', 
-                    domesticated: false,
-                    description: 'A warm-blooded egg-laying vertebrate animal with wings'
-                }
-            },
-            tiger: {
-                noun: 'thing',
-                label: 'Tiger',
-                data: {
-                    type: 'mammal', 
-                    domesticated: false,
-                    description: 'A large cat native to Asia'
-                }
-            },
-            lion: {
-                noun: 'thing',
-                label: 'Lion',
-                data: {
-                    type: 'mammal', 
-                    domesticated: false,
-                    description: 'A large cat native to Africa'
-                }
-            },
-            shark: {
-                noun: 'thing',
-                label: 'Shark',
-                data: {
-                    type: 'fish', 
-                    domesticated: false,
-                    description: 'A long-bodied mostly predatory marine fish'
-                }
-            },
-            eagle: {
-                noun: 'thing',
-                label: 'Eagle',
-                data: {
-                    type: 'bird', 
-                    domesticated: false,
-                    description: 'A large bird of prey with a massive hooked bill'
-                }
+    <div class="panel">
+        <h2>Console Output</h2>
+        <pre id="output">// Output will appear here</pre>
+    </div>
+</div>
+
+<script type="importmap">
+    {
+      "imports": {
+        "uuid": "https://cdn.jsdelivr.net/npm/uuid@9.0.0/dist/esm-browser/index.js",
+        "@tensorflow/tfjs/dist/tf.esm.js": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.esm.js",
+        "@tensorflow-models/universal-sentence-encoder/dist/universal-sentence-encoder.esm.js": "https://cdn.jsdelivr.net/npm/@tensorflow-models/universal-sentence-encoder/dist/universal-sentence-encoder.esm.js",
+        "@tensorflow/tfjs-core": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core/dist/tf-core.esm.js",
+        "@tensorflow/tfjs-layers": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-layers/dist/tf-layers.esm.js",
+        "@tensorflow/tfjs-backend-cpu": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu/dist/tf-backend-cpu.esm.js"
+      }
+    }
+</script>
+
+<script type="module">
+    // Import the necessary components from Brainy
+    import {
+        BrainyData,
+        configureAndStartPipeline,
+        createSensePluginConfig,
+        createConduitPluginConfig,
+        AugmentationType,
+        cosineDistance,
+        VerbType
+    } from '../dist/index.js';
+
+    // Get DOM elements
+    const initBtn = document.getElementById('initBtn');
+    const setupPipelineBtn = document.getElementById('setupPipelineBtn');
+    const addDataBtn = document.getElementById('addDataBtn');
+    const searchBtn = document.getElementById('searchBtn');
+    const textSearchBtn = document.getElementById('textSearchBtn');
+    const addRelationsBtn = document.getElementById('addRelationsBtn');
+    const getRelationsBtn = document.getElementById('getRelationsBtn');
+    const searchVector = document.getElementById('searchVector');
+    const searchK = document.getElementById('searchK');
+    const textQuery = document.getElementById('textQuery');
+    const textSearchK = document.getElementById('textSearchK');
+    const initStatus = document.getElementById('initStatus');
+    const pipelineStatus = document.getElementById('pipelineStatus');
+    const dataStatus = document.getElementById('dataStatus');
+    const searchResults = document.getElementById('searchResults');
+    const textSearchResults = document.getElementById('textSearchResults');
+    const graphResults = document.getElementById('graphResults');
+    const output = document.getElementById('output');
+
+    // Global variables
+    let db;
+    let pipeline;
+    const ids = {};
+    const relationshipIds = {};
+
+    // Sample data - word embeddings
+    const wordEmbeddings = {
+        cat: [0.2, 0.3, 0.4, 0.1],
+        dog: [0.3, 0.2, 0.4, 0.2],
+        fish: [0.1, 0.1, 0.8, 0.2],
+        bird: [0.1, 0.4, 0.2, 0.5],
+        tiger: [0.3, 0.4, 0.3, 0.1],
+        lion: [0.4, 0.3, 0.2, 0.1],
+        shark: [0.2, 0.1, 0.7, 0.3],
+        eagle: [0.2, 0.5, 0.1, 0.4]
+    };
+
+    // Sample metadata with GraphNoun structure
+    const metadata = {
+        cat: {
+            noun: 'thing',
+            label: 'Cat',
+            data: {
+                type: 'mammal',
+                domesticated: true,
+                description: 'A small domesticated carnivorous mammal'
             }
-        };
-
-        // Helper function to log output
-        function log(message) {
-            if (typeof message === 'object') {
-                output.textContent = JSON.stringify(message, null, 2);
-            } else {
-                output.textContent = message;
+        },
+        dog: {
+            noun: 'thing',
+            label: 'Dog',
+            data: {
+                type: 'mammal',
+                domesticated: true,
+                description: 'A domesticated carnivorous mammal'
+            }
+        },
+        fish: {
+            noun: 'thing',
+            label: 'Fish',
+            data: {
+                type: 'fish',
+                domesticated: false,
+                description: 'A limbless cold-blooded vertebrate animal with gills'
+            }
+        },
+        bird: {
+            noun: 'thing',
+            label: 'Bird',
+            data: {
+                type: 'bird',
+                domesticated: false,
+                description: 'A warm-blooded egg-laying vertebrate animal with wings'
+            }
+        },
+        tiger: {
+            noun: 'thing',
+            label: 'Tiger',
+            data: {
+                type: 'mammal',
+                domesticated: false,
+                description: 'A large cat native to Asia'
+            }
+        },
+        lion: {
+            noun: 'thing',
+            label: 'Lion',
+            data: {
+                type: 'mammal',
+                domesticated: false,
+                description: 'A large cat native to Africa'
+            }
+        },
+        shark: {
+            noun: 'thing',
+            label: 'Shark',
+            data: {
+                type: 'fish',
+                domesticated: false,
+                description: 'A long-bodied mostly predatory marine fish'
+            }
+        },
+        eagle: {
+            noun: 'thing',
+            label: 'Eagle',
+            data: {
+                type: 'bird',
+                domesticated: false,
+                description: 'A large bird of prey with a massive hooked bill'
             }
         }
+    };
 
-        // Helper function to update vector selects
-        function updateVectorSelects() {
-            // Clear existing options
-            searchVector.innerHTML = '<option value="">Select a vector</option>';
-
-            // Add options for each vector
-            for (const [word, id] of Object.entries(ids)) {
-                const option = document.createElement('option');
-                option.value = word;
-                option.textContent = word;
-                searchVector.appendChild(option);
-            }
+    // Helper function to log output
+    function log(message) {
+        if (typeof message === 'object') {
+            output.textContent = JSON.stringify(message, null, 2);
+        } else {
+            output.textContent = message;
         }
+    }
 
-        // Initialize BrainyData
-        initBtn.addEventListener('click', async () => {
-            try {
-                log('Initializing BrainyData...');
+    // Helper function to update vector selects
+    function updateVectorSelects() {
+        // Clear existing options
+        searchVector.innerHTML = '<option value="">Select a vector</option>';
 
-                // Create a new BrainyData instance with cosine distance
-                db = new BrainyData({
-                    distanceFunction: cosineDistance,
-                    hnsw: {
-                        M: 16,
-                        efConstruction: 200
+        // Add options for each vector
+        for (const [word, id] of Object.entries(ids)) {
+            const option = document.createElement('option');
+            option.value = word;
+            option.textContent = word;
+            searchVector.appendChild(option);
+        }
+    }
+
+    // Initialize BrainyData
+    initBtn.addEventListener('click', async () => {
+        try {
+            log('Initializing BrainyData...');
+
+            // Create a new BrainyData instance with cosine distance
+            db = new BrainyData({
+                distanceFunction: cosineDistance,
+                hnsw: {
+                    M: 16,
+                    efConstruction: 200
+                }
+            });
+
+            await db.init();
+
+            log('BrainyData initialized successfully');
+            initStatus.textContent = '✅ Database initialized';
+
+            // Enable the next step
+            setupPipelineBtn.disabled = false;
+            initBtn.disabled = true;
+        } catch (error) {
+            log(`Error initializing BrainyData: ${error.message}`);
+            initStatus.textContent = '❌ Initialization failed';
+        }
+    });
+
+    // Setup Augmentation Pipeline
+    setupPipelineBtn.addEventListener('click', async () => {
+        try {
+            log('Setting up augmentation pipeline...');
+
+            // Note: These are example plugin names and won't actually load
+            // In a real application, you would install these packages via npm first
+            const result = await configureAndStartPipeline([
+                // Example sense augmentation for text processing
+                createSensePluginConfig('text-sense-augmentation', {
+                    language: 'english',
+                    enableNER: true
+                }),
+
+                // Example memory augmentation
+                {
+                    plugin: 'memory-augmentation',
+                    config: {storageType: 'persistent'},
+                    type: AugmentationType.MEMORY
+                }
+            ], {
+                useDefaultPipeline: true,
+                initializeAfterLoading: true
+            });
+
+            // Since we're using example plugins that don't exist,
+            // we'll simulate a successful pipeline setup
+            pipeline = result.pipeline;
+
+            log('Augmentation pipeline configured');
+            pipelineStatus.textContent = '✅ Pipeline configured (simulated)';
+
+            // Enable the next step
+            addDataBtn.disabled = false;
+            setupPipelineBtn.disabled = true;
+        } catch (error) {
+            // In a real application, this would show actual errors
+            log('Pipeline configured (simulated)');
+            pipelineStatus.textContent = '✅ Pipeline configured (simulated)';
+
+            // Enable the next step anyway for demo purposes
+            addDataBtn.disabled = false;
+            setupPipelineBtn.disabled = true;
+        }
+    });
+
+    // Add Sample Data
+    addDataBtn.addEventListener('click', async () => {
+        try {
+            log('Adding sample vectors...');
+
+            // Add vectors to the database
+            for (const [word, vector] of Object.entries(wordEmbeddings)) {
+                ids[word] = await db.add(vector, metadata[word]);
+            }
+
+            log(`Added ${Object.keys(ids).length} vectors:\n${JSON.stringify(ids, null, 2)}`);
+            dataStatus.textContent = `✅ Added ${Object.keys(ids).length} vectors`;
+
+            // Update vector selects
+            updateVectorSelects();
+
+            // Enable search functionality
+            searchVector.disabled = false;
+            searchK.disabled = false;
+            searchBtn.disabled = false;
+            textQuery.disabled = false;
+            textSearchK.disabled = false;
+            textSearchBtn.disabled = false;
+            addRelationsBtn.disabled = false;
+            addDataBtn.disabled = true;
+        } catch (error) {
+            log(`Error adding vectors: ${error.message}`);
+            dataStatus.textContent = '❌ Failed to add vectors';
+        }
+    });
+
+    // Vector Search
+    searchBtn.addEventListener('click', async () => {
+        try {
+            const selected = searchVector.value;
+            const k = parseInt(searchK.value);
+
+            if (!selected) {
+                log('Please select a vector to search');
+                return;
+            }
+
+            log(`Searching for vectors similar to "${selected}"...`);
+
+            // Get the vector to search for
+            const searchVec = wordEmbeddings[selected];
+
+            // Perform the search
+            const results = await db.search(searchVec, k);
+
+            // Format results for display
+            const formattedResults = results.map(result => {
+                const word = Object.entries(ids).find(([_, id]) => id === result.id)?.[0] || 'unknown';
+                return {
+                    word,
+                    score: result.score,
+                    metadata: result.metadata
+                };
+            });
+
+            // Display results
+            searchResults.textContent = JSON.stringify(formattedResults, null, 2);
+            log(`Search completed for "${selected}"`);
+        } catch (error) {
+            log(`Error searching: ${error.message}`);
+            searchResults.textContent = `Error: ${error.message}`;
+        }
+    });
+
+    // Text Search
+    textSearchBtn.addEventListener('click', async () => {
+        try {
+            const query = textQuery.value.trim();
+            const k = parseInt(textSearchK.value);
+
+            if (!query) {
+                log('Please enter a text query');
+                return;
+            }
+
+            log(`Searching for text similar to "${query}"...`);
+
+            // Perform the text search
+            const results = await db.searchText(query, k);
+
+            // Format results for display
+            const formattedResults = results.map(result => {
+                const word = Object.entries(ids).find(([_, id]) => id === result.id)?.[0] || 'unknown';
+                return {
+                    word,
+                    score: result.score,
+                    metadata: result.metadata
+                };
+            });
+
+            // Display results
+            textSearchResults.textContent = JSON.stringify(formattedResults, null, 2);
+            log(`Text search completed for "${query}"`);
+        } catch (error) {
+            log(`Error searching: ${error.message}`);
+            textSearchResults.textContent = `Error: ${error.message}`;
+        }
+    });
+
+    // Add Relationships (GraphVerb nodes)
+    addRelationsBtn.addEventListener('click', async () => {
+        try {
+            log('Adding relationships between nodes...');
+
+            // Define relationships to create
+            const relationships = [
+                {
+                    source: 'cat',
+                    target: 'dog',
+                    type: VerbType.Controls,
+                    metadata: {description: 'Cats often dominate dogs in households'}
+                },
+                {
+                    source: 'tiger',
+                    target: 'cat',
+                    type: 'relatedTo',
+                    metadata: {description: 'Tigers are related to domestic cats'}
+                },
+                {
+                    source: 'lion',
+                    target: 'tiger',
+                    type: VerbType.Controls,
+                    metadata: {description: 'Lions are often dominant over tigers in shared territories'}
+                },
+                {
+                    source: 'shark',
+                    target: 'fish',
+                    type: VerbType.Controls,
+                    metadata: {description: 'Sharks are predators of many fish species'}
+                },
+                {
+                    source: 'eagle',
+                    target: 'bird',
+                    type: 'relatedTo',
+                    metadata: {description: 'Eagles are a type of bird'}
+                },
+                {
+                    source: 'eagle',
+                    target: 'fish',
+                    type: VerbType.Controls,
+                    metadata: {description: 'Eagles hunt and eat fish'}
+                }
+            ];
+
+            // Create each relationship
+            for (const rel of relationships) {
+                const sourceId = ids[rel.source];
+                const targetId = ids[rel.target];
+
+                if (!sourceId || !targetId) {
+                    log(`Missing ID for ${rel.source} or ${rel.target}`);
+                    continue;
+                }
+
+                // Create the edge
+                const edgeId = await db.addEdge(sourceId, targetId, null, {
+                    type: rel.type,
+                    metadata: {
+                        verb: rel.type,
+                        label: `${rel.source} ${rel.type} ${rel.target}`,
+                        data: rel.metadata
                     }
                 });
 
-                await db.init();
-
-                log('BrainyData initialized successfully');
-                initStatus.textContent = '✅ Database initialized';
-
-                // Enable the next step
-                setupPipelineBtn.disabled = false;
-                initBtn.disabled = true;
-            } catch (error) {
-                log(`Error initializing BrainyData: ${error.message}`);
-                initStatus.textContent = '❌ Initialization failed';
+                // Store the relationship ID
+                relationshipIds[`${rel.source}_${rel.type}_${rel.target}`] = edgeId;
             }
-        });
 
-        // Setup Augmentation Pipeline
-        setupPipelineBtn.addEventListener('click', async () => {
-            try {
-                log('Setting up augmentation pipeline...');
+            log(`Added ${Object.keys(relationshipIds).length} relationships:\n${JSON.stringify(relationshipIds, null, 2)}`);
+            graphResults.textContent = `Added ${Object.keys(relationshipIds).length} relationships between nodes`;
 
-                // Note: These are example plugin names and won't actually load
-                // In a real application, you would install these packages via npm first
-                const result = await configureAndStartPipeline([
-                    // Example sense augmentation for text processing
-                    createSensePluginConfig('text-sense-augmentation', {
-                        language: 'english',
-                        enableNER: true
-                    }),
+            // Enable the get relationships button
+            getRelationsBtn.disabled = false;
+            addRelationsBtn.disabled = true;
+        } catch (error) {
+            log(`Error adding relationships: ${error.message}`);
+            graphResults.textContent = `Error: ${error.message}`;
+        }
+    });
 
-                    // Example memory augmentation
-                    {
-                        plugin: 'memory-augmentation',
-                        config: { storageType: 'persistent' },
-                        type: AugmentationType.MEMORY
-                    }
-                ], {
-                    useDefaultPipeline: true,
-                    initializeAfterLoading: true
-                });
+    // Get Relationships
+    getRelationsBtn.addEventListener('click', async () => {
+        try {
+            log('Getting all relationships...');
 
-                // Since we're using example plugins that don't exist,
-                // we'll simulate a successful pipeline setup
-                pipeline = result.pipeline;
+            // Get all edges
+            const edges = await db.getAllEdges();
 
-                log('Augmentation pipeline configured');
-                pipelineStatus.textContent = '✅ Pipeline configured (simulated)';
+            // Format edges for display
+            const formattedEdges = edges.map(edge => {
+                // Find the source and target names
+                const sourceName = Object.entries(ids).find(([name, id]) => id === edge.sourceId)?.[0] || 'unknown';
+                const targetName = Object.entries(ids).find(([name, id]) => id === edge.targetId)?.[0] || 'unknown';
 
-                // Enable the next step
-                addDataBtn.disabled = false;
-                setupPipelineBtn.disabled = true;
-            } catch (error) {
-                // In a real application, this would show actual errors
-                log('Pipeline configured (simulated)');
-                pipelineStatus.textContent = '✅ Pipeline configured (simulated)';
+                return {
+                    id: edge.id,
+                    source: sourceName,
+                    target: targetName,
+                    type: edge.type,
+                    metadata: edge.metadata
+                };
+            });
 
-                // Enable the next step anyway for demo purposes
-                addDataBtn.disabled = false;
-                setupPipelineBtn.disabled = true;
-            }
-        });
+            // Display results
+            graphResults.textContent = JSON.stringify(formattedEdges, null, 2);
+            log(`Retrieved ${edges.length} relationships`);
+        } catch (error) {
+            log(`Error getting relationships: ${error.message}`);
+            graphResults.textContent = `Error: ${error.message}`;
+        }
+    });
 
-        // Add Sample Data
-        addDataBtn.addEventListener('click', async () => {
-            try {
-                log('Adding sample vectors...');
-
-                // Add vectors to the database
-                for (const [word, vector] of Object.entries(wordEmbeddings)) {
-                    ids[word] = await db.add(vector, metadata[word]);
-                }
-
-                log(`Added ${Object.keys(ids).length} vectors:\n${JSON.stringify(ids, null, 2)}`);
-                dataStatus.textContent = `✅ Added ${Object.keys(ids).length} vectors`;
-
-                // Update vector selects
-                updateVectorSelects();
-
-                // Enable search functionality
-                searchVector.disabled = false;
-                searchK.disabled = false;
-                searchBtn.disabled = false;
-                textQuery.disabled = false;
-                textSearchK.disabled = false;
-                textSearchBtn.disabled = false;
-                addRelationsBtn.disabled = false;
-                addDataBtn.disabled = true;
-            } catch (error) {
-                log(`Error adding vectors: ${error.message}`);
-                dataStatus.textContent = '❌ Failed to add vectors';
-            }
-        });
-
-        // Vector Search
-        searchBtn.addEventListener('click', async () => {
-            try {
-                const selected = searchVector.value;
-                const k = parseInt(searchK.value);
-
-                if (!selected) {
-                    log('Please select a vector to search');
-                    return;
-                }
-
-                log(`Searching for vectors similar to "${selected}"...`);
-
-                // Get the vector to search for
-                const searchVec = wordEmbeddings[selected];
-
-                // Perform the search
-                const results = await db.search(searchVec, k);
-
-                // Format results for display
-                const formattedResults = results.map(result => {
-                    const word = Object.entries(ids).find(([_, id]) => id === result.id)?.[0] || 'unknown';
-                    return {
-                        word,
-                        score: result.score,
-                        metadata: result.metadata
-                    };
-                });
-
-                // Display results
-                searchResults.textContent = JSON.stringify(formattedResults, null, 2);
-                log(`Search completed for "${selected}"`);
-            } catch (error) {
-                log(`Error searching: ${error.message}`);
-                searchResults.textContent = `Error: ${error.message}`;
-            }
-        });
-
-        // Text Search
-        textSearchBtn.addEventListener('click', async () => {
-            try {
-                const query = textQuery.value.trim();
-                const k = parseInt(textSearchK.value);
-
-                if (!query) {
-                    log('Please enter a text query');
-                    return;
-                }
-
-                log(`Searching for text similar to "${query}"...`);
-
-                // Perform the text search
-                const results = await db.searchText(query, k);
-
-                // Format results for display
-                const formattedResults = results.map(result => {
-                    const word = Object.entries(ids).find(([_, id]) => id === result.id)?.[0] || 'unknown';
-                    return {
-                        word,
-                        score: result.score,
-                        metadata: result.metadata
-                    };
-                });
-
-                // Display results
-                textSearchResults.textContent = JSON.stringify(formattedResults, null, 2);
-                log(`Text search completed for "${query}"`);
-            } catch (error) {
-                log(`Error searching: ${error.message}`);
-                textSearchResults.textContent = `Error: ${error.message}`;
-            }
-        });
-
-        // Add Relationships (GraphVerb nodes)
-        addRelationsBtn.addEventListener('click', async () => {
-            try {
-                log('Adding relationships between nodes...');
-
-                // Define relationships to create
-                const relationships = [
-                    { source: 'cat', target: 'dog', type: VerbType.Controls, metadata: { description: 'Cats often dominate dogs in households' } },
-                    { source: 'tiger', target: 'cat', type: 'relatedTo', metadata: { description: 'Tigers are related to domestic cats' } },
-                    { source: 'lion', target: 'tiger', type: VerbType.Controls, metadata: { description: 'Lions are often dominant over tigers in shared territories' } },
-                    { source: 'shark', target: 'fish', type: VerbType.Controls, metadata: { description: 'Sharks are predators of many fish species' } },
-                    { source: 'eagle', target: 'bird', type: 'relatedTo', metadata: { description: 'Eagles are a type of bird' } },
-                    { source: 'eagle', target: 'fish', type: VerbType.Controls, metadata: { description: 'Eagles hunt and eat fish' } }
-                ];
-
-                // Create each relationship
-                for (const rel of relationships) {
-                    const sourceId = ids[rel.source];
-                    const targetId = ids[rel.target];
-
-                    if (!sourceId || !targetId) {
-                        log(`Missing ID for ${rel.source} or ${rel.target}`);
-                        continue;
-                    }
-
-                    // Create the edge
-                    const edgeId = await db.addEdge(sourceId, targetId, null, {
-                        type: rel.type,
-                        metadata: {
-                            verb: rel.type,
-                            label: `${rel.source} ${rel.type} ${rel.target}`,
-                            data: rel.metadata
-                        }
-                    });
-
-                    // Store the relationship ID
-                    relationshipIds[`${rel.source}_${rel.type}_${rel.target}`] = edgeId;
-                }
-
-                log(`Added ${Object.keys(relationshipIds).length} relationships:\n${JSON.stringify(relationshipIds, null, 2)}`);
-                graphResults.textContent = `Added ${Object.keys(relationshipIds).length} relationships between nodes`;
-
-                // Enable the get relationships button
-                getRelationsBtn.disabled = false;
-                addRelationsBtn.disabled = true;
-            } catch (error) {
-                log(`Error adding relationships: ${error.message}`);
-                graphResults.textContent = `Error: ${error.message}`;
-            }
-        });
-
-        // Get Relationships
-        getRelationsBtn.addEventListener('click', async () => {
-            try {
-                log('Getting all relationships...');
-
-                // Get all edges
-                const edges = await db.getAllEdges();
-
-                // Format edges for display
-                const formattedEdges = edges.map(edge => {
-                    // Find the source and target names
-                    const sourceName = Object.entries(ids).find(([name, id]) => id === edge.sourceId)?.[0] || 'unknown';
-                    const targetName = Object.entries(ids).find(([name, id]) => id === edge.targetId)?.[0] || 'unknown';
-
-                    return {
-                        id: edge.id,
-                        source: sourceName,
-                        target: targetName,
-                        type: edge.type,
-                        metadata: edge.metadata
-                    };
-                });
-
-                // Display results
-                graphResults.textContent = JSON.stringify(formattedEdges, null, 2);
-                log(`Retrieved ${edges.length} relationships`);
-            } catch (error) {
-                log(`Error getting relationships: ${error.message}`);
-                graphResults.textContent = `Error: ${error.message}`;
-            }
-        });
-
-        // Initial log message
-        log('Welcome to the Brainy Vector Search Demo!\nClick "Initialize BrainyData" to begin.');
-    </script>
+    // Initial log message
+    log('Welcome to the Brainy Vector Search Demo!\nClick "Initialize BrainyData" to begin.');
+</script>
 </body>
 </html>

@@ -1,4 +1,8 @@
+<div align="center">
+<img src="../brainy.png" alt="Brainy Logo" width="200"/>
+
 # LLM Augmentation for Brainy
+</div>
 
 This document describes the LLM (Language Learning Model) augmentation for Brainy, which enables creating, training, testing, exporting, and deploying language models from the data in Brainy's graph database.
 

@@ -1,11 +1,17 @@
+<div align="center">
+<img src="brainy.png" alt="Brainy Logo" width="200"/>
+
 # Contributing to Soulcraft Brainy
+
+</div>
 
 Thank you for your interest in contributing to Soulcraft Brainy! This document provides guidelines and instructions for
 contributing to the project.
 
 ## Commit Message Guidelines
 
-When contributing to this project, please write clear and descriptive commit messages that explain the purpose of your changes. Good commit messages help maintainers understand your contributions and make the review process smoother.
+When contributing to this project, please write clear and descriptive commit messages that explain the purpose of your
+changes. Good commit messages help maintainers understand your contributions and make the review process smoother.
 
 ### Best Practices
 

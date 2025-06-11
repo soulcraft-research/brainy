@@ -1,14 +1,11 @@
 <div align="center">
 
-# 🧠 Brainy
+<img src="brainy.png" alt="Brainy Logo" width="200"/>
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D23.11.0-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.1.6-blue.svg)](https://www.typescriptlang.org/)
-[![npm package](https://img.shields.io/badge/npm-@soulcraft/brainy-blue)](https://www.npmjs.com/package/@soulcraft/brainy)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
-[![TensorFlow](https://img.shields.io/badge/TensorFlow-4.22.0-orange.svg)](https://www.tensorflow.org/)
 [![Cartographer](https://img.shields.io/badge/Cartographer-Official%20Standard-brightgreen)](https://github.com/sodal-project/cartographer)
 
 **A powerful, lightweight vector & graph database for browsers and Node.js**
@@ -35,7 +32,8 @@ and connections.
 - **Extensible Augmentations** - Customize and extend functionality with pluggable components (LEGO blocks for your
   data!)
 - **Built-in Conduits** - Sync and scale across instances with WebSocket and WebRTC (your data's teleportation system!)
-- **LLM Creation & Training** - Build, train, and deploy language models from your graph data (your own personal AI factory!)
+- **LLM Creation & Training** - Build, train, and deploy language models from your graph data (your own personal AI
+  factory!)
 - **Adaptive Intelligence** - Automatically optimizes for your environment and usage patterns
 - **Cross-Platform** - Works everywhere you do: browsers, Node.js, and server environments
 - **Persistent Storage** - Data persists across sessions and scales to any size (no memory loss here, even for
@@ -180,20 +178,22 @@ Brainy uses a powerful augmentation system to extend functionality. Augmentation
     - Enables advanced reasoning, inference, and logical operations
     - Analyzes relationships between entities
     - Creates and trains language models from graph data
-    - Examples: 
-      - Inferring new connections between existing data
-      - Building custom LLMs from your nouns and verbs
+    - Examples:
+        - Inferring new connections between existing data
+        - Building custom LLMs from your nouns and verbs
 
 4. **CONDUIT** 🔌
     - Establishes high-bandwidth channels for structured data exchange
     - Connects with external systems and syncs between Brainy instances
     - Two built-in iConduit augmentations for scaling out and syncing:
-      - **WebSocket iConduit** - Syncs data between browsers and servers (like a digital postal service with superpowers!)
-      - **WebRTC iConduit** - Direct peer-to-peer syncing between browsers (like telepathy for your data, no middleman required!)
-    - Examples: 
-      - Integrating with third-party APIs
-      - Syncing Brainy instances between browsers using WebSockets
-      - Peer-to-peer syncing between browsers using WebRTC
+        - **WebSocket iConduit** - Syncs data between browsers and servers (like a digital postal service with
+          superpowers!)
+        - **WebRTC iConduit** - Direct peer-to-peer syncing between browsers (like telepathy for your data, no middleman
+          required!)
+    - Examples:
+        - Integrating with third-party APIs
+        - Syncing Brainy instances between browsers using WebSockets
+        - Peer-to-peer syncing between browsers using WebRTC
 
 5. **ACTIVATION** ⚡
     - Initiates actions, responses, or data manipulations
@@ -524,65 +524,65 @@ await db.deleteVerb(verbId)
 ### Working with LLM Models
 
 ```typescript
-import { createLLMAugmentations } from '@soulcraft/brainy'
+import {createLLMAugmentations} from '@soulcraft/brainy'
 
 // Create LLM augmentations
-const { cognition, activation } = await createLLMAugmentations()
+const {cognition, activation} = await createLLMAugmentations()
 
 // Create a new LLM model
 const createResult = await cognition.createModel({
-  name: 'my-model',
-  description: 'A simple LLM model trained on Brainy data',
-  modelType: 'simple',
-  vocabSize: 5000,
-  embeddingDim: 64,
-  hiddenDim: 128,
-  numLayers: 1
+    name: 'my-model',
+    description: 'A simple LLM model trained on Brainy data',
+    modelType: 'simple',
+    vocabSize: 5000,
+    embeddingDim: 64,
+    hiddenDim: 128,
+    numLayers: 1
 })
 
 const modelId = createResult.data.modelId
 
 // Train the model
 const trainResult = await cognition.trainModel(modelId, {
-  maxSamples: 100,
-  validationSplit: 0.2,
-  earlyStoppingPatience: 2
+    maxSamples: 100,
+    validationSplit: 0.2,
+    earlyStoppingPatience: 2
 })
 
 // Test the model
 const testResult = await cognition.testModel(modelId, {
-  testSize: 20,
-  generateSamples: true,
-  sampleCount: 3
+    testSize: 20,
+    generateSamples: true,
+    sampleCount: 3
 })
 
 // Generate text with the model
 const generateResult = await cognition.generateText(modelId, 'What is a', {
-  temperature: 0.7,
-  topK: 5
+    temperature: 0.7,
+    topK: 5
 })
 
 // Export the model
 const exportResult = await cognition.exportModel(modelId, {
-  format: 'json',
-  includeMetadata: true,
-  includeVocab: true
+    format: 'json',
+    includeMetadata: true,
+    includeVocab: true
 })
 
 // Deploy the model
 const deployResult = await cognition.deployModel(modelId, {
-  target: 'browser'
+    target: 'browser'
 })
 
 // Using the augmentation pipeline
 const pipelineResult = await augmentationPipeline.executeCognitionPipeline(
-  'createModel',
-  [{
-    name: 'pipeline-model',
-    modelType: 'transformer',
-    numHeads: 2,
-    numLayers: 1
-  }]
+    'createModel',
+    [{
+        name: 'pipeline-model',
+        modelType: 'transformer',
+        numHeads: 2,
+        numLayers: 1
+    }]
 )
 ```
 
@@ -682,9 +682,11 @@ Brainy can be deployed as a standalone web service on various cloud platforms us
 - **Google Cloud Run**: Deploy as a containerized service
 - **Cloudflare Workers**: Deploy as a serverless function on the edge
 
-The cloud wrapper provides both RESTful and WebSocket APIs for all Brainy operations, enabling both request-response and real-time communication patterns. It supports multiple storage backends and can be configured via environment variables.
+The cloud wrapper provides both RESTful and WebSocket APIs for all Brainy operations, enabling both request-response and
+real-time communication patterns. It supports multiple storage backends and can be configured via environment variables.
 
 Key features of the cloud wrapper:
+
 - RESTful API for standard CRUD operations
 - WebSocket API for real-time updates and subscriptions
 - Support for multiple storage backends (Memory, FileSystem, S3)
@@ -695,7 +697,8 @@ To get started with cloud deployment, see the [Cloud Wrapper README](cloud-wrapp
 
 ## 🔗 Related Projects
 
-- **[sodal-project cartographer](https://github.com/sodal-project/cartographer)** - The defacto standard for interacting with Brainy
+- **[sodal-project cartographer](https://github.com/sodal-project/cartographer)** - The defacto standard for interacting
+  with Brainy
 
 ## 📚 Examples
 
@@ -712,16 +715,19 @@ The repository includes several examples:
 
 You can use the conduit augmentations to sync Brainy instances:
 
-- **WebSocket iConduit**: For syncing between browsers and servers, or between servers (like a digital postal service with superpowers!). WebSockets cannot be used for direct browser-to-browser communication without a server in the middle.
-- **WebRTC iConduit**: For direct peer-to-peer syncing between browsers (like telepathy for your data, no middleman required!). This is the recommended approach for browser-to-browser communication.
+- **WebSocket iConduit**: For syncing between browsers and servers, or between servers (like a digital postal service
+  with superpowers!). WebSockets cannot be used for direct browser-to-browser communication without a server in the
+  middle.
+- **WebRTC iConduit**: For direct peer-to-peer syncing between browsers (like telepathy for your data, no middleman
+  required!). This is the recommended approach for browser-to-browser communication.
 
 #### WebSocket Sync Example
 
 ```typescript
-import { 
-  BrainyData, 
-  augmentationPipeline, 
-  createConduitAugmentation 
+import {
+    BrainyData,
+    augmentationPipeline,
+    createConduitAugmentation
 } from '@soulcraft/brainy'
 
 // Create and initialize the database
@@ -736,46 +742,46 @@ augmentationPipeline.register(wsConduit)
 
 // Connect to another Brainy instance (server or browser)
 const connectionResult = await augmentationPipeline.executeConduitPipeline(
-  'establishConnection',
-  ['wss://your-websocket-server.com/brainy-sync', { protocols: 'brainy-sync' }]
+    'establishConnection',
+    ['wss://your-websocket-server.com/brainy-sync', {protocols: 'brainy-sync'}]
 )
 
 if (connectionResult[0] && (await connectionResult[0]).success) {
-  const connection = (await connectionResult[0]).data
+    const connection = (await connectionResult[0]).data
 
-  // Read data from the remote instance
-  const readResult = await augmentationPipeline.executeConduitPipeline(
-    'readData',
-    [{ connectionId: connection.connectionId, query: { type: 'getAllNouns' } }]
-  )
+    // Read data from the remote instance
+    const readResult = await augmentationPipeline.executeConduitPipeline(
+        'readData',
+        [{connectionId: connection.connectionId, query: {type: 'getAllNouns'}}]
+    )
 
-  // Process and add the received data to the local instance
-  if (readResult[0] && (await readResult[0]).success) {
-    const remoteNouns = (await readResult[0]).data
-    for (const noun of remoteNouns) {
-      await db.add(noun.vector, noun.metadata)
+    // Process and add the received data to the local instance
+    if (readResult[0] && (await readResult[0]).success) {
+        const remoteNouns = (await readResult[0]).data
+        for (const noun of remoteNouns) {
+            await db.add(noun.vector, noun.metadata)
+        }
     }
-  }
 
-  // Set up real-time sync by monitoring the stream
-  await wsConduit.monitorStream(connection.connectionId, async (data) => {
-    // Handle incoming data (e.g., new nouns, verbs, updates)
-    if (data.type === 'newNoun') {
-      await db.add(data.vector, data.metadata)
-    } else if (data.type === 'newVerb') {
-      await db.addVerb(data.sourceId, data.targetId, data.vector, data.options)
-    }
-  })
+    // Set up real-time sync by monitoring the stream
+    await wsConduit.monitorStream(connection.connectionId, async (data) => {
+        // Handle incoming data (e.g., new nouns, verbs, updates)
+        if (data.type === 'newNoun') {
+            await db.add(data.vector, data.metadata)
+        } else if (data.type === 'newVerb') {
+            await db.addVerb(data.sourceId, data.targetId, data.vector, data.options)
+        }
+    })
 }
 ```
 
 #### WebRTC Peer-to-Peer Sync Example
 
 ```typescript
-import { 
-  BrainyData, 
-  augmentationPipeline, 
-  createConduitAugmentation 
+import {
+    BrainyData,
+    augmentationPipeline,
+    createConduitAugmentation
 } from '@soulcraft/brainy'
 
 // Create and initialize the database
@@ -790,87 +796,88 @@ augmentationPipeline.register(webrtcConduit)
 
 // Connect to a peer using a signaling server
 const connectionResult = await augmentationPipeline.executeConduitPipeline(
-  'establishConnection',
-  [
-    'peer-id-to-connect-to', 
-    { 
-      signalServerUrl: 'wss://your-signal-server.com',
-      localPeerId: 'my-peer-id',
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-    }
-  ]
+    'establishConnection',
+    [
+        'peer-id-to-connect-to',
+        {
+            signalServerUrl: 'wss://your-signal-server.com',
+            localPeerId: 'my-peer-id',
+            iceServers: [{urls: 'stun:stun.l.google.com:19302'}]
+        }
+    ]
 )
 
 if (connectionResult[0] && (await connectionResult[0]).success) {
-  const connection = (await connectionResult[0]).data
+    const connection = (await connectionResult[0]).data
 
-  // Set up real-time sync by monitoring the stream
-  await webrtcConduit.monitorStream(connection.connectionId, async (data) => {
-    // Handle incoming data (e.g., new nouns, verbs, updates)
-    if (data.type === 'newNoun') {
-      await db.add(data.vector, data.metadata)
-    } else if (data.type === 'newVerb') {
-      await db.addVerb(data.sourceId, data.targetId, data.vector, data.options)
-    }
-  })
+    // Set up real-time sync by monitoring the stream
+    await webrtcConduit.monitorStream(connection.connectionId, async (data) => {
+        // Handle incoming data (e.g., new nouns, verbs, updates)
+        if (data.type === 'newNoun') {
+            await db.add(data.vector, data.metadata)
+        } else if (data.type === 'newVerb') {
+            await db.addVerb(data.sourceId, data.targetId, data.vector, data.options)
+        }
+    })
 
-  // When adding new data locally, also send to the peer
-  const nounId = await db.add("New data to sync", { noun: "Thing" })
+    // When adding new data locally, also send to the peer
+    const nounId = await db.add("New data to sync", {noun: "Thing"})
 
-  // Send the new noun to the peer
-  await augmentationPipeline.executeConduitPipeline(
-    'writeData',
-    [
-      { 
-        connectionId: connection.connectionId, 
-        data: { 
-          type: 'newNoun',
-          id: nounId,
-          vector: (await db.get(nounId)).vector,
-          metadata: (await db.get(nounId)).metadata
-        } 
-      }
-    ]
-  )
+    // Send the new noun to the peer
+    await augmentationPipeline.executeConduitPipeline(
+        'writeData',
+        [
+            {
+                connectionId: connection.connectionId,
+                data: {
+                    type: 'newNoun',
+                    id: nounId,
+                    vector: (await db.get(nounId)).vector,
+                    metadata: (await db.get(nounId)).metadata
+                }
+            }
+        ]
+    )
 }
 ```
 
 #### Browser-Server Search Example
 
-Brainy supports searching a server-hosted instance from a browser, storing results locally, and performing further searches against the local instance:
+Brainy supports searching a server-hosted instance from a browser, storing results locally, and performing further
+searches against the local instance:
 
 ```typescript
-import { BrainyData } from '@soulcraft/brainy'
+import {BrainyData} from '@soulcraft/brainy'
 
 // Create and initialize the database with remote server configuration
 const db = new BrainyData({
-  remoteServer: {
-    url: 'wss://your-brainy-server.com/ws',
-    protocols: 'brainy-sync',
-    autoConnect: true // Connect automatically during initialization
-  }
+    remoteServer: {
+        url: 'wss://your-brainy-server.com/ws',
+        protocols: 'brainy-sync',
+        autoConnect: true // Connect automatically during initialization
+    }
 })
 await db.init()
 
 // Or connect manually after initialization
 if (!db.isConnectedToRemoteServer()) {
-  await db.connectToRemoteServer('wss://your-brainy-server.com/ws', 'brainy-sync')
+    await db.connectToRemoteServer('wss://your-brainy-server.com/ws', 'brainy-sync')
 }
 
 // Search the remote server (results are stored locally)
-const remoteResults = await db.searchText('machine learning', 5, { searchMode: 'remote' })
+const remoteResults = await db.searchText('machine learning', 5, {searchMode: 'remote'})
 
 // Search the local database (includes previously stored results)
-const localResults = await db.searchText('machine learning', 5, { searchMode: 'local' })
+const localResults = await db.searchText('machine learning', 5, {searchMode: 'local'})
 
 // Perform a combined search (local first, then remote if needed)
-const combinedResults = await db.searchText('neural networks', 5, { searchMode: 'combined' })
+const combinedResults = await db.searchText('neural networks', 5, {searchMode: 'combined'})
 
 // Add data to both local and remote instances
 const id = await db.addToBoth('Deep learning is a subset of machine learning', {
-  noun: 'Concept',
-  category: 'AI',
-  tags: ['deep learning', 'neural networks']
+    noun: 'Concept',
+    category: 'AI',
+    tags: ['deep learning', 'neural networks']
 })
 
 // Clean up when done
@@ -890,51 +897,52 @@ For a complete example with HTML interface, see the [browser-server-search examp
 Brainy follows a specific code style to maintain consistency throughout the codebase:
 
 1. **No Semicolons**: All code in the project should avoid using semicolons wherever possible. This applies to:
-   - Source code files (.ts, .js)
-   - Generated code
-   - Code examples in documentation
-   - Templates and snippets
+    - Source code files (.ts, .js)
+    - Generated code
+    - Code examples in documentation
+    - Templates and snippets
 
 2. **Formatting**: The project uses Prettier for code formatting with the following settings:
-   - No semicolons (`"semi": false`)
-   - Single quotes for strings (`"singleQuote": true`)
-   - 2-space indentation (`"tabWidth": 2`)
-   - Always use parentheses around arrow function parameters (`"arrowParens": "always"`)
-   - Place the closing bracket of JSX elements on the same line (`"bracketSameLine": true`)
-   - Add spaces between brackets and object literals (`"bracketSpacing": true`)
-   - Line width of 80 characters (`"printWidth": 80`)
-   - No trailing commas (`"trailingComma": "none"`)
-   - Use spaces instead of tabs (`"useTabs": false`)
+    - No semicolons (`"semi": false`)
+    - Single quotes for strings (`"singleQuote": true`)
+    - 2-space indentation (`"tabWidth": 2`)
+    - Always use parentheses around arrow function parameters (`"arrowParens": "always"`)
+    - Place the closing bracket of JSX elements on the same line (`"bracketSameLine": true`)
+    - Add spaces between brackets and object literals (`"bracketSpacing": true`)
+    - Line width of 80 characters (`"printWidth": 80`)
+    - No trailing commas (`"trailingComma": "none"`)
+    - Use spaces instead of tabs (`"useTabs": false`)
 
 3. **Linting**: ESLint is configured with the following rules:
-   - No semicolons:
-     ```json
-     "semi": ["error", "never"],
-     "@typescript-eslint/semi": ["error", "never"]
-     ```
-   - Unused variables handling:
-     ```json
-     "no-unused-vars": "off",
-     "@typescript-eslint/no-unused-vars": ["warn", {
-       "args": "after-used",
-       "argsIgnorePattern": "^_"
-     }]
-     ```
-   - Extends recommended ESLint and TypeScript ESLint configurations
+    - No semicolons:
+      ```json
+      "semi": ["error", "never"],
+      "@typescript-eslint/semi": ["error", "never"]
+      ```
+    - Unused variables handling:
+      ```json
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        "args": "after-used",
+        "argsIgnorePattern": "^_"
+      }]
+      ```
+    - Extends recommended ESLint and TypeScript ESLint configurations
 
 4. **TypeScript Configuration**:
-   - Strict type checking enabled (`"strict": true`)
-   - Consistent casing in file names enforced (`"forceConsistentCasingInFileNames": true`)
-   - ES2020 target with Node.js module system
-   - Source maps generated for debugging
+    - Strict type checking enabled (`"strict": true`)
+    - Consistent casing in file names enforced (`"forceConsistentCasingInFileNames": true`)
+    - ES2020 target with Node.js module system
+    - Source maps generated for debugging
 
 5. **Commit Messages**:
-   - Use the imperative mood ("Add feature" not "Added feature")
-   - Keep the first line concise (under 50 characters)
-   - Reference issues and pull requests where appropriate
-   - Provide detailed explanations in the commit body when necessary
+    - Use the imperative mood ("Add feature" not "Added feature")
+    - Keep the first line concise (under 50 characters)
+    - Reference issues and pull requests where appropriate
+    - Provide detailed explanations in the commit body when necessary
 
-When contributing to the project, please ensure your code follows these guidelines. The project's CI/CD pipeline will automatically check for style violations.
+When contributing to the project, please ensure your code follows these guidelines. The project's CI/CD pipeline will
+automatically check for style violations.
 
 ### Development Workflow
 

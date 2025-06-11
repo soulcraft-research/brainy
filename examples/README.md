@@ -1,4 +1,8 @@
+<div align="center">
+<img src="../brainy.png" alt="Brainy Logo" width="200"/>
+
 # Brainy Examples
+</div>
 
 This directory contains examples demonstrating various features and use cases of the Brainy vector graph database.
 

@@ -1,4 +1,8 @@
+<div align="center">
+<img src="../../brainy.png" alt="Brainy Logo" width="200"/>
+
 # Brainy Augmentations
+</div>
 
 This directory contains the augmentation implementations for Brainy. Augmentations are pluggable components that extend Brainy's functionality in various ways.
 
@@ -191,31 +195,31 @@ class MyCustomActivation implements IActivationAugmentation {
   readonly name = 'my-custom-activation'
   readonly description = 'My custom activation augmentation'
   enabled = true
-  
+
   getType(): AugmentationType {
     return AugmentationType.ACTIVATION
   }
-  
+
   async initialize(): Promise<void> {
     // Initialization code
   }
-  
+
   async shutDown(): Promise<void> {
     // Cleanup code
   }
-  
+
   async getStatus(): Promise<'active' | 'inactive' | 'error'> {
     return 'active'
   }
-  
+
   triggerAction(actionName: string, parameters?: Record<string, unknown>): AugmentationResponse<unknown> {
     // Implementation
   }
-  
+
   generateOutput(knowledgeId: string, format: string): AugmentationResponse<string | Record<string, unknown>> {
     // Implementation
   }
-  
+
   interactExternal(systemId: string, payload: Record<string, unknown>): AugmentationResponse<unknown> {
     // Implementation
   }
