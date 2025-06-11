@@ -56,6 +56,12 @@
   "publishConfig": {
     "access": "restricted"
   },
+  "files": [
+    "dist/",
+    "brainy.png",
+    "LICENSE",
+    "README.md"
+  ],
   "devDependencies": {
     "@types/jest": "^29.5.3",
     "@types/node": "^20.4.5",
