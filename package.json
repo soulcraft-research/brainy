@@ -56,6 +56,10 @@
   "publishConfig": {
     "access": "restricted"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soulcraft-research/brainy.git"
+  },
   "files": [
     "dist/",
     "brainy.png",
