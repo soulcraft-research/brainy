@@ -1,7 +1,7 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/soulcraft-research/brainy/main/brainy.png" alt="Brainy Logo" width="200"/>
-<br/><br/>
+<img src="./brainy.png" alt="Brainy Logo" width="200"/>
+<br/>
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D23.11.0-brightgreen.svg)](https://nodejs.org/)
