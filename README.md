@@ -1,7 +1,7 @@
 <div align="center">
 
 <img src="./brainy.png" alt="Brainy Logo" width="200"/>
-<br/>
+<br/><br/>
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D23.11.0-brightgreen.svg)](https://nodejs.org/)
