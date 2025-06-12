@@ -20,13 +20,13 @@ yarn-error.log*
 .env.production.local
 
 # IDE files
-.vscode/*
-# WebStorm files to ignore
-.idea/workspace.xml
-.idea/usage.statistics.xml
-.idea/dictionaries
-.idea/shelf
-# Include other WebStorm project files
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
+*.sublime-workspace
+*.sublime-project
 
 # OS files
 .DS_Store

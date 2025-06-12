@@ -1,11 +1,11 @@
 <div align="center">
-<img src="https://raw.githubusercontent.com/soulcraft-research/brainy/main/brainy.png" alt="Brainy Logo" width="200"/>
+<img src="./brainy.png" alt="Brainy Logo" width="200"/>
 
-# Contributing to Soulcraft Brainy
+# Contributing to Brainy
 
 </div>
 
-Thank you for your interest in contributing to Soulcraft Brainy! This document provides guidelines and instructions for
+Thank you for your interest in contributing to Brainy! This document provides guidelines and instructions for
 contributing to the project.
 
 ## Commit Message Guidelines
@@ -48,4 +48,4 @@ Update build dependencies
 3. Build the project: `npm run build`
 4. Run tests: `npm test`
 
-Thank you for contributing to Soulcraft Brainy!
+Thank you for contributing to Brainy!

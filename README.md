@@ -629,12 +629,12 @@ const db = new BrainyData({
     // Storage configuration
     storage: {
         requestPersistentStorage: true,
-        // Uncomment to use cloud storage:
+        // Example configuration for cloud storage (replace with your own values):
         // s3Storage: {
-        //   bucketName: 'your-bucket',
-        //   accessKeyId: 'your-key',
-        //   secretAccessKey: 'your-secret',
-        //   region: 'us-east-1'
+        //   bucketName: 'your-s3-bucket-name',
+        //   region: 'your-aws-region'
+        //   // Credentials should be provided via environment variables
+        //   // AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
         // }
     }
 })
@@ -697,8 +697,8 @@ To get started with cloud deployment, see the [Cloud Wrapper README](cloud-wrapp
 
 ## 🔗 Related Projects
 
-- **[sodal-project cartographer](https://github.com/sodal-project/cartographer)** - The defacto standard for interacting
-  with Brainy
+- **[Cartographer](https://github.com/sodal-project/cartographer)** - A companion project that provides standardized 
+  interfaces for interacting with Brainy
 
 ## 📚 Examples
 
@@ -741,9 +741,10 @@ const wsConduit = await createConduitAugmentation('websocket', 'my-websocket-syn
 augmentationPipeline.register(wsConduit)
 
 // Connect to another Brainy instance (server or browser)
+// Replace the example URL below with your actual WebSocket server URL
 const connectionResult = await augmentationPipeline.executeConduitPipeline(
     'establishConnection',
-    ['wss://your-websocket-server.com/brainy-sync', {protocols: 'brainy-sync'}]
+    ['wss://example-websocket-server.com/brainy-sync', {protocols: 'brainy-sync'}]
 )
 
 if (connectionResult[0] && (await connectionResult[0]).success) {
@@ -795,14 +796,15 @@ const webrtcConduit = await createConduitAugmentation('webrtc', 'my-webrtc-sync'
 augmentationPipeline.register(webrtcConduit)
 
 // Connect to a peer using a signaling server
+// Replace the example values below with your actual configuration
 const connectionResult = await augmentationPipeline.executeConduitPipeline(
     'establishConnection',
     [
-        'peer-id-to-connect-to',
+        'peer-id-to-connect-to', // Replace with actual peer ID
         {
-            signalServerUrl: 'wss://your-signal-server.com',
-            localPeerId: 'my-peer-id',
-            iceServers: [{urls: 'stun:stun.l.google.com:19302'}]
+            signalServerUrl: 'wss://example-signal-server.com', // Replace with your signal server
+            localPeerId: 'my-local-peer-id', // Replace with your local peer ID
+            iceServers: [{urls: 'stun:stun.l.google.com:19302'}] // Public STUN server
         }
     ]
 )
@@ -850,9 +852,10 @@ searches against the local instance:
 import {BrainyData} from '@soulcraft/brainy'
 
 // Create and initialize the database with remote server configuration
+// Replace the example URL below with your actual Brainy server URL
 const db = new BrainyData({
     remoteServer: {
-        url: 'wss://your-brainy-server.com/ws',
+        url: 'wss://example-brainy-server.com/ws', // Replace with your server URL
         protocols: 'brainy-sync',
         autoConnect: true // Connect automatically during initialization
     }
@@ -861,7 +864,8 @@ await db.init()
 
 // Or connect manually after initialization
 if (!db.isConnectedToRemoteServer()) {
-    await db.connectToRemoteServer('wss://your-brainy-server.com/ws', 'brainy-sync')
+    // Replace the example URL below with your actual Brainy server URL
+    await db.connectToRemoteServer('wss://example-brainy-server.com/ws', 'brainy-sync')
 }
 
 // Search the remote server (results are stored locally)
