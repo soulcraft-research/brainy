@@ -26,6 +26,7 @@ and connections.
 
 ### 🚀 Key Features
 
+- **Run Everywhere** - Run Brainy in a browser, container, serverless cloud service or the terminal!
 - **Vector Search** - Find semantically similar content using embeddings (like having ESP for your data!)
 - **Graph Relationships** - Connect data with meaningful relationships (your data's social network)
 - **Streaming Pipeline** - Process data in real-time as it flows through the system (like a data waterslide!)
@@ -697,7 +698,7 @@ To get started with cloud deployment, see the [Cloud Wrapper README](cloud-wrapp
 
 ## 🔗 Related Projects
 
-- **[Cartographer](https://github.com/sodal-project/cartographer)** - A companion project that provides standardized 
+- **[Cartographer](https://github.com/sodal-project/cartographer)** - A companion project that provides standardized
   interfaces for interacting with Brainy
 
 ## 📚 Examples
