@@ -8,7 +8,7 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Cartographer](https://img.shields.io/badge/Cartographer-Official%20Standard-brightgreen)](https://github.com/sodal-project/cartographer)
 
-**Lightweight graph & vector data platform for AI applications across any environment**
+**A fun lightweight graph & vector data platform for AI applications across any environment**
 
 </div>
 
