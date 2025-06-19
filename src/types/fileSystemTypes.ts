@@ -6,6 +6,8 @@
 // Extend the FileSystemDirectoryHandle interface
 interface FileSystemDirectoryHandle {
   [Symbol.asyncIterator](): AsyncIterableIterator<[string, FileSystemHandle]>;
+  keys(): AsyncIterableIterator<string>;
+  entries(): AsyncIterableIterator<[string, FileSystemHandle]>;
 }
 
 // Export something to make this a module

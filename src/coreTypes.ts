@@ -5,36 +5,36 @@
 /**
  * Vector representation - an array of numbers
  */
-export type Vector = number[];
+export type Vector = number[]
 
 /**
  * A document with a vector embedding and optional metadata
  */
 export interface VectorDocument<T = any> {
-  id: string;
-  vector: Vector;
-  metadata?: T;
+  id: string
+  vector: Vector
+  metadata?: T
 }
 
 /**
  * Search result with similarity score
  */
 export interface SearchResult<T = any> {
-  id: string;
-  score: number;
-  vector: Vector;
-  metadata?: T;
+  id: string
+  score: number
+  vector: Vector
+  metadata?: T
 }
 
 /**
  * Distance function for comparing vectors
  */
-export type DistanceFunction = (a: Vector, b: Vector) => number;
+export type DistanceFunction = (a: Vector, b: Vector) => number
 
 /**
  * Embedding function for converting data to vectors
  */
-export type EmbeddingFunction = (data: any) => Promise<Vector>;
+export type EmbeddingFunction = (data: any) => Promise<Vector>
 
 /**
  * Embedding model interface
@@ -43,26 +43,26 @@ export interface EmbeddingModel {
   /**
    * Initialize the embedding model
    */
-  init(): Promise<void>;
+  init(): Promise<void>
 
   /**
    * Embed data into a vector
    */
-  embed(data: any): Promise<Vector>;
+  embed(data: any): Promise<Vector>
 
   /**
    * Dispose of the model resources
    */
-  dispose(): Promise<void>;
+  dispose(): Promise<void>
 }
 
 /**
  * HNSW graph noun
  */
 export interface HNSWNoun {
-  id: string;
-  vector: Vector;
-  connections: Map<number, Set<string>>;  // level -> set of connected noun ids
+  id: string
+  vector: Vector
+  connections: Map<number, Set<string>> // level -> set of connected noun ids
 }
 
 /**
@@ -70,63 +70,63 @@ export interface HNSWNoun {
  * Extends HNSWNoun to allow verbs to be first-class entities in the data model
  */
 export interface GraphVerb extends HNSWNoun {
-  sourceId: string;      // ID of the source noun
-  targetId: string;      // ID of the target noun
-  type?: string;         // Optional type of the relationship
-  weight?: number;       // Optional weight of the relationship
-  metadata?: any;        // Optional metadata for the verb
+  sourceId: string // ID of the source noun
+  targetId: string // ID of the target noun
+  type?: string // Optional type of the relationship
+  weight?: number // Optional weight of the relationship
+  metadata?: any // Optional metadata for the verb
 }
 
 /**
  * HNSW index configuration
  */
 export interface HNSWConfig {
-  M: number;           // Maximum number of connections per noun
-  efConstruction: number;  // Size of the dynamic candidate list during construction
-  efSearch: number;    // Size of the dynamic candidate list during search
-  ml: number;          // Maximum level
+  M: number // Maximum number of connections per noun
+  efConstruction: number // Size of the dynamic candidate list during construction
+  efSearch: number // Size of the dynamic candidate list during search
+  ml: number // Maximum level
 }
 
 /**
  * Storage interface for persistence
  */
 export interface StorageAdapter {
-  init(): Promise<void>;
+  init(): Promise<void>
 
-  saveNoun(noun: HNSWNoun): Promise<void>;
+  saveNoun(noun: HNSWNoun): Promise<void>
 
-  getNoun(id: string): Promise<HNSWNoun | null>;
+  getNoun(id: string): Promise<HNSWNoun | null>
 
-  getAllNouns(): Promise<HNSWNoun[]>;
+  getAllNouns(): Promise<HNSWNoun[]>
 
   /**
    * Get nouns by noun type
    * @param nounType The noun type to filter by
    * @returns Promise that resolves to an array of nouns of the specified noun type
    */
-  getNounsByNounType(nounType: string): Promise<HNSWNoun[]>;
+  getNounsByNounType(nounType: string): Promise<HNSWNoun[]>
 
-  deleteNoun(id: string): Promise<void>;
+  deleteNoun(id: string): Promise<void>
 
-  saveVerb(verb: GraphVerb): Promise<void>;
+  saveVerb(verb: GraphVerb): Promise<void>
 
-  getVerb(id: string): Promise<GraphVerb | null>;
+  getVerb(id: string): Promise<GraphVerb | null>
 
-  getAllVerbs(): Promise<GraphVerb[]>;
+  getAllVerbs(): Promise<GraphVerb[]>
 
-  getVerbsBySource(sourceId: string): Promise<GraphVerb[]>;
+  getVerbsBySource(sourceId: string): Promise<GraphVerb[]>
 
-  getVerbsByTarget(targetId: string): Promise<GraphVerb[]>;
+  getVerbsByTarget(targetId: string): Promise<GraphVerb[]>
 
-  getVerbsByType(type: string): Promise<GraphVerb[]>;
+  getVerbsByType(type: string): Promise<GraphVerb[]>
 
-  deleteVerb(id: string): Promise<void>;
+  deleteVerb(id: string): Promise<void>
 
-  saveMetadata(id: string, metadata: any): Promise<void>;
+  saveMetadata(id: string, metadata: any): Promise<void>
 
-  getMetadata(id: string): Promise<any | null>;
+  getMetadata(id: string): Promise<any | null>
 
-  clear(): Promise<void>;
+  clear(): Promise<void>
 
   /**
    * Get information about storage usage and capacity
@@ -136,21 +136,21 @@ export interface StorageAdapter {
     /**
      * The type of storage being used (e.g., 'filesystem', 'opfs', 'memory')
      */
-    type: string;
+    type: string
 
     /**
      * The amount of storage being used in bytes
      */
-    used: number;
+    used: number
 
     /**
      * The total amount of storage available in bytes, or null if unknown
      */
-    quota: number | null;
+    quota: number | null
 
     /**
      * Additional storage-specific information
      */
-    details?: Record<string, any>;
-  }>;
+    details?: Record<string, any>
+  }>
 }
