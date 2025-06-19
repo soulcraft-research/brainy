@@ -23,8 +23,39 @@ import {
 } from './types/augmentations.js'
 import { BrainyData } from './brainyData.js'
 import { augmentationPipeline } from './augmentationPipeline.js'
-// Using Node.js 23.11+ native WebStreams API
-import { TransformStream, ReadableStream, WritableStream } from 'node:stream/web'
+// Use the browser's built-in WebStreams API or Node.js native WebStreams API
+// This approach ensures compatibility with both environments
+let TransformStream: any, ReadableStream: any, WritableStream: any;
+
+// Function to initialize the stream classes
+const initializeStreamClasses = () => {
+  // Try to use the browser's built-in WebStreams API first
+  if (typeof globalThis.TransformStream !== 'undefined' &&
+      typeof globalThis.ReadableStream !== 'undefined' &&
+      typeof globalThis.WritableStream !== 'undefined') {
+    TransformStream = globalThis.TransformStream;
+    ReadableStream = globalThis.ReadableStream;
+    WritableStream = globalThis.WritableStream;
+    return Promise.resolve();
+  } else {
+    // In Node.js environment, try to import from node:stream/web
+    // This will be executed in Node.js but not in browsers
+    return import('node:stream/web')
+      .then(streamWebModule => {
+        TransformStream = streamWebModule.TransformStream;
+        ReadableStream = streamWebModule.ReadableStream;
+        WritableStream = streamWebModule.WritableStream;
+      })
+      .catch(error => {
+        console.error('Failed to import WebStreams API:', error);
+        // Provide fallback implementations or throw a more helpful error
+        throw new Error('WebStreams API is not available in this environment. Please use a modern browser or Node.js 18+.');
+      });
+  }
+};
+
+// Initialize immediately but don't block module execution
+const streamClassesPromise = initializeStreamClasses();
 
 /**
  * Options for sequential pipeline execution
@@ -105,12 +136,24 @@ export class SequentialPipeline {
   }
 
   /**
+   * Ensure stream classes are initialized
+   * @private
+   */
+  private async ensureStreamClassesInitialized(): Promise<void> {
+    await streamClassesPromise;
+  }
+
+  /**
    * Initialize the pipeline
    * 
    * @returns A promise that resolves when initialization is complete
    */
   public async initialize(): Promise<void> {
-    await this.brainyData.init();
+    // Initialize stream classes and BrainyData in parallel
+    await Promise.all([
+      this.ensureStreamClassesInitialized(),
+      this.brainyData.init()
+    ]);
   }
 
   /**
@@ -310,14 +353,17 @@ export class SequentialPipeline {
    * @param options Options for pipeline execution
    * @returns A function to handle incoming WebSocket messages
    */
-  public createWebSocketHandler(
+  public async createWebSocketHandler(
     connection: WebSocketConnection,
     dataType: string,
     options: SequentialPipelineOptions = {}
-  ): (data: unknown) => void {
+  ): Promise<(data: unknown) => void> {
+    // Ensure stream classes are initialized
+    await this.ensureStreamClassesInitialized();
+
     // Create a transform stream for processing data
     const transformStream = new TransformStream({
-      transform: async (chunk, controller) => {
+      transform: async (chunk: unknown, controller: TransformStreamDefaultController) => {
         try {
           const data = typeof chunk === 'string' ? chunk : JSON.stringify(chunk);
           const result = await this.processData(data, dataType, options);
@@ -334,7 +380,7 @@ export class SequentialPipeline {
 
     // Create a writable stream that will be the sink for our data
     const writableStream = new WritableStream({
-      write: async (result) => {
+      write: async (result: PipelineResult<unknown>) => {
         // Handle the processed result if needed
         if (connection.send && typeof connection.send === 'function') {
           try {
@@ -384,6 +430,9 @@ export class SequentialPipeline {
     readableStream?: ReadableStream<unknown>,
     writableStream?: WritableStream<unknown>
   }> {
+    // Ensure stream classes are initialized
+    await this.ensureStreamClassesInitialized();
+
     // Get WebSocket-supporting augmentations
     const webSocketAugmentations = augmentationPipeline.getWebSocketAugmentations();
 
@@ -399,7 +448,7 @@ export class SequentialPipeline {
 
     // Create a readable stream from the WebSocket messages
     const readableStream = new ReadableStream({
-      start: (controller) => {
+      start: (controller: ReadableStreamDefaultController) => {
         // Define a message handler that writes to the stream
         const messageHandler = (event: { data: unknown }) => {
           try {
@@ -461,11 +510,11 @@ export class SequentialPipeline {
     });
 
     // Create a handler for processing the data
-    const handler = this.createWebSocketHandler(connection, dataType, options);
+    const handlerPromise = this.createWebSocketHandler(connection, dataType, options);
 
     // Create a writable stream that sends data to the WebSocket
     const writableStream = new WritableStream({
-      write: async (chunk) => {
+      write: async (chunk: unknown) => {
         if (connection.send && typeof connection.send === 'function') {
           try {
             const data = typeof chunk === 'string' ? chunk : JSON.stringify(chunk);
@@ -491,8 +540,9 @@ export class SequentialPipeline {
     // Pipe the readable stream through our processing pipeline
     readableStream
       .pipeThrough(new TransformStream({
-        transform: async (chunk, controller) => {
+        transform: async (chunk: unknown, controller: TransformStreamDefaultController) => {
           // Process each chunk through our handler
+          const handler = await handlerPromise;
           handler(chunk);
           // Pass through the original data
           controller.enqueue(chunk);

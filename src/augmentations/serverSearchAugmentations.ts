@@ -15,7 +15,7 @@ import {
 } from '../types/augmentations.js'
 import { WebSocketConduitAugmentation } from './conduitAugmentations.js'
 import { v4 as uuidv4 } from 'uuid'
-import { BrainyData } from '../brainyData.js'
+import { BrainyDataInterface } from '../types/brainyDataInterface.js'
 
 /**
  * ServerSearchConduitAugmentation
@@ -24,7 +24,7 @@ import { BrainyData } from '../brainyData.js'
  * a server-hosted Brainy instance and storing results locally.
  */
 export class ServerSearchConduitAugmentation extends WebSocketConduitAugmentation {
-  private localDb: BrainyData | null = null
+  private localDb: BrainyDataInterface | null = null
 
   constructor(name: string = 'server-search-conduit') {
     super(name)
@@ -43,10 +43,9 @@ export class ServerSearchConduitAugmentation extends WebSocketConduitAugmentatio
       // Initialize the base conduit
       await super.initialize()
 
-      // Initialize local Brainy instance if not provided
+      // Local DB must be set before initialization
       if (!this.localDb) {
-        this.localDb = new BrainyData()
-        await this.localDb.init()
+        throw new Error('Local database not set. Call setLocalDb before initializing.')
       }
 
       this.isInitialized = true
@@ -60,7 +59,7 @@ export class ServerSearchConduitAugmentation extends WebSocketConduitAugmentatio
    * Set the local Brainy instance
    * @param db The Brainy instance to use for local storage
    */
-  setLocalDb(db: BrainyData): void {
+  setLocalDb(db: BrainyDataInterface): void {
     this.localDb = db
   }
 
@@ -68,7 +67,7 @@ export class ServerSearchConduitAugmentation extends WebSocketConduitAugmentatio
    * Get the local Brainy instance
    * @returns The local Brainy instance
    */
-  getLocalDb(): BrainyData | null {
+  getLocalDb(): BrainyDataInterface | null {
     return this.localDb
   }
 
@@ -265,7 +264,7 @@ export class ServerSearchConduitAugmentation extends WebSocketConduitAugmentatio
       const id = await this.localDb.add(data, metadata)
 
       // Get the vector and metadata
-      const noun = await this.localDb.get(id)
+      const noun = await this.localDb.get(id) as import('../coreTypes.js').VectorDocument<unknown>
 
       if (!noun) {
         return {
@@ -620,7 +619,7 @@ export async function createServerSearchAugmentations(
     conduitName?: string,
     activationName?: string,
     protocols?: string | string[],
-    localDb?: BrainyData
+    localDb?: BrainyDataInterface
   } = {}
 ): Promise<{
   conduit: ServerSearchConduitAugmentation,
