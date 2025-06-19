@@ -11,7 +11,7 @@ dotenv.config();
 export async function initializeBrainy(): Promise<BrainyData> {
   // Get storage configuration from environment variables
   const storageType = process.env.STORAGE_TYPE || 'filesystem';
-  
+
   // Create configuration object
   const config: any = {
     storage: {}
@@ -29,27 +29,24 @@ export async function initializeBrainy(): Promise<BrainyData> {
         endpoint: process.env.S3_ENDPOINT // Optional for custom S3-compatible services
       };
       break;
-    
+
     case 'filesystem':
       // Configure filesystem storage
       config.storage.rootDirectory = process.env.STORAGE_ROOT_DIR || './data';
       break;
-    
+
     case 'memory':
       // No additional configuration needed for memory storage
       break;
-    
+
     default:
       // Default to filesystem storage
       config.storage.rootDirectory = process.env.STORAGE_ROOT_DIR || './data';
       break;
   }
 
-  // Configure embedding options
-  if (process.env.USE_SIMPLE_EMBEDDING === 'true') {
-    // Use simple embedding (faster but less accurate)
-    config.useSimpleEmbedding = true;
-  }
+  // Note: Universal Sentence Encoder is now the only embedding option
+  // TensorFlow.js is required for embedding to work
 
   // Configure HNSW index parameters if provided
   if (process.env.HNSW_M) {
@@ -67,7 +64,7 @@ export async function initializeBrainy(): Promise<BrainyData> {
   // Create and initialize the Brainy instance
   const brainy = new BrainyData(config);
   await brainy.init();
-  
+
   return brainy;
 }
 
