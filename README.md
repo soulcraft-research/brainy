@@ -812,7 +812,25 @@ Key features of the cloud wrapper:
 - Configurable via environment variables
 - Deployment scripts for AWS, Google Cloud, and Cloudflare
 
-To get started with cloud deployment, see the [Cloud Wrapper README](cloud-wrapper/README.md).
+### Deploying to the Cloud
+
+You can deploy the cloud wrapper to various cloud platforms using the following npm scripts from the root directory:
+
+```bash
+# Deploy to AWS Lambda and API Gateway
+npm run deploy:cloud:aws
+
+# Deploy to Google Cloud Run
+npm run deploy:cloud:gcp
+
+# Deploy to Cloudflare Workers
+npm run deploy:cloud:cloudflare
+
+# Show available deployment options
+npm run deploy:cloud
+```
+
+Before deploying, make sure to configure the appropriate environment variables in the `cloud-wrapper/.env` file. See the [Cloud Wrapper README](cloud-wrapper/README.md) for detailed configuration instructions and API documentation.
 
 ## 🔗 Related Projects
 
