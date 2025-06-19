@@ -1,20 +1,15 @@
 /**
  * Unified entry point for Brainy
- * This file exports everything from index.ts and adds environment detection
- * to ensure the library works in any environment (Node.js, browser, serverless)
+ * This file exports everything from index.ts
+ * Environment detection is handled by the build process
  */
 
-// Environment detection (will be replaced by the build process)
-const isBrowser = typeof window !== 'undefined'
-const isNode =
-  typeof process !== 'undefined' && process.versions && process.versions.node
-const isServerless = !isBrowser && !isNode
-
 // Export environment information
+// These values will be populated by the build process intro code
 export const environment = {
-  isBrowser,
-  isNode,
-  isServerless
+  isBrowser: typeof window !== 'undefined',
+  isNode: typeof process !== 'undefined' && process.versions && process.versions.node,
+  isServerless: typeof window === 'undefined' && (typeof process === 'undefined' || !process.versions || !process.versions.node)
 }
 
 // Re-export everything from index.ts

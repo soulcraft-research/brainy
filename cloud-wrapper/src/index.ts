@@ -6,9 +6,9 @@ import dotenv from 'dotenv';
 import http from 'http';
 import { WebSocketServer } from 'ws';
 import { BrainyData } from '@soulcraft/brainy';
-import { setupRoutes } from './routes';
-import { initializeBrainy } from './services/brainyService';
-import { setupWebSocketHandlers } from './websocket';
+import { setupRoutes } from './routes.js';
+import { initializeBrainy } from './services/brainyService.js';
+import { setupWebSocketHandlers } from './websocket.js';
 
 // Load environment variables
 dotenv.config();
@@ -32,11 +32,12 @@ app.get('/health', (req, res) => {
 });
 
 // Setup API routes
+const apiRouter = setupRoutes();
 app.use('/api', (req, res, next) => {
   // Attach brainy instance to request
   (req as any).brainy = brainyInstance;
   next();
-}, setupRoutes());
+}, apiRouter);
 
 // Start the server
 async function startServer() {
