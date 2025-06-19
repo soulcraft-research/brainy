@@ -5,30 +5,43 @@
 
 import { v4 as uuidv4 } from 'uuid'
 import { HNSWIndex } from './hnsw/hnswIndex.js'
+import { HNSWIndexOptimized, HNSWOptimizedConfig } from './hnsw/hnswIndexOptimized.js'
 import { createStorage } from './storage/opfsStorage.js'
 import {
   DistanceFunction,
   GraphVerb,
   EmbeddingFunction,
-  HNSWConfig, HNSWNoun,
+  HNSWConfig,
+  HNSWNoun,
   SearchResult,
   StorageAdapter,
   Vector,
   VectorDocument
 } from './coreTypes.js'
-import { cosineDistance, defaultEmbeddingFunction, euclideanDistance } from './utils/index.js'
+import {
+  cosineDistance,
+  defaultEmbeddingFunction,
+  euclideanDistance
+} from './utils/index.js'
 import { NounType, VerbType, GraphNoun } from './types/graphTypes.js'
-import { 
-  ServerSearchConduitAugmentation, 
-  createServerSearchAugmentations 
+import {
+  ServerSearchConduitAugmentation,
+  createServerSearchAugmentations
 } from './augmentations/serverSearchAugmentations.js'
 import { WebSocketConnection } from './types/augmentations.js'
+import { BrainyDataInterface } from './types/brainyDataInterface.js'
 
 export interface BrainyDataConfig {
   /**
    * HNSW index configuration
    */
   hnsw?: Partial<HNSWConfig>
+
+  /**
+   * Optimized HNSW index configuration
+   * If provided, will use the optimized HNSW index instead of the standard one
+   */
+  hnswOptimized?: Partial<HNSWOptimizedConfig>
 
   /**
    * Distance function to use for similarity calculations
@@ -45,34 +58,34 @@ export interface BrainyDataConfig {
    * These will be passed to createStorage if storageAdapter is not provided
    */
   storage?: {
-    requestPersistentStorage?: boolean;
+    requestPersistentStorage?: boolean
     r2Storage?: {
-      bucketName?: string;
-      accountId?: string;
-      accessKeyId?: string;
-      secretAccessKey?: string;
-    };
+      bucketName?: string
+      accountId?: string
+      accessKeyId?: string
+      secretAccessKey?: string
+    }
     s3Storage?: {
-      bucketName?: string;
-      accessKeyId?: string;
-      secretAccessKey?: string;
-      region?: string;
-    };
+      bucketName?: string
+      accessKeyId?: string
+      secretAccessKey?: string
+      region?: string
+    }
     gcsStorage?: {
-      bucketName?: string;
-      accessKeyId?: string;
-      secretAccessKey?: string;
-      endpoint?: string;
-    };
+      bucketName?: string
+      accessKeyId?: string
+      secretAccessKey?: string
+      endpoint?: string
+    }
     customS3Storage?: {
-      bucketName?: string;
-      accessKeyId?: string;
-      secretAccessKey?: string;
-      endpoint?: string;
-      region?: string;
-    };
-    forceFileSystemStorage?: boolean;
-    forceMemoryStorage?: boolean;
+      bucketName?: string
+      accessKeyId?: string
+      secretAccessKey?: string
+      endpoint?: string
+      region?: string
+    }
+    forceFileSystemStorage?: boolean
+    forceMemoryStorage?: boolean
   }
 
   /**
@@ -100,55 +113,69 @@ export interface BrainyDataConfig {
     /**
      * WebSocket URL of the remote Brainy server
      */
-    url: string;
+    url: string
 
     /**
      * WebSocket protocols to use for the connection
      */
-    protocols?: string | string[];
+    protocols?: string | string[]
 
     /**
      * Whether to automatically connect to the remote server on initialization
      */
-    autoConnect?: boolean;
+    autoConnect?: boolean
   }
 }
 
-export class BrainyData<T = any> {
-  private index: HNSWIndex
+export class BrainyData<T = any> implements BrainyDataInterface<T> {
+  private index: HNSWIndex | HNSWIndexOptimized
   private storage: StorageAdapter | null = null
   private isInitialized = false
   private embeddingFunction: EmbeddingFunction
+  private distanceFunction: DistanceFunction
   private requestPersistentStorage: boolean
   private readOnly: boolean
   private storageConfig: BrainyDataConfig['storage'] = {}
+  private useOptimizedIndex: boolean = false
 
   // Remote server properties
   private remoteServerConfig: BrainyDataConfig['remoteServer'] | null = null
-  private serverSearchConduit: any = null // Will be ServerSearchConduitAugmentation when connected
-  private serverConnection: any = null // Will be WebSocketConnection when connected
+  private serverSearchConduit: ServerSearchConduitAugmentation | null = null
+  private serverConnection: WebSocketConnection | null = null
 
   /**
    * Create a new vector database
    */
   constructor(config: BrainyDataConfig = {}) {
-    // Initialize HNSW index
-    this.index = new HNSWIndex(
-      config.hnsw,
-      config.distanceFunction || cosineDistance
-    )
+    // Set distance function
+    this.distanceFunction = config.distanceFunction || cosineDistance
+
+    // Check if optimized HNSW index configuration is provided
+    if (config.hnswOptimized) {
+      // Initialize optimized HNSW index
+      this.index = new HNSWIndexOptimized(
+        config.hnswOptimized,
+        this.distanceFunction,
+        config.storageAdapter || null
+      )
+      this.useOptimizedIndex = true
+    } else {
+      // Initialize standard HNSW index
+      this.index = new HNSWIndex(config.hnsw, this.distanceFunction)
+    }
 
     // Set storage if provided, otherwise it will be initialized in init()
     this.storage = config.storageAdapter || null
 
     // Set embedding function if provided, otherwise use default
-    this.embeddingFunction = config.embeddingFunction || defaultEmbeddingFunction
+    this.embeddingFunction =
+      config.embeddingFunction || defaultEmbeddingFunction
 
     // Set persistent storage request flag (support both new and deprecated options)
     this.requestPersistentStorage =
-      (config.storage?.requestPersistentStorage !== undefined)
+      config.storage?.requestPersistentStorage !== undefined
         ? config.storage.requestPersistentStorage
-        : (config.requestPersistentStorage || false)
+        : config.requestPersistentStorage || false
 
     // Set read-only flag
     this.readOnly = config.readOnly || false
@@ -168,7 +195,9 @@ export class BrainyData<T = any> {
    */
   private checkReadOnly(): void {
     if (this.readOnly) {
-      throw new Error('Cannot perform write operation: database is in read-only mode')
+      throw new Error(
+        'Cannot perform write operation: database is in read-only mode'
+      )
     }
   }
 
@@ -195,6 +224,11 @@ export class BrainyData<T = any> {
 
       // Initialize storage
       await this.storage!.init()
+
+      // If using optimized index, set the storage adapter
+      if (this.useOptimizedIndex && this.index instanceof HNSWIndexOptimized) {
+        this.index.setStorage(this.storage!)
+      }
 
       // Load all nouns from storage
       const nouns: HNSWNoun[] = await this.storage!.getAllNouns()
@@ -274,8 +308,9 @@ export class BrainyData<T = any> {
     vectorOrData: Vector | any,
     metadata?: T,
     options: {
-      forceEmbed?: boolean, // Force using the embedding function even if input is a vector
+      forceEmbed?: boolean // Force using the embedding function even if input is a vector
       addToRemote?: boolean // Whether to also add to the remote server if connected
+      id?: string // Optional ID to use instead of generating a new one
     } = {}
   ): Promise<string> {
     await this.ensureInitialized()
@@ -308,14 +343,18 @@ export class BrainyData<T = any> {
         throw new Error('Vector is undefined or null')
       }
 
-      // Generate ID if isn't provided
-      const id = uuidv4()
+      // Use ID from options if it exists, otherwise from metadata, otherwise generate a new UUID
+      const id =
+        options.id ||
+        (metadata && typeof metadata === 'object' && 'id' in metadata
+          ? (metadata as any).id
+          : uuidv4())
 
       // Add to index
       this.index.addItem({ id, vector })
 
       // Get the noun from the index
-      const noun = this.index.getNodes().get(id)
+      const noun = this.index.getNouns().get(id)
 
       if (!noun) {
         throw new Error(`Failed to retrieve newly created noun with ID ${id}`)
@@ -328,15 +367,17 @@ export class BrainyData<T = any> {
       if (metadata !== undefined) {
         // Validate noun type if metadata is for a GraphNoun
         if (metadata && typeof metadata === 'object' && 'noun' in metadata) {
-          const nounType = (metadata as any).noun
+          const nounType = (metadata as unknown as GraphNoun).noun
 
           // Check if the noun type is valid
           const isValidNounType = Object.values(NounType).includes(nounType)
 
           if (!isValidNounType) {
-            console.warn(`Invalid noun type: ${nounType}. Falling back to GraphNoun.`);
+            console.warn(
+              `Invalid noun type: ${nounType}. Falling back to GraphNoun.`
+            )
             // Set a default noun type
-            (metadata as any).noun = NounType.Concept
+            ;(metadata as unknown as GraphNoun).noun = NounType.Concept
           }
         }
 
@@ -348,7 +389,9 @@ export class BrainyData<T = any> {
         try {
           await this.addToRemote(id, vector, metadata)
         } catch (remoteError) {
-          console.warn(`Failed to add to remote server: ${remoteError}. Continuing with local add.`)
+          console.warn(
+            `Failed to add to remote server: ${remoteError}. Continuing with local add.`
+          )
         }
       }
 
@@ -375,7 +418,9 @@ export class BrainyData<T = any> {
   ): Promise<string> {
     // Check if connected to a remote server
     if (!this.isConnectedToRemoteServer()) {
-      throw new Error('Not connected to a remote server. Call connectToRemoteServer() first.')
+      throw new Error(
+        'Not connected to a remote server. Call connectToRemoteServer() first.'
+      )
     }
 
     // Add to local with addToRemote option
@@ -400,6 +445,12 @@ export class BrainyData<T = any> {
     }
 
     try {
+      if (!this.serverSearchConduit || !this.serverConnection) {
+        throw new Error(
+          'Server search conduit or connection is not initialized'
+        )
+      }
+
       // Add to remote server
       const addResult = await this.serverSearchConduit.addToBoth(
         this.serverConnection.connectionId,
@@ -426,11 +477,11 @@ export class BrainyData<T = any> {
    */
   public async addBatch(
     items: Array<{
-      vectorOrData: Vector | any;
+      vectorOrData: Vector | any
       metadata?: T
     }>,
     options: {
-      forceEmbed?: boolean, // Force using the embedding function even if input is a vector
+      forceEmbed?: boolean // Force using the embedding function even if input is a vector
       addToRemote?: boolean // Whether to also add to the remote server if connected
     } = {}
   ): Promise<string[]> {
@@ -462,7 +513,7 @@ export class BrainyData<T = any> {
    */
   public async addBatchToBoth(
     items: Array<{
-      vectorOrData: Vector | any;
+      vectorOrData: Vector | any
       metadata?: T
     }>,
     options: {
@@ -471,7 +522,9 @@ export class BrainyData<T = any> {
   ): Promise<string[]> {
     // Check if connected to a remote server
     if (!this.isConnectedToRemoteServer()) {
-      throw new Error('Not connected to a remote server. Call connectToRemoteServer() first.')
+      throw new Error(
+        'Not connected to a remote server. Call connectToRemoteServer() first.'
+      )
     }
 
     // Add to local with addToRemote option
@@ -530,7 +583,7 @@ export class BrainyData<T = any> {
         const searchResults: SearchResult<T>[] = []
 
         for (const [id, score] of results) {
-          const noun = this.index.getNodes().get(id)
+          const noun = this.index.getNouns().get(id)
           if (!noun) {
             continue
           }
@@ -541,14 +594,16 @@ export class BrainyData<T = any> {
             id,
             score,
             vector: noun.vector,
-            metadata
+            metadata: metadata as T | undefined
           })
         }
 
         return searchResults
       } else {
         // Get nouns for each noun type in parallel
-        const nounPromises = nounTypes.map(nounType => this.storage!.getNounsByNounType(nounType))
+        const nounPromises = nounTypes.map((nounType) =>
+          this.storage!.getNounsByNounType(nounType)
+        )
         const nounArrays = await Promise.all(nounPromises)
 
         // Combine all nouns
@@ -560,7 +615,10 @@ export class BrainyData<T = any> {
         // Calculate distances for each noun
         const results: Array<[string, number]> = []
         for (const noun of nouns) {
-          const distance = this.index.getDistanceFunction()(queryVector, noun.vector)
+          const distance = this.index.getDistanceFunction()(
+            queryVector,
+            noun.vector
+          )
           results.push([noun.id, distance])
         }
 
@@ -574,7 +632,7 @@ export class BrainyData<T = any> {
         const searchResults: SearchResult<T>[] = []
 
         for (const [id, score] of topResults) {
-          const noun = nouns.find(n => n.id === id)
+          const noun = nouns.find((n) => n.id === id)
           if (!noun) {
             continue
           }
@@ -585,7 +643,7 @@ export class BrainyData<T = any> {
             id,
             score,
             vector: noun.vector,
-            metadata
+            metadata: metadata as T | undefined
           })
         }
 
@@ -608,9 +666,9 @@ export class BrainyData<T = any> {
     queryVectorOrData: Vector | any,
     k: number = 10,
     options: {
-      forceEmbed?: boolean, // Force using the embedding function even if input is a vector
-      nounTypes?: string[], // Optional array of noun types to search within
-      includeVerbs?: boolean, // Whether to include associated GraphVerbs in the results
+      forceEmbed?: boolean // Force using the embedding function even if input is a vector
+      nounTypes?: string[] // Optional array of noun types to search within
+      includeVerbs?: boolean // Whether to include associated GraphVerbs in the results
       searchMode?: 'local' | 'remote' | 'combined' // Where to search: local, remote, or both
     } = {}
   ): Promise<SearchResult<T>[]> {
@@ -638,8 +696,8 @@ export class BrainyData<T = any> {
     queryVectorOrData: Vector | any,
     k: number = 10,
     options: {
-      forceEmbed?: boolean, // Force using the embedding function even if input is a vector
-      nounTypes?: string[], // Optional array of noun types to search within
+      forceEmbed?: boolean // Force using the embedding function even if input is a vector
+      nounTypes?: string[] // Optional array of noun types to search within
       includeVerbs?: boolean // Whether to include associated GraphVerbs in the results
     } = {}
   ): Promise<SearchResult<T>[]> {
@@ -653,9 +711,14 @@ export class BrainyData<T = any> {
     // If noun types are specified, use searchByNounTypes
     let searchResults
     if (options.nounTypes && options.nounTypes.length > 0) {
-      searchResults = await this.searchByNounTypes(queryToUse, k, options.nounTypes, {
-        forceEmbed: options.forceEmbed
-      })
+      searchResults = await this.searchByNounTypes(
+        queryToUse,
+        k,
+        options.nounTypes,
+        {
+          forceEmbed: options.forceEmbed
+        }
+      )
     } else {
       // Otherwise, search all GraphNouns
       searchResults = await this.searchByNounTypes(queryToUse, k, null, {
@@ -682,7 +745,7 @@ export class BrainyData<T = any> {
           }
 
           // Add the verbs to the metadata
-          (result.metadata as any).associatedVerbs = allVerbs
+          ;(result.metadata as Record<string, any>).associatedVerbs = allVerbs
         } catch (error) {
           console.warn(`Failed to retrieve verbs for noun ${result.id}:`, error)
         }
@@ -700,7 +763,7 @@ export class BrainyData<T = any> {
 
     try {
       // Get noun from index
-      const noun = this.index.getNodes().get(id)
+      const noun = this.index.getNouns().get(id)
       if (!noun) {
         return null
       }
@@ -711,11 +774,38 @@ export class BrainyData<T = any> {
       return {
         id,
         vector: noun.vector,
-        metadata
+        metadata: metadata as T | undefined
       }
     } catch (error) {
       console.error(`Failed to get vector ${id}:`, error)
       throw new Error(`Failed to get vector ${id}: ${error}`)
+    }
+  }
+
+  /**
+   * Get all nouns in the database
+   * @returns Array of vector documents
+   */
+  public async getAllNouns(): Promise<VectorDocument<T>[]> {
+    await this.ensureInitialized()
+
+    try {
+      const nouns = this.index.getNouns()
+      const result: VectorDocument<T>[] = []
+
+      for (const [id, noun] of nouns.entries()) {
+        const metadata = await this.storage!.getMetadata(id)
+        result.push({
+          id,
+          vector: noun.vector,
+          metadata: metadata as T | undefined
+        })
+      }
+
+      return result
+    } catch (error) {
+      console.error('Failed to get all nouns:', error)
+      throw new Error(`Failed to get all nouns: ${error}`)
     }
   }
 
@@ -763,22 +853,24 @@ export class BrainyData<T = any> {
 
     try {
       // Check if a vector exists
-      const noun = this.index.getNodes().get(id)
+      const noun = this.index.getNouns().get(id)
       if (!noun) {
         return false
       }
 
       // Validate noun type if metadata is for a GraphNoun
       if (metadata && typeof metadata === 'object' && 'noun' in metadata) {
-        const nounType = (metadata as any).noun
+        const nounType = (metadata as unknown as GraphNoun).noun
 
         // Check if the noun type is valid
         const isValidNounType = Object.values(NounType).includes(nounType)
 
         if (!isValidNounType) {
-          console.warn(`Invalid noun type: ${nounType}. Falling back to GraphNoun.`);
+          console.warn(
+            `Invalid noun type: ${nounType}. Falling back to GraphNoun.`
+          )
           // Set a default noun type
-          (metadata as any).noun = NounType.Concept
+          ;(metadata as unknown as GraphNoun).noun = NounType.Concept
         }
       }
 
@@ -790,6 +882,22 @@ export class BrainyData<T = any> {
       console.error(`Failed to update metadata for vector ${id}:`, error)
       throw new Error(`Failed to update metadata for vector ${id}: ${error}`)
     }
+  }
+
+  /**
+   * Create a relationship between two entities
+   * This is a convenience wrapper around addVerb
+   */
+  public async relate(
+    sourceId: string,
+    targetId: string,
+    relationType: string,
+    metadata?: any
+  ): Promise<string> {
+    return this.addVerb(sourceId, targetId, undefined, {
+      type: relationType,
+      metadata: metadata
+    })
   }
 
   /**
@@ -805,6 +913,7 @@ export class BrainyData<T = any> {
       weight?: number
       metadata?: any
       forceEmbed?: boolean // Force using the embedding function for metadata even if vector is provided
+      id?: string // Optional ID to use instead of generating a new one
     } = {}
   ): Promise<string> {
     await this.ensureInitialized()
@@ -814,8 +923,8 @@ export class BrainyData<T = any> {
 
     try {
       // Check if source and target nouns exist
-      const sourceNoun = this.index.getNodes().get(sourceId)
-      const targetNoun = this.index.getNodes().get(targetId)
+      const sourceNoun = this.index.getNouns().get(sourceId)
+      const targetNoun = this.index.getNouns().get(targetId)
 
       if (!sourceNoun) {
         throw new Error(`Source noun with ID ${sourceId} not found`)
@@ -825,8 +934,8 @@ export class BrainyData<T = any> {
         throw new Error(`Target noun with ID ${targetId} not found`)
       }
 
-      // Generate ID for the verb
-      const id = uuidv4()
+      // Use provided ID or generate a new one
+      const id = options.id || uuidv4()
 
       let verbVector: Vector
 
@@ -837,7 +946,10 @@ export class BrainyData<T = any> {
           let textToEmbed: string
           if (typeof options.metadata === 'string') {
             textToEmbed = options.metadata
-          } else if (options.metadata.description && typeof options.metadata.description === 'string') {
+          } else if (
+            options.metadata.description &&
+            typeof options.metadata.description === 'string'
+          ) {
             textToEmbed = options.metadata.description
           } else {
             // Convert to JSON string as fallback
@@ -855,19 +967,41 @@ export class BrainyData<T = any> {
         }
       } else {
         // Use a provided vector or average of source and target vectors
-        verbVector =
-          vector ||
-          sourceNoun.vector.map((val, i) => (val + targetNoun.vector[i]) / 2)
+        if (vector) {
+          verbVector = vector
+        } else {
+          // Ensure both source and target vectors have the same dimension
+          if (
+            !sourceNoun.vector ||
+            !targetNoun.vector ||
+            sourceNoun.vector.length === 0 ||
+            targetNoun.vector.length === 0 ||
+            sourceNoun.vector.length !== targetNoun.vector.length
+          ) {
+            throw new Error(
+              `Cannot average vectors: source or target vector is invalid or dimensions don't match`
+            )
+          }
+
+          // Average the vectors
+          verbVector = sourceNoun.vector.map(
+            (val, i) => (val + targetNoun.vector[i]) / 2
+          )
+        }
       }
 
       // Validate verb type if provided
       let verbType = options.type
       if (verbType) {
         // Check if the verb type is valid
-        const isValidVerbType = Object.values(VerbType).includes(verbType as any)
+        const isValidVerbType = Object.values(VerbType).includes(
+          verbType as VerbType
+        )
 
         if (!isValidVerbType) {
-          console.warn(`Invalid verb type: ${verbType}. Using RelatedTo as default.`)
+          console.warn(
+            `Invalid verb type: ${verbType}. Using RelatedTo as default.`
+          )
           // Set a default verb type
           verbType = VerbType.RelatedTo
         }
@@ -889,7 +1023,7 @@ export class BrainyData<T = any> {
       this.index.addItem({ id, vector: verbVector })
 
       // Get the noun from the index
-      const indexNoun = this.index.getNodes().get(id)
+      const indexNoun = this.index.getNouns().get(id)
 
       if (!indexNoun) {
         throw new Error(
@@ -1081,8 +1215,8 @@ export class BrainyData<T = any> {
     query: string,
     k: number = 10,
     options: {
-      nounTypes?: string[],
-      includeVerbs?: boolean,
+      nounTypes?: string[]
+      includeVerbs?: boolean
       searchMode?: 'local' | 'remote' | 'combined'
     } = {}
   ): Promise<SearchResult<T>[]> {
@@ -1115,9 +1249,9 @@ export class BrainyData<T = any> {
     queryVectorOrData: Vector | any,
     k: number = 10,
     options: {
-      forceEmbed?: boolean, // Force using the embedding function even if input is a vector
-      nounTypes?: string[], // Optional array of noun types to search within
-      includeVerbs?: boolean, // Whether to include associated GraphVerbs in the results
+      forceEmbed?: boolean // Force using the embedding function even if input is a vector
+      nounTypes?: string[] // Optional array of noun types to search within
+      includeVerbs?: boolean // Whether to include associated GraphVerbs in the results
       storeResults?: boolean // Whether to store the results in the local database (default: true)
     } = {}
   ): Promise<SearchResult<T>[]> {
@@ -1125,7 +1259,9 @@ export class BrainyData<T = any> {
 
     // Check if connected to a remote server
     if (!this.isConnectedToRemoteServer()) {
-      throw new Error('Not connected to a remote server. Call connectToRemoteServer() first.')
+      throw new Error(
+        'Not connected to a remote server. Call connectToRemoteServer() first.'
+      )
     }
 
     try {
@@ -1137,6 +1273,12 @@ export class BrainyData<T = any> {
         // For vectors, we need to embed them as a string query
         // This is a simplification - ideally we would send the vector directly
         query = 'vector-query' // Placeholder, would need a better approach for vector queries
+      }
+
+      if (!this.serverSearchConduit || !this.serverConnection) {
+        throw new Error(
+          'Server search conduit or connection is not initialized'
+        )
       }
 
       // Search the remote server
@@ -1168,9 +1310,9 @@ export class BrainyData<T = any> {
     queryVectorOrData: Vector | any,
     k: number = 10,
     options: {
-      forceEmbed?: boolean, // Force using the embedding function even if input is a vector
-      nounTypes?: string[], // Optional array of noun types to search within
-      includeVerbs?: boolean, // Whether to include associated GraphVerbs in the results
+      forceEmbed?: boolean // Force using the embedding function even if input is a vector
+      nounTypes?: string[] // Optional array of noun types to search within
+      includeVerbs?: boolean // Whether to include associated GraphVerbs in the results
       localFirst?: boolean // Whether to search local first (default: true)
     } = {}
   ): Promise<SearchResult<T>[]> {
@@ -1188,7 +1330,11 @@ export class BrainyData<T = any> {
 
       if (localFirst) {
         // Search local first
-        const localResults = await this.searchLocal(queryVectorOrData, k, options)
+        const localResults = await this.searchLocal(
+          queryVectorOrData,
+          k,
+          options
+        )
 
         // If we have enough local results, return them
         if (localResults.length >= k) {
@@ -1197,14 +1343,14 @@ export class BrainyData<T = any> {
 
         // Otherwise, search remote for additional results
         const remoteResults = await this.searchRemote(
-          queryVectorOrData, 
+          queryVectorOrData,
           k - localResults.length,
           { ...options, storeResults: true }
         )
 
         // Combine results, removing duplicates
         const combinedResults = [...localResults]
-        const localIds = new Set(localResults.map(r => r.id))
+        const localIds = new Set(localResults.map((r) => r.id))
 
         for (const result of remoteResults) {
           if (!localIds.has(result.id)) {
@@ -1215,11 +1361,10 @@ export class BrainyData<T = any> {
         return combinedResults
       } else {
         // Search remote first
-        const remoteResults = await this.searchRemote(
-          queryVectorOrData,
-          k,
-          { ...options, storeResults: true }
-        )
+        const remoteResults = await this.searchRemote(queryVectorOrData, k, {
+          ...options,
+          storeResults: true
+        })
 
         // If we have enough remote results, return them
         if (remoteResults.length >= k) {
@@ -1227,11 +1372,15 @@ export class BrainyData<T = any> {
         }
 
         // Otherwise, search local for additional results
-        const localResults = await this.searchLocal(queryVectorOrData, k - remoteResults.length, options)
+        const localResults = await this.searchLocal(
+          queryVectorOrData,
+          k - remoteResults.length,
+          options
+        )
 
         // Combine results, removing duplicates
         const combinedResults = [...remoteResults]
-        const remoteIds = new Set(remoteResults.map(r => r.id))
+        const remoteIds = new Set(remoteResults.map((r) => r.id))
 
         for (const result of localResults) {
           if (!remoteIds.has(result.id)) {
@@ -1265,8 +1414,16 @@ export class BrainyData<T = any> {
     }
 
     try {
+      if (!this.serverSearchConduit || !this.serverConnection) {
+        throw new Error(
+          'Server search conduit or connection is not initialized'
+        )
+      }
+
       // Close the WebSocket connection
-      await this.serverSearchConduit.closeWebSocket(this.serverConnection.connectionId)
+      await this.serverSearchConduit.closeWebSocket(
+        this.serverConnection.connectionId
+      )
 
       // Clear the connection information
       this.serverSearchConduit = null
@@ -1293,16 +1450,16 @@ export class BrainyData<T = any> {
    * @returns Object containing the storage type, used space, quota, and additional details
    */
   public async status(): Promise<{
-    type: string;
-    used: number;
-    quota: number | null;
-    details?: Record<string, any>;
+    type: string
+    used: number
+    quota: number | null
+    details?: Record<string, any>
   }> {
     await this.ensureInitialized()
 
     if (!this.storage) {
       return {
-        type: 'unknown',
+        type: 'any',
         used: 0,
         quota: null,
         details: { error: 'Storage not initialized' }
@@ -1313,9 +1470,11 @@ export class BrainyData<T = any> {
       // Check if the storage adapter has a getStorageStatus method
       if (typeof this.storage.getStorageStatus !== 'function') {
         // If not, determine the storage type based on the constructor name
-        const storageType = this.storage.constructor.name.toLowerCase().replace('storage', '')
+        const storageType = this.storage.constructor.name
+          .toLowerCase()
+          .replace('storage', '')
         return {
-          type: storageType || 'unknown',
+          type: storageType || 'any',
           used: 0,
           quota: null,
           details: {
@@ -1330,13 +1489,27 @@ export class BrainyData<T = any> {
       const storageStatus = await this.storage.getStorageStatus()
 
       // Add index information to the details
-      const indexInfo = {
+      let indexInfo: Record<string, any> = {
         indexSize: this.size()
+      }
+
+      // Add optimized index information if using optimized index
+      if (this.useOptimizedIndex && this.index instanceof HNSWIndexOptimized) {
+        const optimizedIndex = this.index as HNSWIndexOptimized
+        indexInfo = {
+          ...indexInfo,
+          optimized: true,
+          memoryUsage: optimizedIndex.getMemoryUsage(),
+          productQuantization: optimizedIndex.getUseProductQuantization(),
+          diskBasedIndex: optimizedIndex.getUseDiskBasedIndex()
+        }
+      } else {
+        indexInfo.optimized = false
       }
 
       // Ensure all required fields are present
       return {
-        type: storageStatus.type || 'unknown',
+        type: storageStatus.type || 'any',
         used: storageStatus.used || 0,
         quota: storageStatus.quota || null,
         details: {
@@ -1348,10 +1521,12 @@ export class BrainyData<T = any> {
       console.error('Failed to get storage status:', error)
 
       // Determine the storage type based on the constructor name
-      const storageType = this.storage.constructor.name.toLowerCase().replace('storage', '')
+      const storageType = this.storage.constructor.name
+        .toLowerCase()
+        .replace('storage', '')
 
       return {
-        type: storageType || 'unknown',
+        type: storageType || 'any',
         used: 0,
         quota: null,
         details: {
@@ -1384,20 +1559,251 @@ export class BrainyData<T = any> {
   }
 
   /**
+   * Backup all data from the database to a JSON-serializable format
+   * @returns Object containing all nouns, verbs, noun types, verb types, HNSW index, and other related data
+   *
+   * The HNSW index data includes:
+   * - entryPointId: The ID of the entry point for the graph
+   * - maxLevel: The maximum level in the hierarchical structure
+   * - dimension: The dimension of the vectors
+   * - config: Configuration parameters for the HNSW algorithm
+   * - connections: A serialized representation of the connections between nouns
+   */
+  public async backup(): Promise<{
+    nouns: VectorDocument<T>[]
+    verbs: GraphVerb[]
+    nounTypes: string[]
+    verbTypes: string[]
+    version: string
+    hnswIndex?: {
+      entryPointId: string | null
+      maxLevel: number
+      dimension: number | null
+      config: HNSWConfig
+      connections: Record<string, Record<string, string[]>>
+    }
+  }> {
+    await this.ensureInitialized()
+
+    try {
+      // Get all nouns
+      const nouns = await this.getAllNouns()
+
+      // Get all verbs
+      const verbs = await this.getAllVerbs()
+
+      // Get all noun types
+      const nounTypes = Object.values(NounType)
+
+      // Get all verb types
+      const verbTypes = Object.values(VerbType)
+
+      // Get HNSW index data
+      const hnswIndexData = {
+        entryPointId: this.index.getEntryPointId(),
+        maxLevel: this.index.getMaxLevel(),
+        dimension: this.index.getDimension(),
+        config: this.index.getConfig(),
+        connections: {} as Record<string, Record<string, string[]>>
+      }
+
+      // Convert Map<number, Set<string>> to a serializable format
+      const indexNouns = this.index.getNouns()
+      for (const [id, noun] of indexNouns.entries()) {
+        hnswIndexData.connections[id] = {}
+        for (const [level, connections] of noun.connections.entries()) {
+          hnswIndexData.connections[id][level] = Array.from(connections)
+        }
+      }
+
+      // Return the data with version information
+      return {
+        nouns,
+        verbs,
+        nounTypes,
+        verbTypes,
+        hnswIndex: hnswIndexData,
+        version: '1.0.0' // Version of the backup format
+      }
+    } catch (error) {
+      console.error('Failed to backup data:', error)
+      throw new Error(`Failed to backup data: ${error}`)
+    }
+  }
+
+  /**
+   * Restore data into the database from a previously backed up format
+   * @param data The data to restore, in the format returned by backup()
+   *             This can include HNSW index data if it was included in the backup
+   *             If vectors are not present for nouns, they will be created using the embedding function
+   * @param options Restore options
+   * @returns Object containing counts of restored items
+   */
+  public async restore(
+    data: {
+      nouns: VectorDocument<T>[]
+      verbs: GraphVerb[]
+      nounTypes?: string[]
+      verbTypes?: string[]
+      hnswIndex?: {
+        entryPointId: string | null
+        maxLevel: number
+        dimension: number | null
+        config: HNSWConfig
+        connections: Record<string, Record<string, string[]>>
+      }
+      version: string
+    },
+    options: {
+      clearExisting?: boolean
+    } = {}
+  ): Promise<{
+    nounsRestored: number
+    verbsRestored: number
+  }> {
+    await this.ensureInitialized()
+
+    // Check if database is in read-only mode
+    this.checkReadOnly()
+
+    try {
+      // Clear existing data if requested
+      if (options.clearExisting) {
+        await this.clear()
+      }
+
+      // Validate the data format
+      if (!data || !data.nouns || !data.verbs || !data.version) {
+        throw new Error('Invalid restore data format')
+      }
+
+      // Log additional data if present
+      if (data.nounTypes) {
+        console.log(`Found ${data.nounTypes.length} noun types in restore data`)
+      }
+
+      if (data.verbTypes) {
+        console.log(`Found ${data.verbTypes.length} verb types in restore data`)
+      }
+
+      if (data.hnswIndex) {
+        console.log('Found HNSW index data in backup')
+      }
+
+      // Restore nouns
+      let nounsRestored = 0
+      for (const noun of data.nouns) {
+        try {
+          // Check if the noun has a vector
+          if (!noun.vector || noun.vector.length === 0) {
+            // If no vector, create one using the embedding function
+            if (
+              noun.metadata &&
+              typeof noun.metadata === 'object' &&
+              'text' in noun.metadata
+            ) {
+              // If the metadata has a text field, use it for embedding
+              noun.vector = await this.embeddingFunction(noun.metadata.text)
+            } else {
+              // Otherwise, use the entire metadata for embedding
+              noun.vector = await this.embeddingFunction(noun.metadata)
+            }
+          }
+
+          // Add the noun with its vector and metadata
+          await this.add(noun.vector, noun.metadata, { id: noun.id })
+          nounsRestored++
+        } catch (error) {
+          console.error(`Failed to restore noun ${noun.id}:`, error)
+          // Continue with other nouns
+        }
+      }
+
+      // Restore verbs
+      let verbsRestored = 0
+      for (const verb of data.verbs) {
+        try {
+          // Check if the verb has a vector
+          if (!verb.vector || verb.vector.length === 0) {
+            // If no vector, create one using the embedding function
+            if (
+              verb.metadata &&
+              typeof verb.metadata === 'object' &&
+              'text' in verb.metadata
+            ) {
+              // If the metadata has a text field, use it for embedding
+              verb.vector = await this.embeddingFunction(verb.metadata.text)
+            } else {
+              // Otherwise, use the entire metadata for embedding
+              verb.vector = await this.embeddingFunction(verb.metadata)
+            }
+          }
+
+          // Add the verb
+          await this.addVerb(verb.sourceId, verb.targetId, verb.vector, {
+            id: verb.id,
+            type: verb.metadata?.verb || VerbType.RelatedTo,
+            metadata: verb.metadata
+          })
+          verbsRestored++
+        } catch (error) {
+          console.error(`Failed to restore verb ${verb.id}:`, error)
+          // Continue with other verbs
+        }
+      }
+
+      // If HNSW index data is provided and we've restored nouns, reconstruct the index
+      if (data.hnswIndex && nounsRestored > 0) {
+        try {
+          console.log('Reconstructing HNSW index from backup data...')
+
+          // Create a new index with the restored configuration
+          this.index = new HNSWIndex(
+            data.hnswIndex.config,
+            this.distanceFunction
+          )
+
+          // Re-add all nouns to the index
+          for (const noun of data.nouns) {
+            if (noun.vector && noun.vector.length > 0) {
+              this.index.addItem({ id: noun.id, vector: noun.vector })
+            }
+          }
+
+          console.log('HNSW index reconstruction complete')
+        } catch (error) {
+          console.error('Failed to reconstruct HNSW index:', error)
+          console.log('Continuing with standard restore process...')
+        }
+      }
+
+      return {
+        nounsRestored,
+        verbsRestored
+      }
+    } catch (error) {
+      console.error('Failed to restore data:', error)
+      throw new Error(`Failed to restore data: ${error}`)
+    }
+  }
+
+  /**
    * Generate a random graph of data with typed nouns and verbs for testing and experimentation
    * @param options Configuration options for the random graph
    * @returns Object containing the IDs of the generated nouns and verbs
    */
-  public async generateRandomGraph(options: {
-    nounCount?: number;           // Number of nouns to generate (default: 10)
-    verbCount?: number;           // Number of verbs to generate (default: 20)
-    nounTypes?: NounType[];       // Types of nouns to generate (default: all types)
-    verbTypes?: VerbType[];       // Types of verbs to generate (default: all types)
-    clearExisting?: boolean;      // Whether to clear existing data before generating (default: false)
-    seed?: string;                // Seed for random generation (default: random)
-  } = {}): Promise<{
-    nounIds: string[];
-    verbIds: string[];
+  public async generateRandomGraph(
+    options: {
+      nounCount?: number // Number of nouns to generate (default: 10)
+      verbCount?: number // Number of verbs to generate (default: 20)
+      nounTypes?: NounType[] // Types of nouns to generate (default: all types)
+      verbTypes?: VerbType[] // Types of verbs to generate (default: all types)
+      clearExisting?: boolean // Whether to clear existing data before generating (default: false)
+      seed?: string // Seed for random generation (default: random)
+    } = {}
+  ): Promise<{
+    nounIds: string[]
+    verbIds: string[]
   }> {
     await this.ensureInitialized()
 
@@ -1491,7 +1897,8 @@ export class BrainyData<T = any> {
         // Create metadata
         const metadata = {
           verb: verbType,
-          description: verbDescriptions[verbType] || `A random ${verbType} relationship`,
+          description:
+            verbDescriptions[verbType] || `A random ${verbType} relationship`,
           weight: Math.random(),
           confidence: Math.random(),
           randomAttributes: {
@@ -1523,4 +1930,9 @@ export class BrainyData<T = any> {
 }
 
 // Export distance functions for convenience
-export { euclideanDistance, cosineDistance, manhattanDistance, dotProductDistance } from './utils/index.js'
+export {
+  euclideanDistance,
+  cosineDistance,
+  manhattanDistance,
+  dotProductDistance
+} from './utils/index.js'

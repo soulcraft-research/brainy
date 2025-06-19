@@ -380,6 +380,34 @@ export class HNSWIndex {
   }
 
   /**
+   * Get the entry point ID
+   */
+  public getEntryPointId(): string | null {
+    return this.entryPointId
+  }
+
+  /**
+   * Get the maximum level
+   */
+  public getMaxLevel(): number {
+    return this.maxLevel
+  }
+
+  /**
+   * Get the dimension
+   */
+  public getDimension(): number | null {
+    return this.dimension
+  }
+
+  /**
+   * Get the configuration
+   */
+  public getConfig(): HNSWConfig {
+    return { ...this.config }
+  }
+
+  /**
    * Search within a specific layer
    * Returns a map of noun IDs to distances, sorted by distance
    */
