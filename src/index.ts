@@ -26,20 +26,16 @@ export {
 
 // Export embedding functionality
 import {
-  SimpleEmbedding,
   UniversalSentenceEncoder,
   createEmbeddingFunction,
   createTensorFlowEmbeddingFunction,
-  createSimpleEmbeddingFunction,
   defaultEmbeddingFunction
 } from './utils/embedding.js'
 
 export {
-  SimpleEmbedding,
   UniversalSentenceEncoder,
   createEmbeddingFunction,
   createTensorFlowEmbeddingFunction,
-  createSimpleEmbeddingFunction,
   defaultEmbeddingFunction
 }
 
@@ -141,12 +137,8 @@ import {
   ServerSearchActivationAugmentation,
   createServerSearchAugmentations
 } from './augmentations/serverSearchAugmentations.js'
-import {
-  LLMCognitionAugmentation,
-  LLMActivationAugmentation,
-  createLLMAugmentations
-} from './augmentations/llmAugmentations.js'
 
+// Non-LLM exports
 export {
   MemoryStorageAugmentation,
   FileSystemStorageAugmentation,
@@ -157,11 +149,12 @@ export {
   createConduitAugmentation,
   ServerSearchConduitAugmentation,
   ServerSearchActivationAugmentation,
-  createServerSearchAugmentations,
-  LLMCognitionAugmentation,
-  LLMActivationAugmentation,
-  createLLMAugmentations
+  createServerSearchAugmentations
 }
+
+// LLM augmentations are optional and not imported by default
+// They can be imported directly from their module if needed:
+// import { LLMCognitionAugmentation, LLMActivationAugmentation, createLLMAugmentations } from './augmentations/llmAugmentations.js'
 
 
 // Export types
@@ -178,6 +171,15 @@ import type {
   StorageAdapter
 } from './coreTypes.js'
 
+// Export HNSW index and optimized version
+import { HNSWIndex } from './hnsw/hnswIndex.js'
+import { HNSWIndexOptimized, HNSWOptimizedConfig } from './hnsw/hnswIndexOptimized.js'
+
+export {
+  HNSWIndex,
+  HNSWIndexOptimized
+}
+
 export type {
   Vector,
   VectorDocument,
@@ -188,6 +190,7 @@ export type {
   HNSWNoun,
   GraphVerb,
   HNSWConfig,
+  HNSWOptimizedConfig,
   StorageAdapter
 }
 
