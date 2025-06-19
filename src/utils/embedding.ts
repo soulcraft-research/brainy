@@ -5,75 +5,6 @@
 import { EmbeddingFunction, EmbeddingModel, Vector } from '../coreTypes.js'
 
 /**
- * Simple character-based embedding function
- * This is a very basic implementation for demo purposes
- */
-export class SimpleEmbedding implements EmbeddingModel {
-  private initialized = false
-
-  /**
-   * Initialize the embedding model
-   */
-  public async init(): Promise<void> {
-    this.initialized = true
-    return Promise.resolve()
-  }
-
-  /**
-   * Embed text into a vector using character frequencies
-   * @param data Text to embed
-   */
-  public async embed(data: string): Promise<Vector> {
-    if (!this.initialized) {
-      await this.init()
-    }
-
-    // Only handle string data
-    if (typeof data !== 'string') {
-      throw new Error('SimpleEmbedding only supports string data')
-    }
-
-    // Normalize the text
-    const normalizedText = data.toLowerCase().trim()
-
-    // Create a simple 4-dimensional vector based on character frequencies
-    const vector: Vector = [0, 0, 0, 0]
-
-    // Count vowels, consonants, numbers, and special characters
-    for (let i = 0; i < normalizedText.length; i++) {
-      const char = normalizedText[i]
-      if ('aeiou'.includes(char)) {
-        vector[0] += 0.1 // Vowels affect first dimension
-      } else if ('bcdfghjklmnpqrstvwxyz'.includes(char)) {
-        vector[1] += 0.1 // Consonants affect second dimension
-      } else if ('0123456789'.includes(char)) {
-        vector[2] += 0.1 // Numbers affect third dimension
-      } else {
-        vector[3] += 0.1 // Special chars affect fourth dimension
-      }
-    }
-
-    // Normalize the vector
-    const magnitude = Math.sqrt(
-      vector.reduce((sum, val) => sum + val * val, 0)
-    )
-    if (magnitude > 0) {
-      return vector.map((val) => val / magnitude)
-    }
-
-    return vector
-  }
-
-  /**
-   * Dispose of the model resources
-   */
-  public async dispose(): Promise<void> {
-    this.initialized = false
-    return Promise.resolve()
-  }
-}
-
-/**
  * TensorFlow Universal Sentence Encoder embedding model
  * This model provides high-quality text embeddings using TensorFlow.js
  * The required TensorFlow.js dependencies are automatically installed with this package
@@ -93,12 +24,39 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
       const originalWarn = console.warn
 
       // Override console.warn to suppress TensorFlow.js Node.js backend message
-      console.warn = function(message?: any, ...optionalParams: any[]) {
-        if (message && typeof message === 'string' && 
-            message.includes('Hi, looks like you are running TensorFlow.js in Node.js')) {
+      console.warn = function (message?: any, ...optionalParams: any[]) {
+        if (
+          message &&
+          typeof message === 'string' &&
+          message.includes(
+            'Hi, looks like you are running TensorFlow.js in Node.js'
+          )
+        ) {
           return // Suppress the specific warning
         }
         originalWarn(message, ...optionalParams)
+      }
+
+      // Define EPSILON flag before TensorFlow.js is loaded
+      // This prevents the "Cannot evaluate flag 'EPSILON': no evaluation function found" error
+      if (typeof window !== 'undefined') {
+        ;(window as any).EPSILON = 1e-7
+        // Define the flag with an evaluation function for TensorFlow.js
+        ;(window as any).ENV = (window as any).ENV || {}
+        ;(window as any).ENV.flagRegistry =
+          (window as any).ENV.flagRegistry || {}
+        ;(window as any).ENV.flagRegistry.EPSILON = {
+          evaluationFn: () => 1e-7
+        }
+      } else if (typeof global !== 'undefined') {
+        ;(global as any).EPSILON = 1e-7
+        // Define the flag with an evaluation function for TensorFlow.js
+        ;(global as any).ENV = (global as any).ENV || {}
+        ;(global as any).ENV.flagRegistry =
+          (global as any).ENV.flagRegistry || {}
+        ;(global as any).ENV.flagRegistry.EPSILON = {
+          evaluationFn: () => 1e-7
+        }
       }
 
       // Dynamically import TensorFlow.js and Universal Sentence Encoder
@@ -133,11 +91,29 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
       // Handle different input types
       let textToEmbed: string[]
       if (typeof data === 'string') {
+        // Handle empty string case
+        if (data.trim() === '') {
+          // Return a zero vector of appropriate dimension (512 is the default for USE)
+          return new Array(512).fill(0)
+        }
         textToEmbed = [data]
-      } else if (Array.isArray(data) && data.every(item => typeof item === 'string')) {
-        textToEmbed = data
+      } else if (
+        Array.isArray(data) &&
+        data.every((item) => typeof item === 'string')
+      ) {
+        // Handle empty array or array with empty strings
+        if (data.length === 0 || data.every((item) => item.trim() === '')) {
+          return new Array(512).fill(0)
+        }
+        // Filter out empty strings
+        textToEmbed = data.filter((item) => item.trim() !== '')
+        if (textToEmbed.length === 0) {
+          return new Array(512).fill(0)
+        }
       } else {
-        throw new Error('UniversalSentenceEncoder only supports string or string[] data')
+        throw new Error(
+          'UniversalSentenceEncoder only supports string or string[] data'
+        )
       }
 
       // Get embeddings
@@ -147,8 +123,13 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
       const embeddingArray = await embeddings.array()
       return embeddingArray[0]
     } catch (error) {
-      console.error('Failed to embed text with Universal Sentence Encoder:', error)
-      throw new Error(`Failed to embed text with Universal Sentence Encoder: ${error}`)
+      console.error(
+        'Failed to embed text with Universal Sentence Encoder:',
+        error
+      )
+      throw new Error(
+        `Failed to embed text with Universal Sentence Encoder: ${error}`
+      )
     }
   }
 
@@ -174,7 +155,9 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
  * Create an embedding function from an embedding model
  * @param model Embedding model to use
  */
-export function createEmbeddingFunction(model: EmbeddingModel): EmbeddingFunction {
+export function createEmbeddingFunction(
+  model: EmbeddingModel
+): EmbeddingFunction {
   return async (data: any): Promise<Vector> => {
     return await model.embed(data)
   }
@@ -182,22 +165,35 @@ export function createEmbeddingFunction(model: EmbeddingModel): EmbeddingFunctio
 
 /**
  * Creates a TensorFlow-based Universal Sentence Encoder embedding function
- * This is the recommended embedding function for high-quality text embeddings
+ * This is the required embedding function for all text embeddings
  */
 export function createTensorFlowEmbeddingFunction(): EmbeddingFunction {
-  return createEmbeddingFunction(new UniversalSentenceEncoder())
+  // Create a single shared instance of the model
+  const model = new UniversalSentenceEncoder()
+  let modelInitialized = false
+
+  return async (data: any): Promise<Vector> => {
+    try {
+      // Initialize the model if it hasn't been initialized yet
+      if (!modelInitialized) {
+        await model.init()
+        modelInitialized = true
+      }
+
+      return await model.embed(data)
+    } catch (error) {
+      console.error('Failed to use TensorFlow embedding:', error)
+      throw new Error(
+        `Universal Sentence Encoder is required but failed: ${error}`
+      )
+    }
+  }
 }
 
 /**
- * Simple embedding function using character-based embedding
- * This is a basic implementation that doesn't use TensorFlow
+ * Default embedding function
+ * Uses UniversalSentenceEncoder for all text embeddings
+ * TensorFlow.js is required for this to work
  */
-export function createSimpleEmbeddingFunction(): EmbeddingFunction {
-  return createEmbeddingFunction(new SimpleEmbedding())
-}
-
-/**
- * Default embedding function using UniversalSentenceEncoder
- * This provides high-quality text embeddings using TensorFlow.js
- */
-export const defaultEmbeddingFunction: EmbeddingFunction = createTensorFlowEmbeddingFunction()
+export const defaultEmbeddingFunction: EmbeddingFunction =
+  createTensorFlowEmbeddingFunction()
