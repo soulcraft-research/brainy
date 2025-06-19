@@ -8,7 +8,7 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Cartographer](https://img.shields.io/badge/Cartographer-Official%20Standard-brightgreen)](https://github.com/sodal-project/cartographer)
 
-**A fun lightweight graph & vector data platform for AI applications across any environment**
+**A lightweight and powerful graph & vector data platform for AI applications across any environment**
 
 </div>
 
@@ -33,8 +33,7 @@ and connections.
 - **Extensible Augmentations** - Customize and extend functionality with pluggable components (LEGO blocks for your
   data!)
 - **Built-in Conduits** - Sync and scale across instances with WebSocket and WebRTC (your data's teleportation system!)
-- **LLM Creation & Training** - Build, train, and deploy language models from your graph data (your own personal AI
-  factory!)
+- **TensorFlow Integration** - Use TensorFlow.js for high-quality embeddings (included as a required dependency)
 - **Adaptive Intelligence** - Automatically optimizes for your environment and usage patterns
 - **Cross-Platform** - Works everywhere you do: browsers, Node.js, and server environments
 - **Persistent Storage** - Data persists across sessions and scales to any size (no memory loss here, even for
@@ -49,14 +48,22 @@ and connections.
   taste)
 - **Knowledge Graphs** - Build connected data structures with relationships (your data's family tree)
 - **AI Applications** - Store and retrieve embeddings for machine learning models (brain food for your AI)
-- **Custom Language Models** - Create, train, and deploy LLMs from your graph data (your personal GPT factory!)
+- **AI-Enhanced Applications** - Build applications that leverage vector embeddings for intelligent data processing
 - **Data Organization Tools** - Automatically categorize and connect related information (like having a librarian in
   your code)
 - **Adaptive Experiences** - Create applications that learn and evolve with your users (digital chameleons!)
 
 ## 🔧 Installation
 
-Due to a dependency conflict between TensorFlow.js packages, use the `--legacy-peer-deps` flag when installing:
+```bash
+npm install @soulcraft/brainy
+```
+
+### TensorFlow.js Support
+
+TensorFlow-based embeddings are now included as required dependencies. All necessary TensorFlow.js packages are automatically installed when you install Brainy.
+
+Note: If you encounter dependency conflicts with TensorFlow.js packages, you may need to use the `--legacy-peer-deps` flag:
 
 ```bash
 npm install @soulcraft/brainy --legacy-peer-deps
@@ -64,8 +71,13 @@ npm install @soulcraft/brainy --legacy-peer-deps
 
 ## 🏁 Quick Start
 
+Brainy now uses a unified build that automatically adapts to your environment (Node.js, browser, or serverless), so you can use the same code everywhere!
+
 ```typescript
-import {BrainyData, NounType, VerbType} from '@soulcraft/brainy'
+import {BrainyData, NounType, VerbType, environment} from '@soulcraft/brainy'
+
+// Check which environment we're running in (optional)
+console.log(`Running in ${environment.isBrowser ? 'browser' : environment.isNode ? 'Node.js' : 'serverless'} environment`)
 
 // Create and initialize the database
 const db = new BrainyData()
@@ -93,6 +105,42 @@ await db.addVerb(catId, dogId, {
     description: 'Both are common household pets'
 })
 ```
+
+### Usage Options
+
+Brainy's unified build works in all environments, but you have several import options:
+
+```typescript
+// Standard import - automatically adapts to any environment
+import {BrainyData, NounType, VerbType, environment} from '@soulcraft/brainy'
+
+// Minified version for production
+import {BrainyData, NounType, VerbType} from '@soulcraft/brainy/min'
+
+// Use the same API in any environment
+const db = new BrainyData()
+await db.init()
+// ...
+```
+
+#### Using a script tag in HTML
+
+```html
+<script type="module">
+  // Use the CDN to load the unified build
+  import {BrainyData, NounType, VerbType} from 'https://cdn.jsdelivr.net/npm/@soulcraft/brainy/dist/unified.js'
+
+  // Or use the minified version
+  // import {BrainyData, NounType, VerbType} from 'https://cdn.jsdelivr.net/npm/@soulcraft/brainy/dist/unified.min.js'
+
+  // Use the same API as in Node.js
+  const db = new BrainyData()
+  await db.init()
+  // ...
+</script>
+```
+
+Modern bundlers like Webpack, Rollup, and Vite will automatically use the unified build which adapts to any environment.
 
 ## 🧩 How It Works (The Magic Behind the Curtain)
 
@@ -134,7 +182,7 @@ making future operations even faster and more relevant!
 
 2. **Embedding Generation** 🧠
     - Text is transformed into numerical vectors using embedding models (language → math magic)
-    - Choose between TensorFlow Universal Sentence Encoder (high quality) or Simple Embedding (faster)
+    - Uses TensorFlow Universal Sentence Encoder for high-quality text embeddings
     - Custom embedding functions can be plugged in for specialized domains (bring your own secret sauce)
 
 3. **Vector Indexing** 🔍
@@ -178,10 +226,9 @@ Brainy uses a powerful augmentation system to extend functionality. Augmentation
 3. **COGNITION** 🧠
     - Enables advanced reasoning, inference, and logical operations
     - Analyzes relationships between entities
-    - Creates and trains language models from graph data
     - Examples:
         - Inferring new connections between existing data
-        - Building custom LLMs from your nouns and verbs
+        - Deriving insights from graph relationships
 
 4. **CONDUIT** 🔌
     - Establishes high-bandwidth channels for structured data exchange
@@ -239,6 +286,36 @@ Brainy's pipeline is designed to handle streaming data efficiently:
     - Optional multi-threading for high-performance streaming
     - Configurable execution modes (SEQUENTIAL, PARALLEL, THREADED)
     - Example: `executeTypedPipeline(augmentations, method, args, { mode: ExecutionMode.THREADED })`
+
+### 🏗️ Build System
+
+Brainy uses a modern build system that optimizes for both Node.js and browser environments:
+
+1. **ES Modules** 📦
+    - Built as ES modules for maximum compatibility
+    - Works in modern browsers and Node.js environments
+    - Separate optimized builds for browser and Node.js
+
+2. **Environment-Specific Builds** 🔧
+    - **Node.js Build**: Optimized for server environments with full functionality
+    - **Browser Build**: Optimized for browser environments with reduced bundle size
+    - Conditional exports in package.json for automatic environment detection
+
+3. **Environment Detection** 🔍
+    - Automatically detects whether it's running in a browser or Node.js
+    - Loads appropriate dependencies and functionality based on the environment
+    - Provides consistent API across all environments
+
+4. **TypeScript** 📝
+    - Written in TypeScript for type safety and better developer experience
+    - Generates type definitions for TypeScript users
+    - Compiled to ES2020 for modern JavaScript environments
+
+5. **Build Scripts** 🛠️
+    - `npm run build`: Builds the Node.js version
+    - `npm run build:browser`: Builds the browser-optimized version
+    - `npm run build:all`: Builds both versions
+    - `npm run demo`: Builds all versions and starts a demo server
 
 ### 🏃‍♀️ Running the Pipeline
 
@@ -414,41 +491,6 @@ npm run cli generate-random-graph --noun-count 20 --verb-count 40
     - `-t, --data-type <type>` - Type of data to process (default: 'text')
     - `-v, --verbose` - Show detailed output
 
-#### LLM Commands:
-
-- `llm create` - Create a new LLM model from Brainy data
-    - `-n, --name <name>` - Name of the model
-    - `-d, --description <description>` - Description of the model
-    - `-t, --type <type>` - Type of model (simple, transformer, custom)
-    - `-v, --vocab-size <size>` - Vocabulary size
-    - `-e, --embedding-dim <dim>` - Embedding dimension
-    - `-h, --hidden-dim <dim>` - Hidden dimension
-    - `-l, --layers <count>` - Number of layers
-    - `--heads <count>` - Number of attention heads (for transformer models)
-- `llm train <modelId>` - Train an LLM model on Brainy data
-    - `-s, --max-samples <count>` - Maximum number of training samples
-    - `-v, --validation-split <ratio>` - Validation split ratio
-    - `-e, --epochs <count>` - Number of training epochs
-    - `-b, --batch-size <size>` - Batch size
-    - `-p, --patience <count>` - Early stopping patience
-- `llm test <modelId>` - Test an LLM model on Brainy data
-    - `-s, --test-size <count>` - Number of test samples
-    - `-g, --generate-samples` - Generate sample predictions
-    - `-c, --sample-count <count>` - Number of samples to generate
-- `llm export <modelId>` - Export an LLM model for deployment
-    - `-f, --format <format>` - Export format (tfjs, json)
-    - `-o, --output <path>` - Output path
-    - `-m, --include-metadata` - Include metadata
-    - `-v, --include-vocab` - Include vocabulary
-- `llm deploy <modelId>` - Deploy an LLM model to the specified target
-    - `-t, --target <target>` - Deployment target (browser, node, cloud)
-    - `-p, --provider <provider>` - Cloud provider (aws, gcp, azure)
-    - `-e, --endpoint <url>` - Endpoint URL for cloud deployment
-    - `-r, --region <region>` - Region for cloud deployment
-- `llm generate <modelId> <prompt>` - Generate text using an LLM model
-    - `-t, --temperature <temp>` - Temperature for sampling
-    - `-k, --top-k <count>` - Number of top tokens to consider
-    - `-l, --max-length <length>` - Maximum length of generated text
 
 ## 🔌 API Reference
 
@@ -463,6 +505,12 @@ await db.clear()
 
 // Get database status
 const status = await db.status()
+
+// Backup all data from the database
+const backupData = await db.backup()
+
+// Restore data into the database
+const restoreResult = await db.restore(backupData, { clearExisting: true })
 ```
 
 ### Working with Nouns (Entities)
@@ -496,6 +544,7 @@ const thingNouns = await db.searchByNounTypes([NounType.Thing], numResults)
 
 ### Working with Verbs (Relationships)
 
+
 ```typescript
 // Add a relationship between nouns
 await db.addVerb(sourceId, targetId, {
@@ -522,81 +571,17 @@ const verb = await db.getVerb(verbId)
 await db.deleteVerb(verbId)
 ```
 
-### Working with LLM Models
-
-```typescript
-import {createLLMAugmentations} from '@soulcraft/brainy'
-
-// Create LLM augmentations
-const {cognition, activation} = await createLLMAugmentations()
-
-// Create a new LLM model
-const createResult = await cognition.createModel({
-    name: 'my-model',
-    description: 'A simple LLM model trained on Brainy data',
-    modelType: 'simple',
-    vocabSize: 5000,
-    embeddingDim: 64,
-    hiddenDim: 128,
-    numLayers: 1
-})
-
-const modelId = createResult.data.modelId
-
-// Train the model
-const trainResult = await cognition.trainModel(modelId, {
-    maxSamples: 100,
-    validationSplit: 0.2,
-    earlyStoppingPatience: 2
-})
-
-// Test the model
-const testResult = await cognition.testModel(modelId, {
-    testSize: 20,
-    generateSamples: true,
-    sampleCount: 3
-})
-
-// Generate text with the model
-const generateResult = await cognition.generateText(modelId, 'What is a', {
-    temperature: 0.7,
-    topK: 5
-})
-
-// Export the model
-const exportResult = await cognition.exportModel(modelId, {
-    format: 'json',
-    includeMetadata: true,
-    includeVocab: true
-})
-
-// Deploy the model
-const deployResult = await cognition.deployModel(modelId, {
-    target: 'browser'
-})
-
-// Using the augmentation pipeline
-const pipelineResult = await augmentationPipeline.executeCognitionPipeline(
-    'createModel',
-    [{
-        name: 'pipeline-model',
-        modelType: 'transformer',
-        numHeads: 2,
-        numLayers: 1
-    }]
-)
-```
 
 ## ⚙️ Advanced Configuration
 
-### Custom Embedding
+### Embedding
 
 ```typescript
-import {BrainyData, createSimpleEmbeddingFunction} from '@soulcraft/brainy'
+import {BrainyData, createTensorFlowEmbeddingFunction} from '@soulcraft/brainy'
 
-// Use a custom embedding function (faster but less accurate)
+// Use the TensorFlow Universal Sentence Encoder embedding function
 const db = new BrainyData({
-    embeddingFunction: createSimpleEmbeddingFunction()
+    embeddingFunction: createTensorFlowEmbeddingFunction()
 })
 await db.init()
 
@@ -641,6 +626,65 @@ const db = new BrainyData({
 })
 ```
 
+### Optimized HNSW for Large Datasets
+
+Brainy includes an optimized HNSW index implementation designed specifically for large datasets that may not fit entirely in memory. This implementation uses a hybrid approach combining:
+
+1. **Product Quantization** - Reduces vector dimensionality while preserving similarity relationships
+2. **Disk-Based Storage** - Offloads vectors to disk when memory usage exceeds a threshold
+3. **Memory-Efficient Indexing** - Optimizes memory usage for large-scale vector collections
+
+```typescript
+import {BrainyData} from '@soulcraft/brainy'
+
+// Configure with optimized HNSW index for large datasets
+const db = new BrainyData({
+    // Use the optimized HNSW index instead of the standard one
+    hnswOptimized: {
+        // Standard HNSW parameters
+        M: 16,              // Max connections per noun
+        efConstruction: 200, // Construction candidate list size
+        efSearch: 50,       // Search candidate list size
+
+        // Memory threshold in bytes - when exceeded, will use disk-based approach
+        memoryThreshold: 1024 * 1024 * 1024, // 1GB default threshold
+
+        // Product quantization settings for dimensionality reduction
+        productQuantization: {
+            enabled: true,              // Enable product quantization
+            numSubvectors: 16,          // Number of subvectors to split the vector into
+            numCentroids: 256           // Number of centroids per subvector
+        },
+
+        // Whether to use disk-based storage for the index
+        useDiskBasedIndex: true         // Enable disk-based storage
+    },
+
+    // Storage configuration (required for disk-based index)
+    storage: {
+        // Choose appropriate storage for your environment
+        requestPersistentStorage: true
+    }
+})
+
+// The optimized index automatically adapts based on dataset size:
+// 1. For small datasets: Uses standard in-memory approach
+// 2. For medium datasets: Applies product quantization to reduce memory usage
+// 3. For large datasets: Combines product quantization with disk-based storage
+
+// Check status to see memory usage and optimization details
+const status = await db.status()
+console.log(status.details.index)
+// Example output:
+// {
+//   indexSize: 10000,
+//   optimized: true,
+//   memoryUsage: 536870912,  // Memory usage in bytes
+//   productQuantization: true,
+//   diskBasedIndex: true
+// }
+```
+
 ## 🧪 Distance Functions
 
 - `cosineDistance` (default)
@@ -648,10 +692,84 @@ const db = new BrainyData({
 - `manhattanDistance`
 - `dotProductDistance`
 
-## 🔋 Embedding Options
+## 📤📥 Backup and Restore
 
-- Default: TensorFlow Universal Sentence Encoder (high quality)
-- Alternative: Simple character-based embedding (faster)
+Brainy provides powerful backup and restore capabilities that allow you to:
+- Back up your data
+- Transfer data between Brainy instances
+- Restore existing data into Brainy for vectorization and indexing
+- Backup data for analysis or visualization in other tools
+
+### Backing Up Data
+
+```typescript
+// Backup all data from the database
+const backupData = await db.backup()
+
+// The backup data includes:
+// - All nouns (entities) with their vectors and metadata
+// - All verbs (relationships) between nouns
+// - Noun types and verb types
+// - HNSW index data for fast similarity search
+// - Version information
+
+// Save the backup data to a file (Node.js environment)
+import fs from 'fs'
+fs.writeFileSync('brainy-backup.json', JSON.stringify(backupData, null, 2))
+```
+
+### Restoring Data
+
+Brainy's restore functionality is flexible and can handle:
+1. Complete backups with vectors and index data
+2. Sparse data without vectors (vectors will be created during restore)
+3. Data without HNSW index (index will be reconstructed if needed)
+
+```typescript
+// Restore data with all options
+const restoreResult = await db.restore(backupData, {
+  clearExisting: true // Whether to clear existing data before restore
+})
+
+// Restore sparse data (without vectors)
+// Vectors will be automatically created using the embedding function
+const sparseData = {
+  nouns: [
+    {
+      id: '123',
+      // No vector field - will be created during restore
+      metadata: {
+        noun: 'Thing',
+        text: 'This text will be used to generate a vector'
+      }
+    }
+  ],
+  verbs: [],
+  version: '1.0.0'
+}
+
+const sparseRestoreResult = await db.restore(sparseData)
+```
+
+### CLI Backup/Restore
+
+```bash
+# Backup data to a file
+brainy backup --output brainy-backup.json
+
+# Restore data from a file
+brainy restore --input brainy-backup.json --clear-existing
+
+# Restore sparse data (without vectors)
+brainy restore --input sparse-data.json
+```
+
+## 🔋 Embedding
+
+Brainy uses the following embedding approach:
+
+- TensorFlow Universal Sentence Encoder (high-quality text embeddings)
+- Custom embedding functions can be plugged in for specialized domains
 
 ## 🧰 Extensions
 
@@ -660,7 +778,7 @@ Brainy includes an augmentation system for extending functionality:
 - **Memory Augmentations**: Different storage backends
 - **Sense Augmentations**: Process raw data
 - **Cognition Augmentations**: Reasoning and inference
-- **Dialog Augmentations**: Natural language processing
+- **Dialog Augmentations**: Text processing and interaction
 - **Perception Augmentations**: Data interpretation and visualization
 - **Activation Augmentations**: Trigger actions
 
@@ -701,16 +819,15 @@ To get started with cloud deployment, see the [Cloud Wrapper README](cloud-wrapp
 - **[Cartographer](https://github.com/sodal-project/cartographer)** - A companion project that provides standardized
   interfaces for interacting with Brainy
 
-## 📚 Examples
+## 📚 Demo
 
-The repository includes several examples:
+The repository includes a comprehensive demo that showcases Brainy's main features:
 
-- Web demo: `examples/demo.html`
-- Basic usage: `examples/basicUsage.js`
-- Custom storage: `examples/customStorage.js`
-- Memory augmentations: `examples/memoryAugmentationExample.js`
-- Conduit augmentations: `examples/conduitAugmentationExample.js`
-- Browser-server search: `examples/browser-server-search/` - Search a server-hosted Brainy instance from a browser
+- `examples/demo.html` - A single demo page with animations demonstrating Brainy's features. Run it with
+  `npm run demo` (see [demo instructions](README.demo.md) for details):
+    - How Brainy runs in different environments (browser, Node.js, server, cloud)
+    - How the noun-verb data model works
+    - How HNSW search works
 
 ### Syncing Brainy Instances
 
@@ -889,7 +1006,7 @@ const id = await db.addToBoth('Deep learning is a subset of machine learning', {
 await db.shutDown()
 ```
 
-For a complete example with HTML interface, see the [browser-server-search example](examples/browser-server-search/).
+For a complete demonstration of Brainy's features, see the [demo page](examples/demo.html).
 
 ## 📋 Requirements
 

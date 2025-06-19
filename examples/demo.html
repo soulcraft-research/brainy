@@ -1,592 +1,3420 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brainy - Vector and Graph Database Demo</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            line-height: 1.6;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brainy Interactive Demo - A Lightweight Graph & Vector Data Platform</title>
+  <link rel="icon" href="../brainy.png" type="image/png">
+  <!--
+  IMPORTANT: This demo must be served over HTTP, not opened directly as a file.
+  Run the following command from the project root directory:
 
-        h1, h2 {
-            color: #4361ee;
-        }
+  npx http-server
 
-        button {
-            background-color: #4361ee;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin: 5px 0;
-        }
+  Then navigate to http://localhost:8080/examples/demo.html in your browser.
+  -->
+  <!-- D3.js for visualizations -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <!-- Material Icons font -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+      :root {
+          --primary-color: #193c41;
+          --secondary-color: #3f6e65;
+          --accent-color: #c95e2f;
+          --danger-color: #b84c26;
+          --text-color: #333;
+          --light-bg: #ececec;
+          --dark-bg: #333;
+          --card-bg: #fff;
+          --border-radius: 8px;
+          --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          --transition: all 0.3s ease;
 
-        button:hover {
-            background-color: #3a56d4;
-        }
+          /* Cartographer colors */
+          --md3-primary: #6750A4;
+          --md3-on-primary: #FFFFFF;
+          --md3-secondary-container: #E8DEF8;
+          --md3-on-secondary-container: #1D192B;
+          --md3-outline: #79747E;
+          --md3-surface: #FFFBFE;
+          --md3-shadow: rgba(0, 0, 0, 0.3);
+      }
 
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
+      body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          line-height: 1.6;
+          color: var(--text-color);
+          margin: 0;
+          padding: 0;
+          background-color: var(--light-bg);
+      }
 
-        pre {
-            background-color: #f5f5f5;
-            padding: 10px;
-            border-radius: 4px;
-            overflow-x: auto;
-        }
+      .container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 20px;
+      }
 
-        .container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
+      header {
+          text-align: center;
+          padding: 40px 0;
+          background-color: var(--card-bg);
+          border-radius: var(--border-radius);
+          box-shadow: var(--box-shadow);
+          margin-bottom: 30px;
+      }
 
-        .panel {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 15px;
-        }
+      header img {
+          width: 150px;
+          margin-bottom: 20px;
+      }
 
-        .search-container {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
+      h1, h2, h3 {
+          color: var(--primary-color);
+      }
 
-        input, select {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-    </style>
+      .demo-section {
+          background-color: var(--card-bg);
+          border-radius: var(--border-radius);
+          box-shadow: var(--box-shadow);
+          padding: 30px;
+          margin-bottom: 30px;
+      }
+
+      .demo-controls {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin: 20px 0;
+      }
+
+      button {
+          background-color: var(--primary-color);
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: var(--border-radius);
+          cursor: pointer;
+          transition: var(--transition);
+      }
+
+      button:hover {
+          background-color: #388E3C;
+          transform: translateY(-2px);
+      }
+
+      button.secondary {
+          background-color: var(--secondary-color);
+      }
+
+      button.secondary:hover {
+          background-color: #1976D2;
+      }
+
+      button.accent {
+          background-color: var(--accent-color);
+      }
+
+      button.accent:hover {
+          background-color: #F57C00;
+      }
+
+      button.danger {
+          background-color: var(--danger-color);
+      }
+
+      button.danger:hover {
+          background-color: #D32F2F;
+      }
+
+      input, select, textarea {
+          padding: 10px;
+          border: 1px solid #ddd;
+          border-radius: var(--border-radius);
+          flex-grow: 1;
+      }
+
+      textarea {
+          min-height: 100px;
+          font-family: monospace;
+      }
+
+      .visualization {
+          height: 500px;
+          background-color: var(--light-bg);
+          border-radius: var(--border-radius);
+          margin: 20px 0;
+          position: relative;
+          overflow: hidden;
+      }
+
+      /* Cartographer styles */
+      .zoom-controls {
+          position: absolute;
+          bottom: 1.5rem;
+          right: 1rem;
+          z-index: 10;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+      }
+
+      .zoom-fit-button {
+          width: 2.5rem;
+          height: 2.5rem;
+          border-radius: 50%;
+          background-color: var(--md3-primary);
+          color: var(--md3-on-primary);
+          border: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0.125rem 0.25rem var(--md3-shadow);
+          transition: background-color 0.2s, transform 0.2s;
+      }
+
+      .zoom-fit-button:hover {
+          background-color: #7B68B5;
+          transform: scale(1.05);
+      }
+
+      .zoom-fit-button:active {
+          background-color: #553B93;
+          transform: scale(0.95);
+      }
+
+      .graph-container {
+          width: 100%;
+          height: 100%;
+          background-color: #FDF8FF;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex: 1;
+          overflow: hidden;
+      }
+
+      .graph-container svg {
+          display: block;
+          width: 100%;
+          height: 100%;
+          font-family: 'Roboto', 'Inter', sans-serif;
+      }
+
+      .graph-container .edges line {
+          transition: stroke-opacity 0.2s ease-in-out;
+      }
+
+      .graph-container .node-group {
+          transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), filter 0.3s ease;
+          transform-origin: center;
+      }
+
+      .graph-container .node-group:hover {
+          filter: drop-shadow(0 0.5rem 1rem rgba(0, 0, 0, 0.25));
+          animation: jiggle 0.5s ease;
+      }
+
+      .graph-container .node-group path {
+          transition: fill-opacity 0.15s ease-in-out;
+      }
+
+      .graph-container .overlay-container {
+          pointer-events: none;
+      }
+
+      .graph-container .overlay-container .node-info-popup {
+          pointer-events: auto;
+      }
+
+      @keyframes jiggle {
+          0% {
+              transform: rotate(0deg);
+          }
+          25% {
+              transform: rotate(0.5deg) scale(1.01);
+          }
+          50% {
+              transform: rotate(-0.5deg) scale(1.01);
+          }
+          75% {
+              transform: rotate(0.5deg) scale(1.01);
+          }
+          100% {
+              transform: rotate(0deg);
+          }
+      }
+
+      .results {
+          background-color: var(--light-bg);
+          border-radius: var(--border-radius);
+          padding: 15px;
+          max-height: 300px;
+          overflow-y: auto;
+          font-family: monospace;
+          white-space: pre-wrap;
+      }
+
+      .tabs {
+          display: flex;
+          margin-bottom: 20px;
+          flex-wrap: wrap;
+      }
+
+      .tab {
+          padding: 10px 20px;
+          background-color: var(--light-bg);
+          cursor: pointer;
+          border-radius: var(--border-radius) var(--border-radius) 0 0;
+          margin-right: 5px;
+          margin-bottom: 5px;
+      }
+
+      .tab.active {
+          background-color: var(--primary-color);
+          color: white;
+      }
+
+      .tab-content {
+          display: none;
+      }
+
+      .tab-content.active {
+          display: block;
+      }
+
+      .section-content, .subsection-content {
+          display: block;
+          margin-bottom: 30px;
+      }
+
+      .quickstart-section {
+          background: linear-gradient(135deg, #193c41, #3f6e65);
+          color: white;
+          padding: 30px;
+          border-radius: var(--border-radius);
+          margin-bottom: 30px;
+          box-shadow: var(--box-shadow);
+      }
+
+      .quickstart-section h2 {
+          color: white;
+          margin-top: 0;
+      }
+
+      .code-tabs {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+          gap: 20px;
+          margin-top: 20px;
+      }
+
+      .code-tab {
+          background-color: rgba(255, 255, 255, 0.1);
+          border-radius: var(--border-radius);
+          padding: 20px;
+      }
+
+      .code-tab h3 {
+          margin-top: 0;
+          color: white;
+      }
+
+      .code-tab p {
+          color: rgba(255, 255, 255, 0.9);
+      }
+
+      .section-divider {
+          height: 1px;
+          background-color: var(--light-bg);
+          margin: 20px 0;
+      }
+
+      .code-block {
+          background-color: var(--dark-bg);
+          color: white;
+          padding: 15px;
+          border-radius: var(--border-radius);
+          overflow-x: auto;
+          margin: 20px 0;
+          font-family: monospace;
+      }
+
+      .feature-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 20px;
+          margin: 30px 0;
+      }
+
+      .feature-card {
+          background-color: var(--card-bg);
+          border-radius: var(--border-radius);
+          box-shadow: var(--box-shadow);
+          padding: 20px;
+          transition: var(--transition);
+      }
+
+      .feature-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .feature-card h3 {
+          margin-top: 0;
+          color: var(--primary-color);
+      }
+
+      .tooltip {
+          position: absolute;
+          padding: 8px;
+          background: rgba(0, 0, 0, 0.8);
+          color: #fff;
+          border-radius: 4px;
+          pointer-events: none;
+          z-index: 10;
+          font-size: 12px;
+      }
+
+      .cli-terminal {
+          background-color: var(--dark-bg);
+          color: #fff;
+          padding: 15px;
+          border-radius: var(--border-radius);
+          font-family: monospace;
+          margin: 20px 0;
+          position: relative;
+      }
+
+      .cli-prompt {
+          color: var(--accent-color);
+      }
+
+      .cli-input {
+          background: transparent;
+          border: none;
+          color: #fff;
+          font-family: monospace;
+          width: 80%;
+          outline: none;
+      }
+
+      .cli-output {
+          margin-top: 10px;
+          white-space: pre-wrap;
+          max-height: 300px;
+          overflow-y: auto;
+      }
+
+      .cli-history {
+          margin-bottom: 10px;
+      }
+
+      .cli-command {
+          margin-bottom: 5px;
+      }
+
+      .form-group {
+          margin-bottom: 15px;
+      }
+
+      .form-group label {
+          display: block;
+          margin-bottom: 5px;
+          font-weight: bold;
+      }
+
+      .features-overview {
+          background: linear-gradient(135deg, #193c41, #3f6e65);
+          color: white;
+          padding: 30px;
+          border-radius: var(--border-radius);
+          margin-bottom: 30px;
+          box-shadow: var(--box-shadow);
+      }
+
+      .features-overview h2 {
+          color: white;
+          margin-top: 0;
+      }
+
+      .features-list {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 15px;
+          margin-top: 20px;
+      }
+
+      .feature-item {
+          background-color: var(--card-bg); /* Changed from transparent white to card background */
+          padding: 15px;
+          border-radius: var(--border-radius);
+          /* backdrop-filter: blur(10px); Removed as it's less relevant with solid background */
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Added a light shadow to feature items */
+      }
+
+      .feature-item h4 {
+          margin: 0 0 10px 0;
+          color: var(--secondary-color); /* Changed from white to secondary color for better contrast */
+      }
+
+      .feature-item p {
+          margin: 0;
+          font-size: 0.9em;
+          opacity: 1; /* Changed from 0.9 to 1 for better readability */
+          color: var(--text-color); /* Ensure paragraph text is also dark */
+      }
+
+      footer {
+          text-align: center;
+          padding: 20px;
+          margin-top: 40px;
+          background-color: var(--card-bg);
+          border-radius: var(--border-radius);
+          box-shadow: var(--box-shadow);
+      }
+
+      @media (max-width: 768px) {
+          .container {
+              padding: 10px;
+          }
+
+          .demo-controls {
+              flex-direction: column;
+          }
+
+          .feature-grid {
+              grid-template-columns: 1fr;
+          }
+
+          .features-list {
+              grid-template-columns: 1fr;
+          }
+      }
+  </style>
 </head>
 <body>
-<div style="display: flex; align-items: center; margin-bottom: 20px;">
-    <img src="../brainy.png" alt="Brainy Logo" width="100" style="margin-right: 20px;"/>
-    <h1>Brainy - Vector and Graph Database Demo</h1>
-</div>
-<p>This demo shows how to use Brainy as both a vector database (with embeddings and similarity search) and a graph
-    database (with GraphNoun nodes and GraphVerb relationships).</p>
-
 <div class="container">
-    <div class="panel">
-        <h2>1. Initialize Database</h2>
-        <button id="initBtn">Initialize BrainyData</button>
-        <div id="initStatus"></div>
-    </div>
+  <div id="http-warning"
+       style="background-color: #f44336; color: white; padding: 15px; margin-bottom: 20px; border-radius: 8px; display: none;">
+    <strong>Warning:</strong> This demo must be served over HTTP to work properly. If you're seeing this message or
+    the demo isn't working, please:
+    <ol style="margin-top: 10px; margin-bottom: 5px;">
+      <li>Open a terminal in the project root directory</li>
+      <li>Run: <code style="background-color: rgba(0,0,0,0.2); padding: 3px 5px; border-radius: 3px;">npx
+        http-server</code></li>
+      <li>Navigate to <a href="http://localhost:8080/examples/demo.html"
+                         style="color: white; text-decoration: underline;">http://localhost:8080/examples/demo.html</a>
+      </li>
+    </ol>
+    <button onclick="this.parentElement.style.display='none'"
+            style="background-color: white; color: #f44336; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; float: right;">
+      Dismiss
+    </button>
+  </div>
 
-    <div class="panel">
-        <h2>2. Configure Pipeline</h2>
-        <button id="setupPipelineBtn" disabled>Setup Augmentation Pipeline</button>
-        <div id="pipelineStatus"></div>
-    </div>
+  <header>
+    <img src="../brainy.png" alt="Brainy Logo">
+    <h1>Brainy Interactive Demo</h1>
+    <p>A lightweight but powerful graph & vector data platform for AI applications across any environment</p>
+  </header>
 
-    <div class="panel">
-        <h2>3. Add Sample Data</h2>
-        <button id="addDataBtn" disabled>Add Sample Vectors</button>
-        <div id="dataStatus"></div>
-    </div>
+  <!-- Features Overview Section -->
+  <section class="features-overview">
+    <h2>🚀 Key Features</h2>
+    <p>Explore all of Brainy's powerful capabilities in this interactive demo:</p>
 
-    <div class="panel">
-        <h2>4. Vector Search</h2>
-        <div class="search-container">
-            <select id="searchVector" disabled>
-                <option value="">Select a vector</option>
-            </select>
-            <input type="number" id="searchK" value="3" min="1" max="10" disabled>
-            <button id="searchBtn" disabled>Search</button>
+    <div class="features-list">
+      <div class="feature-item">
+        <h4>🏃‍♂️ Run Everywhere</h4>
+        <p>Run Brainy in a browser, container, serverless cloud service or the terminal!</p>
+      </div>
+      <div class="feature-item">
+        <h4>🔍 Vector Search</h4>
+        <p>Find semantically similar content using embeddings (like having ESP for your data!)</p>
+      </div>
+      <div class="feature-item">
+        <h4>🌐 Graph Database</h4>
+        <p>Connect data with meaningful relationships (your data's social network)</p>
+      </div>
+      <div class="feature-item">
+        <h4>🌊 Streaming Pipeline</h4>
+        <p>Process data in real-time as it flows through the system (like a data waterslide!)</p>
+      </div>
+      <div class="feature-item">
+        <h4>🧩 Extensible Augmentations</h4>
+        <p>Customize and extend functionality with pluggable components (LEGO blocks for your data!)</p>
+      </div>
+      <div class="feature-item">
+        <h4>🔌 Built-in Conduits</h4>
+        <p>Sync and scale across instances with WebSocket and WebRTC (your data's teleportation system!)</p>
+      </div>
+      <div class="feature-item">
+        <h4>🤖 TensorFlow Integration</h4>
+        <p>Use TensorFlow.js for high-quality embeddings (included as a required dependency)</p>
+      </div>
+      <div class="feature-item">
+        <h4>🧠 Adaptive Intelligence</h4>
+        <p>Automatically optimizes for your environment and usage patterns</p>
+      </div>
+      <div class="feature-item">
+        <h4>🌍 Cross-Platform</h4>
+        <p>Works everywhere you do: browsers, Node.js, and server environments</p>
+      </div>
+      <div class="feature-item">
+        <h4>💾 Persistent Storage</h4>
+        <p>Data persists across sessions and scales to any size (no memory loss here!)</p>
+      </div>
+      <div class="feature-item">
+        <h4>🔧 TypeScript Support</h4>
+        <p>Fully typed API with generics (for those who like their code tidy)</p>
+      </div>
+      <div class="feature-item">
+        <h4>📱 CLI Tools</h4>
+        <p>Powerful command-line interface for data management (command line wizardry)</p>
+      </div>
+      <div class="feature-item">
+        <h4>📊 Data Visualization</h4>
+        <p>Interactive graph and vector space visualizations</p>
+      </div>
+      <div class="feature-item">
+        <h4>☁️ Cloud Ready</h4>
+        <p>Easy deployment to Google, AWS, Azure, and other cloud platforms</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Start Section -->
+  <section class="quickstart-section">
+    <h2>🏁 Quick Start</h2>
+
+    <div class="code-tabs">
+      <div class="code-tab">
+        <h3>Node.js Environment</h3>
+        <pre class="code-block">
+import {BrainyData, NounType, VerbType} from '@soulcraft/brainy'
+
+// Create and initialize the database
+const db = new BrainyData()
+await db.init()
+
+// Add data (automatically converted to vectors)
+const catId = await db.add("Cats are independent pets", {
+    noun: NounType.Thing,
+    category: 'animal'
+})
+
+const dogId = await db.add("Dogs are loyal companions", {
+    noun: NounType.Thing,
+    category: 'animal'
+})
+
+// Search for similar items
+const results = await db.searchText("feline pets", 2)
+console.log(results)
+// Returns items similar to "feline pets" with similarity scores
+
+// Add a relationship between items
+await db.addVerb(catId, dogId, {
+    verb: VerbType.RelatedTo,
+    description: 'Both are common household pets'
+})
+        </pre>
+      </div>
+
+      <div class="code-tab">
+        <h3>Browser Environment</h3>
+        <p>You can import the browser-optimized version in two ways:</p>
+
+        <h4>Option 1: Using the browser-specific import</h4>
+        <pre class="code-block">
+// Import the browser-optimized version
+import {BrainyData, NounType, VerbType} from '@soulcraft/brainy/browser'
+
+// Use the same API as in Node.js
+const db = new BrainyData()
+await db.init()
+// ...
+        </pre>
+
+        <h4>Option 2: Using a script tag in HTML</h4>
+        <pre class="code-block">
+&lt;script type="module"&gt;
+  // Import Brainy library directly as a module
+  import {BrainyData, NounType, VerbType} from '../node_modules/@soulcraft/brainy/dist/brainy.js'
+
+  // Use the same API as in Node.js
+  const db = new BrainyData()
+  await db.init()
+  // ...
+&lt;/script&gt;
+        </pre>
+        <p>Modern bundlers like Webpack, Rollup, and Vite will automatically select the browser-optimized version when
+          targeting browser environments.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="demo-section">
+    <h2>Interactive Brainy Explorer</h2>
+    <p>This interactive demo allows you to experiment with all of Brainy's features. Initialize the database, add
+      data, create relationships, and perform searches - all with real-time visualizations.</p>
+
+    <!-- All sections are now visible without tabs -->
+
+    <!-- Database Section -->
+    <div class="section-content" id="database-content">
+      <h3>Database Operations</h3>
+      <p>Initialize the database, add sample data, or clear all data.</p>
+
+      <div class="demo-controls">
+        <button id="init-db-btn">Initialize Database</button>
+        <button id="add-sample-btn" class="secondary">Add Sample Data</button>
+        <button id="clear-db-btn" class="danger">Clear Database</button>
+        <button id="export-data-btn">Backup Data</button>
+        <button id="import-data-btn">Restore Data</button>
+        <button id="import-sparse-data-btn" class="secondary">Restore Sparse Data</button>
+      </div>
+
+      <div class="results" id="db-status">
+        Database not initialized. Click "Initialize Database" to start.
+      </div>
+
+      <div class="visualization" id="db-visualization">
+        <div class="zoom-controls">
+          <button class="zoom-fit-button" id="zoom-fit-btn" title="Zoom to fit all nodes">
+            <i class="material-icons">fit_screen</i>
+          </button>
         </div>
-        <pre id="searchResults">// Search results will appear here</pre>
-    </div>
-
-    <div class="panel">
-        <h2>5. Text Search</h2>
-        <div class="search-container">
-            <input type="text" id="textQuery" placeholder="Enter text to search" disabled>
-            <input type="number" id="textSearchK" value="3" min="1" max="10" disabled>
-            <button id="textSearchBtn" disabled>Search</button>
+        <div class="graph-container">
+          <div style="text-align: center; padding-top: 200px; color: #666;">
+            Database visualization will appear here after initialization
+          </div>
         </div>
-        <pre id="textSearchResults">// Text search results will appear here</pre>
+      </div>
     </div>
 
-    <div class="panel">
-        <h2>6. Graph Operations</h2>
-        <div>
-            <button id="addRelationsBtn" disabled>Add Relationships</button>
-            <button id="getRelationsBtn" disabled>Get Relationships</button>
+    <!-- Data Model Section -->
+    <div class="section-content" id="data-model-content">
+      <h3>Data Model Management</h3>
+      <p>Create entities (nouns), define relationships (verbs), and manage your data schema.</p>
+
+      <div class="section-divider"></div>
+
+      <!-- Nouns Section -->
+      <div class="subsection-content" id="nouns-content">
+        <div class="form-group">
+          <label for="noun-type">Noun Type:</label>
+          <select id="noun-type">
+            <option value="person">Person</option>
+            <option value="place">Place</option>
+            <option value="thing">Thing</option>
+            <option value="event">Event</option>
+            <option value="concept">Concept</option>
+            <option value="content">Content</option>
+            <option value="group">Group</option>
+            <option value="list">List</option>
+            <option value="category">Category</option>
+            <option value="custom">Custom</option>
+          </select>
         </div>
-        <pre id="graphResults">// Graph operation results will appear here</pre>
+
+        <div class="form-group">
+          <label for="noun-id">ID (optional):</label>
+          <input type="text" id="noun-id" placeholder="Leave blank for auto-generated ID">
+        </div>
+
+        <div class="form-group">
+          <label for="noun-name">Name:</label>
+          <input type="text" id="noun-name" placeholder="Name of the entity">
+        </div>
+
+        <div class="form-group">
+          <label for="noun-content">Description/Content:</label>
+          <textarea id="noun-content" placeholder="Description or content of the entity"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="noun-tags">Tags (comma-separated):</label>
+          <input type="text" id="noun-tags" placeholder="tag1, tag2, tag3">
+        </div>
+
+        <div class="demo-controls">
+          <button id="add-noun-btn">Add Noun</button>
+          <button id="query-nouns-btn" class="accent">Query Nouns</button>
+        </div>
+      </div>
+
+      <!-- Verbs Section -->
+      <div class="subsection-content" id="verbs-content">
+        <div class="form-group">
+          <label for="verb-type">Verb Type:</label>
+          <select id="verb-type">
+            <option value="attributedTo">Attributed To</option>
+            <option value="controls">Controls</option>
+            <option value="created">Created</option>
+            <option value="earned">Earned</option>
+            <option value="owns">Owns</option>
+            <option value="memberOf">Member Of</option>
+            <option value="relatedTo">Related To</option>
+            <option value="worksWith">Works With</option>
+            <option value="friendOf">Friend Of</option>
+            <option value="reportsTo">Reports To</option>
+            <option value="supervises">Supervises</option>
+            <option value="mentors">Mentors</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="source-id">Source Noun:</label>
+          <select id="source-id">
+            <option value="">-- Select Source Noun --</option>
+          </select>
+          <button id="refresh-nouns-btn" class="secondary" style="margin-top: 5px; padding: 5px 10px;">Refresh Noun
+            List
+          </button>
+        </div>
+
+        <div class="form-group">
+          <label for="target-id">Target Noun:</label>
+          <select id="target-id">
+            <option value="">-- Select Target Noun --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="verb-strength">Relationship Strength (0.0 - 1.0):</label>
+          <input type="number" id="verb-strength" placeholder="0.8" min="0" max="1" step="0.1" value="0.8">
+        </div>
+
+        <div class="form-group">
+          <label for="verb-description">Relationship Description:</label>
+          <textarea id="verb-description"
+                    placeholder="Describe the relationship between the source and target"></textarea>
+        </div>
+
+        <div class="demo-controls">
+          <button id="add-verb-btn">Add Verb</button>
+          <button id="query-verbs-btn" class="accent">Query Verbs</button>
+        </div>
+      </div>
+
+      <div class="results" id="entity-results">
+        Entity operations will appear here...
+      </div>
     </div>
 
-    <div class="panel">
-        <h2>Console Output</h2>
-        <pre id="output">// Output will appear here</pre>
+    <!-- Vector Search Section -->
+    <div class="section-content" id="search-content">
+      <h3>Vector Search & Semantic Queries</h3>
+      <p>Perform semantic searches using vector embeddings and similarity matching.</p>
+
+      <div class="form-group">
+        <label for="search-query">Search Query:</label>
+        <input type="text" id="search-query" placeholder="Enter your search query...">
+      </div>
+
+      <div class="form-group">
+        <label for="search-type">Search Type:</label>
+        <select id="search-type">
+          <option value="semantic">Semantic Search</option>
+          <option value="keyword">Keyword Search</option>
+          <option value="hybrid">Hybrid Search</option>
+        </select>
+      </div>
+
+      <div class="demo-controls">
+        <button id="search-btn">Search</button>
+        <button id="similar-entities-btn" class="secondary">Find Similar</button>
+        <button id="cluster-analysis-btn" class="accent">Cluster Analysis</button>
+      </div>
+
+      <div class="results" id="search-results">
+        Search results will appear here...
+      </div>
+
+      <div class="visualization" id="search-visualization">
+        <div style="text-align: center; padding-top: 200px; color: #666;">
+          Search results visualization
+        </div>
+      </div>
     </div>
+
+
+    <!-- Visualization Section -->
+    <div class="section-content" id="visualization-content">
+      <h3>Data Visualization</h3>
+      <p>Interactive visualizations of your graph data and vector spaces.</p>
+
+      <div class="demo-controls">
+        <button id="graph-viz-btn">Graph View</button>
+        <button id="vector-space-btn" class="secondary">Vector Space</button>
+        <button id="timeline-btn" class="accent">Timeline View</button>
+        <button id="heatmap-btn" class="accent">Similarity Heatmap</button>
+      </div>
+
+      <div class="visualization" id="main-visualization">
+        <div style="text-align: center; padding-top: 200px; color: #666;">
+          Select a visualization type above
+        </div>
+      </div>
+
+      <div class="demo-controls">
+        <label>
+          <input type="range" id="zoom-slider" min="0.1" max="3" step="0.1" value="1">
+          Zoom
+        </label>
+        <button id="reset-view-btn">Reset View</button>
+        <button id="export-viz-btn" class="secondary">Export Visualization</button>
+      </div>
+    </div>
+
+    <!-- CLI Commands Section -->
+    <div class="section-content" id="cli-content">
+      <h3>CLI Command Interface</h3>
+      <p>Simulate CLI commands and explore Brainy's command-line interface.</p>
+
+      <div class="cli-terminal">
+        <div class="cli-history" id="cli-history"></div>
+        <div class="cli-command">
+          <span class="cli-prompt">brainy$</span>
+          <input type="text" class="cli-input" id="cli-input" placeholder="Type a command...">
+        </div>
+        <div class="cli-output" id="cli-output"></div>
+      </div>
+
+      <div class="demo-controls">
+        <button id="help-cmd-btn">Help</button>
+        <button id="status-cmd-btn" class="secondary">Status</button>
+        <button id="init-cmd-btn" class="accent">Init</button>
+        <button id="query-cmd-btn" class="accent">Query</button>
+        <button id="clear-terminal-btn" class="danger">Clear</button>
+      </div>
+
+      <div class="code-block">
+        <strong>Available Commands:</strong><br>
+        brainy init - Initialize a new database<br>
+        brainy add &lt;data&gt; - Add data to the database<br>
+        brainy search &lt;query&gt; - Search for entities<br>
+        brainy relate &lt;from&gt; &lt;to&gt; - Create relationships<br>
+        brainy export - Export database<br>
+        brainy status - Show database status<br>
+        brainy help - Show all commands
+      </div>
+    </div>
+
+    <!-- Feature Demo Section -->
+    <div class="section-content" id="features-content">
+      <h3>Feature Demonstrations</h3>
+      <p>Explore specific features and capabilities of Brainy with guided demonstrations.</p>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>🔍 HNSW Vector Search</h3>
+          <p>Demonstrate fast approximate nearest neighbor search with hierarchical navigable small world
+            graphs.</p>
+          <button class="demo-feature-btn" data-feature="hnsw">Try HNSW Demo</button>
+        </div>
+
+        <div class="feature-card">
+          <h3>🌐 Graph Traversal</h3>
+          <p>Show graph traversal algorithms and relationship queries.</p>
+          <button class="demo-feature-btn" data-feature="graph-traversal">Try Graph Demo</button>
+        </div>
+
+        <div class="feature-card">
+          <h3>🧠 Embedding Pipeline</h3>
+          <p>Demonstrate automatic text-to-vector conversion and similarity computation.</p>
+          <button class="demo-feature-btn" data-feature="embedding">Try Embedding Demo</button>
+        </div>
+
+        <div class="feature-card">
+          <h3>📊 Real-time Updates</h3>
+          <p>Show live data synchronization and event streaming capabilities.</p>
+          <button class="demo-feature-btn" data-feature="realtime">Try Real-time Demo</button>
+        </div>
+
+        <div class="feature-card">
+          <h3>💾 Storage Backends</h3>
+          <p>Compare different storage options: memory, filesystem, and cloud.</p>
+          <button class="demo-feature-btn" data-feature="storage">Try Storage Demo</button>
+        </div>
+
+        <div class="feature-card">
+          <h3>🔧 TypeScript Integration</h3>
+          <p>Show type-safe operations and schema validation.</p>
+          <button class="demo-feature-btn" data-feature="typescript">Try TypeScript Demo</button>
+        </div>
+      </div>
+
+      <div class="results" id="feature-demo-results">
+        Select a feature above to see a detailed demonstration...
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>&copy; 2024 Brainy - A lightweight graph & vector data platform</p>
+    <p>
+      <a href="https://github.com/soulcraft/brainy" target="_blank">GitHub</a> |
+      <a href="../README.md" target="_blank">Documentation</a> |
+      <a href="https://npm.im/@soulcraft/brainy" target="_blank">NPM</a>
+    </p>
+  </footer>
 </div>
-
-<script type="importmap">
-    {
-      "imports": {
-        "uuid": "https://cdn.jsdelivr.net/npm/uuid@9.0.0/dist/esm-browser/index.js",
-        "@tensorflow/tfjs/dist/tf.esm.js": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.esm.js",
-        "@tensorflow-models/universal-sentence-encoder/dist/universal-sentence-encoder.esm.js": "https://cdn.jsdelivr.net/npm/@tensorflow-models/universal-sentence-encoder/dist/universal-sentence-encoder.esm.js",
-        "@tensorflow/tfjs-core": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core/dist/tf-core.esm.js",
-        "@tensorflow/tfjs-layers": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-layers/dist/tf-layers.esm.js",
-        "@tensorflow/tfjs-backend-cpu": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu/dist/tf-backend-cpu.esm.js"
-      }
-    }
-</script>
 
 <script type="module">
-    // Import the necessary components from Brainy
-    import {
-        BrainyData,
-        configureAndStartPipeline,
-        createSensePluginConfig,
-        createConduitPluginConfig,
-        AugmentationType,
-        cosineDistance,
-        VerbType
-    } from '../dist/index.js';
+  // Import Brainy library directly as a module
+  import { BrainyData } from '../dist/brainy.js'
 
-    // Get DOM elements
-    const initBtn = document.getElementById('initBtn');
-    const setupPipelineBtn = document.getElementById('setupPipelineBtn');
-    const addDataBtn = document.getElementById('addDataBtn');
-    const searchBtn = document.getElementById('searchBtn');
-    const textSearchBtn = document.getElementById('textSearchBtn');
-    const addRelationsBtn = document.getElementById('addRelationsBtn');
-    const getRelationsBtn = document.getElementById('getRelationsBtn');
-    const searchVector = document.getElementById('searchVector');
-    const searchK = document.getElementById('searchK');
-    const textQuery = document.getElementById('textQuery');
-    const textSearchK = document.getElementById('textSearchK');
-    const initStatus = document.getElementById('initStatus');
-    const pipelineStatus = document.getElementById('pipelineStatus');
-    const dataStatus = document.getElementById('dataStatus');
-    const searchResults = document.getElementById('searchResults');
-    const textSearchResults = document.getElementById('textSearchResults');
-    const graphResults = document.getElementById('graphResults');
-    const output = document.getElementById('output');
+  // Make BrainyData available globally
+  window.BrainyData = BrainyData
 
-    // Global variables
-    let db;
-    let pipeline;
-    const ids = {};
-    const relationshipIds = {};
+  // Initialize demo when DOM is loaded
+  document.addEventListener('DOMContentLoaded', async function() {
+    // Check if we're running over HTTP
+    if (window.location.protocol === 'file:') {
+      document.getElementById('http-warning').style.display = 'block'
+    }
 
-    // Sample data - word embeddings
-    const wordEmbeddings = {
-        cat: [0.2, 0.3, 0.4, 0.1],
-        dog: [0.3, 0.2, 0.4, 0.2],
-        fish: [0.1, 0.1, 0.8, 0.2],
-        bird: [0.1, 0.4, 0.2, 0.5],
-        tiger: [0.3, 0.4, 0.3, 0.1],
-        lion: [0.4, 0.3, 0.2, 0.1],
-        shark: [0.2, 0.1, 0.7, 0.3],
-        eagle: [0.2, 0.5, 0.1, 0.4]
-    };
+    try {
+      // Verify the imported module has the required exports
+      if (BrainyData) {
+        initializeDemo()
+      } else {
+        showError('Brainy library not found. Please build the project first by running: npm run build')
+      }
+    } catch (error) {
+      showError('Failed to initialize demo: ' + error.message)
+    }
+  })
 
-    // Sample metadata with GraphNoun structure
-    const metadata = {
-        cat: {
-            noun: 'thing',
-            label: 'Cat',
-            data: {
-                type: 'mammal',
-                domesticated: true,
-                description: 'A small domesticated carnivorous mammal'
-            }
-        },
-        dog: {
-            noun: 'thing',
-            label: 'Dog',
-            data: {
-                type: 'mammal',
-                domesticated: true,
-                description: 'A domesticated carnivorous mammal'
-            }
-        },
-        fish: {
-            noun: 'thing',
-            label: 'Fish',
-            data: {
-                type: 'fish',
-                domesticated: false,
-                description: 'A limbless cold-blooded vertebrate animal with gills'
-            }
-        },
-        bird: {
-            noun: 'thing',
-            label: 'Bird',
-            data: {
-                type: 'bird',
-                domesticated: false,
-                description: 'A warm-blooded egg-laying vertebrate animal with wings'
-            }
-        },
-        tiger: {
-            noun: 'thing',
-            label: 'Tiger',
-            data: {
-                type: 'mammal',
-                domesticated: false,
-                description: 'A large cat native to Asia'
-            }
-        },
-        lion: {
-            noun: 'thing',
-            label: 'Lion',
-            data: {
-                type: 'mammal',
-                domesticated: false,
-                description: 'A large cat native to Africa'
-            }
-        },
-        shark: {
-            noun: 'thing',
-            label: 'Shark',
-            data: {
-                type: 'fish',
-                domesticated: false,
-                description: 'A long-bodied mostly predatory marine fish'
-            }
-        },
-        eagle: {
-            noun: 'thing',
-            label: 'Eagle',
-            data: {
-                type: 'bird',
-                domesticated: false,
-                description: 'A large bird of prey with a massive hooked bill'
-            }
+  // Tab switching functionality removed - all sections are now visible
+
+  // Initialize the demo
+  function initializeDemo() {
+    log('db-status', 'Brainy library loaded successfully!')
+
+    // Initialize event listeners
+    setupEventListeners()
+
+    // Initialize CLI
+    setupCLI()
+
+    // Initialize visualizations
+    setupVisualizations()
+
+    // Try to populate noun dropdowns with any existing data
+    setTimeout(() => {
+      try {
+        if (database) {
+          populateNounDropdowns()
         }
-    };
+      } catch (error) {
+        console.log('No database initialized yet, noun dropdowns will be populated later')
+      }
+    }, 1000)
+  }
 
-    // Helper function to log output
-    function log(message) {
-        if (typeof message === 'object') {
-            output.textContent = JSON.stringify(message, null, 2);
+  // Setup all event listeners
+  function setupEventListeners() {
+    // Database operations
+    document.getElementById('init-db-btn').addEventListener('click', initializeDatabase)
+    document.getElementById('add-sample-btn').addEventListener('click', addSampleData)
+    document.getElementById('clear-db-btn').addEventListener('click', clearDatabase)
+    document.getElementById('export-data-btn').addEventListener('click', backupData)
+    document.getElementById('import-data-btn').addEventListener('click', restoreData)
+    document.getElementById('import-sparse-data-btn').addEventListener('click', restoreSparseData)
+
+    // Data model operations - Legacy buttons
+    document.getElementById('add-entity-btn')?.addEventListener('click', addEntity)
+    document.getElementById('create-relationship-btn')?.addEventListener('click', createRelationship)
+    document.getElementById('query-entities-btn')?.addEventListener('click', queryEntities)
+
+    // Data model tabs code removed - all sections are now visible
+    // Always populate noun dropdowns for the verbs section
+    populateNounDropdowns()
+
+    // Noun operations
+    document.getElementById('add-noun-btn')?.addEventListener('click', addNoun)
+    document.getElementById('query-nouns-btn')?.addEventListener('click', queryNouns)
+
+    // Verb operations
+    document.getElementById('add-verb-btn')?.addEventListener('click', addVerb)
+    document.getElementById('query-verbs-btn')?.addEventListener('click', queryVerbs)
+    document.getElementById('refresh-nouns-btn')?.addEventListener('click', populateNounDropdowns)
+
+    // Search operations
+    document.getElementById('search-btn').addEventListener('click', performSearch)
+    document.getElementById('similar-entities-btn').addEventListener('click', findSimilarEntities)
+    document.getElementById('cluster-analysis-btn').addEventListener('click', performClusterAnalysis)
+
+    // Augmentation operations removed
+
+    // Visualization controls
+    document.getElementById('graph-viz-btn').addEventListener('click', () => showVisualization('graph'))
+    document.getElementById('vector-space-btn').addEventListener('click', () => showVisualization('vector'))
+    document.getElementById('timeline-btn').addEventListener('click', () => showVisualization('timeline'))
+    document.getElementById('heatmap-btn').addEventListener('click', () => showVisualization('heatmap'))
+    document.getElementById('reset-view-btn').addEventListener('click', resetVisualization)
+    document.getElementById('export-viz-btn').addEventListener('click', exportVisualization)
+
+    // CLI commands
+    document.getElementById('help-cmd-btn').addEventListener('click', () => executeCLICommand('help'))
+    document.getElementById('status-cmd-btn').addEventListener('click', () => executeCLICommand('status'))
+    document.getElementById('init-cmd-btn').addEventListener('click', () => executeCLICommand('init'))
+    document.getElementById('query-cmd-btn').addEventListener('click', () => executeCLICommand('query sample'))
+    document.getElementById('clear-terminal-btn').addEventListener('click', clearTerminal)
+
+    // Feature demonstrations
+    document.querySelectorAll('.demo-feature-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const feature = this.dataset.feature
+        demonstrateFeature(feature)
+      })
+    })
+  }
+
+  // Setup CLI functionality
+  function setupCLI() {
+    const cliInput = document.getElementById('cli-input')
+    cliInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        const command = this.value.trim()
+        if (command) {
+          executeCLICommand(command)
+          this.value = ''
+        }
+      }
+    })
+  }
+
+  // Database operations
+  let database = null
+
+  async function initializeDatabase() {
+    try {
+      log('db-status', 'Initializing database...')
+
+      // Initialize Brainy database
+      database = new BrainyData({
+        storage: { type: 'opfs' },
+        augmentations: ['embedding', 'search']
+      })
+
+      await database.init()
+
+      log('db-status', 'Database initialized successfully!\nStorage: OPFS\nAugmentations: Embedding, Search')
+      updateDatabaseVisualization()
+
+      // Populate noun dropdowns after initialization
+      populateNounDropdowns()
+    } catch (error) {
+      log('db-status', 'Error initializing database: ' + error.message)
+    }
+  }
+
+  async function addSampleData() {
+    if (!database) {
+      log('db-status', 'Please initialize database first')
+      return
+    }
+
+    try {
+      log('db-status', 'Adding sample data...')
+
+      // Sample Nouns with various types from the schema
+      const sampleNouns = [
+        // Person nouns
+        {
+          id: 'person1',
+          type: 'person',
+          noun: 'person',
+          name: 'John Smith',
+          content: 'Software engineer with expertise in AI and machine learning.',
+          tags: ['engineer', 'developer']
+        },
+        {
+          id: 'person2',
+          type: 'person',
+          noun: 'person',
+          name: 'Emily Johnson',
+          content: 'Data scientist specializing in natural language processing.',
+          tags: ['scientist', 'researcher']
+        },
+        {
+          id: 'person3',
+          type: 'person',
+          noun: 'person',
+          name: 'Michael Chen',
+          content: 'Product manager for database technologies.',
+          tags: ['manager', 'product']
+        },
+
+        // Place nouns
+        {
+          id: 'place1',
+          type: 'place',
+          noun: 'place',
+          name: 'Silicon Valley',
+          content: 'Technology hub in Northern California.',
+          tags: ['tech', 'innovation']
+        },
+        {
+          id: 'place2',
+          type: 'place',
+          noun: 'place',
+          name: 'Cambridge',
+          content: 'University city with strong research focus.',
+          tags: ['education', 'research']
+        },
+
+        // Thing nouns
+        {
+          id: 'thing1',
+          type: 'thing',
+          noun: 'thing',
+          name: 'Neural Network',
+          content: 'Computational model inspired by the human brain.',
+          tags: ['AI', 'computing']
+        },
+        {
+          id: 'thing2',
+          type: 'thing',
+          noun: 'thing',
+          name: 'Graph Database',
+          content: 'Database that uses graph structures for semantic queries.',
+          tags: ['database', 'storage']
+        },
+
+        // Event nouns
+        {
+          id: 'event1',
+          type: 'event',
+          noun: 'event',
+          name: 'AI Conference 2023',
+          content: 'Annual conference on artificial intelligence advancements.',
+          tags: ['conference', 'AI']
+        },
+        {
+          id: 'event2',
+          type: 'event',
+          noun: 'event',
+          name: 'Database Summit',
+          content: 'Industry summit on database technologies and trends.',
+          tags: ['summit', 'database']
+        },
+
+        // Concept nouns
+        {
+          id: 'concept1',
+          type: 'concept',
+          noun: 'concept',
+          name: 'Machine Learning',
+          content: 'Field of study that gives computers the ability to learn without being explicitly programmed.',
+          tags: ['AI', 'algorithms']
+        },
+        {
+          id: 'concept2',
+          type: 'concept',
+          noun: 'concept',
+          name: 'Vector Search',
+          content: 'Technique for finding similar items in large datasets using vector representations.',
+          tags: ['search', 'vectors']
+        },
+
+        // Group nouns
+        {
+          id: 'group1',
+          type: 'group',
+          noun: 'group',
+          name: 'Research Team',
+          content: 'Team of researchers working on cutting-edge AI technologies.',
+          tags: ['team', 'research']
+        },
+
+        // Content nouns
+        {
+          id: 'content1',
+          type: 'document',
+          noun: 'content',
+          title: 'Introduction to Machine Learning',
+          content: 'Machine learning is a subset of artificial intelligence that focuses on algorithms.',
+          tags: ['AI', 'ML', 'algorithms']
+        },
+        {
+          id: 'content2',
+          type: 'document',
+          noun: 'content',
+          title: 'Graph Databases Explained',
+          content: 'Graph databases store data in graph structures with nouns, verbs, and properties.',
+          tags: ['databases', 'graphs', 'NoSQL']
+        }
+      ]
+
+      // Add Nouns to the database
+      for (const item of sampleNouns) {
+        // Pass the content as the data to vectorize, and the entire item as metadata
+        await database.add(item.content || item.name, item)
+      }
+
+      // Wait a moment to ensure nouns are fully indexed before adding verbs
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Verify nouns exist before adding verbs
+      const entities = await database.getAllNouns()
+      const nounIds = entities.map(entity => entity.id)
+      console.log('Available nouns before adding verbs:', nounIds)
+
+      // Sample Verbs with various types from the schema
+      const sampleVerbs = [
+        // Created verbs
+        {
+          source: 'person1',
+          target: 'content1',
+          verb: 'created',
+          label: 'Created',
+          data: { strength: 0.9, description: 'John Smith authored the introduction to machine learning' }
+        },
+        {
+          source: 'person2',
+          target: 'content2',
+          verb: 'created',
+          label: 'Created',
+          data: { strength: 0.85, description: 'Emily Johnson wrote the graph databases explanation' }
+        },
+
+        // WorksWith verbs
+        {
+          source: 'person1',
+          target: 'person2',
+          verb: 'worksWith',
+          label: 'Works With',
+          data: { strength: 0.7, description: 'John and Emily collaborate on research projects' }
+        },
+        {
+          source: 'person2',
+          target: 'person3',
+          verb: 'worksWith',
+          label: 'Works With',
+          data: { strength: 0.65, description: 'Emily and Michael work together on product development' }
+        },
+
+        // MemberOf verbs
+        {
+          source: 'person1',
+          target: 'group1',
+          verb: 'memberOf',
+          label: 'Member Of',
+          data: { strength: 0.8, description: 'John is a member of the research team' }
+        },
+        {
+          source: 'person2',
+          target: 'group1',
+          verb: 'memberOf',
+          label: 'Member Of',
+          data: { strength: 0.8, description: 'Emily is a member of the research team' }
+        },
+
+        // RelatedTo verbs
+        {
+          source: 'concept1',
+          target: 'concept2',
+          verb: 'relatedTo',
+          label: 'Related To',
+          data: { strength: 0.75, description: 'Machine learning is related to vector search' }
+        },
+        {
+          source: 'content1',
+          target: 'content2',
+          verb: 'relatedTo',
+          label: 'Related To',
+          data: { strength: 0.6, description: 'Machine learning content is related to graph databases content' }
+        },
+
+        // Owns verbs
+        {
+          source: 'person3',
+          target: 'thing2',
+          verb: 'owns',
+          label: 'Owns',
+          data: { strength: 0.9, description: 'Michael owns the graph database product' }
+        },
+
+        // FriendOf verbs
+        {
+          source: 'person1',
+          target: 'person3',
+          verb: 'friendOf',
+          label: 'Friend Of',
+          data: { strength: 0.5, description: 'John and Michael are friends outside of work' }
+        },
+
+        // Mentors verbs
+        {
+          source: 'person2',
+          target: 'person1',
+          verb: 'mentors',
+          label: 'Mentors',
+          data: { strength: 0.85, description: 'Emily mentors John on data science techniques' }
+        },
+
+        // AttributedTo verbs
+        {
+          source: 'thing1',
+          target: 'person2',
+          verb: 'attributedTo',
+          label: 'Attributed To',
+          data: { strength: 0.7, description: 'The neural network implementation is attributed to Emily' }
+        }
+      ]
+
+      // Add Verbs to the database
+      for (const item of sampleVerbs) {
+        try {
+          // Check if source and target nouns exist before adding the verb
+          if (!nounIds.includes(item.source)) {
+            throw new Error(`Source noun with ID ${item.source} not found. Available nouns: ${nounIds.join(', ')}`)
+          }
+          if (!nounIds.includes(item.target)) {
+            throw new Error(`Target noun with ID ${item.target} not found. Available nouns: ${nounIds.join(', ')}`)
+          }
+
+          await database.relate(item.source, item.target, item.verb, item.data)
+          console.log(`Added verb: ${item.source} ${item.verb} ${item.target}`)
+        } catch (verbError) {
+          console.error(`Failed to add verb: ${verbError.message}`)
+          log('db-status', `Failed to add verb: ${verbError.message}`)
+        }
+      }
+
+      // Count successfully added verbs
+      const addedVerbs = await database.getAllVerbs()
+      log('db-status', `Added ${sampleNouns.length} nouns and ${addedVerbs.length} verbs`)
+      updateDatabaseVisualization()
+
+      // Populate noun dropdowns after adding sample data
+      populateNounDropdowns()
+    } catch (error) {
+      log('db-status', 'Error adding sample data: ' + error.message)
+    }
+  }
+
+  async function clearDatabase() {
+    try {
+      if (database) {
+        await database.clear()
+        log('db-status', 'Database cleared successfully')
+        updateDatabaseVisualization()
+        populateNounDropdowns()
+      }
+    } catch (error) {
+      log('db-status', 'Error clearing database: ' + error.message)
+    }
+  }
+
+  async function backupData() {
+    if (!database) {
+      log('db-status', 'No database to backup')
+      return
+    }
+
+    try {
+      const data = await database.backup()
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'brainy-backup.json'
+      a.click()
+      URL.revokeObjectURL(url)
+
+      log('db-status', 'Data backed up successfully')
+    } catch (error) {
+      log('db-status', 'Error backing up data: ' + error.message)
+    }
+  }
+
+  async function restoreData() {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+
+    input.onchange = async function(e) {
+      const file = e.target.files[0]
+      if (!file) return
+
+      try {
+        const text = await file.text()
+        const data = JSON.parse(text)
+
+        if (database) {
+          await database.restore(data)
+          log('db-status', 'Data restored successfully')
+          updateDatabaseVisualization()
+
+          // Show information about the restored data
+          let restoreInfo = `Restored ${data.nouns?.length || 0} nouns and ${data.verbs?.length || 0} verbs.`
+
+          // Check if the backup included vectors and index
+          const hasVectors = data.nouns?.some(n => n.vector && n.vector.length > 0)
+          const hasIndex = !!data.hnswIndex
+
+          if (!hasVectors) {
+            restoreInfo += ' Vectors were automatically created during restore.'
+          }
+
+          if (!hasIndex) {
+            restoreInfo += ' HNSW index was reconstructed during restore.'
+          }
+
+          log('db-status', restoreInfo)
+        }
+      } catch (error) {
+        log('db-status', 'Error restoring data: ' + error.message)
+      }
+    }
+
+    input.click()
+  }
+
+  // Function to create and restore sparse data (without vectors)
+  async function restoreSparseData() {
+    if (!database) {
+      log('db-status', 'Please initialize database first')
+      return
+    }
+
+    try {
+      // Create sparse data without vectors
+      const sparseData = {
+        nouns: [
+          {
+            id: 'sparse_1',
+            metadata: {
+              noun: 'Thing',
+              text: 'This is a sparse data item without a vector'
+            }
+          },
+          {
+            id: 'sparse_2',
+            metadata: {
+              noun: 'Concept',
+              text: 'Vectors will be automatically created for this item'
+            }
+          }
+        ],
+        verbs: [
+          {
+            id: 'sparse_verb_1',
+            sourceId: 'sparse_1',
+            targetId: 'sparse_2',
+            metadata: {
+              verb: 'RelatedTo',
+              description: 'This is a relationship between sparse data items'
+            }
+          }
+        ],
+        version: '1.0.0'
+      }
+
+      // Restore the sparse data
+      await database.restore(sparseData)
+      log('db-status', 'Sparse data restored successfully')
+      log('db-status', 'Vectors were automatically created for items without vectors')
+      updateDatabaseVisualization()
+    } catch (error) {
+      log('db-status', 'Error restoring sparse data: ' + error.message)
+    }
+  }
+
+  // Entity operations
+  async function addEntity() {
+    if (!database) {
+      log('entity-results', 'Please initialize database first')
+      return
+    }
+
+    try {
+      const type = document.getElementById('entity-type').value
+      const dataText = document.getElementById('entity-data').value
+
+      if (!dataText.trim()) {
+        log('entity-results', 'Please enter entity data')
+        return
+      }
+
+      const data = JSON.parse(dataText)
+      data.type = type
+      data.id = data.id || 'entity_' + Date.now()
+
+      // Use a text property for vectorization, or stringify the object if no text property exists
+      const textToVectorize = data.content || data.description || data.text ||
+        data.title || data.name || JSON.stringify(data)
+      await database.add(textToVectorize, data)
+      log('entity-results', `Added ${type} entity: ${data.id}`)
+
+      // Clear the form
+      document.getElementById('entity-data').value = ''
+    } catch (error) {
+      log('entity-results', 'Error adding entity: ' + error.message)
+    }
+  }
+
+  async function createRelationship() {
+    if (!database) {
+      log('entity-results', 'Please initialize database first')
+      return
+    }
+
+    try {
+      // For demo purposes, create a relationship between first two entities
+      const entities = await database.search('', 2, { forceEmbed: false })
+
+      if (entities.length < 2) {
+        log('entity-results', 'Need at least 2 entities to create a relationship')
+        return
+      }
+
+      await database.relate(entities[0].id, entities[1].id, 'connected_to', {
+        created: new Date().toISOString(),
+        strength: Math.random()
+      })
+
+      log('entity-results', `Created relationship: ${entities[0].id} -> ${entities[1].id}`)
+    } catch (error) {
+      log('entity-results', 'Error creating relationship: ' + error.message)
+    }
+  }
+
+  async function queryEntities() {
+    if (!database) {
+      log('entity-results', 'Please initialize database first')
+      return
+    }
+
+    try {
+      const entities = await database.search('', 1000, { forceEmbed: false })
+      const relationships = await database.getAllVerbs()
+
+      let result = `Found ${entities.length} entities and ${relationships.length} relationships\n\n`
+
+      result += 'Entities:\n'
+      entities.forEach(entity => {
+        result += `- ${entity.id} (${entity.type}): ${entity.title || entity.name || 'Untitled'}\n`
+      })
+
+      result += '\nRelationships:\n'
+      relationships.forEach(rel => {
+        result += `- ${rel.sourceId || rel.from} ${rel.type} ${rel.targetId || rel.to}\n`
+      })
+
+      log('entity-results', result)
+    } catch (error) {
+      log('entity-results', 'Error querying entities: ' + error.message)
+    }
+  }
+
+  // Noun operations
+  async function addNoun() {
+    if (!database) {
+      log('entity-results', 'Please initialize database first')
+      return
+    }
+
+    try {
+      const nounType = document.getElementById('noun-type').value
+      const nounId = document.getElementById('noun-id').value.trim()
+      const nounName = document.getElementById('noun-name').value.trim()
+      const nounContent = document.getElementById('noun-content').value.trim()
+      const nounTags = document.getElementById('noun-tags').value.trim()
+
+      if (!nounName) {
+        log('entity-results', 'Please enter a name for the noun')
+        return
+      }
+
+      // Create data object from form fields
+      const data = {
+        noun: nounType,
+        id: nounId || 'noun_' + Date.now(),
+        name: nounName,
+        content: nounContent
+      }
+
+      // Add tags if provided
+      if (nounTags) {
+        data.tags = nounTags.split(',').map(tag => tag.trim())
+      }
+
+      // Use content for vectorization, or name if content is empty
+      const textToVectorize = nounContent || nounName
+      await database.add(textToVectorize, data)
+      log('entity-results', `Added ${nounType} noun: ${data.id}`)
+
+      // Clear the form
+      document.getElementById('noun-id').value = ''
+      document.getElementById('noun-name').value = ''
+      document.getElementById('noun-content').value = ''
+      document.getElementById('noun-tags').value = ''
+
+      // Update visualization
+      updateDatabaseVisualization()
+
+      // Update noun dropdowns with the new noun
+      populateNounDropdowns()
+    } catch (error) {
+      log('entity-results', 'Error adding noun: ' + error.message)
+    }
+  }
+
+  async function queryNouns() {
+    if (!database) {
+      log('entity-results', 'Please initialize database first')
+      return
+    }
+
+    try {
+      // Query all entities that have a 'noun' property
+      const entities = await database.search('', 1000, { forceEmbed: false })
+      const nouns = entities.filter(entity => entity.noun)
+
+      let result = `Found ${nouns.length} nouns\n\n`
+
+      result += 'Nouns:\n'
+      nouns.forEach(noun => {
+        result += `- ${noun.id} (${noun.noun}): ${noun.title || noun.name || 'Untitled'}\n`
+      })
+
+      log('entity-results', result)
+    } catch (error) {
+      log('entity-results', 'Error querying nouns: ' + error.message)
+    }
+  }
+
+  // Verb operations
+  async function addVerb() {
+    if (!database) {
+      log('entity-results', 'Please initialize database first')
+      return
+    }
+
+    try {
+      const verbType = document.getElementById('verb-type').value
+      const sourceId = document.getElementById('source-id').value.trim()
+      const targetId = document.getElementById('target-id').value.trim()
+      const verbStrength = document.getElementById('verb-strength').value
+      const verbDescription = document.getElementById('verb-description').value.trim()
+
+      if (!sourceId || !targetId) {
+        log('entity-results', 'Please enter source and target node IDs')
+        return
+      }
+
+      // Create data object from form fields
+      const data = {
+        strength: parseFloat(verbStrength) || 0.8,
+        description: verbDescription
+      }
+
+      // Verify nouns exist before adding verb
+      const entities = await database.search('', 1000, { forceEmbed: false })
+      const nounIds = entities.map(entity => entity.id)
+
+      // Check if source and target nouns exist
+      if (!nounIds.includes(sourceId)) {
+        throw new Error(`Source noun with ID ${sourceId} not found. Available nouns: ${nounIds.join(', ')}`)
+      }
+      if (!nounIds.includes(targetId)) {
+        throw new Error(`Target noun with ID ${targetId} not found. Available nouns: ${nounIds.join(', ')}`)
+      }
+
+      // Add the relationship
+      await database.relate(sourceId, targetId, verbType, data)
+      console.log(`Added verb: ${sourceId} ${verbType} ${targetId}`)
+      log('entity-results', `Added ${verbType} verb: ${sourceId} -> ${targetId}`)
+
+      // Clear the form
+      document.getElementById('source-id').value = ''
+      document.getElementById('target-id').value = ''
+      document.getElementById('verb-strength').value = '0.8'
+      document.getElementById('verb-description').value = ''
+
+      // Update visualization
+      updateDatabaseVisualization()
+    } catch (error) {
+      log('entity-results', 'Error adding verb: ' + error.message)
+    }
+  }
+
+  async function queryVerbs() {
+    if (!database) {
+      log('entity-results', 'Please initialize database first')
+      return
+    }
+
+    try {
+      const relationships = await database.getAllVerbs()
+
+      let result = `Found ${relationships.length} verbs (relationships)\n\n`
+
+      result += 'Verbs:\n'
+      relationships.forEach(rel => {
+        result += `- ${rel.sourceId || rel.from} ${rel.type} ${rel.targetId || rel.to}\n`
+      })
+
+      log('entity-results', result)
+    } catch (error) {
+      log('entity-results', 'Error querying verbs: ' + error.message)
+    }
+  }
+
+  // Populate noun dropdowns for verb creation
+  async function populateNounDropdowns() {
+    if (!database) {
+      log('entity-results', 'Please initialize database first')
+      return
+    }
+
+    try {
+      // Get all nouns from the database
+      const entities = await database.search('', 1000, { forceEmbed: false })
+      const nouns = entities.filter(entity => entity.noun)
+
+      // Get the dropdown elements
+      const sourceDropdown = document.getElementById('source-id')
+      const targetDropdown = document.getElementById('target-id')
+
+      // Clear existing options except the first one
+      while (sourceDropdown.options.length > 1) {
+        sourceDropdown.remove(1)
+      }
+      while (targetDropdown.options.length > 1) {
+        targetDropdown.remove(1)
+      }
+
+      // Add nouns to the dropdowns
+      nouns.forEach(noun => {
+        const displayName = noun.name || noun.title || noun.id
+        const option1 = document.createElement('option')
+        option1.value = noun.id
+        option1.text = `${displayName} (${noun.noun}, ID: ${noun.id})`
+        sourceDropdown.add(option1)
+
+        const option2 = document.createElement('option')
+        option2.value = noun.id
+        option2.text = `${displayName} (${noun.noun}, ID: ${noun.id})`
+        targetDropdown.add(option2)
+      })
+
+      log('entity-results', `Refreshed noun dropdowns with ${nouns.length} nouns`)
+    } catch (error) {
+      log('entity-results', 'Error populating noun dropdowns: ' + error.message)
+    }
+  }
+
+  // Search operations
+  async function performSearch() {
+    if (!database) {
+      log('search-results', 'Please initialize database first')
+      return
+    }
+
+    try {
+      const query = document.getElementById('search-query').value
+      const searchType = document.getElementById('search-type').value
+
+      if (!query.trim()) {
+        log('search-results', 'Please enter a search query')
+        return
+      }
+
+      log('search-results', `Searching for: "${query}" (${searchType})`)
+
+      let results
+      switch (searchType) {
+        case 'semantic':
+          results = await database.search(query, { type: 'semantic', limit: 10 })
+          break
+        case 'keyword':
+          results = await database.search(query, { type: 'keyword', limit: 10 })
+          break
+        case 'hybrid':
+          results = await database.search(query, { type: 'hybrid', limit: 10 })
+          break
+      }
+
+      let output = `Found ${results.length} results:\n\n`
+      results.forEach((result, index) => {
+        output += `${index + 1}. ${result.title || result.id} (Score: ${result.score?.toFixed(4) || 'N/A'})\n`
+        if (result.content) {
+          output += `   ${result.content.substring(0, 100)}...\n`
+        }
+        output += '\n'
+      })
+
+      log('search-results', output)
+      updateSearchVisualization(results)
+    } catch (error) {
+      log('search-results', 'Error performing search: ' + error.message)
+    }
+  }
+
+  async function findSimilarEntities() {
+    if (!database) {
+      log('search-results', 'Please initialize database first')
+      return
+    }
+
+    try {
+      const entities = await database.search('', 1, { forceEmbed: false })
+      if (entities.length === 0) {
+        log('search-results', 'No entities found to compare similarity')
+        return
+      }
+
+      const similar = await database.findSimilar(entities[0].id, { limit: 5 })
+
+      let output = `Similar entities to "${entities[0].title || entities[0].id}":\n\n`
+      similar.forEach((entity, index) => {
+        output += `${index + 1}. ${entity.title || entity.id} (Similarity: ${entity.similarity?.toFixed(4) || 'N/A'})\n`
+      })
+
+      log('search-results', output)
+    } catch (error) {
+      log('search-results', 'Error finding similar entities: ' + error.message)
+    }
+  }
+
+  async function performClusterAnalysis() {
+    if (!database) {
+      log('search-results', 'Please initialize database first')
+      return
+    }
+
+    try {
+      log('search-results', 'Performing cluster analysis...')
+
+      // Simulate cluster analysis
+      const entities = await database.search('', 1000, { forceEmbed: false })
+      const clusters = Math.min(3, Math.ceil(entities.length / 2))
+
+      let output = `Cluster Analysis Results:\n\n`
+      output += `Total entities: ${entities.length}\n`
+      output += `Suggested clusters: ${clusters}\n\n`
+
+      // Group entities into clusters (simplified simulation)
+      for (let i = 0; i < clusters; i++) {
+        const clusterEntities = entities.filter((_, index) => index % clusters === i)
+        output += `Cluster ${i + 1} (${clusterEntities.length} entities):\n`
+        clusterEntities.forEach(entity => {
+          output += `  - ${entity.title || entity.id}\n`
+        })
+        output += '\n'
+      }
+
+      log('search-results', output)
+    } catch (error) {
+      log('search-results', 'Error performing cluster analysis: ' + error.message)
+    }
+  }
+
+  // Augmentation operations removed
+
+  // Visualization functions
+  function setupVisualizations() {
+    // Initialize D3 visualizations
+    updateDatabaseVisualization()
+  }
+
+  function showVisualization(type) {
+    const container = document.getElementById('main-visualization')
+    container.innerHTML = `<div style="text-align: center; padding-top: 200px; color: #666;">
+            ${type.charAt(0).toUpperCase() + type.slice(1)} visualization would appear here
+        </div>`
+
+    // Simulate different visualization types
+    switch (type) {
+      case 'graph':
+        createGraphVisualization(container)
+        break
+      case 'vector':
+        createVectorSpaceVisualization(container)
+        break
+      case 'timeline':
+        createTimelineVisualization(container)
+        break
+      case 'heatmap':
+        createHeatmapVisualization(container)
+        break
+    }
+  }
+
+  function createGraphVisualization(container) {
+    // Create a graph visualization with D3 that shows both Nouns and Verbs
+    const width = container.clientWidth
+    const height = container.clientHeight
+
+    container.innerHTML = ''
+
+    const svg = d3.select(container)
+      .append('svg')
+      .attr('width', width)
+      .attr('height', height)
+
+    // Sample graph data with explicit Nouns and Verbs
+    const nouns = [
+      {
+        id: 'doc1',
+        type: 'document',
+        noun: 'content',
+        title: 'Introduction to Machine Learning',
+        x: width / 3,
+        y: height / 3
+      },
+      {
+        id: 'doc2',
+        type: 'document',
+        noun: 'content',
+        title: 'Graph Databases Explained',
+        x: 2 * width / 3,
+        y: height / 3
+      },
+      {
+        id: 'doc3',
+        type: 'document',
+        noun: 'content',
+        title: 'Vector Search in Modern Applications',
+        x: width / 2,
+        y: 2 * height / 3
+      }
+    ]
+
+    const verbs = [
+      {
+        id: 'rel1',
+        source: 'doc1',
+        target: 'doc3',
+        verb: 'relatedTo',
+        label: 'Related To',
+        data: { strength: 0.8 }
+      },
+      {
+        id: 'rel2',
+        source: 'doc2',
+        target: 'doc3',
+        verb: 'mentions',
+        label: 'Mentions',
+        data: { strength: 0.6 }
+      }
+    ]
+
+    // Create a legend
+    const legend = svg.append('g')
+      .attr('class', 'legend')
+      .attr('transform', `translate(${width - 150}, 20)`)
+
+    // Noun legend
+    legend.append('circle')
+      .attr('cx', 10)
+      .attr('cy', 10)
+      .attr('r', 8)
+      .attr('fill', '#4CAF50')
+
+    legend.append('text')
+      .attr('x', 25)
+      .attr('y', 15)
+      .text('Nouns')
+      .attr('font-size', '12px')
+
+    // Verb legend
+    legend.append('line')
+      .attr('x1', 0)
+      .attr('y1', 40)
+      .attr('x2', 20)
+      .attr('y2', 40)
+      .attr('stroke', '#2196F3')
+      .attr('stroke-width', 3)
+
+    legend.append('text')
+      .attr('x', 25)
+      .attr('y', 45)
+      .text('Verbs')
+      .attr('font-size', '12px')
+
+    // Create arrow marker for directed edges
+    svg.append('defs').append('marker')
+      .attr('id', 'arrowhead')
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', 20)
+      .attr('refY', 0)
+      .attr('orient', 'auto')
+      .attr('markerWidth', 6)
+      .attr('markerHeight', 6)
+      .append('path')
+      .attr('d', 'M0,-5L10,0L0,5')
+      .attr('fill', '#2196F3')
+
+    // Draw verbs (edges)
+    const links = svg.selectAll('.link')
+      .data(verbs)
+      .enter()
+      .append('g')
+      .attr('class', 'link')
+
+    links.append('line')
+      .attr('x1', d => nouns.find(n => n.id === d.source).x)
+      .attr('y1', d => nouns.find(n => n.id === d.source).y)
+      .attr('x2', d => nouns.find(n => n.id === d.target).x)
+      .attr('y2', d => nouns.find(n => n.id === d.target).y)
+      .attr('stroke', '#2196F3')
+      .attr('stroke-width', d => 1 + (d.data?.strength || 0.5) * 3)
+      .attr('marker-end', 'url(#arrowhead)')
+
+    // Add verb labels
+    links.append('text')
+      .attr('x', d => (nouns.find(n => n.id === d.source).x + nouns.find(n => n.id === d.target).x) / 2)
+      .attr('y', d => (nouns.find(n => n.id === d.source).y + nouns.find(n => n.id === d.target).y) / 2 - 10)
+      .attr('text-anchor', 'middle')
+      .attr('fill', '#2196F3')
+      .attr('font-size', '10px')
+      .attr('font-weight', 'bold')
+      .text(d => d.label || d.verb)
+
+    // Draw nouns (nodes)
+    const nodes = svg.selectAll('.node')
+      .data(nouns)
+      .enter()
+      .append('g')
+      .attr('class', 'node')
+      .attr('transform', d => `translate(${d.x}, ${d.y})`)
+
+    nodes.append('circle')
+      .attr('r', 25)
+      .attr('fill', '#4CAF50')
+      .attr('stroke', '#388E3C')
+      .attr('stroke-width', 2)
+
+    // Add noun labels
+    nodes.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', 5)
+      .attr('fill', 'white')
+      .attr('font-size', '12px')
+      .attr('font-weight', 'bold')
+      .text(d => d.id)
+
+    // Add noun type labels
+    nodes.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', 40)
+      .attr('fill', '#333')
+      .attr('font-size', '10px')
+      .text(d => d.noun || d.type)
+  }
+
+  function createVectorSpaceVisualization(container) {
+    const width = container.clientWidth
+    const height = container.clientHeight
+
+    container.innerHTML = ''
+
+    const svg = d3.select(container)
+      .append('svg')
+      .attr('width', width)
+      .attr('height', height)
+
+    // Generate random points in 2D space
+    const points = Array.from({ length: 20 }, (_, i) => ({
+      id: `point${i}`,
+      x: Math.random() * (width - 40) + 20,
+      y: Math.random() * (height - 40) + 20,
+      cluster: Math.floor(Math.random() * 3)
+    }))
+
+    const colors = ['#4CAF50', '#2196F3', '#FF9800']
+
+    svg.selectAll('circle')
+      .data(points)
+      .enter()
+      .append('circle')
+      .attr('cx', d => d.x)
+      .attr('cy', d => d.y)
+      .attr('r', 5)
+      .attr('fill', d => colors[d.cluster])
+      .attr('opacity', 0.7)
+  }
+
+  function createTimelineVisualization(container) {
+    container.innerHTML = `
+            <div style="padding: 20px;">
+                <h4>Timeline Visualization</h4>
+                <div style="height: 400px; background: linear-gradient(to right, #e3f2fd, #bbdefb);
+                           border-radius: 8px; padding: 20px; position: relative;">
+                    <div style="position: absolute; left: 50px; top: 50px; width: 200px; height: 30px;
+                               background: #4CAF50; border-radius: 4px; color: white;
+                               display: flex; align-items: center; justify-content: center;">
+                        Database Init
+                    </div>
+                    <div style="position: absolute; left: 300px; top: 120px; width: 200px; height: 30px;
+                               background: #2196F3; border-radius: 4px; color: white;
+                               display: flex; align-items: center; justify-content: center;">
+                        Data Added
+                    </div>
+                    <div style="position: absolute; left: 150px; top: 190px; width: 200px; height: 30px;
+                               background: #FF9800; border-radius: 4px; color: white;
+                               display: flex; align-items: center; justify-content: center;">
+                        Search Query
+                    </div>
+                </div>
+            </div>
+        `
+  }
+
+  function createHeatmapVisualization(container) {
+    const width = container.clientWidth
+    const height = container.clientHeight
+
+    container.innerHTML = ''
+
+    const svg = d3.select(container)
+      .append('svg')
+      .attr('width', width)
+      .attr('height', height)
+
+    const cellSize = 30
+    const rows = Math.floor(height / cellSize)
+    const cols = Math.floor(width / cellSize)
+
+    const colorScale = d3.scaleSequential(d3.interpolateRdYlBu)
+      .domain([0, 1])
+
+    for (let i = 0; i < rows; i++) {
+      for (let j = 0; j < cols; j++) {
+        const similarity = Math.random()
+        svg.append('rect')
+          .attr('x', j * cellSize)
+          .attr('y', i * cellSize)
+          .attr('width', cellSize - 1)
+          .attr('height', cellSize - 1)
+          .attr('fill', colorScale(similarity))
+          .attr('opacity', 0.8)
+      }
+    }
+  }
+
+  // Helper function to create demo entities for visualization
+  function createDemoEntities() {
+    return [
+      // Person nouns
+      {
+        id: 'demo-person1',
+        type: 'person',
+        noun: 'person',
+        name: 'John Smith',
+        content: 'Software engineer with expertise in AI and machine learning.',
+        tags: ['engineer', 'developer'],
+        metadata: { type: 'person', noun: 'person' }
+      },
+      {
+        id: 'demo-person2',
+        type: 'person',
+        noun: 'person',
+        name: 'Emily Johnson',
+        content: 'Data scientist specializing in natural language processing.',
+        tags: ['scientist', 'researcher'],
+        metadata: { type: 'person', noun: 'person' }
+      },
+      // Thing nouns
+      {
+        id: 'demo-thing1',
+        type: 'thing',
+        noun: 'thing',
+        name: 'Neural Network',
+        content: 'Computational model inspired by the human brain.',
+        tags: ['AI', 'computing'],
+        metadata: { type: 'thing', noun: 'thing' }
+      },
+      {
+        id: 'demo-thing2',
+        type: 'thing',
+        noun: 'thing',
+        name: 'Graph Database',
+        content: 'Database that uses graph structures for semantic queries.',
+        tags: ['database', 'storage'],
+        metadata: { type: 'thing', noun: 'thing' }
+      },
+      // Concept nouns
+      {
+        id: 'demo-concept1',
+        type: 'concept',
+        noun: 'concept',
+        name: 'Machine Learning',
+        content: 'Field of study that gives computers the ability to learn without being explicitly programmed.',
+        tags: ['AI', 'algorithms'],
+        metadata: { type: 'concept', noun: 'concept' }
+      }
+    ]
+  }
+
+  // Helper function to create demo relationships for visualization
+  function createDemoRelationships() {
+    return [
+      // Created verbs
+      {
+        id: 'demo-verb1',
+        source: 'demo-person1',
+        target: 'demo-thing1',
+        verb: 'created',
+        label: 'Created',
+        data: { strength: 0.9, description: 'John Smith created the neural network' }
+      },
+      // WorksWith verbs
+      {
+        id: 'demo-verb2',
+        source: 'demo-person1',
+        target: 'demo-person2',
+        verb: 'worksWith',
+        label: 'Works With',
+        data: { strength: 0.7, description: 'John and Emily collaborate on research projects' }
+      },
+      // RelatedTo verbs
+      {
+        id: 'demo-verb3',
+        source: 'demo-thing1',
+        target: 'demo-concept1',
+        verb: 'relatedTo',
+        label: 'Related To',
+        data: { strength: 0.75, description: 'Neural networks are related to machine learning' }
+      }
+    ]
+  }
+
+  // Function to create a graph visualization with the provided data
+  function createGraphWithData(g, entities, relationships, width, height, zoom, svg) {
+    // Create a legend (outside the zoom group to keep it fixed)
+    const legend = svg.append('g')
+      .attr('class', 'legend')
+      .attr('transform', `translate(${width - 150}, 20)`)
+
+    // Noun legend
+    legend.append('circle')
+      .attr('cx', 10)
+      .attr('cy', 10)
+      .attr('r', 8)
+      .attr('fill', '#4CAF50')
+
+    legend.append('text')
+      .attr('x', 25)
+      .attr('y', 15)
+      .text('Nouns')
+      .attr('font-size', '12px')
+
+    // Verb legend
+    legend.append('line')
+      .attr('x1', 0)
+      .attr('y1', 40)
+      .attr('x2', 20)
+      .attr('y2', 40)
+      .attr('stroke', '#2196F3')
+      .attr('stroke-width', 3)
+
+    legend.append('text')
+      .attr('x', 25)
+      .attr('y', 45)
+      .text('Verbs')
+      .attr('font-size', '12px')
+
+    // Create a force simulation
+    const simulation = d3.forceSimulation()
+      .force('link', d3.forceLink().id(d => d.id).distance(200))
+      .force('charge', d3.forceManyBody().strength(-500))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collision', d3.forceCollide().radius(80))
+
+    // Prepare the data for D3
+    const nodes = entities.map(entity => ({
+      id: entity.id,
+      type: entity.type || 'unknown',
+      noun: entity.noun || entity.type || 'unknown',
+      title: entity.title || entity.name || entity.id
+    }))
+
+    // Filter relationships to only include those where both source and target nodes exist
+    const links = relationships
+      .filter(rel => {
+        // Use sourceId and targetId (GraphVerb properties) or fallback to from/to or source/target
+        const sourceId = rel.sourceId || rel.from || rel.source
+        const targetId = rel.targetId || rel.to || rel.target
+
+        // Check if both source and target nodes exist in the nodes array
+        const sourceExists = nodes.some(node => node.id === sourceId)
+        const targetExists = nodes.some(node => node.id === targetId)
+
+        return sourceExists && targetExists
+      })
+      .map(rel => ({
+        source: rel.sourceId || rel.from || rel.source,
+        target: rel.targetId || rel.to || rel.target,
+        verb: rel.type || rel.verb,
+        label: (rel.type || rel.verb || '').charAt(0).toUpperCase() + (rel.type || rel.verb || '').slice(1).replace(/([A-Z])/g, ' $1'),
+        data: rel.data || {}
+      }))
+
+    // Create arrow marker for directed edges
+    svg.append('defs').append('marker')
+      .attr('id', 'arrowhead')
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', 25)
+      .attr('refY', 0)
+      .attr('orient', 'auto')
+      .attr('markerWidth', 6)
+      .attr('markerHeight', 6)
+      .append('path')
+      .attr('d', 'M0,-5L10,0L0,5')
+      .attr('fill', '#2196F3')
+
+    // Draw verbs (edges)
+    const link = g.selectAll('.link')
+      .data(links)
+      .enter()
+      .append('g')
+      .attr('class', 'link')
+
+    const linkLine = link.append('line')
+      .attr('stroke', '#2196F3')
+      .attr('stroke-width', d => 1 + (d.data?.strength || 0.5) * 3)
+      .attr('marker-end', 'url(#arrowhead)')
+
+    // Add verb labels
+    const linkText = link.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('fill', '#2196F3')
+      .attr('font-size', '12px')
+      .attr('font-weight', 'bold')
+      .attr('background', 'white')
+      .attr('paint-order', 'stroke')
+      .attr('stroke', 'white')
+      .attr('stroke-width', '3px')
+      .text(d => d.label || d.verb)
+
+    // Draw nouns (nodes)
+    const node = g.selectAll('.node')
+      .data(nodes)
+      .enter()
+      .append('g')
+      .attr('class', 'node')
+      .call(d3.drag()
+        .on('start', dragstarted)
+        .on('drag', dragged)
+        .on('end', dragended))
+
+    node.append('circle')
+      .attr('r', 25)
+      .attr('fill', d => {
+        // Color by type
+        switch (d.type) {
+          case 'person':
+            return '#4CAF50'
+          case 'place':
+            return '#FF9800'
+          case 'thing':
+            return '#2196F3'
+          case 'event':
+            return '#F44336'
+          case 'concept':
+            return '#9C27B0'
+          case 'group':
+            return '#795548'
+          case 'document':
+            return '#607D8B'
+          default:
+            return '#BDBDBD'
+        }
+      })
+      .attr('stroke', '#388E3C')
+      .attr('stroke-width', 2)
+
+    // Add noun labels
+    node.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', 5)
+      .attr('fill', 'white')
+      .attr('font-size', '12px')
+      .attr('font-weight', 'bold')
+      .text(d => d.title)
+
+    // Add noun type labels
+    node.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', 40)
+      .attr('fill', '#333')
+      .attr('font-size', '10px')
+      .text(d => d.noun || d.type)
+
+    // Update positions on simulation tick
+    simulation.nodes(nodes).on('tick', ticked)
+    simulation.force('link').links(links)
+
+    // Function to fit the graph to the container
+    function zoomToFit() {
+      if (!nodes.length) return
+
+      // Calculate the bounds of the graph
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+      nodes.forEach(node => {
+        if (node.x < minX) minX = node.x
+        if (node.y < minY) minY = node.y
+        if (node.x > maxX) maxX = node.x
+        if (node.y > maxY) maxY = node.y
+      })
+
+      // Add padding - increased to give more room for labels
+      const padding = 100
+      minX -= padding
+      minY -= padding
+      maxX += padding
+      maxY += padding
+
+      // Calculate scale and translate to fit the graph
+      const scale = Math.min(
+        width / (maxX - minX),
+        height / (maxY - minY)
+      )
+
+      const translate = [
+        width / 2 - scale * (minX + maxX) / 2,
+        height / 2 - scale * (minY + maxY) / 2
+      ]
+
+      // Apply the zoom transform
+      svg.transition().duration(750).call(
+        zoom.transform,
+        d3.zoomIdentity
+          .translate(translate[0], translate[1])
+          .scale(scale)
+      )
+    }
+
+    // Call zoomToFit after the simulation has stabilized
+    simulation.on('end', zoomToFit)
+
+    // Also call zoomToFit after a timeout to ensure it happens even if simulation doesn't end
+    setTimeout(zoomToFit, 1000)
+
+    function ticked() {
+      linkLine
+        .attr('x1', d => d.source.x)
+        .attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x)
+        .attr('y2', d => d.target.y)
+
+      linkText
+        .attr('x', d => (d.source.x + d.target.x) / 2)
+        .attr('y', d => (d.source.y + d.target.y) / 2 - 15)
+
+      // Add a slight offset to prevent overlap with the line
+      linkText.each(function(d) {
+        const dx = d.target.x - d.source.x
+        const dy = d.target.y - d.source.y
+        const angle = Math.atan2(dy, dx)
+
+        // Calculate perpendicular offset
+        const perpX = -Math.sin(angle) * 8
+        const perpY = Math.cos(angle) * 8
+
+        // Apply the offset
+        d3.select(this)
+          .attr('x', (d.source.x + d.target.x) / 2 + perpX)
+          .attr('y', (d.source.y + d.target.y) / 2 - 15 + perpY)
+      })
+
+      node
+        .attr('transform', d => `translate(${d.x}, ${d.y})`)
+    }
+
+    function dragstarted(event, d) {
+      if (!event.active) simulation.alphaTarget(0.3).restart()
+      d.fx = d.x
+      d.fy = d.y
+    }
+
+    function dragged(event, d) {
+      d.fx = event.x
+      d.fy = event.y
+    }
+
+    function dragended(event, d) {
+      if (!event.active) simulation.alphaTarget(0)
+      d.fx = null
+      d.fy = null
+    }
+  }
+
+  async function updateDatabaseVisualization() {
+    const visualizationContainer = document.getElementById('db-visualization')
+    const graphContainer = visualizationContainer.querySelector('.graph-container')
+
+    if (!database) {
+      graphContainer.innerHTML = '<div style="text-align: center; padding-top: 200px; color: #666;">Database not initialized</div>'
+      return
+    }
+
+    try {
+      // Query all entities and relationships from the database
+      const entities = await database.search('', 1000, { forceEmbed: false })
+      const relationships = await database.getAllVerbs()
+
+      // Clear the container
+      graphContainer.innerHTML = ''
+
+      // If the database is empty, use demo data for visualization
+      let nodes = []
+      let edges = []
+
+      if (entities.length === 0) {
+        // Create demo data for visualization purposes only
+        const demoEntities = createDemoEntities()
+        const demoRelationships = createDemoRelationships()
+
+        // Show message that we're using demo data
+        const demoMessage = document.createElement('div')
+        demoMessage.style.position = 'absolute'
+        demoMessage.style.bottom = '10px'
+        demoMessage.style.left = '10px'
+        demoMessage.style.backgroundColor = 'rgba(255, 255, 255, 0.8)'
+        demoMessage.style.padding = '5px 10px'
+        demoMessage.style.borderRadius = '5px'
+        demoMessage.style.fontSize = '12px'
+        demoMessage.style.color = '#666'
+        demoMessage.textContent = 'Using demo data for visualization. Add real data to see your own graph.'
+        visualizationContainer.appendChild(demoMessage)
+
+        // Transform demo data to the format expected by the visualization
+        nodes = demoEntities.map(entity => ({
+          id: entity.id,
+          noun: entity.type || 'concept',
+          data: {
+            displayName: entity.name || entity.title || entity.id,
+            handle: entity.id,
+            avatar: '',
+            ...entity
+          }
+        }))
+
+        edges = demoRelationships.map(rel => ({
+          source: rel.source || rel.from || rel.sourceId,
+          target: rel.target || rel.to || rel.targetId,
+          verb: rel.verb || rel.type || 'relatedTo',
+          confidence: 0.8,
+          data: rel.data || {}
+        }))
+      } else {
+        // Transform real data to the format expected by the visualization
+        nodes = entities.map(entity => ({
+          id: entity.id,
+          noun: entity.noun || entity.type || 'concept',
+          data: {
+            displayName: entity.name || entity.title || entity.id,
+            handle: entity.id,
+            avatar: '',
+            ...entity
+          }
+        }))
+
+        edges = relationships.map(rel => ({
+          source: rel.sourceId || rel.from || rel.source,
+          target: rel.targetId || rel.to || rel.target,
+          verb: rel.verb || rel.type || 'relatedTo',
+          confidence: 0.8,
+          data: rel.data || {}
+        }))
+      }
+
+      // Ensure all nodes referenced in edges exist in the nodes array
+      const nodeIds = new Set(nodes.map(node => node.id))
+      const validEdges = edges.filter(edge => {
+        const sourceId = typeof edge.source === 'string' ? edge.source : edge.source.id
+        const targetId = typeof edge.target === 'string' ? edge.target : edge.target.id
+        return nodeIds.has(sourceId) && nodeIds.has(targetId)
+      })
+
+      // Log any filtered edges for debugging
+      if (validEdges.length < edges.length) {
+        console.warn(`Filtered out ${edges.length - validEdges.length} edges with missing nodes`)
+        edges.forEach(edge => {
+          const sourceId = typeof edge.source === 'string' ? edge.source : edge.source.id
+          const targetId = typeof edge.target === 'string' ? edge.target : edge.target.id
+          if (!nodeIds.has(sourceId)) {
+            console.warn(`Edge references missing source node: ${sourceId}`)
+          }
+          if (!nodeIds.has(targetId)) {
+            console.warn(`Edge references missing target node: ${targetId}`)
+          }
+        })
+      }
+
+      // Create the cartographer-style visualization
+      createCartographerGraph(graphContainer, nodes, validEdges)
+
+      // Set up zoom-fit button
+      const zoomFitBtn = document.getElementById('zoom-fit-btn')
+      zoomFitBtn.addEventListener('click', () => {
+        zoomToFit()
+      })
+
+      // Auto zoom to fit the data view
+      setTimeout(() => {
+        zoomToFit()
+      }, 100)
+
+    } catch (error) {
+      console.error('Error updating visualization:', error)
+      graphContainer.innerHTML = `<div style="text-align: center; padding-top: 200px; color: #666;">Error updating visualization: ${error.message}</div>`
+    }
+  }
+
+  // Global variables for the graph
+  let svgElement = null
+  let zoomBehavior = null
+  let graphContentContainer = null
+
+  function createCartographerGraph(container, nodes, edges) {
+    // Remove any existing SVG
+    d3.select(container).select('svg').remove()
+
+    const width = container.clientWidth
+    const height = container.clientHeight
+
+    // Material Design 3 Inspired Colors
+    const md3Colors = {
+      primary: '#6750A4',
+      onPrimary: '#FFFFFF',
+      secondaryContainer: '#E8DEF8',
+      onSecondaryContainer: '#1D192B',
+      outline: '#79747E',
+      surface: '#FFFBFE',
+      shadow: 'rgba(0, 0, 0, 0.3)'
+    }
+
+    // Palette for nodes
+    const nodeColorPalette = [
+      md3Colors.primary,
+      '#4A5BF5',
+      '#278853',
+      '#A83A57',
+      '#D56A2C',
+      '#5D517F'
+    ]
+
+    // Create SVG element
+    const svg = d3.select(container)
+      .append('svg')
+      .attr('width', width)
+      .attr('height', height)
+      .style('background-color', '#F7F2FA')
+
+    // Store reference to SVG element
+    svgElement = svg
+
+    // Create defs for filters
+    const defs = svg.append('defs')
+
+    // Add shadow filter
+    defs.append('filter')
+      .attr('id', 'md-shadow')
+      .attr('x', '-50%')
+      .attr('y', '-50%')
+      .attr('width', '200%')
+      .attr('height', '200%')
+      .append('feDropShadow')
+      .attr('dx', '0')
+      .attr('dy', '4')
+      .attr('stdDeviation', '6')
+      .attr('flood-color', md3Colors.shadow)
+      .attr('flood-opacity', '0.25')
+
+    // Create arrow marker for directed edges (from explore view)
+    defs.append('marker')
+      .attr('id', 'arrowhead-cartographer')
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', 22)  // Adjusted to match explore view
+      .attr('refY', 0)
+      .attr('orient', 'auto')
+      .attr('markerWidth', 8)  // Increased size to match explore view
+      .attr('markerHeight', 8)  // Increased size to match explore view
+      .append('path')
+      .attr('d', 'M0,-5L10,0L0,5')
+      .attr('fill', '#2196F3')  // Blue color from explore view
+
+    // Create zoom behavior
+    zoomBehavior = d3.zoom()
+      .scaleExtent([0.1, 5])
+      .on('zoom', (event) => {
+        graphContentContainer.attr('transform', event.transform)
+      })
+
+    svg.call(zoomBehavior)
+      .on('click', (event) => {
+        // Only handle clicks directly on the SVG background
+        if (event.target === svg.node()) {
+          // Deselect any selected nodes
+          d3.selectAll('.node-group').transition().duration(300).style('opacity', 1)
+          d3.selectAll('.edge-group').transition().duration(300).style('opacity', 1)
+          d3.selectAll('.node-group').classed('selected', false)
+        }
+      })
+
+    // Create graph container
+    graphContentContainer = svg.append('g')
+      .attr('class', 'graph-content-container')
+
+    // Create overlay container for popups
+    const overlayContainer = svg.append('g')
+      .attr('class', 'overlay-container')
+
+    // Create edge groups
+    const linkGroup = graphContentContainer
+      .append('g')
+      .attr('class', 'edges')
+      .selectAll('g')
+      .data(edges)
+      .join('g')
+      .attr('class', 'edge-group')
+
+    // Add lines with thickness based on confidence (using explore view styling)
+    const link = linkGroup
+      .append('line')
+      .attr('stroke', '#2196F3')  // Blue color from explore view
+      .attr('stroke-opacity', 0.8)
+      .attr('stroke-width', (d) => {
+        return d.confidence ? 1 + d.confidence * 5 : 1.5
+      })
+      .attr('marker-end', 'url(#arrowhead-cartographer)')
+
+    // Add edge labels (styled to match explore view)
+    const labelGroup = linkGroup
+      .append('g')
+      .attr('class', 'edge-label-group')
+      .style('cursor', 'pointer')
+
+    // Add background pill for edge labels (matching explore view)
+    labelGroup
+      .append('rect')
+      .attr('class', 'edge-label-background')
+      .attr('fill', '#E3F2FD')  // Light blue background from explore view
+      .attr('fill-opacity', 0.95)
+      .attr('stroke', '#2196F3')  // Blue outline from explore view
+      .attr('stroke-width', 1)
+      .attr('stroke-opacity', 0.8)
+      .attr('rx', 12)  // Rounded corners for pill shape
+      .attr('ry', 12)
+      .attr('width', 0)  // Will be set dynamically based on text width
+      .attr('height', 24)
+      .attr('x', 0)
+      .attr('y', -12)
+      .style('filter', 'url(#md-shadow)')
+
+    // Add text for edge labels
+    const edgeText = labelGroup
+      .append('text')
+      .attr('class', 'edge-label')
+      .attr('text-anchor', 'middle')
+      .attr('fill', '#0D47A1')  // Dark blue text from explore view
+      .attr('dy', '0.35em')  // Vertical centering
+      .style('font-family', '\'Roboto\', \'Inter\', sans-serif')
+      .style('font-size', '11px')
+      .style('font-weight', '500')
+      .style('pointer-events', 'none')
+      .text(d => {
+        // Format verb name
+        const verb = d.verb
+        return verb.charAt(0).toUpperCase() + verb.slice(1).replace(/([A-Z])/g, ' $1')
+      })
+
+    // Adjust background rect width based on text width
+    setTimeout(() => {
+      labelGroup.each(function() {
+        const text = d3.select(this).select('text')
+        const textWidth = text.node().getComputedTextLength()
+        d3.select(this).select('rect')
+          .attr('width', textWidth + 16)  // Add padding
+          .attr('x', -textWidth / 2 - 8)  // Center the rect
+      })
+    }, 0)
+
+    // Node size for card layout
+    const nodeSize = { width: 280, height: 80 }
+    const nodeRadius = 8
+
+    // Create node groups
+    const node = graphContentContainer
+      .append('g')
+      .attr('class', 'nodes')
+      .selectAll('g')
+      .data(nodes)
+      .join('g')
+      .attr('class', 'node-group')
+      .style('cursor', 'pointer')
+
+    // Add card background with different shapes based on node type
+    node.append('path')
+      .attr('d', (d) => {
+        const w = nodeSize.width
+        const h = nodeSize.height
+        const r = nodeRadius
+        const x = -w / 2
+        const y = -h / 2
+
+        // Check if node is a Group or List
+        if (d.noun === 'group' || d.noun === 'list') {
+          // Circle for Groups and Lists
+          const radius = Math.max(w, h) / 1.5
+          return `
+            M ${x + w / 2},${y + h / 2 - radius}
+            a ${radius},${radius} 0 0 1 0,${2 * radius}
+            a ${radius},${radius} 0 0 1 0,${-2 * radius}
+            z
+          `
         } else {
-            output.textContent = message;
+          // Path with rounded corners for other nodes
+          return `
+            M ${x},${y + r}
+            a ${r},${r} 0 0 1 ${r},${-r}
+            h ${w - 2 * r}
+            a ${r},${r} 0 0 1 ${r},${r}
+            v ${h - 2 * r}
+            a ${r},${r} 0 0 1 ${-r},${r}
+            h ${-(w - 2 * r)}
+            a ${r},${r} 0 0 1 ${-r},${-r}
+            z
+          `
         }
+      })
+      .attr('fill', (d, i) => {
+        // Assign colors based on node type
+        const nounType = d.noun || 'concept'
+        const colorIndex = Math.abs(nounType.charCodeAt(0) + nounType.charCodeAt(nounType.length - 1)) % nodeColorPalette.length
+        return nodeColorPalette[colorIndex]
+      })
+      .attr('fill-opacity', 0.8)
+      .attr('stroke', md3Colors.outline)
+      .attr('stroke-width', 1)
+      .attr('stroke-opacity', 0.3)
+      .style('filter', 'url(#md-shadow)')
+
+    // Add node labels
+    node.append('text')
+      .attr('class', 'node-label')
+      .attr('text-anchor', 'middle')
+      .attr('fill', 'white')
+      .attr('y', 0)
+      .style('font-family', '\'Roboto\', \'Inter\', sans-serif')
+      .style('font-size', '16px')
+      .style('font-weight', 'bold')
+      .style('pointer-events', 'none')
+      .text(d => {
+        // Truncate long names
+        const name = d.data.displayName || d.id
+        return name.length > 30 ? name.substring(0, 27) + '...' : name
+      })
+
+    // Add node type labels
+    node.append('text')
+      .attr('class', 'node-type-label')
+      .attr('text-anchor', 'middle')
+      .attr('fill', 'rgba(255, 255, 255, 0.8)')
+      .attr('y', 20)
+      .style('font-family', '\'Roboto\', \'Inter\', sans-serif')
+      .style('font-size', '12px')
+      .style('font-style', 'italic')
+      .style('pointer-events', 'none')
+      .text(d => {
+        // Format noun type
+        const nounType = d.noun || 'concept'
+        return nounType.charAt(0).toUpperCase() + nounType.slice(1)
+      })
+
+    // Add drag behavior
+    node.call(d3.drag()
+      .on('start', dragstarted)
+      .on('drag', dragged)
+      .on('end', dragended))
+
+    // Add click behavior for nodes
+    node.on('click', (event, d) => {
+      event.stopPropagation()
+
+      // Highlight the selected node and connected edges
+      const selectedNodeId = d.id
+
+      // Dim all nodes and edges
+      d3.selectAll('.node-group').transition().duration(300).style('opacity', 0.3)
+      d3.selectAll('.edge-group').transition().duration(300).style('opacity', 0.1)
+
+      // Highlight the selected node
+      d3.selectAll('.node-group').classed('selected', false)
+      d3.select(event.currentTarget)
+        .classed('selected', true)
+        .transition()
+        .duration(300)
+        .style('opacity', 1)
+
+      // Find connected edges and nodes
+      const connectedEdges = edges.filter(e =>
+        e.source === selectedNodeId ||
+        e.target === selectedNodeId ||
+        (e.source.id && e.source.id === selectedNodeId) ||
+        (e.target.id && e.target.id === selectedNodeId)
+      )
+
+      const connectedNodeIds = new Set()
+      connectedEdges.forEach(e => {
+        const sourceId = typeof e.source === 'string' ? e.source : e.source.id
+        const targetId = typeof e.target === 'string' ? e.target : e.target.id
+        connectedNodeIds.add(sourceId)
+        connectedNodeIds.add(targetId)
+      })
+
+      // Highlight connected nodes
+      d3.selectAll('.node-group').each(function(nodeData) {
+        if (connectedNodeIds.has(nodeData.id)) {
+          d3.select(this).transition().duration(300).style('opacity', 1)
+        }
+      })
+
+      // Highlight connected edges
+      d3.selectAll('.edge-group').each(function(edgeData, i) {
+        const sourceId = typeof edgeData.source === 'string' ? edgeData.source : edgeData.source.id
+        const targetId = typeof edgeData.target === 'string' ? edgeData.target : edgeData.target.id
+
+        if (sourceId === selectedNodeId || targetId === selectedNodeId) {
+          d3.select(this).transition().duration(300).style('opacity', 1)
+        }
+      })
+    })
+
+    // Create force simulation
+    const simulation = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(edges).id(d => d.id).distance(200))
+      .force('charge', d3.forceManyBody().strength(-500))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collision', d3.forceCollide().radius(100))
+      .on('tick', ticked)
+
+    // Tick function to update positions
+    function ticked() {
+      // Update node positions
+      node.attr('transform', d => `translate(${d.x},${d.y})`)
+
+      // Update link positions
+      link
+        .attr('x1', d => typeof d.source === 'string' ? d.source.x : d.source.x)
+        .attr('y1', d => typeof d.source === 'string' ? d.source.y : d.source.y)
+        .attr('x2', d => typeof d.target === 'string' ? d.target.x : d.target.x)
+        .attr('y2', d => typeof d.target === 'string' ? d.target.y : d.target.y)
+
+      // Update edge label positions (enhanced to match explore view)
+      labelGroup.attr('transform', d => {
+        const sourceX = typeof d.source === 'string' ? d.source.x : d.source.x
+        const sourceY = typeof d.source === 'string' ? d.source.y : d.source.y
+        const targetX = typeof d.target === 'string' ? d.target.x : d.target.x
+        const targetY = typeof d.target === 'string' ? d.target.y : d.target.y
+
+        // Position label at the midpoint of the edge
+        const x = (sourceX + targetX) / 2
+        const y = (sourceY + targetY) / 2
+
+        // Calculate angle for rotation (to align with edge direction)
+        const angle = Math.atan2(targetY - sourceY, targetX - sourceX) * 180 / Math.PI
+
+        // Apply a small offset perpendicular to the edge to avoid overlapping
+        const offsetDistance = 10
+        const perpX = -Math.sin(angle * Math.PI / 180) * offsetDistance
+        const perpY = Math.cos(angle * Math.PI / 180) * offsetDistance
+
+        // Normalize angle for readability (keep text upright)
+        const rotationAngle = angle > 90 || angle < -90 ? angle - 180 : angle
+
+        return `translate(${x + perpX},${y + perpY}) rotate(${rotationAngle})`
+      })
     }
 
-    // Helper function to update vector selects
-    function updateVectorSelects() {
-        // Clear existing options
-        searchVector.innerHTML = '<option value="">Select a vector</option>';
-
-        // Add options for each vector
-        for (const [word, id] of Object.entries(ids)) {
-            const option = document.createElement('option');
-            option.value = word;
-            option.textContent = word;
-            searchVector.appendChild(option);
-        }
+    // Drag functions
+    function dragstarted(event, d) {
+      if (!event.active) simulation.alphaTarget(0.3).restart()
+      d.fx = d.x
+      d.fy = d.y
     }
 
-    // Initialize BrainyData
-    initBtn.addEventListener('click', async () => {
-        try {
-            log('Initializing BrainyData...');
+    function dragged(event, d) {
+      d.fx = event.x
+      d.fy = event.y
+    }
 
-            // Create a new BrainyData instance with cosine distance
-            db = new BrainyData({
-                distanceFunction: cosineDistance,
-                hnsw: {
-                    M: 16,
-                    efConstruction: 200
-                }
-            });
+    function dragended(event, d) {
+      if (!event.active) simulation.alphaTarget(0)
+      d.fx = null
+      d.fy = null
+    }
 
-            await db.init();
+    // Initial zoom to fit
+    zoomToFit()
+  }
 
-            log('BrainyData initialized successfully');
-            initStatus.textContent = '✅ Database initialized';
+  function zoomToFit() {
+    if (!svgElement || !zoomBehavior || !graphContentContainer) return
 
-            // Enable the next step
-            setupPipelineBtn.disabled = false;
-            initBtn.disabled = true;
-        } catch (error) {
-            log(`Error initializing BrainyData: ${error.message}`);
-            initStatus.textContent = '❌ Initialization failed';
+    // Get the bounds of the graph content
+    const bounds = graphContentContainer.node().getBBox()
+    const width = svgElement.attr('width')
+    const height = svgElement.attr('height')
+
+    // Add padding to the bounds to ensure labels are visible
+    const padding = 100
+    const paddedBounds = {
+      x: bounds.x - padding,
+      y: bounds.y - padding,
+      width: bounds.width + (padding * 2),
+      height: bounds.height + (padding * 2)
+    }
+
+    // Calculate the scale and translate to fit the graph
+    const scale = 0.7 * Math.min(
+      width / paddedBounds.width,
+      height / paddedBounds.height
+    )
+
+    const translateX = width / 2 - scale * (paddedBounds.x + paddedBounds.width / 2)
+    const translateY = height / 2 - scale * (paddedBounds.y + paddedBounds.height / 2)
+
+    // Apply the zoom transform
+    svgElement.transition()
+      .duration(750)
+      .call(
+        zoomBehavior.transform,
+        d3.zoomIdentity
+          .translate(translateX, translateY)
+          .scale(scale)
+      )
+  }
+
+  function updateSearchVisualization(results) {
+    const container = document.getElementById('search-visualization')
+    container.innerHTML = `<div style="padding: 20px;">
+            <h4>Search Results Visualization</h4>
+            <p>Found ${results.length} matching results</p>
+        </div>`
+  }
+
+  function resetVisualization() {
+    showVisualization('graph')
+  }
+
+  function exportVisualization() {
+    alert('Visualization export functionality would be implemented here')
+  }
+
+  // CLI functions
+  function executeCLICommand(command) {
+    const historyElement = document.getElementById('cli-history')
+    const outputElement = document.getElementById('cli-output')
+
+    // Add command to history
+    const commandElement = document.createElement('div')
+    commandElement.className = 'cli-command'
+    commandElement.innerHTML = `<span class="cli-prompt">brainy$</span> ${command}`
+    historyElement.appendChild(commandElement)
+
+    // Simulate command execution
+    let output = ''
+    switch (command.split(' ')[0]) {
+      case 'help':
+        output = `Available commands:
+  init         Initialize a new database
+  add <data>   Add data to the database
+  search <q>   Search for entities
+  relate <f> <t> Create relationships
+  export       Export database
+  status       Show database status
+  clear        Clear the terminal
+  help         Show this help message`
+        break
+      case 'status':
+        output = database ?
+          'Database: Initialized\nStorage: OPFS\nEntities: Available\nAugmentations: Active' :
+          'Database: Not initialized\nRun "brainy init" to get started'
+        break
+      case 'init':
+        output = 'Initializing database...\nDatabase initialized successfully!'
+        if (!database) {
+          initializeDatabase()
         }
-    });
+        break
+      case 'query':
+        output = database ?
+          'Querying database...\nFound entities matching your criteria' :
+          'Error: Database not initialized'
+        break
+      default:
+        output = `Unknown command: ${command}\nType "help" for available commands`
+    }
 
-    // Setup Augmentation Pipeline
-    setupPipelineBtn.addEventListener('click', async () => {
-        try {
-            log('Setting up augmentation pipeline...');
+    outputElement.textContent = output
 
-            // Note: These are example plugin names and won't actually load
-            // In a real application, you would install these packages via npm first
-            const result = await configureAndStartPipeline([
-                // Example sense augmentation for text processing
-                createSensePluginConfig('text-sense-augmentation', {
-                    language: 'english',
-                    enableNER: true
-                }),
+    // Scroll to bottom
+    const terminal = document.querySelector('.cli-terminal')
+    terminal.scrollTop = terminal.scrollHeight
+  }
 
-                // Example memory augmentation
-                {
-                    plugin: 'memory-augmentation',
-                    config: {storageType: 'persistent'},
-                    type: AugmentationType.MEMORY
-                }
-            ], {
-                useDefaultPipeline: true,
-                initializeAfterLoading: true
-            });
+  function clearTerminal() {
+    document.getElementById('cli-history').innerHTML = ''
+    document.getElementById('cli-output').textContent = ''
+  }
 
-            // Since we're using example plugins that don't exist,
-            // we'll simulate a successful pipeline setup
-            pipeline = result.pipeline;
+  // Feature demonstration functions
+  function demonstrateFeature(feature) {
+    const resultsContainer = document.getElementById('feature-demo-results')
 
-            log('Augmentation pipeline configured');
-            pipelineStatus.textContent = '✅ Pipeline configured (simulated)';
+    switch (feature) {
+      case 'hnsw':
+        resultsContainer.innerHTML = `
+                    <h4>🔍 HNSW Vector Search Demo</h4>
+                    <p>Hierarchical Navigable Small World (HNSW) is an efficient algorithm for approximate nearest neighbor search.</p>
+                    <div class="code-block">
+// Initialize HNSW index
+const index = new HNSWIndex(dimension: 384);
 
-            // Enable the next step
-            addDataBtn.disabled = false;
-            setupPipelineBtn.disabled = true;
-        } catch (error) {
-            // In a real application, this would show actual errors
-            log('Pipeline configured (simulated)');
-            pipelineStatus.textContent = '✅ Pipeline configured (simulated)';
+// Add vectors
+index.addVector(vector1, 'doc1');
+index.addVector(vector2, 'doc2');
 
-            // Enable the next step anyway for demo purposes
-            addDataBtn.disabled = false;
-            setupPipelineBtn.disabled = true;
-        }
-    });
+// Search for similar vectors
+const results = index.search(queryVector, k: 10);
+                    </div>
+                    <p><strong>Performance:</strong> O(log N) search time, ideal for large-scale vector databases.</p>
+                `
+        break
+      case 'graph-traversal':
+        resultsContainer.innerHTML = `
+                    <h4>🌐 Graph Traversal Demo</h4>
+                    <p>Explore relationships and paths through your data graph.</p>
+                    <div class="code-block">
+// Find shortest path between entities
+const path = await brainy.findPath('entity1', 'entity2');
 
-    // Add Sample Data
-    addDataBtn.addEventListener('click', async () => {
-        try {
-            log('Adding sample vectors...');
+// Get all neighbors within 2 hops
+const neighbors = await brainy.getNeighbors('entity1', { depth: 2 });
 
-            // Add vectors to the database
-            for (const [word, vector] of Object.entries(wordEmbeddings)) {
-                ids[word] = await db.add(vector, metadata[word]);
-            }
+// Traverse by relationship type
+const related = await brainy.traverse('entity1', 'RELATED_TO');
+                    </div>
+                    <p><strong>Algorithms:</strong> BFS, DFS, shortest path, centrality measures.</p>
+                `
+        break
+      case 'embedding':
+        resultsContainer.innerHTML = `
+                    <h4>🧠 Embedding Pipeline Demo</h4>
+                    <p>Automatic text-to-vector conversion using pre-trained models.</p>
+                    <div class="code-block">
+// Configure embedding pipeline
+const pipeline = new EmbeddingPipeline({
+    model: 'universal-sentence-encoder',
+    dimension: 512
+});
 
-            log(`Added ${Object.keys(ids).length} vectors:\n${JSON.stringify(ids, null, 2)}`);
-            dataStatus.textContent = `✅ Added ${Object.keys(ids).length} vectors`;
+// Process text automatically
+const result = await pipeline.process({
+    text: "Machine learning is transforming technology",
+    id: "ml-article"
+});
 
-            // Update vector selects
-            updateVectorSelects();
+// Vector is automatically generated and indexed
+console.log(result.vector.length); // 512
+                    </div>
+                    <p><strong>Models:</strong> Universal Sentence Encoder, BERT, custom embeddings.</p>
+                `
+        break
+      case 'realtime':
+        resultsContainer.innerHTML = `
+                    <h4>📊 Real-time Updates Demo</h4>
+                    <p>Live data synchronization and event streaming.</p>
+                    <div class="code-block">
+// Listen for real-time updates
+brainy.on('entity:added', (entity) => {
+    console.log('New entity:', entity.id);
+    updateVisualization();
+});
 
-            // Enable search functionality
-            searchVector.disabled = false;
-            searchK.disabled = false;
-            searchBtn.disabled = false;
-            textQuery.disabled = false;
-            textSearchK.disabled = false;
-            textSearchBtn.disabled = false;
-            addRelationsBtn.disabled = false;
-            addDataBtn.disabled = true;
-        } catch (error) {
-            log(`Error adding vectors: ${error.message}`);
-            dataStatus.textContent = '❌ Failed to add vectors';
-        }
-    });
+brainy.on('relationship:created', (relationship) => {
+    console.log('New relationship:', relationship);
+    updateGraph();
+});
 
-    // Vector Search
-    searchBtn.addEventListener('click', async () => {
-        try {
-            const selected = searchVector.value;
-            const k = parseInt(searchK.value);
+// Subscribe to search result changes
+brainy.subscribeToQuery('AI articles', (results) => {
+    updateSearchResults(results);
+});
+                    </div>
+                    <p><strong>Features:</strong> WebSocket support, event streaming, reactive queries.</p>
+                `
+        break
+      case 'storage':
+        resultsContainer.innerHTML = `
+                    <h4>💾 Storage Backends Demo</h4>
+                    <p>Compare different storage options and their characteristics.</p>
+                    <div class="code-block">
+// Memory storage (fastest)
+const memoryDB = new BrainyData({
+    storage: { type: 'memory' }
+});
 
-            if (!selected) {
-                log('Please select a vector to search');
-                return;
-            }
+// File system storage (persistent)
+const fileDB = new BrainyData({
+    storage: {
+        type: 'filesystem',
+        path: './data'
+    }
+});
 
-            log(`Searching for vectors similar to "${selected}"...`);
+// Cloud storage (scalable)
+const cloudDB = new BrainyData({
+    storage: {
+        type: 's3',
+        bucket: 'my-brainy-data',
+        region: 'us-east-1'
+    }
+});
+                    </div>
+                    <p><strong>Options:</strong> Memory, FileSystem, S3, Azure Blob, custom adapters.</p>
+                `
+        break
+      case 'typescript':
+        resultsContainer.innerHTML = `
+                    <h4>🔧 TypeScript Integration Demo</h4>
+                    <p>Full type safety with comprehensive TypeScript definitions.</p>
+                    <div class="code-block">
+// Define your data types
+interface Article {
+    id: string;
+    title: string;
+    content: string;
+    tags: string[];
+    publishedAt: Date;
+}
 
-            // Get the vector to search for
-            const searchVec = wordEmbeddings[selected];
+// Type-safe database operations
+const brainy = new BrainyData&lt;Article&gt;();
 
-            // Perform the search
-            const results = await db.search(searchVec, k);
+// TypeScript ensures type safety
+const article: Article = {
+    id: 'article-1',
+    title: 'AI in 2024',
+    content: 'The future of AI...',
+    tags: ['AI', 'technology'],
+    publishedAt: new Date()
+};
 
-            // Format results for display
-            const formattedResults = results.map(result => {
-                const word = Object.entries(ids).find(([_, id]) => id === result.id)?.[0] || 'unknown';
-                return {
-                    word,
-                    score: result.score,
-                    metadata: result.metadata
-                };
-            });
+// Compile-time type checking
+const results = await brainy.search&lt;Article&gt;('AI trends');
+                    </div>
+                    <p><strong>Benefits:</strong> IntelliSense, compile-time errors, better IDE support.</p>
+                `
+        break
+    }
+  }
 
-            // Display results
-            searchResults.textContent = JSON.stringify(formattedResults, null, 2);
-            log(`Search completed for "${selected}"`);
-        } catch (error) {
-            log(`Error searching: ${error.message}`);
-            searchResults.textContent = `Error: ${error.message}`;
-        }
-    });
+  // Simulation functions for augmentations
+  async function simulateTextEmbedding(text) {
+    await new Promise(resolve => setTimeout(resolve, 1000))
 
-    // Text Search
-    textSearchBtn.addEventListener('click', async () => {
-        try {
-            const query = textQuery.value.trim();
-            const k = parseInt(textSearchK.value);
+    const vector = Array.from({ length: 384 }, () => Math.random() * 2 - 1)
+    const magnitude = Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0))
 
-            if (!query) {
-                log('Please enter a text query');
-                return;
-            }
+    return `Text Embedding Results:
+Input: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"
+Vector dimension: 384
+Magnitude: ${magnitude.toFixed(6)}
+Sample values: [${vector.slice(0, 5).map(v => v.toFixed(4)).join(', ')}...]
 
-            log(`Searching for text similar to "${query}"...`);
+The text has been successfully converted to a 384-dimensional vector suitable for semantic search and similarity calculations.`
+  }
 
-            // Perform the text search
-            const results = await db.searchText(query, k);
+  async function simulateImageEncoding(content) {
+    await new Promise(resolve => setTimeout(resolve, 1200))
 
-            // Format results for display
-            const formattedResults = results.map(result => {
-                const word = Object.entries(ids).find(([_, id]) => id === result.id)?.[0] || 'unknown';
-                return {
-                    word,
-                    score: result.score,
-                    metadata: result.metadata
-                };
-            });
+    return `Image Encoding Results:
+Input: Image data or URL
+Encoding: Base64 with compression
+Size reduction: ~75%
+Format: Optimized for embedding storage
 
-            // Display results
-            textSearchResults.textContent = JSON.stringify(formattedResults, null, 2);
-            log(`Text search completed for "${query}"`);
-        } catch (error) {
-            log(`Error searching: ${error.message}`);
-            textSearchResults.textContent = `Error: ${error.message}`;
-        }
-    });
+The image has been encoded and optimized for storage in the vector database.`
+  }
 
-    // Add Relationships (GraphVerb nodes)
-    addRelationsBtn.addEventListener('click', async () => {
-        try {
-            log('Adding relationships between nodes...');
+  async function simulateSentimentAnalysis(text) {
+    await new Promise(resolve => setTimeout(resolve, 800))
 
-            // Define relationships to create
-            const relationships = [
-                {
-                    source: 'cat',
-                    target: 'dog',
-                    type: VerbType.Controls,
-                    metadata: {description: 'Cats often dominate dogs in households'}
-                },
-                {
-                    source: 'tiger',
-                    target: 'cat',
-                    type: 'relatedTo',
-                    metadata: {description: 'Tigers are related to domestic cats'}
-                },
-                {
-                    source: 'lion',
-                    target: 'tiger',
-                    type: VerbType.Controls,
-                    metadata: {description: 'Lions are often dominant over tigers in shared territories'}
-                },
-                {
-                    source: 'shark',
-                    target: 'fish',
-                    type: VerbType.Controls,
-                    metadata: {description: 'Sharks are predators of many fish species'}
-                },
-                {
-                    source: 'eagle',
-                    target: 'bird',
-                    type: 'relatedTo',
-                    metadata: {description: 'Eagles are a type of bird'}
-                },
-                {
-                    source: 'eagle',
-                    target: 'fish',
-                    type: VerbType.Controls,
-                    metadata: {description: 'Eagles hunt and eat fish'}
-                }
-            ];
+    const sentiments = ['positive', 'negative', 'neutral']
+    const sentiment = sentiments[Math.floor(Math.random() * sentiments.length)]
+    const confidence = Math.random() * 0.5 + 0.5
 
-            // Create each relationship
-            for (const rel of relationships) {
-                const sourceId = ids[rel.source];
-                const targetId = ids[rel.target];
+    return `Sentiment Analysis Results:
+Input: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"
+Sentiment: ${sentiment.toUpperCase()}
+Confidence: ${(confidence * 100).toFixed(1)}%
+Polarity: ${(Math.random() * 2 - 1).toFixed(3)}
 
-                if (!sourceId || !targetId) {
-                    log(`Missing ID for ${rel.source} or ${rel.target}`);
-                    continue;
-                }
+The text has been analyzed for emotional tone and sentiment indicators.`
+  }
 
-                // Create the edge
-                const edgeId = await db.addEdge(sourceId, targetId, null, {
-                    type: rel.type,
-                    metadata: {
-                        verb: rel.type,
-                        label: `${rel.source} ${rel.type} ${rel.target}`,
-                        data: rel.metadata
-                    }
-                });
+  async function simulateEntityExtraction(text) {
+    await new Promise(resolve => setTimeout(resolve, 900))
 
-                // Store the relationship ID
-                relationshipIds[`${rel.source}_${rel.type}_${rel.target}`] = edgeId;
-            }
+    const entities = [
+      { text: 'Machine Learning', type: 'TECHNOLOGY', start: 0, end: 16 },
+      { text: 'AI', type: 'TECHNOLOGY', start: 20, end: 22 },
+      { text: 'neural networks', type: 'CONCEPT', start: 35, end: 50 }
+    ]
 
-            log(`Added ${Object.keys(relationshipIds).length} relationships:\n${JSON.stringify(relationshipIds, null, 2)}`);
-            graphResults.textContent = `Added ${Object.keys(relationshipIds).length} relationships between nodes`;
+    let result = `Entity Extraction Results:
+Input: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"
 
-            // Enable the get relationships button
-            getRelationsBtn.disabled = false;
-            addRelationsBtn.disabled = true;
-        } catch (error) {
-            log(`Error adding relationships: ${error.message}`);
-            graphResults.textContent = `Error: ${error.message}`;
-        }
-    });
+Extracted Entities:
+`
 
-    // Get Relationships
-    getRelationsBtn.addEventListener('click', async () => {
-        try {
-            log('Getting all relationships...');
+    entities.forEach(entity => {
+      result += `- ${entity.text} (${entity.type})\n`
+    })
 
-            // Get all edges
-            const edges = await db.getAllEdges();
+    result += `\nTotal entities found: ${entities.length}`
 
-            // Format edges for display
-            const formattedEdges = edges.map(edge => {
-                // Find the source and target names
-                const sourceName = Object.entries(ids).find(([name, id]) => id === edge.sourceId)?.[0] || 'unknown';
-                const targetName = Object.entries(ids).find(([name, id]) => id === edge.targetId)?.[0] || 'unknown';
+    return result
+  }
 
-                return {
-                    id: edge.id,
-                    source: sourceName,
-                    target: targetName,
-                    type: edge.type,
-                    metadata: edge.metadata
-                };
-            });
+  // Utility functions
+  function log(elementId, message) {
+    const element = document.getElementById(elementId)
+    if (element) {
+      element.textContent = message
+      element.scrollTop = element.scrollHeight
+    }
+  }
 
-            // Display results
-            graphResults.textContent = JSON.stringify(formattedEdges, null, 2);
-            log(`Retrieved ${edges.length} relationships`);
-        } catch (error) {
-            log(`Error getting relationships: ${error.message}`);
-            graphResults.textContent = `Error: ${error.message}`;
-        }
-    });
+  function showError(message) {
+    console.error(message)
+    const errorDiv = document.createElement('div')
+    errorDiv.style.cssText = 'background-color: #f44336; color: white; padding: 15px; margin: 10px 0; border-radius: 8px;'
+    errorDiv.textContent = 'Error: ' + message
+    document.querySelector('.container').insertBefore(errorDiv, document.querySelector('.container').firstChild)
 
-    // Initial log message
-    log('Welcome to the Brainy Vector Search Demo!\nClick "Initialize BrainyData" to begin.');
+    setTimeout(() => {
+      errorDiv.remove()
+    }, 5000)
+  }
 </script>
 </body>
 </html>
