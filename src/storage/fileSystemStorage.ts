@@ -6,8 +6,8 @@ let path: any
 
 // Constants for directory and file names
 const ROOT_DIR = 'brainy-data'
-const NODES_DIR = 'nodes'
-const EDGES_DIR = 'edges'
+const NOUNS_DIR = 'nouns'
+const VERBS_DIR = 'verbs'
 const METADATA_DIR = 'metadata'
 
 // Constants for noun type directories
@@ -24,8 +24,8 @@ const DEFAULT_DIR = 'default' // For nodes without a noun type
  */
 export class FileSystemStorage implements StorageAdapter {
   private rootDir: string
-  private nodesDir: string
-  private edgesDir: string
+  private nounsDir: string
+  private verbsDir: string
   private metadataDir: string
   private personDir: string
   private placeDir: string
@@ -39,8 +39,8 @@ export class FileSystemStorage implements StorageAdapter {
   constructor(rootDirectory?: string) {
     // We'll set the paths in the init method after dynamically importing the modules
     this.rootDir = rootDirectory || ''
-    this.nodesDir = ''
-    this.edgesDir = ''
+    this.nounsDir = ''
+    this.verbsDir = ''
     this.metadataDir = ''
     this.personDir = ''
     this.placeDir = ''
@@ -73,26 +73,26 @@ export class FileSystemStorage implements StorageAdapter {
         // Now set up the directory paths
         const rootDir = this.rootDir || process.cwd()
         this.rootDir = path.resolve(rootDir, ROOT_DIR)
-        this.nodesDir = path.join(this.rootDir, NODES_DIR)
-        this.edgesDir = path.join(this.rootDir, EDGES_DIR)
+        this.nounsDir = path.join(this.rootDir, NOUNS_DIR)
+        this.verbsDir = path.join(this.rootDir, VERBS_DIR)
         this.metadataDir = path.join(this.rootDir, METADATA_DIR)
 
         // Set up noun type directory paths
-        this.personDir = path.join(this.nodesDir, PERSON_DIR)
-        this.placeDir = path.join(this.nodesDir, PLACE_DIR)
-        this.thingDir = path.join(this.nodesDir, THING_DIR)
-        this.eventDir = path.join(this.nodesDir, EVENT_DIR)
-        this.conceptDir = path.join(this.nodesDir, CONCEPT_DIR)
-        this.contentDir = path.join(this.nodesDir, CONTENT_DIR)
-        this.defaultDir = path.join(this.nodesDir, DEFAULT_DIR)
+        this.personDir = path.join(this.nounsDir, PERSON_DIR)
+        this.placeDir = path.join(this.nounsDir, PLACE_DIR)
+        this.thingDir = path.join(this.nounsDir, THING_DIR)
+        this.eventDir = path.join(this.nounsDir, EVENT_DIR)
+        this.conceptDir = path.join(this.nounsDir, CONCEPT_DIR)
+        this.contentDir = path.join(this.nounsDir, CONTENT_DIR)
+        this.defaultDir = path.join(this.nounsDir, DEFAULT_DIR)
       } catch (importError) {
         throw new Error(`Failed to import Node.js modules: ${importError}. This adapter requires a Node.js environment.`)
       }
 
       // Create directories if they don't exist
       await this.ensureDirectoryExists(this.rootDir)
-      await this.ensureDirectoryExists(this.nodesDir)
-      await this.ensureDirectoryExists(this.edgesDir)
+      await this.ensureDirectoryExists(this.nounsDir)
+      await this.ensureDirectoryExists(this.verbsDir)
       await this.ensureDirectoryExists(this.metadataDir)
 
       // Create noun type directories
@@ -430,7 +430,7 @@ export class FileSystemStorage implements StorageAdapter {
         connections: this.mapToObject(verb.connections, (set) => Array.from(set as Set<string>))
       }
 
-      const filePath = path.join(this.edgesDir, `${verb.id}.json`)
+      const filePath = path.join(this.verbsDir, `${verb.id}.json`)
       await fs.promises.writeFile(
         filePath,
         JSON.stringify(serializableEdge, null, 2),
@@ -449,7 +449,7 @@ export class FileSystemStorage implements StorageAdapter {
     await this.ensureInitialized()
 
     try {
-      const filePath = path.join(this.edgesDir, `${id}.json`)
+      const filePath = path.join(this.verbsDir, `${id}.json`)
 
       // Check if a file exists
       try {
@@ -490,7 +490,7 @@ export class FileSystemStorage implements StorageAdapter {
     await this.ensureInitialized()
 
     try {
-      const files = await fs.promises.readdir(this.edgesDir)
+      const files = await fs.promises.readdir(this.verbsDir)
       const edgePromises = files
         .filter((file: string) => file.endsWith('.json'))
         .map((file: string) => {
@@ -558,7 +558,7 @@ export class FileSystemStorage implements StorageAdapter {
     await this.ensureInitialized()
 
     try {
-      const filePath = path.join(this.edgesDir, `${id}.json`)
+      const filePath = path.join(this.verbsDir, `${id}.json`)
 
       // Check if a file exists before attempting to delete
       try {
@@ -625,12 +625,12 @@ export class FileSystemStorage implements StorageAdapter {
 
     try {
       // Delete and recreate the nodes, edges, and metadata directories
-      await this.deleteDirectory(this.nodesDir)
-      await this.deleteDirectory(this.edgesDir)
+      await this.deleteDirectory(this.nounsDir)
+      await this.deleteDirectory(this.verbsDir)
       await this.deleteDirectory(this.metadataDir)
 
-      await this.ensureDirectoryExists(this.nodesDir)
-      await this.ensureDirectoryExists(this.edgesDir)
+      await this.ensureDirectoryExists(this.nounsDir)
+      await this.ensureDirectoryExists(this.verbsDir)
       await this.ensureDirectoryExists(this.metadataDir)
 
       // Create noun type directories
@@ -802,8 +802,8 @@ export class FileSystemStorage implements StorageAdapter {
       }
 
       // Calculate size for each directory
-      const nodesDirSize = await calculateDirSize(this.nodesDir)
-      const edgesDirSize = await calculateDirSize(this.edgesDir)
+      const nodesDirSize = await calculateDirSize(this.nounsDir)
+      const edgesDirSize = await calculateDirSize(this.verbsDir)
       const metadataDirSize = await calculateDirSize(this.metadataDir)
 
       // Calculate sizes of noun type directories

@@ -4,15 +4,22 @@
  */
 
 import { GraphVerb, HNSWNoun, StorageAdapter } from '../coreTypes.js'
+import '../types/fileSystemTypes.js'
+// Make sure TypeScript recognizes the FileSystemDirectoryHandle interface extension
+declare global {
+  interface FileSystemDirectoryHandle {
+    entries(): AsyncIterableIterator<[string, FileSystemHandle]>
+  }
+}
 
 // Type aliases for compatibility
-type HNSWNode = HNSWNoun;
-type Edge = GraphVerb;
+type HNSWNode = HNSWNoun
+type Edge = GraphVerb
 
 // Directory and file names
 const ROOT_DIR = 'opfs-vector-db'
-const NODES_DIR = 'nodes'
-const EDGES_DIR = 'edges'
+const NOUNS_DIR = 'nouns'
+const VERBS_DIR = 'verbs'
 const METADATA_DIR = 'metadata'
 const DB_INFO_FILE = 'db-info.json'
 
@@ -27,8 +34,8 @@ const DEFAULT_DIR = 'default' // For nodes without a noun type
 
 export class OPFSStorage implements StorageAdapter {
   private rootDir: FileSystemDirectoryHandle | null = null
-  private nodesDir: FileSystemDirectoryHandle | null = null
-  private edgesDir: FileSystemDirectoryHandle | null = null
+  private nounsDir: FileSystemDirectoryHandle | null = null
+  private verbsDir: FileSystemDirectoryHandle | null = null
   private metadataDir: FileSystemDirectoryHandle | null = null
   private personDir: FileSystemDirectoryHandle | null = null
   private placeDir: FileSystemDirectoryHandle | null = null
@@ -71,13 +78,13 @@ export class OPFSStorage implements StorageAdapter {
       // Create or get our app's root directory
       this.rootDir = await root.getDirectoryHandle(ROOT_DIR, { create: true })
 
-      // Create or get nodes directory
-      this.nodesDir = await this.rootDir.getDirectoryHandle(NODES_DIR, {
+      // Create or get nouns directory
+      this.nounsDir = await this.rootDir.getDirectoryHandle(NOUNS_DIR, {
         create: true
       })
 
-      // Create or get edges directory
-      this.edgesDir = await this.rootDir.getDirectoryHandle(EDGES_DIR, {
+      // Create or get verbs directory
+      this.verbsDir = await this.rootDir.getDirectoryHandle(VERBS_DIR, {
         create: true
       })
 
@@ -87,25 +94,25 @@ export class OPFSStorage implements StorageAdapter {
       })
 
       // Create or get noun type directories
-      this.personDir = await this.nodesDir.getDirectoryHandle(PERSON_DIR, {
+      this.personDir = await this.nounsDir.getDirectoryHandle(PERSON_DIR, {
         create: true
       })
-      this.placeDir = await this.nodesDir.getDirectoryHandle(PLACE_DIR, {
+      this.placeDir = await this.nounsDir.getDirectoryHandle(PLACE_DIR, {
         create: true
       })
-      this.thingDir = await this.nodesDir.getDirectoryHandle(THING_DIR, {
+      this.thingDir = await this.nounsDir.getDirectoryHandle(THING_DIR, {
         create: true
       })
-      this.eventDir = await this.nodesDir.getDirectoryHandle(EVENT_DIR, {
+      this.eventDir = await this.nounsDir.getDirectoryHandle(EVENT_DIR, {
         create: true
       })
-      this.conceptDir = await this.nodesDir.getDirectoryHandle(CONCEPT_DIR, {
+      this.conceptDir = await this.nounsDir.getDirectoryHandle(CONCEPT_DIR, {
         create: true
       })
-      this.contentDir = await this.nodesDir.getDirectoryHandle(CONTENT_DIR, {
+      this.contentDir = await this.nounsDir.getDirectoryHandle(CONTENT_DIR, {
         create: true
       })
-      this.defaultDir = await this.nodesDir.getDirectoryHandle(DEFAULT_DIR, {
+      this.defaultDir = await this.nounsDir.getDirectoryHandle(DEFAULT_DIR, {
         create: true
       })
 
@@ -279,7 +286,9 @@ export class OPFSStorage implements StorageAdapter {
 
                 // Convert serialized connections back to Map<number, Set<string>>
                 const connections = new Map<number, Set<string>>()
-                for (const [level, nodeIds] of Object.entries(data.connections)) {
+                for (const [level, nodeIds] of Object.entries(
+                  data.connections
+                )) {
                   connections.set(Number(level), new Set(nodeIds as string[]))
                 }
 
@@ -341,15 +350,17 @@ export class OPFSStorage implements StorageAdapter {
       }
 
       try {
-        // Get all keys (filenames) in this directory
-        // @ts-ignore - TypeScript doesn't recognize FileSystemDirectoryHandle.keys() properly
-        const keys = dir.keys()
+        // Get all entries (filename and handle pairs) in this directory
+        const entries = dir.entries()
 
-        // Iterate through all keys and get the corresponding nodes
-        for await (const name of keys) {
+        // Iterate through all entries and get the corresponding nodes
+        for await (const [name, handle] of entries) {
           try {
-            // Get the file handle for this node
-            const fileHandle = await dir.getFileHandle(name)
+            // The handle is already a FileSystemHandle, but we need to ensure it's a file
+            if (handle.kind !== 'file') continue
+
+            // Cast to FileSystemFileHandle
+            const fileHandle = handle as FileSystemFileHandle
 
             // Read the node data from the file
             const file = await fileHandle.getFile()
@@ -368,12 +379,18 @@ export class OPFSStorage implements StorageAdapter {
               connections
             })
           } catch (nodeError) {
-            console.warn(`Failed to read node ${name} from directory:`, nodeError)
+            console.warn(
+              `Failed to read node ${name} from directory:`,
+              nodeError
+            )
             // Continue to the next node
           }
         }
       } catch (dirError) {
-        console.warn(`Failed to read directory for noun type ${nounType}:`, dirError)
+        console.warn(
+          `Failed to read directory for noun type ${nounType}:`,
+          dirError
+        )
       }
 
       return nouns
@@ -402,7 +419,9 @@ export class OPFSStorage implements StorageAdapter {
       ]
 
       // Run searches in parallel for all noun types
-      const nounPromises = nounTypes.map(nounType => this.getNounsByNounType(nounType))
+      const nounPromises = nounTypes.map((nounType) =>
+        this.getNounsByNounType(nounType)
+      )
       const nounArrays = await Promise.all(nounPromises)
 
       // Combine all results
@@ -489,7 +508,7 @@ export class OPFSStorage implements StorageAdapter {
       }
 
       // Create or get the file for this verb
-      const fileHandle = await this.edgesDir!.getFileHandle(verb.id, {
+      const fileHandle = await this.verbsDir!.getFileHandle(verb.id, {
         create: true
       })
 
@@ -511,7 +530,7 @@ export class OPFSStorage implements StorageAdapter {
 
     try {
       // Get the file handle for this verb
-      const fileHandle = await this.edgesDir!.getFileHandle(id)
+      const fileHandle = await this.verbsDir!.getFileHandle(id)
 
       // Read the verb data from the file
       const file = await fileHandle.getFile()
@@ -554,12 +573,14 @@ export class OPFSStorage implements StorageAdapter {
     try {
       const edges: Edge[] = []
 
-      // Get all keys (filenames) in the edges directory
-      // @ts-ignore - TypeScript doesn't recognize FileSystemDirectoryHandle.keys() properly
-      const keys = this.edgesDir!.keys()
+      // Get all entries (filename and handle pairs) in the verbs directory
+      const entries = this.verbsDir!.entries()
 
-      // Iterate through all keys and get the corresponding edges
-      for await (const name of keys) {
+      // Iterate through all entries and get the corresponding edges
+      for await (const [name, handle] of entries) {
+        // Skip if not a file
+        if (handle.kind !== 'file') continue
+
         const edge = await this.getVerb(name)
         if (edge) {
           edges.push(edge)
@@ -577,7 +598,7 @@ export class OPFSStorage implements StorageAdapter {
    * Get all verbs from storage (alias for getAllEdges)
    */
   public async getAllVerbs(): Promise<GraphVerb[]> {
-    return this.getAllEdges();
+    return this.getAllEdges()
   }
 
   /**
@@ -587,7 +608,7 @@ export class OPFSStorage implements StorageAdapter {
     await this.ensureInitialized()
 
     try {
-      await this.edgesDir!.removeEntry(id)
+      await this.verbsDir!.removeEntry(id)
     } catch (error) {
       // Ignore if the file doesn't exist
       if ((error as any).name !== 'NotFoundError') {
@@ -601,7 +622,7 @@ export class OPFSStorage implements StorageAdapter {
    * Delete a verb from storage (alias for deleteEdge)
    */
   public async deleteVerb(id: string): Promise<void> {
-    return this.deleteEdge(id);
+    return this.deleteEdge(id)
   }
 
   /**
@@ -612,7 +633,7 @@ export class OPFSStorage implements StorageAdapter {
 
     try {
       const allEdges = await this.getAllEdges()
-      return allEdges.filter(edge => edge.sourceId === sourceId)
+      return allEdges.filter((edge) => edge.sourceId === sourceId)
     } catch (error) {
       console.error(`Failed to get edges by source ${sourceId}:`, error)
       throw new Error(`Failed to get edges by source ${sourceId}: ${error}`)
@@ -623,7 +644,7 @@ export class OPFSStorage implements StorageAdapter {
    * Get verbs by source node ID (alias for getEdgesBySource)
    */
   public async getVerbsBySource(sourceId: string): Promise<GraphVerb[]> {
-    return this.getEdgesBySource(sourceId);
+    return this.getEdgesBySource(sourceId)
   }
 
   /**
@@ -634,7 +655,7 @@ export class OPFSStorage implements StorageAdapter {
 
     try {
       const allEdges = await this.getAllEdges()
-      return allEdges.filter(edge => edge.targetId === targetId)
+      return allEdges.filter((edge) => edge.targetId === targetId)
     } catch (error) {
       console.error(`Failed to get edges by target ${targetId}:`, error)
       throw new Error(`Failed to get edges by target ${targetId}: ${error}`)
@@ -645,7 +666,7 @@ export class OPFSStorage implements StorageAdapter {
    * Get verbs by target node ID (alias for getEdgesByTarget)
    */
   public async getVerbsByTarget(targetId: string): Promise<GraphVerb[]> {
-    return this.getEdgesByTarget(targetId);
+    return this.getEdgesByTarget(targetId)
   }
 
   /**
@@ -656,7 +677,7 @@ export class OPFSStorage implements StorageAdapter {
 
     try {
       const allEdges = await this.getAllEdges()
-      return allEdges.filter(edge => edge.type === type)
+      return allEdges.filter((edge) => edge.type === type)
     } catch (error) {
       console.error(`Failed to get edges by type ${type}:`, error)
       throw new Error(`Failed to get edges by type ${type}: ${error}`)
@@ -667,7 +688,7 @@ export class OPFSStorage implements StorageAdapter {
    * Get verbs by type (alias for getEdgesByType)
    */
   public async getVerbsByType(type: string): Promise<GraphVerb[]> {
-    return this.getEdgesByType(type);
+    return this.getEdgesByType(type)
   }
 
   /**
@@ -724,38 +745,38 @@ export class OPFSStorage implements StorageAdapter {
     await this.ensureInitialized()
 
     try {
-      // Delete and recreate the nodes directory
-      await this.rootDir!.removeEntry(NODES_DIR, { recursive: true })
-      this.nodesDir = await this.rootDir!.getDirectoryHandle(NODES_DIR, {
+      // Delete and recreate the nouns directory
+      await this.rootDir!.removeEntry(NOUNS_DIR, { recursive: true })
+      this.nounsDir = await this.rootDir!.getDirectoryHandle(NOUNS_DIR, {
         create: true
       })
 
       // Create noun type directories
-      this.personDir = await this.nodesDir.getDirectoryHandle(PERSON_DIR, {
+      this.personDir = await this.nounsDir.getDirectoryHandle(PERSON_DIR, {
         create: true
       })
-      this.placeDir = await this.nodesDir.getDirectoryHandle(PLACE_DIR, {
+      this.placeDir = await this.nounsDir.getDirectoryHandle(PLACE_DIR, {
         create: true
       })
-      this.thingDir = await this.nodesDir.getDirectoryHandle(THING_DIR, {
+      this.thingDir = await this.nounsDir.getDirectoryHandle(THING_DIR, {
         create: true
       })
-      this.eventDir = await this.nodesDir.getDirectoryHandle(EVENT_DIR, {
+      this.eventDir = await this.nounsDir.getDirectoryHandle(EVENT_DIR, {
         create: true
       })
-      this.conceptDir = await this.nodesDir.getDirectoryHandle(CONCEPT_DIR, {
+      this.conceptDir = await this.nounsDir.getDirectoryHandle(CONCEPT_DIR, {
         create: true
       })
-      this.contentDir = await this.nodesDir.getDirectoryHandle(CONTENT_DIR, {
+      this.contentDir = await this.nounsDir.getDirectoryHandle(CONTENT_DIR, {
         create: true
       })
-      this.defaultDir = await this.nodesDir.getDirectoryHandle(DEFAULT_DIR, {
+      this.defaultDir = await this.nounsDir.getDirectoryHandle(DEFAULT_DIR, {
         create: true
       })
 
-      // Delete and recreate the edges directory
-      await this.rootDir!.removeEntry(EDGES_DIR, { recursive: true })
-      this.edgesDir = await this.rootDir!.getDirectoryHandle(EDGES_DIR, {
+      // Delete and recreate the verbs directory
+      await this.rootDir!.removeEntry(VERBS_DIR, { recursive: true })
+      this.verbsDir = await this.rootDir!.getDirectoryHandle(VERBS_DIR, {
         create: true
       })
 
@@ -796,7 +817,9 @@ export class OPFSStorage implements StorageAdapter {
   /**
    * Get the appropriate directory for a node based on its metadata
    */
-  private async getNodeDirectory(id: string): Promise<FileSystemDirectoryHandle> {
+  private async getNodeDirectory(
+    id: string
+  ): Promise<FileSystemDirectoryHandle> {
     try {
       // Try to get the metadata for the node
       const metadata = await this.getMetadata(id)
@@ -833,10 +856,10 @@ export class OPFSStorage implements StorageAdapter {
    * Get information about storage usage and capacity
    */
   public async getStorageStatus(): Promise<{
-    type: string;
-    used: number;
-    quota: number | null;
-    details?: Record<string, any>;
+    type: string
+    used: number
+    quota: number | null
+    details?: Record<string, any>
   }> {
     await this.ensureInitialized()
 
@@ -845,16 +868,19 @@ export class OPFSStorage implements StorageAdapter {
       let totalSize = 0
 
       // Helper function to calculate directory size
-      const calculateDirSize = async (dirHandle: FileSystemDirectoryHandle): Promise<number> => {
+      const calculateDirSize = async (
+        dirHandle: FileSystemDirectoryHandle
+      ): Promise<number> => {
         let size = 0
         try {
-          // @ts-ignore - TypeScript doesn't recognize FileSystemDirectoryHandle.entries() properly
           for await (const [name, handle] of dirHandle.entries()) {
             if (handle.kind === 'file') {
-              const file = await handle.getFile()
+              const file = await (handle as FileSystemFileHandle).getFile()
               size += file.size
             } else if (handle.kind === 'directory') {
-              size += await calculateDirSize(handle)
+              size += await calculateDirSize(
+                handle as FileSystemDirectoryHandle
+              )
             }
           }
         } catch (error) {
@@ -864,10 +890,11 @@ export class OPFSStorage implements StorageAdapter {
       }
 
       // Helper function to count files in a directory
-      const countFilesInDirectory = async (dirHandle: FileSystemDirectoryHandle): Promise<number> => {
+      const countFilesInDirectory = async (
+        dirHandle: FileSystemDirectoryHandle
+      ): Promise<number> => {
         let count = 0
         try {
-          // @ts-ignore - TypeScript doesn't recognize FileSystemDirectoryHandle.entries() properly
           for await (const [name, handle] of dirHandle.entries()) {
             if (handle.kind === 'file') {
               count++
@@ -880,24 +907,38 @@ export class OPFSStorage implements StorageAdapter {
       }
 
       // Calculate size for each directory
-      if (this.nodesDir) {
-        totalSize += await calculateDirSize(this.nodesDir)
+      if (this.nounsDir) {
+        totalSize += await calculateDirSize(this.nounsDir)
       }
-      if (this.edgesDir) {
-        totalSize += await calculateDirSize(this.edgesDir)
+      if (this.verbsDir) {
+        totalSize += await calculateDirSize(this.verbsDir)
       }
       if (this.metadataDir) {
         totalSize += await calculateDirSize(this.metadataDir)
       }
 
       // Calculate sizes of noun type directories
-      const personDirSize = this.personDir ? await calculateDirSize(this.personDir) : 0
-      const placeDirSize = this.placeDir ? await calculateDirSize(this.placeDir) : 0
-      const thingDirSize = this.thingDir ? await calculateDirSize(this.thingDir) : 0
-      const eventDirSize = this.eventDir ? await calculateDirSize(this.eventDir) : 0
-      const conceptDirSize = this.conceptDir ? await calculateDirSize(this.conceptDir) : 0
-      const contentDirSize = this.contentDir ? await calculateDirSize(this.contentDir) : 0
-      const defaultDirSize = this.defaultDir ? await calculateDirSize(this.defaultDir) : 0
+      const personDirSize = this.personDir
+        ? await calculateDirSize(this.personDir)
+        : 0
+      const placeDirSize = this.placeDir
+        ? await calculateDirSize(this.placeDir)
+        : 0
+      const thingDirSize = this.thingDir
+        ? await calculateDirSize(this.thingDir)
+        : 0
+      const eventDirSize = this.eventDir
+        ? await calculateDirSize(this.eventDir)
+        : 0
+      const conceptDirSize = this.conceptDir
+        ? await calculateDirSize(this.conceptDir)
+        : 0
+      const contentDirSize = this.contentDir
+        ? await calculateDirSize(this.contentDir)
+        : 0
+      const defaultDirSize = this.defaultDir
+        ? await calculateDirSize(this.defaultDir)
+        : 0
 
       // Get storage quota information using the Storage API
       let quota = null
@@ -906,31 +947,45 @@ export class OPFSStorage implements StorageAdapter {
         nounTypes: {
           person: {
             size: personDirSize,
-            count: this.personDir ? await countFilesInDirectory(this.personDir) : 0
+            count: this.personDir
+              ? await countFilesInDirectory(this.personDir)
+              : 0
           },
           place: {
             size: placeDirSize,
-            count: this.placeDir ? await countFilesInDirectory(this.placeDir) : 0
+            count: this.placeDir
+              ? await countFilesInDirectory(this.placeDir)
+              : 0
           },
           thing: {
             size: thingDirSize,
-            count: this.thingDir ? await countFilesInDirectory(this.thingDir) : 0
+            count: this.thingDir
+              ? await countFilesInDirectory(this.thingDir)
+              : 0
           },
           event: {
             size: eventDirSize,
-            count: this.eventDir ? await countFilesInDirectory(this.eventDir) : 0
+            count: this.eventDir
+              ? await countFilesInDirectory(this.eventDir)
+              : 0
           },
           concept: {
             size: conceptDirSize,
-            count: this.conceptDir ? await countFilesInDirectory(this.conceptDir) : 0
+            count: this.conceptDir
+              ? await countFilesInDirectory(this.conceptDir)
+              : 0
           },
           content: {
             size: contentDirSize,
-            count: this.contentDir ? await countFilesInDirectory(this.contentDir) : 0
+            count: this.contentDir
+              ? await countFilesInDirectory(this.contentDir)
+              : 0
           },
           default: {
             size: defaultDirSize,
-            count: this.defaultDir ? await countFilesInDirectory(this.defaultDir) : 0
+            count: this.defaultDir
+              ? await countFilesInDirectory(this.defaultDir)
+              : 0
           }
         }
       }
@@ -943,7 +998,10 @@ export class OPFSStorage implements StorageAdapter {
             ...details,
             usage: estimate.usage,
             quota: estimate.quota,
-            freePercentage: estimate.quota ? ((estimate.quota - (estimate.usage || 0)) / estimate.quota) * 100 : null
+            freePercentage: estimate.quota
+              ? ((estimate.quota - (estimate.usage || 0)) / estimate.quota) *
+                100
+              : null
           }
         }
       } catch (error) {
@@ -972,69 +1030,69 @@ export class OPFSStorage implements StorageAdapter {
  * In-memory storage adapter for environments where OPFS is not available
  */
 export class MemoryStorage implements StorageAdapter {
-  // Map of noun type to Map of node ID to node
-  private nodes: Map<string, Map<string, HNSWNode>> = new Map()
-  private edges: Map<string, Edge> = new Map()
+  // Map of noun type to Map of noun ID to noun
+  private nouns: Map<string, Map<string, HNSWNode>> = new Map()
+  private verbs: Map<string, Edge> = new Map()
   private metadata: Map<string, any> = new Map()
 
   // Initialize maps for each noun type
   constructor() {
-    this.nodes.set(PERSON_DIR, new Map())
-    this.nodes.set(PLACE_DIR, new Map())
-    this.nodes.set(THING_DIR, new Map())
-    this.nodes.set(EVENT_DIR, new Map())
-    this.nodes.set(CONCEPT_DIR, new Map())
-    this.nodes.set(CONTENT_DIR, new Map())
-    this.nodes.set(DEFAULT_DIR, new Map())
+    this.nouns.set(PERSON_DIR, new Map())
+    this.nouns.set(PLACE_DIR, new Map())
+    this.nouns.set(THING_DIR, new Map())
+    this.nouns.set(EVENT_DIR, new Map())
+    this.nouns.set(CONCEPT_DIR, new Map())
+    this.nouns.set(CONTENT_DIR, new Map())
+    this.nouns.set(DEFAULT_DIR, new Map())
   }
 
   // Alias methods to match StorageAdapter interface
   public async saveNoun(noun: HNSWNoun): Promise<void> {
-    return this.saveNode(noun);
+    return this.saveNode(noun)
   }
 
   public async getNoun(id: string): Promise<HNSWNoun | null> {
-    return this.getNode(id);
+    return this.getNode(id)
   }
 
   public async getAllNouns(): Promise<HNSWNoun[]> {
-    return this.getAllNodes();
+    return this.getAllNodes()
   }
 
   public async getNounsByNounType(nounType: string): Promise<HNSWNoun[]> {
-    return this.getNodesByNounType(nounType);
+    return this.getNodesByNounType(nounType)
   }
 
   public async deleteNoun(id: string): Promise<void> {
-    return this.deleteNode(id);
+    return this.deleteNode(id)
   }
 
   public async saveVerb(verb: GraphVerb): Promise<void> {
-    return this.saveEdge(verb);
+    return this.saveEdge(verb)
   }
 
   public async getVerb(id: string): Promise<GraphVerb | null> {
-    return this.getEdge(id);
+    return this.getEdge(id)
   }
 
   public async getAllVerbs(): Promise<GraphVerb[]> {
-    return this.getAllEdges();
+    return this.getAllEdges()
   }
 
   public async getVerbsBySource(sourceId: string): Promise<GraphVerb[]> {
-    return this.getEdgesBySource(sourceId);
+    return this.getEdgesBySource(sourceId)
   }
 
   public async getVerbsByTarget(targetId: string): Promise<GraphVerb[]> {
-    return this.getEdgesByTarget(targetId);
+    return this.getEdgesByTarget(targetId)
   }
 
   public async getVerbsByType(type: string): Promise<GraphVerb[]> {
-    return this.getEdgesByType(type);
+    return this.getEdgesByType(type)
   }
 
   public async deleteVerb(id: string): Promise<void> {
-    return this.deleteEdge(id);
+    return this.deleteEdge(id)
   }
 
   public async init(): Promise<void> {
@@ -1094,7 +1152,7 @@ export class MemoryStorage implements StorageAdapter {
     const nodeType = await this.getNodeType(node.id)
 
     // Get the map for this node type
-    const nodeMap = this.nodes.get(nodeType)!
+    const nodeMap = this.nouns.get(nodeType)!
 
     // Save the node in the appropriate map
     nodeMap.set(node.id, nodeCopy)
@@ -1105,7 +1163,7 @@ export class MemoryStorage implements StorageAdapter {
     const nodeType = await this.getNodeType(id)
 
     // Get the map for this node type
-    const nodeMap = this.nodes.get(nodeType)!
+    const nodeMap = this.nouns.get(nodeType)!
 
     // Try to get the node from the appropriate map
     let node = nodeMap.get(id)
@@ -1114,16 +1172,23 @@ export class MemoryStorage implements StorageAdapter {
     if (!node) {
       // If the node type is not the default type, try the default map
       if (nodeType !== DEFAULT_DIR) {
-        const defaultMap = this.nodes.get(DEFAULT_DIR)!
+        const defaultMap = this.nouns.get(DEFAULT_DIR)!
         node = defaultMap.get(id)
 
         // If still not found, try all other maps
         if (!node) {
-          const nodeTypes = [PERSON_DIR, PLACE_DIR, THING_DIR, EVENT_DIR, CONCEPT_DIR, CONTENT_DIR]
+          const nodeTypes = [
+            PERSON_DIR,
+            PLACE_DIR,
+            THING_DIR,
+            EVENT_DIR,
+            CONCEPT_DIR,
+            CONTENT_DIR
+          ]
           for (const type of nodeTypes) {
             if (type === nodeType) continue // Skip the already checked map
 
-            const typeMap = this.nodes.get(type)!
+            const typeMap = this.nouns.get(type)!
             node = typeMap.get(id)
             if (node) break // Found the node, exit the loop
           }
@@ -1163,25 +1228,25 @@ export class MemoryStorage implements StorageAdapter {
     let typeMap: Map<string, HNSWNode>
     switch (nounType) {
       case 'person':
-        typeMap = this.nodes.get(PERSON_DIR)!
+        typeMap = this.nouns.get(PERSON_DIR)!
         break
       case 'place':
-        typeMap = this.nodes.get(PLACE_DIR)!
+        typeMap = this.nouns.get(PLACE_DIR)!
         break
       case 'thing':
-        typeMap = this.nodes.get(THING_DIR)!
+        typeMap = this.nouns.get(THING_DIR)!
         break
       case 'event':
-        typeMap = this.nodes.get(EVENT_DIR)!
+        typeMap = this.nouns.get(EVENT_DIR)!
         break
       case 'concept':
-        typeMap = this.nodes.get(CONCEPT_DIR)!
+        typeMap = this.nouns.get(CONCEPT_DIR)!
         break
       case 'content':
-        typeMap = this.nodes.get(CONTENT_DIR)!
+        typeMap = this.nouns.get(CONTENT_DIR)!
         break
       default:
-        typeMap = this.nodes.get(DEFAULT_DIR)!
+        typeMap = this.nouns.get(DEFAULT_DIR)!
     }
 
     // Get all nodes from this map
@@ -1208,7 +1273,9 @@ export class MemoryStorage implements StorageAdapter {
     ]
 
     // Run searches in parallel for all noun types
-    const nodePromises = nounTypes.map(nounType => this.getNodesByNounType(nounType))
+    const nodePromises = nounTypes.map((nounType) =>
+      this.getNodesByNounType(nounType)
+    )
     const nodeArrays = await Promise.all(nodePromises)
 
     // Combine all results
@@ -1225,7 +1292,7 @@ export class MemoryStorage implements StorageAdapter {
     const nodeType = await this.getNodeType(id)
 
     // Get the map for this node type
-    const nodeMap = this.nodes.get(nodeType)!
+    const nodeMap = this.nouns.get(nodeType)!
 
     // Try to delete the node from the appropriate map
     const deleted = nodeMap.delete(id)
@@ -1234,16 +1301,23 @@ export class MemoryStorage implements StorageAdapter {
     if (!deleted) {
       // If the node type is not the default type, try the default map
       if (nodeType !== DEFAULT_DIR) {
-        const defaultMap = this.nodes.get(DEFAULT_DIR)!
+        const defaultMap = this.nouns.get(DEFAULT_DIR)!
         const deletedFromDefault = defaultMap.delete(id)
 
         // If still not found, try all other maps
         if (!deletedFromDefault) {
-          const nodeTypes = [PERSON_DIR, PLACE_DIR, THING_DIR, EVENT_DIR, CONCEPT_DIR, CONTENT_DIR]
+          const nodeTypes = [
+            PERSON_DIR,
+            PLACE_DIR,
+            THING_DIR,
+            EVENT_DIR,
+            CONCEPT_DIR,
+            CONTENT_DIR
+          ]
           for (const type of nodeTypes) {
             if (type === nodeType) continue // Skip the already checked map
 
-            const typeMap = this.nodes.get(type)!
+            const typeMap = this.nouns.get(type)!
             const deletedFromType = typeMap.delete(id)
             if (deletedFromType) break // Node deleted, exit the loop
           }
@@ -1275,7 +1349,9 @@ export class MemoryStorage implements StorageAdapter {
       targetId: edge.targetId,
       type: edge.type,
       weight: edge.weight,
-      metadata: edge.metadata ? JSON.parse(JSON.stringify(edge.metadata)) : undefined
+      metadata: edge.metadata
+        ? JSON.parse(JSON.stringify(edge.metadata))
+        : undefined
     }
 
     // Copy connections
@@ -1283,11 +1359,11 @@ export class MemoryStorage implements StorageAdapter {
       edgeCopy.connections.set(level, new Set(connections))
     }
 
-    this.edges.set(edge.id, edgeCopy)
+    this.verbs.set(edge.id, edgeCopy)
   }
 
   public async getEdge(id: string): Promise<Edge | null> {
-    const edge = this.edges.get(id)
+    const edge = this.verbs.get(id)
     if (!edge) {
       return null
     }
@@ -1301,7 +1377,9 @@ export class MemoryStorage implements StorageAdapter {
       targetId: edge.targetId,
       type: edge.type,
       weight: edge.weight,
-      metadata: edge.metadata ? JSON.parse(JSON.stringify(edge.metadata)) : undefined
+      metadata: edge.metadata
+        ? JSON.parse(JSON.stringify(edge.metadata))
+        : undefined
     }
 
     // Copy connections
@@ -1315,7 +1393,7 @@ export class MemoryStorage implements StorageAdapter {
   public async getAllEdges(): Promise<Edge[]> {
     const edges: Edge[] = []
 
-    for (const edgeId of this.edges.keys()) {
+    for (const edgeId of this.verbs.keys()) {
       const edge = await this.getEdge(edgeId)
       if (edge) {
         edges.push(edge)
@@ -1328,7 +1406,7 @@ export class MemoryStorage implements StorageAdapter {
   public async getEdgesBySource(sourceId: string): Promise<Edge[]> {
     const edges: Edge[] = []
 
-    for (const edge of this.edges.values()) {
+    for (const edge of this.verbs.values()) {
       if (edge.sourceId === sourceId) {
         const edgeCopy = await this.getEdge(edge.id)
         if (edgeCopy) {
@@ -1343,7 +1421,7 @@ export class MemoryStorage implements StorageAdapter {
   public async getEdgesByTarget(targetId: string): Promise<Edge[]> {
     const edges: Edge[] = []
 
-    for (const edge of this.edges.values()) {
+    for (const edge of this.verbs.values()) {
       if (edge.targetId === targetId) {
         const edgeCopy = await this.getEdge(edge.id)
         if (edgeCopy) {
@@ -1358,7 +1436,7 @@ export class MemoryStorage implements StorageAdapter {
   public async getEdgesByType(type: string): Promise<Edge[]> {
     const edges: Edge[] = []
 
-    for (const edge of this.edges.values()) {
+    for (const edge of this.verbs.values()) {
       if (edge.type === type) {
         const edgeCopy = await this.getEdge(edge.id)
         if (edgeCopy) {
@@ -1371,18 +1449,26 @@ export class MemoryStorage implements StorageAdapter {
   }
 
   public async deleteEdge(id: string): Promise<void> {
-    this.edges.delete(id)
+    this.verbs.delete(id)
   }
 
   public async clear(): Promise<void> {
     // Clear all noun type maps
-    const nodeTypes = [PERSON_DIR, PLACE_DIR, THING_DIR, EVENT_DIR, CONCEPT_DIR, CONTENT_DIR, DEFAULT_DIR]
+    const nodeTypes = [
+      PERSON_DIR,
+      PLACE_DIR,
+      THING_DIR,
+      EVENT_DIR,
+      CONCEPT_DIR,
+      CONTENT_DIR,
+      DEFAULT_DIR
+    ]
     for (const type of nodeTypes) {
-      const typeMap = this.nodes.get(type)!
+      const typeMap = this.nouns.get(type)!
       typeMap.clear()
     }
 
-    this.edges.clear()
+    this.verbs.clear()
     this.metadata.clear()
   }
 
@@ -1390,10 +1476,10 @@ export class MemoryStorage implements StorageAdapter {
    * Get information about storage usage and capacity
    */
   public async getStorageStatus(): Promise<{
-    type: string;
-    used: number;
-    quota: number | null;
-    details?: Record<string, any>;
+    type: string
+    used: number
+    quota: number | null
+    details?: Record<string, any>
   }> {
     try {
       // Estimate the size of data in memory
@@ -1443,14 +1529,23 @@ export class MemoryStorage implements StorageAdapter {
       }
 
       // Calculate sizes and counts for each noun type
-      const nounTypeDetails: Record<string, { size: number; count: number }> = {}
-      const nodeTypes = [PERSON_DIR, PLACE_DIR, THING_DIR, EVENT_DIR, CONCEPT_DIR, CONTENT_DIR, DEFAULT_DIR]
+      const nounTypeDetails: Record<string, { size: number; count: number }> =
+        {}
+      const nodeTypes = [
+        PERSON_DIR,
+        PLACE_DIR,
+        THING_DIR,
+        EVENT_DIR,
+        CONCEPT_DIR,
+        CONTENT_DIR,
+        DEFAULT_DIR
+      ]
 
       let totalNodeCount = 0
       let nodesSize = 0
 
       for (const type of nodeTypes) {
-        const typeMap = this.nodes.get(type)!
+        const typeMap = this.nouns.get(type)!
         let typeSize = 0
 
         for (const node of typeMap.values()) {
@@ -1470,7 +1565,7 @@ export class MemoryStorage implements StorageAdapter {
 
       // Estimate size of edges
       let edgesSize = 0
-      for (const edge of this.edges.values()) {
+      for (const edge of this.verbs.values()) {
         edgesSize += estimateSize(edge)
       }
       totalSize += edgesSize
@@ -1486,7 +1581,7 @@ export class MemoryStorage implements StorageAdapter {
       let quota = null
       let details: Record<string, any> = {
         nodeCount: totalNodeCount,
-        edgeCount: this.edges.size,
+        edgeCount: this.verbs.size,
         metadataCount: this.metadata.size,
         nounTypes: nounTypeDetails,
         nodesSize,
@@ -1495,7 +1590,11 @@ export class MemoryStorage implements StorageAdapter {
       }
 
       // Try to get memory information if in a browser environment
-      if (typeof window !== 'undefined' && (window as any).performance && (window as any).performance.memory) {
+      if (
+        typeof window !== 'undefined' &&
+        (window as any).performance &&
+        (window as any).performance.memory
+      ) {
         const memory = (window as any).performance.memory
         quota = memory.jsHeapSizeLimit
         details = {
@@ -1529,40 +1628,43 @@ export class MemoryStorage implements StorageAdapter {
  * @param options Configuration options for storage
  * @returns Promise that resolves to a StorageAdapter instance
  */
-export async function createStorage(options: {
-  requestPersistentStorage?: boolean;
-  r2Storage?: {
-    bucketName?: string;
-    accountId?: string;
-    accessKeyId?: string;
-    secretAccessKey?: string;
-  };
-  s3Storage?: {
-    bucketName?: string;
-    accessKeyId?: string;
-    secretAccessKey?: string;
-    region?: string;
-  };
-  gcsStorage?: {
-    bucketName?: string;
-    accessKeyId?: string;
-    secretAccessKey?: string;
-    endpoint?: string;
-  };
-  customS3Storage?: {
-    bucketName?: string;
-    accessKeyId?: string;
-    secretAccessKey?: string;
-    endpoint?: string;
-    region?: string;
-  };
-  forceFileSystemStorage?: boolean;
-  forceMemoryStorage?: boolean;
-} = {}): Promise<StorageAdapter> {
+export async function createStorage(
+  options: {
+    requestPersistentStorage?: boolean
+    r2Storage?: {
+      bucketName?: string
+      accountId?: string
+      accessKeyId?: string
+      secretAccessKey?: string
+    }
+    s3Storage?: {
+      bucketName?: string
+      accessKeyId?: string
+      secretAccessKey?: string
+      region?: string
+    }
+    gcsStorage?: {
+      bucketName?: string
+      accessKeyId?: string
+      secretAccessKey?: string
+      endpoint?: string
+    }
+    customS3Storage?: {
+      bucketName?: string
+      accessKeyId?: string
+      secretAccessKey?: string
+      endpoint?: string
+      region?: string
+    }
+    forceFileSystemStorage?: boolean
+    forceMemoryStorage?: boolean
+  } = {}
+): Promise<StorageAdapter> {
   // Check for environment variables for cloud storage (only in Node.js environment)
-  const isNode = typeof process !== 'undefined' && 
-    process.versions != null && 
-    process.versions.node != null;
+  const isNode =
+    typeof process !== 'undefined' &&
+    process.versions != null &&
+    process.versions.node != null
 
   // Default empty values
   const defaultEnvStorage = {
@@ -1572,79 +1674,105 @@ export async function createStorage(options: {
     secretAccessKey: undefined,
     region: undefined,
     endpoint: undefined
-  };
+  }
 
   // Only try to access process.env in Node.js environment
-  const envR2Storage = isNode ? {
-    bucketName: process.env.R2_BUCKET_NAME,
-    accountId: process.env.R2_ACCOUNT_ID,
-    accessKeyId: process.env.R2_ACCESS_KEY_ID,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY
-  } : defaultEnvStorage;
+  const envR2Storage = isNode
+    ? {
+        bucketName: process.env.R2_BUCKET_NAME,
+        accountId: process.env.R2_ACCOUNT_ID,
+        accessKeyId: process.env.R2_ACCESS_KEY_ID,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY
+      }
+    : defaultEnvStorage
 
-  const envS3Storage = isNode ? {
-    bucketName: process.env.S3_BUCKET_NAME,
-    accessKeyId: process.env.S3_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY,
-    region: process.env.S3_REGION || process.env.AWS_REGION
-  } : defaultEnvStorage;
+  const envS3Storage = isNode
+    ? {
+        bucketName: process.env.S3_BUCKET_NAME,
+        accessKeyId:
+          process.env.S3_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey:
+          process.env.S3_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY,
+        region: process.env.S3_REGION || process.env.AWS_REGION
+      }
+    : defaultEnvStorage
 
-  const envGCSStorage = isNode ? {
-    bucketName: process.env.GCS_BUCKET_NAME,
-    accessKeyId: process.env.GCS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.GCS_SECRET_ACCESS_KEY,
-    endpoint: process.env.GCS_ENDPOINT
-  } : defaultEnvStorage;
+  const envGCSStorage = isNode
+    ? {
+        bucketName: process.env.GCS_BUCKET_NAME,
+        accessKeyId: process.env.GCS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.GCS_SECRET_ACCESS_KEY,
+        endpoint: process.env.GCS_ENDPOINT
+      }
+    : defaultEnvStorage
 
   // Merge environment variables with provided options
   const mergedOptions = {
     ...options,
-    r2Storage: options.r2Storage ? {
-      ...envR2Storage,
-      ...options.r2Storage
-    } : (
-      // Only use environment variables if they have the required fields
-      envR2Storage.bucketName && envR2Storage.accessKeyId && envR2Storage.secretAccessKey ? 
-      envR2Storage : undefined
-    ),
-    s3Storage: options.s3Storage ? {
-      ...envS3Storage,
-      ...options.s3Storage
-    } : (
-      // Only use environment variables if they have the required fields
-      envS3Storage.bucketName && envS3Storage.accessKeyId && envS3Storage.secretAccessKey ? 
-      envS3Storage : undefined
-    ),
-    gcsStorage: options.gcsStorage ? {
-      ...envGCSStorage,
-      ...options.gcsStorage
-    } : (
-      // Only use environment variables if they have the required fields
-      envGCSStorage.bucketName && envGCSStorage.accessKeyId && envGCSStorage.secretAccessKey ? 
-      envGCSStorage : undefined
-    )
-  };
+    r2Storage: options.r2Storage
+      ? {
+          ...envR2Storage,
+          ...options.r2Storage
+        }
+      : // Only use environment variables if they have the required fields
+        envR2Storage.bucketName &&
+          envR2Storage.accessKeyId &&
+          envR2Storage.secretAccessKey
+        ? envR2Storage
+        : undefined,
+    s3Storage: options.s3Storage
+      ? {
+          ...envS3Storage,
+          ...options.s3Storage
+        }
+      : // Only use environment variables if they have the required fields
+        envS3Storage.bucketName &&
+          envS3Storage.accessKeyId &&
+          envS3Storage.secretAccessKey
+        ? envS3Storage
+        : undefined,
+    gcsStorage: options.gcsStorage
+      ? {
+          ...envGCSStorage,
+          ...options.gcsStorage
+        }
+      : // Only use environment variables if they have the required fields
+        envGCSStorage.bucketName &&
+          envGCSStorage.accessKeyId &&
+          envGCSStorage.secretAccessKey
+        ? envGCSStorage
+        : undefined
+  }
 
   // If any S3-compatible storage options are provided, use S3CompatibleStorage
-  if (mergedOptions.r2Storage || mergedOptions.s3Storage || mergedOptions.gcsStorage || mergedOptions.customS3Storage) {
+  if (
+    mergedOptions.r2Storage ||
+    mergedOptions.s3Storage ||
+    mergedOptions.gcsStorage ||
+    mergedOptions.customS3Storage
+  ) {
     try {
       const s3Module = await import('./s3CompatibleStorage.js')
 
-      if (mergedOptions.r2Storage && 
-          mergedOptions.r2Storage.bucketName && 
-          mergedOptions.r2Storage.accountId && 
-          mergedOptions.r2Storage.accessKeyId && 
-          mergedOptions.r2Storage.secretAccessKey) {
+      if (
+        mergedOptions.r2Storage &&
+        mergedOptions.r2Storage.bucketName &&
+        mergedOptions.r2Storage.accountId &&
+        mergedOptions.r2Storage.accessKeyId &&
+        mergedOptions.r2Storage.secretAccessKey
+      ) {
         return new s3Module.R2Storage({
           bucketName: mergedOptions.r2Storage.bucketName,
           accountId: mergedOptions.r2Storage.accountId,
           accessKeyId: mergedOptions.r2Storage.accessKeyId,
           secretAccessKey: mergedOptions.r2Storage.secretAccessKey
         })
-      } else if (mergedOptions.s3Storage && 
-          mergedOptions.s3Storage.bucketName && 
-          mergedOptions.s3Storage.accessKeyId && 
-          mergedOptions.s3Storage.secretAccessKey) {
+      } else if (
+        mergedOptions.s3Storage &&
+        mergedOptions.s3Storage.bucketName &&
+        mergedOptions.s3Storage.accessKeyId &&
+        mergedOptions.s3Storage.secretAccessKey
+      ) {
         return new s3Module.S3CompatibleStorage({
           bucketName: mergedOptions.s3Storage.bucketName,
           accessKeyId: mergedOptions.s3Storage.accessKeyId,
@@ -1652,10 +1780,12 @@ export async function createStorage(options: {
           region: mergedOptions.s3Storage.region,
           serviceType: 's3'
         })
-      } else if (mergedOptions.gcsStorage && 
-          mergedOptions.gcsStorage.bucketName && 
-          mergedOptions.gcsStorage.accessKeyId && 
-          mergedOptions.gcsStorage.secretAccessKey) {
+      } else if (
+        mergedOptions.gcsStorage &&
+        mergedOptions.gcsStorage.bucketName &&
+        mergedOptions.gcsStorage.accessKeyId &&
+        mergedOptions.gcsStorage.secretAccessKey
+      ) {
         return new s3Module.S3CompatibleStorage({
           bucketName: mergedOptions.gcsStorage.bucketName,
           accessKeyId: mergedOptions.gcsStorage.accessKeyId,
@@ -1663,10 +1793,12 @@ export async function createStorage(options: {
           endpoint: mergedOptions.gcsStorage.endpoint,
           serviceType: 'gcs'
         })
-      } else if (mergedOptions.customS3Storage && 
-          mergedOptions.customS3Storage.bucketName && 
-          mergedOptions.customS3Storage.accessKeyId && 
-          mergedOptions.customS3Storage.secretAccessKey) {
+      } else if (
+        mergedOptions.customS3Storage &&
+        mergedOptions.customS3Storage.bucketName &&
+        mergedOptions.customS3Storage.accessKeyId &&
+        mergedOptions.customS3Storage.secretAccessKey
+      ) {
         return new s3Module.S3CompatibleStorage({
           bucketName: mergedOptions.customS3Storage.bucketName,
           accessKeyId: mergedOptions.customS3Storage.accessKeyId,
@@ -1677,7 +1809,10 @@ export async function createStorage(options: {
         })
       }
     } catch (error) {
-      console.warn('Failed to load S3CompatibleStorage, falling back to default storage:', error)
+      console.warn(
+        'Failed to load S3CompatibleStorage, falling back to default storage:',
+        error
+      )
       // Continue to default storage selection
     }
   }
@@ -1695,7 +1830,10 @@ export async function createStorage(options: {
       const fileSystemModule = await import('./fileSystemStorage.js')
       return new fileSystemModule.FileSystemStorage()
     } catch (error) {
-      console.warn('Failed to load FileSystemStorage, falling back to in-memory storage:', error)
+      console.warn(
+        'Failed to load FileSystemStorage, falling back to in-memory storage:',
+        error
+      )
       return new MemoryStorage()
     }
   } else {
@@ -1706,7 +1844,8 @@ export async function createStorage(options: {
       if (opfsStorage.isOPFSAvailable()) {
         // Request persistent storage if specified
         if (options.requestPersistentStorage) {
-          const isPersistentGranted = await opfsStorage.requestPersistentStorage()
+          const isPersistentGranted =
+            await opfsStorage.requestPersistentStorage()
           if (isPersistentGranted) {
             console.log('Persistent storage permission granted')
           } else {
@@ -1724,7 +1863,9 @@ export async function createStorage(options: {
       const fileSystemModule = await import('./fileSystemStorage.js')
       return new fileSystemModule.FileSystemStorage()
     } catch (error) {
-      console.warn('FileSystem storage is not available, falling back to in-memory storage')
+      console.warn(
+        'FileSystem storage is not available, falling back to in-memory storage'
+      )
       return new MemoryStorage()
     }
   }

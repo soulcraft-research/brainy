@@ -5,12 +5,13 @@ type HNSWNode = HNSWNoun;
 type Edge = GraphVerb;
 
 // Constants for S3 bucket prefixes
-const NODES_PREFIX = 'nodes/'
-const EDGES_PREFIX = 'edges/'
+const NOUNS_PREFIX = 'nouns/'
+const VERBS_PREFIX = 'verbs/'
+const EDGES_PREFIX = 'verbs/' // Alias for VERBS_PREFIX for edge operations
 const METADATA_PREFIX = 'metadata/'
 
 // Constants for noun type prefixes
-const PERSON_PREFIX = 'nodes/person/'
+const PERSON_PREFIX = 'nouns/person/'
 const PLACE_PREFIX = 'place/'
 const THING_PREFIX = 'thing/'
 const EVENT_PREFIX = 'event/'
@@ -283,7 +284,7 @@ export class S3CompatibleStorage implements StorageAdapter {
             const response = await this.s3Client.send(
               new GetObjectCommand({
                 Bucket: this.bucketName,
-                Key: `${NODES_PREFIX}${DEFAULT_PREFIX}${id}.json`
+                Key: `${NOUNS_PREFIX}${DEFAULT_PREFIX}${id}.json`
               })
             )
 
@@ -319,7 +320,7 @@ export class S3CompatibleStorage implements StorageAdapter {
                 const response = await this.s3Client.send(
                   new GetObjectCommand({
                     Bucket: this.bucketName,
-                    Key: `${NODES_PREFIX}${prefix}${id}.json`
+                    Key: `${NOUNS_PREFIX}${prefix}${id}.json`
                   })
                 )
 
@@ -393,7 +394,7 @@ export class S3CompatibleStorage implements StorageAdapter {
       const listResponse = await this.s3Client.send(
         new ListObjectsV2Command({
           Bucket: this.bucketName,
-          Prefix: `${NODES_PREFIX}${prefix}`
+          Prefix: `${NOUNS_PREFIX}${prefix}`
         })
       )
 
@@ -515,7 +516,7 @@ export class S3CompatibleStorage implements StorageAdapter {
             await this.s3Client.send(
               new GetObjectCommand({
                 Bucket: this.bucketName,
-                Key: `${NODES_PREFIX}${DEFAULT_PREFIX}${id}.json`
+                Key: `${NOUNS_PREFIX}${DEFAULT_PREFIX}${id}.json`
               })
             )
 
@@ -523,7 +524,7 @@ export class S3CompatibleStorage implements StorageAdapter {
             await this.s3Client.send(
               new DeleteObjectCommand({
                 Bucket: this.bucketName,
-                Key: `${NODES_PREFIX}${DEFAULT_PREFIX}${id}.json`
+                Key: `${NOUNS_PREFIX}${DEFAULT_PREFIX}${id}.json`
               })
             )
             return // Node found and deleted
@@ -545,7 +546,7 @@ export class S3CompatibleStorage implements StorageAdapter {
                 await this.s3Client.send(
                   new GetObjectCommand({
                     Bucket: this.bucketName,
-                    Key: `${NODES_PREFIX}${prefix}${id}.json`
+                    Key: `${NOUNS_PREFIX}${prefix}${id}.json`
                   })
                 )
 
@@ -553,7 +554,7 @@ export class S3CompatibleStorage implements StorageAdapter {
                 await this.s3Client.send(
                   new DeleteObjectCommand({
                     Bucket: this.bucketName,
-                    Key: `${NODES_PREFIX}${prefix}${id}.json`
+                    Key: `${NOUNS_PREFIX}${prefix}${id}.json`
                   })
                 )
                 return // Node found and deleted
@@ -592,7 +593,7 @@ export class S3CompatibleStorage implements StorageAdapter {
       await this.s3Client.send(
         new PutObjectCommand({
           Bucket: this.bucketName,
-          Key: `${EDGES_PREFIX}${edge.id}.json`,
+          Key: `${VERBS_PREFIX}${edge.id}.json`,
           Body: JSON.stringify(serializableEdge, null, 2),
           ContentType: 'application/json'
         })
@@ -618,7 +619,7 @@ export class S3CompatibleStorage implements StorageAdapter {
         const response = await this.s3Client.send(
           new GetObjectCommand({
             Bucket: this.bucketName,
-            Key: `${EDGES_PREFIX}${id}.json`
+            Key: `${VERBS_PREFIX}${id}.json`
           })
         )
 
@@ -665,7 +666,7 @@ export class S3CompatibleStorage implements StorageAdapter {
       const listResponse = await this.s3Client.send(
         new ListObjectsV2Command({
           Bucket: this.bucketName,
-          Prefix: EDGES_PREFIX
+          Prefix: VERBS_PREFIX
         })
       )
 
@@ -932,9 +933,9 @@ export class S3CompatibleStorage implements StorageAdapter {
           totalSize += object.Size || 0
 
           const key = object.Key || ''
-          if (key.startsWith(NODES_PREFIX)) {
+          if (key.startsWith(NOUNS_PREFIX)) {
             nodeCount++
-          } else if (key.startsWith(EDGES_PREFIX)) {
+          } else if (key.startsWith(VERBS_PREFIX)) {
             edgeCount++
           } else if (key.startsWith(METADATA_PREFIX)) {
             metadataCount++
@@ -968,7 +969,7 @@ export class S3CompatibleStorage implements StorageAdapter {
         const listResponse = await this.s3Client.send(
           new ListObjectsV2Command({
             Bucket: this.bucketName,
-            Prefix: `${NODES_PREFIX}${prefix}`
+            Prefix: `${NOUNS_PREFIX}${prefix}`
           })
         )
 
