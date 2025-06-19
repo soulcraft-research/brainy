@@ -15,7 +15,6 @@ import { VERSION } from './utils/version.js'
 import { sequentialPipeline } from './sequentialPipeline.js'
 import { augmentationPipeline, ExecutionMode } from './augmentationPipeline.js'
 import { AugmentationType } from './types/augmentations.js'
-import { createLLMAugmentations } from './augmentations/llmAugmentations.js'
 
 // Get the directory of the current module
 const __filename = fileURLToPath(import.meta.url)
@@ -38,9 +37,11 @@ function resolveNounType(type: string | number | undefined): NounType {
   // If it's a string, try to match it to a NounType
   if (typeof type === 'string') {
     const nounTypeKey = Object.keys(NounType).find(
-      key => key.toLowerCase() === type.toLowerCase()
+      (key) => key.toLowerCase() === type.toLowerCase()
     )
-    return nounTypeKey ? NounType[nounTypeKey as keyof typeof NounType] : NounType.Thing
+    return nounTypeKey
+      ? NounType[nounTypeKey as keyof typeof NounType]
+      : NounType.Thing
   }
 
   // Convert number to string type for safety
@@ -54,9 +55,11 @@ function resolveVerbType(type: string | number | undefined): VerbType {
   // If it's a string, try to match it to a VerbType
   if (typeof type === 'string') {
     const verbTypeKey = Object.keys(VerbType).find(
-      key => key.toLowerCase() === type.toLowerCase()
+      (key) => key.toLowerCase() === type.toLowerCase()
     )
-    return verbTypeKey ? VerbType[verbTypeKey as keyof typeof VerbType] : VerbType.RelatedTo
+    return verbTypeKey
+      ? VerbType[verbTypeKey as keyof typeof VerbType]
+      : VerbType.RelatedTo
   }
 
   // Convert number to string type for safety
@@ -69,7 +72,9 @@ const program = new Command()
 // Configure the program
 program
   .name('@soulcraft/brainy')
-  .description('A vector database using HNSW indexing with Origin Private File System storage')
+  .description(
+    'A vector database using HNSW indexing with Origin Private File System storage'
+  )
   .version(VERSION, '-V, --version', 'Output the current version')
 
 // Create data directory if it doesn't exist
@@ -143,7 +148,12 @@ program
         console.log(`${index + 1}. ID: ${result.id}`)
         console.log(`   Score: ${result.score.toFixed(4)}`)
         console.log(`   Metadata: ${JSON.stringify(result.metadata)}`)
-        console.log(`   Vector: [${result.vector.slice(0, 3).map(v => v.toFixed(2)).join(', ')}...]`)
+        console.log(
+          `   Vector: [${result.vector
+            .slice(0, 3)
+            .map((v) => v.toFixed(2))
+            .join(', ')}...]`
+        )
         console.log()
       })
     } catch (error) {
@@ -165,7 +175,12 @@ program
       if (noun) {
         console.log(`Noun ID: ${noun.id}`)
         console.log(`Metadata: ${JSON.stringify(noun.metadata)}`)
-        console.log(`Vector: [${noun.vector.slice(0, 5).map(v => v.toFixed(2)).join(', ')}...]`)
+        console.log(
+          `Vector: [${noun.vector
+            .slice(0, 5)
+            .map((v) => v.toFixed(2))
+            .join(', ')}...]`
+        )
       } else {
         console.log(`No noun found with ID: ${id}`)
       }
@@ -238,7 +253,9 @@ program
       } else {
         verbs.forEach((verb, index) => {
           console.log(`${index + 1}. ID: ${verb.id}`)
-          console.log(`   Type: ${Object.keys(VerbType).find(key => VerbType[key as keyof typeof VerbType] === verb.metadata.verb) || verb.metadata.verb}`)
+          console.log(
+            `   Type: ${Object.keys(VerbType).find((key) => VerbType[key as keyof typeof VerbType] === verb.metadata.verb) || verb.metadata.verb}`
+          )
           console.log(`   Target: ${verb.targetId}`)
           console.log(`   Metadata: ${JSON.stringify(verb.metadata)}`)
           console.log()
@@ -262,7 +279,9 @@ program
       console.log('Database Status:')
       console.log(`Storage type: ${status.type}`)
       console.log(`Storage used: ${status.used} bytes`)
-      console.log(`Storage quota: ${status.quota !== null ? `${status.quota} bytes` : 'unlimited'}`)
+      console.log(
+        `Storage quota: ${status.quota !== null ? `${status.quota} bytes` : 'unlimited'}`
+      )
 
       // Display additional details if available
       if (status.details) {
@@ -285,7 +304,9 @@ program
     try {
       // Confirm unless --force is used
       if (!options.force) {
-        console.log('WARNING: This will permanently delete ALL data in the database.')
+        console.log(
+          'WARNING: This will permanently delete ALL data in the database.'
+        )
         console.log('To proceed without confirmation, use the --force option.')
 
         // Exit without doing anything
@@ -306,12 +327,76 @@ program
   })
 
 program
+  .command('backup')
+  .description('Backup all data from the database to a JSON file')
+  .argument('[filename]', 'Output filename (default: brainy-backup.json)')
+  .action(async (filename) => {
+    try {
+      const db = createDb()
+      await db.init()
+
+      // Default filename if not provided
+      const outputFile = filename || 'brainy-backup.json'
+
+      // Backup the data
+      const data = await db.backup()
+
+      // Write to file
+      fs.writeFileSync(outputFile, JSON.stringify(data, null, 2))
+
+      console.log(`Data backed up successfully to ${outputFile}`)
+      console.log(`Backed up ${data.nouns.length} nouns and ${data.verbs.length} verbs`)
+    } catch (error) {
+      console.error('Error:', (error as Error).message)
+      process.exit(1)
+    }
+  })
+
+program
+  .command('restore')
+  .description('Restore data from a JSON file into the database')
+  .argument('<filename>', 'Input JSON file')
+  .option('-c, --clear', 'Clear existing data before restoring', false)
+  .action(async (filename, options) => {
+    try {
+      const db = createDb()
+      await db.init()
+
+      // Read the file
+      if (!fs.existsSync(filename)) {
+        console.error(`File not found: ${filename}`)
+        process.exit(1)
+      }
+
+      const fileContent = fs.readFileSync(filename, 'utf8')
+      const data = JSON.parse(fileContent)
+
+      // Restore the data
+      const result = await db.restore(data, { clearExisting: options.clear })
+
+      console.log(`Data restored successfully from ${filename}`)
+      console.log(`Restored ${result.nounsRestored} nouns and ${result.verbsRestored} verbs`)
+    } catch (error) {
+      console.error('Error:', (error as Error).message)
+      process.exit(1)
+    }
+  })
+
+program
   .command('visualize')
   .description('Visualize the graph structure in ASCII format')
   .option('-r, --root <id>', 'ID of the root noun to start visualization from')
-  .option('-d, --depth <number>', 'Maximum depth of the graph to visualize', '2')
+  .option(
+    '-d, --depth <number>',
+    'Maximum depth of the graph to visualize',
+    '2'
+  )
   .option('-t, --type <type>', 'Filter by noun type')
-  .option('-l, --limit <number>', 'Maximum number of nodes to display per level', '10')
+  .option(
+    '-l, --limit <number>',
+    'Maximum number of nodes to display per level',
+    '10'
+  )
   .action(async (options) => {
     try {
       const db = createDb()
@@ -330,8 +415,8 @@ program
         let count = 0
 
         // Since there's no direct method to get all nouns, we'll use search with a high limit
-        const searchResults = await db.search("", 1000, { 
-          forceEmbed: true 
+        const searchResults = await db.search('', 1000, {
+          forceEmbed: true
         })
 
         for (const result of searchResults) {
@@ -362,8 +447,11 @@ program
             console.log('  Outgoing:')
             for (const verb of outgoingVerbs.slice(0, limit)) {
               const targetNoun = await db.get(verb.targetId)
-              const targetLabel = targetNoun?.metadata?.label || verb.targetId.substring(0, 8)
-              console.log(`    --(${verb.metadata?.verb || 'relates to'})--→ [${targetNoun?.metadata?.noun || 'Unknown'}] ${targetLabel}`)
+              const targetLabel =
+                targetNoun?.metadata?.label || verb.targetId.substring(0, 8)
+              console.log(
+                `    --(${verb.metadata?.verb || 'relates to'})--→ [${targetNoun?.metadata?.noun || 'Unknown'}] ${targetLabel}`
+              )
             }
             if (outgoingVerbs.length > limit) {
               console.log(`    ... and ${outgoingVerbs.length - limit} more`)
@@ -374,8 +462,11 @@ program
             console.log('  Incoming:')
             for (const verb of incomingVerbs.slice(0, limit)) {
               const sourceNoun = await db.get(verb.sourceId)
-              const sourceLabel = sourceNoun?.metadata?.label || verb.sourceId.substring(0, 8)
-              console.log(`    ←--(${verb.metadata?.verb || 'relates to'})-- [${sourceNoun?.metadata?.noun || 'Unknown'}] ${sourceLabel}`)
+              const sourceLabel =
+                sourceNoun?.metadata?.label || verb.sourceId.substring(0, 8)
+              console.log(
+                `    ←--(${verb.metadata?.verb || 'relates to'})-- [${sourceNoun?.metadata?.noun || 'Unknown'}] ${sourceLabel}`
+              )
             }
             if (incomingVerbs.length > limit) {
               console.log(`    ... and ${incomingVerbs.length - limit} more`)
@@ -393,9 +484,9 @@ program
         console.log(`Visualizing nouns of type: ${nounType}\n`)
 
         // Search for nouns of the specified type
-        const searchResults = await db.search("", 1000, { 
+        const searchResults = await db.search('', 1000, {
           nounTypes: [nounType],
-          forceEmbed: true 
+          forceEmbed: true
         })
 
         const filteredNouns = searchResults.slice(0, limit)
@@ -416,8 +507,11 @@ program
             console.log('  Outgoing:')
             for (const verb of outgoingVerbs.slice(0, limit)) {
               const targetNoun = await db.get(verb.targetId)
-              const targetLabel = targetNoun?.metadata?.label || verb.targetId.substring(0, 8)
-              console.log(`    --(${verb.metadata?.verb || 'relates to'})--→ [${targetNoun?.metadata?.noun || 'Unknown'}] ${targetLabel}`)
+              const targetLabel =
+                targetNoun?.metadata?.label || verb.targetId.substring(0, 8)
+              console.log(
+                `    --(${verb.metadata?.verb || 'relates to'})--→ [${targetNoun?.metadata?.noun || 'Unknown'}] ${targetLabel}`
+              )
             }
             if (outgoingVerbs.length > limit) {
               console.log(`    ... and ${outgoingVerbs.length - limit} more`)
@@ -438,7 +532,9 @@ program
           return
         }
 
-        console.log(`Visualizing graph from root: ${rootNoun.metadata?.label || rootId}\n`)
+        console.log(
+          `Visualizing graph from root: ${rootNoun.metadata?.label || rootId}\n`
+        )
 
         // Use a breadth-first search to visualize the graph
         const visited = new Set<string>()
@@ -465,7 +561,9 @@ program
           const label = noun.metadata?.label || id.substring(0, 8)
 
           // Print the current noun with proper indentation
-          console.log(`${' '.repeat(level * 2)}${path}[${nounType}] ${label} (${id})`)
+          console.log(
+            `${' '.repeat(level * 2)}${path}[${nounType}] ${label} (${id})`
+          )
 
           // Get outgoing verbs
           const outgoingVerbs = await db.getVerbsBySource(id)
@@ -474,15 +572,17 @@ program
           let verbCount = 0
           for (const verb of outgoingVerbs) {
             if (verbCount >= limit) {
-              console.log(`${' '.repeat((level + 1) * 2)}... and ${outgoingVerbs.length - limit} more`)
+              console.log(
+                `${' '.repeat((level + 1) * 2)}... and ${outgoingVerbs.length - limit} more`
+              )
               break
             }
 
             const verbType = verb.metadata?.verb || 'relates to'
-            queue.push({ 
-              id: verb.targetId, 
-              level: level + 1, 
-              path: `--(${verbType})--→ ` 
+            queue.push({
+              id: verb.targetId,
+              level: level + 1,
+              path: `--(${verbType})--→ `
             })
             verbCount++
           }
@@ -496,12 +596,20 @@ program
 
 program
   .command('generate-random-graph')
-  .description('Generate a random graph of data with typed nouns and verbs for testing')
+  .description(
+    'Generate a random graph of data with typed nouns and verbs for testing'
+  )
   .option('-n, --noun-count <number>', 'Number of nouns to generate', '10')
   .option('-v, --verb-count <number>', 'Number of verbs to generate', '20')
   .option('-c, --clear', 'Clear existing data before generating', false)
-  .option('-t, --noun-types <types>', 'Comma-separated list of noun types to use')
-  .option('-r, --verb-types <types>', 'Comma-separated list of verb types to use')
+  .option(
+    '-t, --noun-types <types>',
+    'Comma-separated list of noun types to use'
+  )
+  .option(
+    '-r, --verb-types <types>',
+    'Comma-separated list of verb types to use'
+  )
   .action(async (options) => {
     try {
       const db = createDb()
@@ -515,46 +623,56 @@ program
       // Parse noun types if provided
       let nounTypes: NounType[] | undefined
       if (options.nounTypes) {
-        const typeNames = options.nounTypes.split(',').map((t: string) => t.trim())
-        nounTypes = typeNames.map((name: string) => {
-          // Try to match by key name (case insensitive)
-          const key = Object.keys(NounType).find(
-            k => k.toLowerCase() === name.toLowerCase()
-          )
-          if (key) return NounType[key as keyof typeof NounType]
+        const typeNames = options.nounTypes
+          .split(',')
+          .map((t: string) => t.trim())
+        nounTypes = typeNames
+          .map((name: string) => {
+            // Try to match by key name (case insensitive)
+            const key = Object.keys(NounType).find(
+              (k) => k.toLowerCase() === name.toLowerCase()
+            )
+            if (key) return NounType[key as keyof typeof NounType]
 
-          // If not found by key, check if it's a valid value
-          if (Object.values(NounType).includes(name as NounType)) {
-            return name as NounType
-          }
+            // If not found by key, check if it's a valid value
+            if (Object.values(NounType).includes(name as NounType)) {
+              return name as NounType
+            }
 
-          console.warn(`Warning: Unknown noun type "${name}", ignoring`)
-          return null
-        }).filter(Boolean) as NounType[]
+            console.warn(`Warning: Unknown noun type "${name}", ignoring`)
+            return null
+          })
+          .filter(Boolean) as NounType[]
       }
 
       // Parse verb types if provided
       let verbTypes: VerbType[] | undefined
       if (options.verbTypes) {
-        const typeNames = options.verbTypes.split(',').map((t: string) => t.trim())
-        verbTypes = typeNames.map((name: string) => {
-          // Try to match by key name (case insensitive)
-          const key = Object.keys(VerbType).find(
-            k => k.toLowerCase() === name.toLowerCase()
-          )
-          if (key) return VerbType[key as keyof typeof VerbType]
+        const typeNames = options.verbTypes
+          .split(',')
+          .map((t: string) => t.trim())
+        verbTypes = typeNames
+          .map((name: string) => {
+            // Try to match by key name (case insensitive)
+            const key = Object.keys(VerbType).find(
+              (k) => k.toLowerCase() === name.toLowerCase()
+            )
+            if (key) return VerbType[key as keyof typeof VerbType]
 
-          // If not found by key, check if it's a valid value
-          if (Object.values(VerbType).includes(name as VerbType)) {
-            return name as VerbType
-          }
+            // If not found by key, check if it's a valid value
+            if (Object.values(VerbType).includes(name as VerbType)) {
+              return name as VerbType
+            }
 
-          console.warn(`Warning: Unknown verb type "${name}", ignoring`)
-          return null
-        }).filter(Boolean) as VerbType[]
+            console.warn(`Warning: Unknown verb type "${name}", ignoring`)
+            return null
+          })
+          .filter(Boolean) as VerbType[]
       }
 
-      console.log(`Generating random graph with ${nounCount} nouns and ${verbCount} verbs...`)
+      console.log(
+        `Generating random graph with ${nounCount} nouns and ${verbCount} verbs...`
+      )
       if (clearExisting) {
         console.log('Clearing existing data first...')
       }
@@ -568,12 +686,14 @@ program
       })
 
       console.log('Random graph generated successfully!')
-      console.log(`Created ${result.nounIds.length} nouns and ${result.verbIds.length} verbs`)
+      console.log(
+        `Created ${result.nounIds.length} nouns and ${result.verbIds.length} verbs`
+      )
 
       // Print some sample IDs
       if (result.nounIds.length > 0) {
         console.log('\nSample noun IDs:')
-        result.nounIds.slice(0, 3).forEach(id => console.log(`- ${id}`))
+        result.nounIds.slice(0, 3).forEach((id) => console.log(`- ${id}`))
         if (result.nounIds.length > 3) {
           console.log(`... and ${result.nounIds.length - 3} more`)
         }
@@ -581,13 +701,15 @@ program
 
       if (result.verbIds.length > 0) {
         console.log('\nSample verb IDs:')
-        result.verbIds.slice(0, 3).forEach(id => console.log(`- ${id}`))
+        result.verbIds.slice(0, 3).forEach((id) => console.log(`- ${id}`))
         if (result.verbIds.length > 3) {
           console.log(`... and ${result.verbIds.length - 3} more`)
         }
       }
 
-      console.log('\nUse the search, get, or visualize commands to explore the generated graph')
+      console.log(
+        '\nUse the search, get, or visualize commands to explore the generated graph'
+      )
     } catch (error) {
       console.error('Error:', (error as Error).message)
       process.exit(1)
@@ -595,7 +717,9 @@ program
   })
 
 // Add examples to help text
-program.addHelpText('after', `
+program.addHelpText(
+  'after',
+  `
 Examples:
   $ brainy init
   $ brainy add "Cats are independent pets" '{"noun":"Thing","category":"animal"}'
@@ -606,6 +730,8 @@ Examples:
   $ brainy generate-random-graph --noun-types Person,Thing --verb-types RelatedTo,Owns
   $ brainy visualize --type Thing --limit 10
   $ brainy visualize --root id1 --depth 3
+  $ brainy backup my-database-backup.json
+  $ brainy restore my-database-backup.json --clear
 
   # Augmentation commands
   $ brainy augment list
@@ -613,14 +739,8 @@ Examples:
   $ brainy augment test-pipeline "Test data" --data-type text --mode sequential
   $ brainy augment stream-test --count 3 --interval 500
 
-  # LLM commands
-  $ brainy llm create --name my-model --type simple
-  $ brainy llm train model-id --epochs 20 --batch-size 64
-  $ brainy llm test model-id --generate-samples
-  $ brainy llm export model-id --format json --include-metadata
-  $ brainy llm deploy model-id --target browser
-  $ brainy llm generate model-id "Once upon a time" --temperature 0.8
-`)
+`
+)
 
 // Setup autocomplete
 const completion = omelette('brainy')
@@ -645,19 +765,20 @@ completion.tree({
     'clear',
     'visualize',
     'generate-random-graph',
+    'backup',
+    'restore',
     'completion-setup',
     'init',
     'help',
-    'augment',
-    'llm'
+    'augment'
   ],
   // Command-specific completions
   add: {
     // For the second argument of 'add' command (metadata)
     _: () => {
       // Generate templates for each noun type
-      return getNounTypes().map(type =>
-        `{"noun":"${type}","category":"example"}`
+      return getNounTypes().map(
+        (type) => `{"noun":"${type}","category":"example"}`
       )
     }
   },
@@ -679,9 +800,13 @@ completion.tree({
   getVerbs: {},
   status: {},
   clear: {
-    _: () => [
-      '--force'
-    ]
+    _: () => ['--force']
+  },
+  backup: {
+    _: () => ['brainy-backup.json', 'database-backup.json']
+  },
+  restore: {
+    _: () => ['--clear']
   },
   'generate-random-graph': {
     _: () => [
@@ -693,12 +818,7 @@ completion.tree({
     ]
   },
   augment: {
-    _: () => [
-      'list',
-      'info',
-      'test-pipeline',
-      'stream-test'
-    ],
+    _: () => ['list', 'info', 'test-pipeline', 'stream-test'],
     info: {
       _: () => [
         'sense',
@@ -722,86 +842,12 @@ completion.tree({
       ]
     },
     'stream-test': {
-      _: () => [
-        '--count 5',
-        '--interval 1000',
-        '--data-type text',
-        '--verbose'
-      ]
+      _: () => ['--count 5', '--interval 1000', '--data-type text', '--verbose']
     }
   },
   'completion-setup': {},
   init: {},
   help: {},
-  llm: {
-    _: () => [
-      'create',
-      'train',
-      'test',
-      'export',
-      'deploy',
-      'generate'
-    ],
-    create: {
-      _: () => [
-        '--name my-model',
-        '--description "My custom LLM model"',
-        '--type simple',
-        '--type transformer',
-        '--vocab-size 5000',
-        '--embedding-dim 64',
-        '--hidden-dim 128',
-        '--layers 2',
-        '--heads 4',
-        '--dropout 0.1',
-        '--max-seq-length 100'
-      ]
-    },
-    train: {
-      _: () => [
-        '--max-samples 1000',
-        '--validation-split 0.2',
-        '--epochs 10',
-        '--batch-size 32',
-        '--patience 3'
-      ]
-    },
-    test: {
-      _: () => [
-        '--test-size 100',
-        '--generate-samples',
-        '--sample-count 5'
-      ]
-    },
-    export: {
-      _: () => [
-        '--format json',
-        '--format tfjs',
-        '--output ./models',
-        '--include-metadata',
-        '--include-vocab'
-      ]
-    },
-    deploy: {
-      _: () => [
-        '--target browser',
-        '--target node',
-        '--target cloud',
-        '--provider aws',
-        '--provider gcp',
-        '--provider azure',
-        '--endpoint https://example.com/api',
-        '--region us-east-1'
-      ]
-    },
-    generate: {
-      _: () => [
-        '--temperature 0.7',
-        '--top-k 5',
-        '--max-length 100'
-      ]
-    }
-  }
 })
 
 // Initialize autocomplete
@@ -815,32 +861,39 @@ if (process.argv.includes('--completion-setup')) {
 }
 
 // Pipeline and Augmentation Commands
-const augmentCommand = new Command('augment')
-  .description('Augmentation pipeline operations')
+const augmentCommand = new Command('augment').description(
+  'Augmentation pipeline operations'
+)
 
 augmentCommand
   .command('list')
-  .description('List all available augmentation types and registered augmentations')
+  .description(
+    'List all available augmentation types and registered augmentations'
+  )
   .action(async () => {
     try {
       // Initialize the pipeline
       await augmentationPipeline.initialize()
 
       // Get available augmentation types
-      const availableTypes = augmentationPipeline.getAvailableAugmentationTypes()
+      const availableTypes =
+        augmentationPipeline.getAvailableAugmentationTypes()
 
       console.log('Available Augmentation Types:')
       if (availableTypes.length === 0) {
         console.log('  No augmentation types available')
       } else {
-        availableTypes.forEach(type => {
-          const augmentations = augmentationPipeline.getAugmentationsByType(type)
-          console.log(`\n${type.toUpperCase()} (${augmentations.length} registered):`)
+        availableTypes.forEach((type) => {
+          const augmentations =
+            augmentationPipeline.getAugmentationsByType(type)
+          console.log(
+            `\n${type.toUpperCase()} (${augmentations.length} registered):`
+          )
 
           if (augmentations.length === 0) {
             console.log('  No augmentations registered for this type')
           } else {
-            augmentations.forEach(aug => {
+            augmentations.forEach((aug) => {
               console.log(`  - ${aug.name}: ${aug.description}`)
               console.log(`    Status: ${aug.enabled ? 'Enabled' : 'Disabled'}`)
             })
@@ -854,7 +907,7 @@ augmentCommand
       if (webSocketAugs.length === 0) {
         console.log('  No WebSocket-enabled augmentations available')
       } else {
-        webSocketAugs.forEach(aug => {
+        webSocketAugs.forEach((aug) => {
           console.log(`  - ${aug.name}: ${aug.description}`)
           console.log(`    Status: ${aug.enabled ? 'Enabled' : 'Disabled'}`)
         })
@@ -868,9 +921,17 @@ augmentCommand
 augmentCommand
   .command('test-pipeline')
   .description('Test the sequential pipeline with sample data')
-  .argument('[text]', 'Sample text to process through the pipeline', 'This is a test of the Brainy pipeline')
+  .argument(
+    '[text]',
+    'Sample text to process through the pipeline',
+    'This is a test of the Brainy pipeline'
+  )
   .option('-t, --data-type <type>', 'Type of data to process', 'text')
-  .option('-m, --mode <mode>', 'Execution mode (sequential, parallel, threaded)', 'sequential')
+  .option(
+    '-m, --mode <mode>',
+    'Execution mode (sequential, parallel, threaded)',
+    'sequential'
+  )
   .option('-s, --stop-on-error', 'Stop execution if an error occurs', false)
   .option('-v, --verbose', 'Show detailed output', false)
   .action(async (text, options) => {
@@ -927,19 +988,21 @@ augmentCommand
 
         if (stageResult?.data && options.verbose) {
           console.log('  Data:')
-          console.log(JSON.stringify(stageResult.data, null, 2)
-            .split('\n')
-            .map(line => `    ${line}`)
-            .join('\n')
+          console.log(
+            JSON.stringify(stageResult.data, null, 2)
+              .split('\n')
+              .map((line) => `    ${line}`)
+              .join('\n')
           )
         }
       })
 
       console.log('\nFinal Result Data:')
-      console.log(JSON.stringify(result.data, null, 2)
-        .split('\n')
-        .map(line => `  ${line}`)
-        .join('\n')
+      console.log(
+        JSON.stringify(result.data, null, 2)
+          .split('\n')
+          .map((line) => `  ${line}`)
+          .join('\n')
       )
     } catch (error) {
       console.error('Error:', (error as Error).message)
@@ -951,7 +1014,11 @@ augmentCommand
   .command('stream-test')
   .description('Test streaming data through the pipeline (simulated)')
   .option('-c, --count <number>', 'Number of data items to stream', '5')
-  .option('-i, --interval <ms>', 'Interval between data items in milliseconds', '1000')
+  .option(
+    '-i, --interval <ms>',
+    'Interval between data items in milliseconds',
+    '1000'
+  )
   .option('-t, --data-type <type>', 'Type of data to process', 'text')
   .option('-v, --verbose', 'Show detailed output', false)
   .action(async (options) => {
@@ -962,57 +1029,63 @@ augmentCommand
       const count = parseInt(options.count, 10)
       const interval = parseInt(options.interval, 10)
 
-      console.log(`Simulating stream of ${count} data items at ${interval}ms intervals`)
+      console.log(
+        `Simulating stream of ${count} data items at ${interval}ms intervals`
+      )
       console.log(`Data type: ${options.dataType}`)
       console.log()
 
       // Create a handler function similar to what would be used with WebSockets
       const handler = (data: string) => {
         // Process the data asynchronously without blocking
-        sequentialPipeline.processData(
-          data,
-          options.dataType,
-          { stopOnError: false }
-        ).then(result => {
-          console.log(`\nProcessed: "${data}"`)
-          console.log(`Success: ${result.success}`)
+        sequentialPipeline
+          .processData(data, options.dataType, { stopOnError: false })
+          .then((result) => {
+            console.log(`\nProcessed: "${data}"`)
+            console.log(`Success: ${result.success}`)
 
-          if (options.verbose) {
-            console.log('Stage Results:')
-            Object.entries(result.stageResults).forEach(([stage, stageResult]) => {
-              if (stageResult?.success) {
-                console.log(`  ${stage}: Success`)
-              } else {
-                console.log(`  ${stage}: Failed - ${stageResult?.error || 'Unknown error'}`)
-              }
-            })
-          }
+            if (options.verbose) {
+              console.log('Stage Results:')
+              Object.entries(result.stageResults).forEach(
+                ([stage, stageResult]) => {
+                  if (stageResult?.success) {
+                    console.log(`  ${stage}: Success`)
+                  } else {
+                    console.log(
+                      `  ${stage}: Failed - ${stageResult?.error || 'Unknown error'}`
+                    )
+                  }
+                }
+              )
+            }
 
-          if (result.data) {
-            console.log('Result Data:')
-            console.log(JSON.stringify(result.data, null, 2)
-              .split('\n')
-              .map(line => `  ${line}`)
-              .join('\n')
-            )
-          }
-        }).catch(error => {
-          console.error(`Error processing "${data}":`, error.message)
-        })
+            if (result.data) {
+              console.log('Result Data:')
+              console.log(
+                JSON.stringify(result.data, null, 2)
+                  .split('\n')
+                  .map((line) => `  ${line}`)
+                  .join('\n')
+              )
+            }
+          })
+          .catch((error) => {
+            console.error(`Error processing "${data}":`, error.message)
+          })
       }
 
       // Generate sample data items
       const sampleTexts = [
-        "The quick brown fox jumps over the lazy dog",
-        "Artificial intelligence is transforming how we interact with data",
-        "Vector databases enable semantic search capabilities",
-        "Graph relationships connect entities in meaningful ways",
-        "Streaming data requires efficient real-time processing",
-        "WebSockets provide bidirectional communication channels",
-        "Augmentations extend the functionality of the core system",
-        "Sequential pipelines process data in defined stages",
-        "Parallel execution improves throughput for large datasets",
-        "Threaded operations utilize multiple CPU cores efficiently"
+        'The quick brown fox jumps over the lazy dog',
+        'Artificial intelligence is transforming how we interact with data',
+        'Vector databases enable semantic search capabilities',
+        'Graph relationships connect entities in meaningful ways',
+        'Streaming data requires efficient real-time processing',
+        'WebSockets provide bidirectional communication channels',
+        'Augmentations extend the functionality of the core system',
+        'Sequential pipelines process data in defined stages',
+        'Parallel execution improves throughput for large datasets',
+        'Threaded operations utilize multiple CPU cores efficiently'
       ]
 
       // Simulate streaming data
@@ -1024,7 +1097,7 @@ augmentCommand
 
         // Wait for the specified interval
         if (i > 0) {
-          await new Promise(resolve => setTimeout(resolve, interval))
+          await new Promise((resolve) => setTimeout(resolve, interval))
         }
 
         console.log(`\nStreaming item ${i + 1}/${count}: "${text}"`)
@@ -1033,8 +1106,12 @@ augmentCommand
         handler(text)
       }
 
-      console.log('\nSimulated stream complete. Some processing may still be ongoing.')
-      console.log('In a real WebSocket scenario, the connection would remain open for continuous data.')
+      console.log(
+        '\nSimulated stream complete. Some processing may still be ongoing.'
+      )
+      console.log(
+        'In a real WebSocket scenario, the connection would remain open for continuous data.'
+      )
     } catch (error) {
       console.error('Error:', (error as Error).message)
       process.exit(1)
@@ -1044,7 +1121,10 @@ augmentCommand
 augmentCommand
   .command('info')
   .description('Get detailed information about a specific augmentation type')
-  .argument('<type>', 'Augmentation type (sense, memory, cognition, conduit, activation, perception, dialog, websocket)')
+  .argument(
+    '<type>',
+    'Augmentation type (sense, memory, cognition, conduit, activation, perception, dialog, websocket)'
+  )
   .action(async (typeArg) => {
     try {
       // Initialize the pipeline
@@ -1082,7 +1162,9 @@ augmentCommand
           break
         default:
           console.error(`Unknown augmentation type: ${typeArg}`)
-          console.log('Available types: sense, memory, cognition, conduit, activation, perception, dialog, websocket')
+          console.log(
+            'Available types: sense, memory, cognition, conduit, activation, perception, dialog, websocket'
+          )
           process.exit(1)
       }
 
@@ -1104,17 +1186,19 @@ augmentCommand
           console.log('   Available Methods:')
 
           // Get all methods that aren't from Object.prototype
-          const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(aug))
-            .filter(method => 
-              method !== 'constructor' && 
+          const methods = Object.getOwnPropertyNames(
+            Object.getPrototypeOf(aug)
+          ).filter(
+            (method) =>
+              method !== 'constructor' &&
               typeof (aug as any)[method] === 'function' &&
               !['initialize', 'shutDown', 'getStatus'].includes(method)
-            )
+          )
 
           if (methods.length === 0) {
             console.log('     No custom methods available')
           } else {
-            methods.forEach(method => {
+            methods.forEach((method) => {
               console.log(`     - ${method}`)
             })
           }
@@ -1123,14 +1207,18 @@ augmentCommand
 
       // Show pipeline order information
       console.log('\nPipeline Execution Order:')
-      console.log('  1. SENSE - Process raw data into structured nouns and verbs')
+      console.log(
+        '  1. SENSE - Process raw data into structured nouns and verbs'
+      )
       console.log('  2. MEMORY - Store and retrieve data')
       console.log('  3. COGNITION - Analyze and reason about data')
       console.log('  4. CONDUIT - Exchange data with external systems')
       console.log('  5. ACTIVATION - Trigger actions based on data')
       console.log('  6. PERCEPTION - Interpret and visualize data')
       console.log('  7. DIALOG - Process natural language interactions')
-      console.log('  * WEBSOCKET - Enable real-time communication (can be combined with other types)')
+      console.log(
+        '  * WEBSOCKET - Enable real-time communication (can be combined with other types)'
+      )
     } catch (error) {
       console.error('Error:', (error as Error).message)
       process.exit(1)
@@ -1149,505 +1237,8 @@ program
     console.log('Autocomplete setup complete. Please restart your shell.')
   })
 
-// Helper function to initialize LLM augmentations and database
-async function initializeLLM() {
-  const db = createDb();
-  await db.init();
-
-  // Initialize LLM augmentations
-  const { cognition, activation } = await createLLMAugmentations();
-
-  // Set the database for the cognition augmentation
-  cognition.setBrainyDb(db);
-
-  return { db, cognition, activation };
-}
 
 // Parse command line arguments
-// LLM Commands
-const llmCommand = new Command('llm')
-  .description('LLM (Language Learning Model) operations')
 
-llmCommand
-  .command('create-simple')
-  .description('Create a new LLM model using a preset (tiny, small, medium, large)')
-  .argument('[preset]', 'Model preset to use (tiny, small, medium, large)', 'small')
-  .option('-n, --name <name>', 'Custom name for the model')
-  .action(async (preset, options) => {
-    try {
-      console.log(`Creating LLM model using '${preset}' preset...`)
-
-      // Initialize LLM
-      const { cognition } = await initializeLLM();
-
-      // Create the model using preset
-      const result = await cognition.createModelFromPreset(preset, options.name);
-
-      if (result.success) {
-        console.log(`Model created successfully with ID: ${result.data.modelId}`)
-        console.log(`Model name: ${result.data.metadata.name}`)
-        console.log(`Model type: ${result.data.metadata.modelType}`)
-        console.log(`\nUse this ID with other commands, for example:`)
-        console.log(`  brainy llm train-simple ${result.data.modelId} standard`)
-      } else {
-        console.error(`Failed to create model: ${result.error}`)
-      }
-    } catch (error) {
-      console.error('Error:', (error as Error).message)
-      process.exit(1)
-    }
-  })
-
-llmCommand
-  .command('create')
-  .description('Create a new LLM model from Brainy data (advanced)')
-  .option('-n, --name <name>', 'Name of the model')
-  .option('-d, --description <description>', 'Description of the model')
-  .option('-t, --type <type>', 'Type of model (simple, transformer, custom)', 'simple')
-  .option('-v, --vocab-size <size>', 'Vocabulary size', '5000')
-  .option('-e, --embedding-dim <dim>', 'Embedding dimension', '64')
-  .option('-h, --hidden-dim <dim>', 'Hidden dimension', '128')
-  .option('-l, --layers <count>', 'Number of layers', '2')
-  .option('--heads <count>', 'Number of attention heads (for transformer models)', '4')
-  .option('--dropout <rate>', 'Dropout rate', '0.1')
-  .option('--max-seq-length <length>', 'Maximum sequence length', '100')
-  .action(async (options) => {
-    try {
-      console.log('Creating LLM model with advanced options...')
-
-      // Initialize LLM
-      const { cognition } = await initializeLLM();
-
-      // Parse options
-      const config = {
-        name: options.name || 'model-' + Date.now(),
-        description: options.description || 'Created via CLI',
-        modelType: options.type,
-        vocabSize: parseInt(options.vocabSize, 10),
-        embeddingDim: parseInt(options.embeddingDim, 10),
-        hiddenDim: parseInt(options.hiddenDim, 10),
-        layers: parseInt(options.layers, 10),
-        heads: parseInt(options.heads, 10),
-        dropout: parseFloat(options.dropout),
-        maxSeqLength: parseInt(options.maxSeqLength, 10)
-      }
-
-      // Create the model
-      const result = await cognition.createModel(config)
-
-      if (result.success) {
-        console.log(`Model created successfully with ID: ${result.data.modelId}`)
-        console.log(`Model type: ${config.modelType}`)
-        console.log(`Vocabulary size: ${config.vocabSize}`)
-      } else {
-        console.error(`Failed to create model: ${result.error}`)
-      }
-
-    } catch (error) {
-      console.error('Error:', (error as Error).message)
-      process.exit(1)
-    }
-  })
-
-llmCommand
-  .command('train-simple')
-  .description('Train an LLM model with simplified options')
-  .argument('<modelId>', 'ID of the model to train')
-  .argument('[level]', 'Training level (quick, standard, thorough)', 'standard')
-  .action(async (modelId, level) => {
-    try {
-      console.log(`Training LLM model ${modelId} with '${level}' training level...`)
-
-      // Initialize LLM
-      const { cognition } = await initializeLLM();
-
-      // Display training level details
-      switch (level) {
-        case 'quick':
-          console.log('Quick training: Faster but less accurate (100 samples, 5 epochs)')
-          break;
-        case 'standard':
-          console.log('Standard training: Balanced speed and accuracy (500 samples, 10 epochs)')
-          break;
-        case 'thorough':
-          console.log('Thorough training: Slower but more accurate (1000 samples, 20 epochs)')
-          break;
-        default:
-          console.log(`Unknown level '${level}', using 'standard' instead`)
-          level = 'standard';
-      }
-
-      // Train the model
-      const result = await cognition.trainModelSimple(modelId, level as any)
-
-      if (result.success) {
-        console.log(`\nModel ${modelId} trained successfully!`)
-        console.log(`Training metrics:`)
-        if (result.data.metrics) {
-          console.log(`  Final loss: ${result.data.metrics.loss.toFixed(4)}`)
-          console.log(`  Final accuracy: ${result.data.metrics.accuracy.toFixed(4)}`)
-          console.log(`  Epochs completed: ${result.data.metrics.epochs}`)
-        }
-        console.log(`\nYou can now generate text with:`)
-        console.log(`  brainy llm generate-simple ${modelId} "Your prompt here"`)
-      } else {
-        console.error(`\nFailed to train model: ${result.error}`)
-      }
-    } catch (error) {
-      console.error('Error:', (error as Error).message)
-      process.exit(1)
-    }
-  })
-
-llmCommand
-  .command('train')
-  .description('Train an LLM model on Brainy data (advanced)')
-  .argument('<modelId>', 'ID of the model to train')
-  .option('-s, --max-samples <count>', 'Maximum number of training samples')
-  .option('-v, --validation-split <ratio>', 'Validation split ratio', '0.2')
-  .option('-e, --epochs <count>', 'Number of training epochs', '10')
-  .option('-b, --batch-size <size>', 'Batch size', '32')
-  .option('-p, --patience <count>', 'Early stopping patience', '3')
-  .action(async (modelId, options) => {
-    try {
-      console.log(`Training LLM model ${modelId} with advanced options...`)
-
-      // Initialize LLM
-      const { cognition } = await initializeLLM();
-
-      // Parse options
-      const trainingOptions = {
-        maxSamples: options.maxSamples ? parseInt(options.maxSamples, 10) : undefined,
-        validationSplit: parseFloat(options.validationSplit),
-        epochs: parseInt(options.epochs, 10),
-        batchSize: parseInt(options.batchSize, 10),
-        patience: parseInt(options.patience, 10)
-      }
-
-      console.log('Training with options:')
-      console.log(`  Max samples: ${trainingOptions.maxSamples || 'All available'}`)
-      console.log(`  Validation split: ${trainingOptions.validationSplit}`)
-      console.log(`  Epochs: ${trainingOptions.epochs}`)
-      console.log(`  Batch size: ${trainingOptions.batchSize}`)
-      console.log(`  Early stopping patience: ${trainingOptions.patience}`)
-
-      // Train the model
-      const result = await cognition.trainModel(modelId, trainingOptions)
-
-      if (result.success) {
-        console.log(`\nModel ${modelId} trained successfully!`)
-        console.log(`Training metrics:`)
-        if (result.data.metrics) {
-          console.log(`  Final loss: ${result.data.metrics.loss.toFixed(4)}`)
-          console.log(`  Final accuracy: ${result.data.metrics.accuracy.toFixed(4)}`)
-          console.log(`  Epochs completed: ${result.data.metrics.epochs}`)
-        }
-      } else {
-        console.error(`\nFailed to train model: ${result.error}`)
-      }
-
-    } catch (error) {
-      console.error('Error:', (error as Error).message)
-      process.exit(1)
-    }
-  })
-
-llmCommand
-  .command('test')
-  .description('Test an LLM model on Brainy data')
-  .argument('<modelId>', 'ID of the model to test')
-  .option('-s, --test-size <count>', 'Number of test samples', '100')
-  .option('-g, --generate-samples', 'Generate sample predictions')
-  .option('-c, --sample-count <count>', 'Number of samples to generate', '5')
-  .action(async (modelId, options) => {
-    try {
-      const db = createDb()
-      await db.init()
-
-      console.log(`Testing LLM model ${modelId}...`)
-
-      // Initialize LLM augmentations
-      const { cognition, activation } = await createLLMAugmentations()
-
-      // Set the database for the cognition augmentation
-      cognition.setBrainyDb(db)
-
-      // Parse options
-      const testingOptions = {
-        testSize: parseInt(options.testSize, 10),
-        generateSamples: options.generateSamples,
-        sampleCount: parseInt(options.sampleCount, 10)
-      }
-
-      console.log('Testing with options:')
-      console.log(`  Test size: ${testingOptions.testSize}`)
-      console.log(`  Generate samples: ${testingOptions.generateSamples ? 'Yes' : 'No'}`)
-      if (testingOptions.generateSamples) {
-        console.log(`  Sample count: ${testingOptions.sampleCount}`)
-      }
-
-      // Test the model
-      const result = await cognition.testModel(modelId, testingOptions)
-
-      if (result.success) {
-        console.log(`\nModel ${modelId} tested successfully!`)
-        console.log(`Test metrics:`)
-        if (result.data.metrics) {
-          console.log(`  Test loss: ${result.data.metrics.loss.toFixed(4)}`)
-          console.log(`  Test accuracy: ${result.data.metrics.accuracy.toFixed(4)}`)
-          console.log(`  Test samples: ${result.data.metrics.samples}`)
-        }
-
-        // Display generated samples if available
-        if (result.data.samples && result.data.samples.length > 0) {
-          console.log(`\nGenerated samples:`)
-          result.data.samples.forEach((sample: { input: string; expected: string; generated: string }, index: number) => {
-            console.log(`\nSample ${index + 1}:`)
-            console.log(`  Input: ${sample.input}`)
-            console.log(`  Predicted: ${sample.generated}`)
-            if (sample.expected) {
-              console.log(`  Actual: ${sample.expected}`)
-            }
-          })
-        }
-      } else {
-        console.error(`\nFailed to test model: ${result.error}`)
-      }
-
-    } catch (error) {
-      console.error('Error:', (error as Error).message)
-      process.exit(1)
-    }
-  })
-
-llmCommand
-  .command('export')
-  .description('Export an LLM model for deployment')
-  .argument('<modelId>', 'ID of the model to export')
-  .option('-f, --format <format>', 'Export format (tfjs, json)', 'json')
-  .option('-o, --output <path>', 'Output path')
-  .option('-m, --include-metadata', 'Include metadata')
-  .option('-v, --include-vocab', 'Include vocabulary')
-  .action(async (modelId, options) => {
-    try {
-      const db = createDb()
-      await db.init()
-
-      console.log(`Exporting LLM model ${modelId}...`)
-
-      // Initialize LLM augmentations
-      const { cognition, activation } = await createLLMAugmentations()
-
-      // Set the database for the cognition augmentation
-      cognition.setBrainyDb(db)
-
-      // Parse options
-      const exportOptions = {
-        format: options.format,
-        outputPath: options.output,
-        includeMetadata: options.includeMetadata,
-        includeVocab: options.includeVocab
-      }
-
-      console.log('Exporting with options:')
-      console.log(`  Format: ${exportOptions.format}`)
-      if (exportOptions.outputPath) {
-        console.log(`  Output path: ${exportOptions.outputPath}`)
-      }
-      console.log(`  Include metadata: ${exportOptions.includeMetadata ? 'Yes' : 'No'}`)
-      console.log(`  Include vocabulary: ${exportOptions.includeVocab ? 'Yes' : 'No'}`)
-
-      // Export the model
-      const result = await cognition.exportModel(modelId, exportOptions)
-
-      if (result.success) {
-        console.log(`\nModel ${modelId} exported successfully!`)
-        if (result.data.path) {
-          console.log(`Exported to: ${result.data.path}`)
-        }
-        if (result.data.size) {
-          console.log(`Export size: ${(result.data.size / 1024).toFixed(2)} KB`)
-        }
-      } else {
-        console.error(`\nFailed to export model: ${result.error}`)
-      }
-
-    } catch (error) {
-      console.error('Error:', (error as Error).message)
-      process.exit(1)
-    }
-  })
-
-llmCommand
-  .command('deploy')
-  .description('Deploy an LLM model to the specified target')
-  .argument('<modelId>', 'ID of the model to deploy')
-  .option('-t, --target <target>', 'Deployment target (browser, node, cloud)', 'browser')
-  .option('-p, --provider <provider>', 'Cloud provider (aws, gcp, azure)')
-  .option('-e, --endpoint <url>', 'Endpoint URL for cloud deployment')
-  .option('-r, --region <region>', 'Region for cloud deployment')
-  .action(async (modelId, options) => {
-    try {
-      const db = createDb()
-      await db.init()
-
-      console.log(`Deploying LLM model ${modelId} to ${options.target}...`)
-
-      // Initialize LLM augmentations
-      const { cognition, activation } = await createLLMAugmentations()
-
-      // Set the database for the cognition augmentation
-      cognition.setBrainyDb(db)
-
-      // Parse options
-      const deploymentOptions = {
-        target: options.target,
-        provider: options.provider,
-        endpoint: options.endpoint,
-        region: options.region
-      }
-
-      console.log('Deploying with options:')
-      console.log(`  Target: ${deploymentOptions.target}`)
-      if (deploymentOptions.provider) {
-        console.log(`  Provider: ${deploymentOptions.provider}`)
-      }
-      if (deploymentOptions.endpoint) {
-        console.log(`  Endpoint: ${deploymentOptions.endpoint}`)
-      }
-      if (deploymentOptions.region) {
-        console.log(`  Region: ${deploymentOptions.region}`)
-      }
-
-      // Deploy the model
-      const result = await cognition.deployModel(modelId, deploymentOptions)
-
-      if (result.success) {
-        console.log(`\nModel ${modelId} deployed successfully!`)
-        if (result.data.url) {
-          console.log(`Deployment URL: ${result.data.url}`)
-        }
-        if (result.data.deploymentId) {
-          console.log(`Deployment ID: ${result.data.deploymentId}`)
-        }
-      } else {
-        console.error(`\nFailed to deploy model: ${result.error}`)
-      }
-
-    } catch (error) {
-      console.error('Error:', (error as Error).message)
-      process.exit(1)
-    }
-  })
-
-llmCommand
-  .command('generate-simple')
-  .description('Generate text using an LLM model with simplified creativity options')
-  .argument('<modelId>', 'ID of the model to use')
-  .argument('<prompt>', 'Input prompt for text generation')
-  .argument('[creativity]', 'Creativity level (conservative, balanced, creative)', 'balanced')
-  .action(async (modelId, prompt, creativity) => {
-    try {
-      console.log(`Generating text using LLM model ${modelId}...`)
-      console.log(`Prompt: "${prompt}"`)
-
-      // Initialize LLM
-      const { cognition } = await initializeLLM();
-
-      // Display creativity level details
-      switch (creativity) {
-        case 'conservative':
-          console.log('Conservative creativity: More predictable, focused output')
-          break;
-        case 'balanced':
-          console.log('Balanced creativity: Mix of predictability and creativity')
-          break;
-        case 'creative':
-          console.log('High creativity: More varied, unexpected output')
-          break;
-        default:
-          console.log(`Unknown creativity level '${creativity}', using 'balanced' instead`)
-          creativity = 'balanced';
-      }
-
-      // Generate text
-      const result = await cognition.generateTextSimple(modelId, prompt, creativity as any)
-
-      if (result.success) {
-        console.log(`\nGenerated text:`)
-        console.log(`--------------`)
-        console.log(result.data.text)
-        console.log(`--------------`)
-
-        if (result.data.tokens) {
-          console.log(`\nTokens generated: ${result.data.tokens}`)
-        }
-        if (result.data.timeMs) {
-          console.log(`Generation time: ${result.data.timeMs}ms`)
-        }
-      } else {
-        console.error(`\nFailed to generate text: ${result.error}`)
-      }
-    } catch (error) {
-      console.error('Error:', (error as Error).message)
-      process.exit(1)
-    }
-  })
-
-llmCommand
-  .command('generate')
-  .description('Generate text using an LLM model (advanced)')
-  .argument('<modelId>', 'ID of the model to use')
-  .argument('<prompt>', 'Input prompt for text generation')
-  .option('-t, --temperature <temp>', 'Temperature for sampling', '0.7')
-  .option('-k, --top-k <count>', 'Number of top tokens to consider', '5')
-  .option('-l, --max-length <length>', 'Maximum length of generated text', '100')
-  .action(async (modelId, prompt, options) => {
-    try {
-      console.log(`Generating text using LLM model ${modelId} with advanced options...`)
-      console.log(`Prompt: "${prompt}"`)
-
-      // Initialize LLM
-      const { cognition } = await initializeLLM();
-
-      // Parse options
-      const generateOptions = {
-        temperature: parseFloat(options.temperature),
-        topK: parseInt(options.topK, 10),
-        maxLength: parseInt(options.maxLength, 10)
-      }
-
-      console.log('Generation options:')
-      console.log(`  Temperature: ${generateOptions.temperature}`)
-      console.log(`  Top-K: ${generateOptions.topK}`)
-      console.log(`  Max length: ${generateOptions.maxLength}`)
-
-      // Generate text
-      const result = await cognition.generateText(modelId, prompt, generateOptions)
-
-      if (result.success) {
-        console.log(`\nGenerated text:`)
-        console.log(`--------------`)
-        console.log(result.data.text)
-        console.log(`--------------`)
-
-        if (result.data.tokens) {
-          console.log(`\nTokens generated: ${result.data.tokens}`)
-        }
-        if (result.data.timeMs) {
-          console.log(`Generation time: ${result.data.timeMs}ms`)
-        }
-      } else {
-        console.error(`\nFailed to generate text: ${result.error}`)
-      }
-
-    } catch (error) {
-      console.error('Error:', (error as Error).message)
-      process.exit(1)
-    }
-  })
-
-// Add the LLM command to the program
-program.addCommand(llmCommand)
 
 program.parse()
