@@ -954,11 +954,14 @@ Before deploying, make sure to configure the appropriate environment variables i
 
 The repository includes a comprehensive demo that showcases Brainy's main features:
 
-- `examples/demo.html` - A single demo page with animations demonstrating Brainy's features. Run it with
-  `npm run demo` (see [demo instructions](README.demo.md) for details):
-    - How Brainy runs in different environments (browser, Node.js, server, cloud)
-    - How the noun-verb data model works
-    - How HNSW search works
+- `examples/demo.html` - A single demo page with animations demonstrating Brainy's features. 
+  - **[Try the live demo](https://soulcraft.github.io/brainy/demo.html)** - Check out the interactive demo on GitHub Pages
+  - Or run it locally with `npm run demo` (see [demo instructions](README.demo.md) for details)
+
+The demo showcases:
+  - How Brainy runs in different environments (browser, Node.js, server, cloud)
+  - How the noun-verb data model works
+  - How HNSW search works
 
 ## Syncing Brainy Instances
 
