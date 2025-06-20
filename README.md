@@ -955,7 +955,7 @@ Before deploying, make sure to configure the appropriate environment variables i
 The repository includes a comprehensive demo that showcases Brainy's main features:
 
 - `examples/demo.html` - A single demo page with animations demonstrating Brainy's features. 
-  - **[Try the live demo](https://soulcraft.github.io/brainy/demo.html)** - Check out the interactive demo on GitHub Pages
+  - **[Try the live demo](https://soulcraft.github.io/brainy/examples/demo.html)** - Check out the interactive demo on GitHub Pages
   - Or run it locally with `npm run demo` (see [demo instructions](README.demo.md) for details)
 
 The demo showcases:
