@@ -38,6 +38,10 @@ it gets - learning from your data to provide increasingly relevant results and c
 - **Model Control Protocol (MCP)** - Allow external AI models to access Brainy data and use augmentation pipeline as
   tools
 
+## 🚀 Live Demo
+
+**[Try the live demo](https://soulcraft-research.github.io/brainy/examples/demo.html)** - Check out the interactive demo on GitHub Pages that showcases Brainy's main features.
+
 ## 📊 What Can You Build?
 
 - **Semantic Search Engines** - Find content based on meaning, not just keywords
