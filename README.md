@@ -293,6 +293,7 @@ Brainy uses a modern build system that optimizes for both Node.js and browser en
     - `npm run build:browser`: Builds the browser-optimized version
     - `npm run build:all`: Builds both versions
     - `npm run demo`: Builds all versions and starts a demo server
+    - `npm run deploy:demo`: Deploys the examples directory to GitHub Pages
 
 ### Running the Pipeline
 
@@ -972,9 +973,10 @@ the [Cloud Wrapper README](cloud-wrapper/README.md) for detailed configuration i
 The repository includes a comprehensive demo that showcases Brainy's main features:
 
 - `examples/demo.html` - A single demo page with animations demonstrating Brainy's features.
-    - **[Try the live demo](https://soulcraft.github.io/brainy/examples/demo.html)** - Check out the interactive demo on
+    - **[Try the live demo](https://soulcraft-research.github.io/brainy/examples/demo.html)** - Check out the interactive demo on
       GitHub Pages
     - Or run it locally with `npm run demo` (see [demo instructions](README.demo.md) for details)
+    - To deploy your own version to GitHub Pages, run `npm run deploy:demo`
 
 The demo showcases:
 
