@@ -1660,13 +1660,27 @@ export async function createStorage(
     forceMemoryStorage?: boolean
   } = {}
 ): Promise<StorageAdapter> {
-  // Check for environment variables for cloud storage (only in Node.js environment)
-  const isNode =
-    typeof process !== 'undefined' &&
-    process.versions != null &&
-    process.versions.node != null
+  // Detect environment
+  const environment = {
+    isBrowser: typeof window !== 'undefined',
+    isNode:
+      typeof process !== 'undefined' &&
+      process.versions != null &&
+      process.versions.node != null,
+    isServerless:
+      typeof window === 'undefined' &&
+      (typeof process === 'undefined' ||
+        !process.versions ||
+        !process.versions.node)
+  }
 
-  // Default empty values
+  // If force memory storage is specified, use MemoryStorage regardless of environment
+  if (options.forceMemoryStorage) {
+    console.log('Using in-memory storage (forced by configuration)')
+    return new MemoryStorage()
+  }
+
+  // Default empty values for environment variables
   const defaultEnvStorage = {
     bucketName: undefined,
     accountId: undefined,
@@ -1676,82 +1690,87 @@ export async function createStorage(
     endpoint: undefined
   }
 
-  // Only try to access process.env in Node.js environment
-  const envR2Storage = isNode
-    ? {
-        bucketName: process.env.R2_BUCKET_NAME,
-        accountId: process.env.R2_ACCOUNT_ID,
-        accessKeyId: process.env.R2_ACCESS_KEY_ID,
-        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY
-      }
-    : defaultEnvStorage
-
-  const envS3Storage = isNode
-    ? {
-        bucketName: process.env.S3_BUCKET_NAME,
-        accessKeyId:
-          process.env.S3_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey:
-          process.env.S3_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY,
-        region: process.env.S3_REGION || process.env.AWS_REGION
-      }
-    : defaultEnvStorage
-
-  const envGCSStorage = isNode
-    ? {
-        bucketName: process.env.GCS_BUCKET_NAME,
-        accessKeyId: process.env.GCS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.GCS_SECRET_ACCESS_KEY,
-        endpoint: process.env.GCS_ENDPOINT
-      }
-    : defaultEnvStorage
-
-  // Merge environment variables with provided options
-  const mergedOptions = {
-    ...options,
-    r2Storage: options.r2Storage
-      ? {
-          ...envR2Storage,
-          ...options.r2Storage
-        }
-      : // Only use environment variables if they have the required fields
-        envR2Storage.bucketName &&
-          envR2Storage.accessKeyId &&
-          envR2Storage.secretAccessKey
-        ? envR2Storage
-        : undefined,
-    s3Storage: options.s3Storage
-      ? {
-          ...envS3Storage,
-          ...options.s3Storage
-        }
-      : // Only use environment variables if they have the required fields
-        envS3Storage.bucketName &&
-          envS3Storage.accessKeyId &&
-          envS3Storage.secretAccessKey
-        ? envS3Storage
-        : undefined,
-    gcsStorage: options.gcsStorage
-      ? {
-          ...envGCSStorage,
-          ...options.gcsStorage
-        }
-      : // Only use environment variables if they have the required fields
-        envGCSStorage.bucketName &&
-          envGCSStorage.accessKeyId &&
-          envGCSStorage.secretAccessKey
-        ? envGCSStorage
-        : undefined
-  }
-
-  // If any S3-compatible storage options are provided, use S3CompatibleStorage
+  // Try to use cloud storage if configured
   if (
-    mergedOptions.r2Storage ||
-    mergedOptions.s3Storage ||
-    mergedOptions.gcsStorage ||
-    mergedOptions.customS3Storage
+    options.r2Storage ||
+    options.s3Storage ||
+    options.gcsStorage ||
+    options.customS3Storage ||
+    (environment.isNode &&
+      (process.env.R2_BUCKET_NAME ||
+        process.env.S3_BUCKET_NAME ||
+        process.env.GCS_BUCKET_NAME))
   ) {
     try {
+      // Only try to access process.env in Node.js environment
+      const envR2Storage = environment.isNode
+        ? {
+            bucketName: process.env.R2_BUCKET_NAME,
+            accountId: process.env.R2_ACCOUNT_ID,
+            accessKeyId: process.env.R2_ACCESS_KEY_ID,
+            secretAccessKey: process.env.R2_SECRET_ACCESS_KEY
+          }
+        : defaultEnvStorage
+
+      const envS3Storage = environment.isNode
+        ? {
+            bucketName: process.env.S3_BUCKET_NAME,
+            accessKeyId:
+              process.env.S3_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID,
+            secretAccessKey:
+              process.env.S3_SECRET_ACCESS_KEY ||
+              process.env.AWS_SECRET_ACCESS_KEY,
+            region: process.env.S3_REGION || process.env.AWS_REGION
+          }
+        : defaultEnvStorage
+
+      const envGCSStorage = environment.isNode
+        ? {
+            bucketName: process.env.GCS_BUCKET_NAME,
+            accessKeyId: process.env.GCS_ACCESS_KEY_ID,
+            secretAccessKey: process.env.GCS_SECRET_ACCESS_KEY,
+            endpoint: process.env.GCS_ENDPOINT
+          }
+        : defaultEnvStorage
+
+      // Merge environment variables with provided options
+      const mergedOptions = {
+        ...options,
+        r2Storage: options.r2Storage
+          ? {
+              ...envR2Storage,
+              ...options.r2Storage
+            }
+          : // Only use environment variables if they have the required fields
+            envR2Storage.bucketName &&
+              envR2Storage.accessKeyId &&
+              envR2Storage.secretAccessKey
+            ? envR2Storage
+            : undefined,
+        s3Storage: options.s3Storage
+          ? {
+              ...envS3Storage,
+              ...options.s3Storage
+            }
+          : // Only use environment variables if they have the required fields
+            envS3Storage.bucketName &&
+              envS3Storage.accessKeyId &&
+              envS3Storage.secretAccessKey
+            ? envS3Storage
+            : undefined,
+        gcsStorage: options.gcsStorage
+          ? {
+              ...envGCSStorage,
+              ...options.gcsStorage
+            }
+          : // Only use environment variables if they have the required fields
+            envGCSStorage.bucketName &&
+              envGCSStorage.accessKeyId &&
+              envGCSStorage.secretAccessKey
+            ? envGCSStorage
+            : undefined
+      }
+
       const s3Module = await import('./s3CompatibleStorage.js')
 
       if (
@@ -1761,6 +1780,7 @@ export async function createStorage(
         mergedOptions.r2Storage.accessKeyId &&
         mergedOptions.r2Storage.secretAccessKey
       ) {
+        console.log('Using Cloudflare R2 storage')
         return new s3Module.R2Storage({
           bucketName: mergedOptions.r2Storage.bucketName,
           accountId: mergedOptions.r2Storage.accountId,
@@ -1773,6 +1793,7 @@ export async function createStorage(
         mergedOptions.s3Storage.accessKeyId &&
         mergedOptions.s3Storage.secretAccessKey
       ) {
+        console.log('Using Amazon S3 storage')
         return new s3Module.S3CompatibleStorage({
           bucketName: mergedOptions.s3Storage.bucketName,
           accessKeyId: mergedOptions.s3Storage.accessKeyId,
@@ -1786,6 +1807,7 @@ export async function createStorage(
         mergedOptions.gcsStorage.accessKeyId &&
         mergedOptions.gcsStorage.secretAccessKey
       ) {
+        console.log('Using Google Cloud Storage')
         return new s3Module.S3CompatibleStorage({
           bucketName: mergedOptions.gcsStorage.bucketName,
           accessKeyId: mergedOptions.gcsStorage.accessKeyId,
@@ -1799,6 +1821,7 @@ export async function createStorage(
         mergedOptions.customS3Storage.accessKeyId &&
         mergedOptions.customS3Storage.secretAccessKey
       ) {
+        console.log('Using custom S3-compatible storage')
         return new s3Module.S3CompatibleStorage({
           bucketName: mergedOptions.customS3Storage.bucketName,
           accessKeyId: mergedOptions.customS3Storage.accessKeyId,
@@ -1810,63 +1833,57 @@ export async function createStorage(
       }
     } catch (error) {
       console.warn(
-        'Failed to load S3CompatibleStorage, falling back to default storage:',
+        'Failed to load S3CompatibleStorage, falling back to environment-specific storage:',
         error
       )
-      // Continue to default storage selection
+      // Continue to environment-specific storage selection
     }
   }
 
-  // If force memory storage is specified, use MemoryStorage
-  if (options.forceMemoryStorage) {
-    return new MemoryStorage()
-  }
-
-  // Reuse the isNode variable from above
-
-  if (isNode) {
-    // In Node.js, use FileSystemStorage first, then fall back to memory
-    try {
-      const fileSystemModule = await import('./fileSystemStorage.js')
-      return new fileSystemModule.FileSystemStorage()
-    } catch (error) {
-      console.warn(
-        'Failed to load FileSystemStorage, falling back to in-memory storage:',
-        error
-      )
-      return new MemoryStorage()
-    }
-  } else {
-    // In browser, try OPFS first (unless force FileSystem is specified)
+  // Environment-specific storage selection
+  if (environment.isBrowser) {
+    // In browser environments
     if (!options.forceFileSystemStorage) {
-      const opfsStorage = new OPFSStorage()
+      try {
+        // Try OPFS first (Origin Private File System - browser-specific)
+        const opfsStorage = new OPFSStorage()
 
-      if (opfsStorage.isOPFSAvailable()) {
-        // Request persistent storage if specified
-        if (options.requestPersistentStorage) {
-          const isPersistentGranted =
-            await opfsStorage.requestPersistentStorage()
-          if (isPersistentGranted) {
-            console.log('Persistent storage permission granted')
-          } else {
-            console.warn('Persistent storage permission denied')
+        if (opfsStorage.isOPFSAvailable()) {
+          // Request persistent storage if specified
+          if (options.requestPersistentStorage) {
+            const isPersistentGranted =
+              await opfsStorage.requestPersistentStorage()
+            if (isPersistentGranted) {
+              console.log('Persistent storage permission granted')
+            } else {
+              console.warn('Persistent storage permission denied')
+            }
           }
+          console.log('Using Origin Private File System (OPFS) storage')
+          return opfsStorage
         }
-        return opfsStorage
+      } catch (error) {
+        console.warn('OPFS storage initialization failed:', error)
       }
     }
 
-    // OPFS is not available or force FileSystem is specified, try to use FileSystem API if available
+    // Fall back to memory storage for browser environments
+    console.log('Using in-memory storage for browser environment')
+    return new MemoryStorage()
+  } else if (environment.isNode) {
+    // In Node.js environments
     try {
-      // Try to load FileSystemStorage for browser environments
-      // Note: This will likely fail as FileSystemStorage is designed for Node.js
       const fileSystemModule = await import('./fileSystemStorage.js')
+      console.log('Using file system storage for Node.js environment')
       return new fileSystemModule.FileSystemStorage()
     } catch (error) {
-      console.warn(
-        'FileSystem storage is not available, falling back to in-memory storage'
-      )
+      console.warn('Failed to load FileSystemStorage:', error)
+      console.log('Using in-memory storage for Node.js environment')
       return new MemoryStorage()
     }
+  } else {
+    // In serverless or other environments
+    console.log('Using in-memory storage for serverless/unknown environment')
+    return new MemoryStorage()
   }
 }
