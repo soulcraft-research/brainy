@@ -261,3 +261,44 @@ export type {
   Content
 }
 export { NounType, VerbType }
+
+// Export MCP (Model Control Protocol) components
+import {
+  BrainyMCPAdapter,
+  MCPAugmentationToolset,
+  BrainyMCPService
+} from './mcp/index.js' // Import from mcp/index.js
+import {
+  MCPRequest,
+  MCPResponse,
+  MCPDataAccessRequest,
+  MCPToolExecutionRequest,
+  MCPSystemInfoRequest,
+  MCPAuthenticationRequest,
+  MCPRequestType,
+  MCPServiceOptions,
+  MCPTool,
+  MCP_VERSION
+} from './types/mcpTypes.js'
+
+export {
+  // MCP classes
+  BrainyMCPAdapter,
+  MCPAugmentationToolset,
+  BrainyMCPService,
+
+  // MCP types
+  MCPRequestType,
+  MCP_VERSION
+}
+
+export type {
+  MCPRequest,
+  MCPResponse,
+  MCPDataAccessRequest,
+  MCPToolExecutionRequest,
+  MCPSystemInfoRequest,
+  MCPAuthenticationRequest,
+  MCPServiceOptions,
+  MCPTool
+}
