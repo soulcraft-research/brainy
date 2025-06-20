@@ -977,6 +977,13 @@ The repository includes a comprehensive demo that showcases Brainy's main featur
       GitHub Pages
     - Or run it locally with `npm run demo` (see [demo instructions](README.demo.md) for details)
     - To deploy your own version to GitHub Pages, run `npm run deploy:demo`
+    - To deploy automatically when pushing to the main branch, a GitHub Actions workflow is included in `.github/workflows/deploy-demo.yml`
+    - To use a custom domain (like www.soulcraft.com):
+        1. A CNAME file is already included in the examples directory
+        2. In your GitHub repository settings, go to Pages > Custom domain and enter your domain
+        3. Configure your domain's DNS settings to point to GitHub Pages:
+           - Add a CNAME record for www pointing to `<username>.github.io` (e.g., `soulcraft-research.github.io`)
+           - Or for an apex domain (soulcraft.com), add A records pointing to GitHub Pages IP addresses
 
 The demo showcases:
 
