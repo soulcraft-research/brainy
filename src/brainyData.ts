@@ -1632,6 +1632,38 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   }
 
   /**
+   * Import sparse data into the database
+   * @param data The sparse data to import
+   *             If vectors are not present for nouns, they will be created using the embedding function
+   * @param options Import options
+   * @returns Object containing counts of imported items
+   */
+  public async importSparseData(
+    data: {
+      nouns: VectorDocument<T>[]
+      verbs: GraphVerb[]
+      nounTypes?: string[]
+      verbTypes?: string[]
+      hnswIndex?: {
+        entryPointId: string | null
+        maxLevel: number
+        dimension: number | null
+        config: HNSWConfig
+        connections: Record<string, Record<string, string[]>>
+      }
+      version: string
+    },
+    options: {
+      clearExisting?: boolean
+    } = {}
+  ): Promise<{
+    nounsRestored: number
+    verbsRestored: number
+  }> {
+    return this.restore(data, options);
+  }
+
+  /**
    * Restore data into the database from a previously backed up format
    * @param data The data to restore, in the format returned by backup()
    *             This can include HNSW index data if it was included in the backup
