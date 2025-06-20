@@ -143,6 +143,8 @@ export const VerbType = {
   FriendOf: 'friendOf', // Indicates friendship
   ReportsTo: 'reportsTo', // Indicates reporting relationship
   Supervises: 'supervises', // Indicates supervisory relationship
-  Mentors: 'mentors' // Indicates mentorship relationship
+  Mentors: 'mentors', // Indicates mentorship relationship
+  Follows: 'follows', // Indicates the following relationship
+  Likes: 'likes' // Indicates liking relationship
 } as const
 export type VerbType = (typeof VerbType)[keyof typeof VerbType]
