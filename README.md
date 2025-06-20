@@ -31,6 +31,7 @@ What makes Brainy special? It intelligently adapts to your environment! Brainy a
 - **Persistent Storage** - Data persists across sessions and scales to any size
 - **TypeScript Support** - Fully typed API with generics
 - **CLI Tools** - Powerful command-line interface for data management
+- **Model Control Protocol (MCP)** - Allow external AI models to access Brainy data and use augmentation pipeline as tools
 
 ## 📊 What Can You Build?
 
@@ -41,6 +42,7 @@ What makes Brainy special? It intelligently adapts to your environment! Brainy a
 - **AI-Enhanced Applications** - Build applications that leverage vector embeddings for intelligent data processing
 - **Data Organization Tools** - Automatically categorize and connect related information
 - **Adaptive Experiences** - Create applications that learn and evolve with your users
+- **Model-Integrated Systems** - Connect external AI models to Brainy data and tools using MCP
 
 ## 🔧 Installation
 
@@ -738,6 +740,113 @@ Brainy includes an augmentation system for extending functionality:
 - **Perception Augmentations**: Data interpretation and visualization
 - **Activation Augmentations**: Trigger actions
 
+### Simplified Augmentation System
+
+Brainy provides a simplified factory system for creating, importing, and executing augmentations with minimal boilerplate:
+
+```typescript
+import {
+  createMemoryAugmentation,
+  createConduitAugmentation,
+  createSenseAugmentation,
+  addWebSocketSupport,
+  executeStreamlined,
+  processStaticData,
+  processStreamingData,
+  createPipeline
+} from '@soulcraft/brainy'
+
+// Create a memory augmentation with minimal code
+const memoryAug = createMemoryAugmentation({
+  name: 'simple-memory',
+  description: 'A simple in-memory storage augmentation',
+  autoRegister: true,
+  autoInitialize: true,
+
+  // Implement only the methods you need
+  storeData: async (key, data) => {
+    // Your implementation here
+    return {
+      success: true,
+      data: true
+    }
+  },
+
+  retrieveData: async (key) => {
+    // Your implementation here
+    return {
+      success: true,
+      data: { example: 'data', key }
+    }
+  }
+})
+
+// Add WebSocket support to any augmentation
+const wsAugmentation = addWebSocketSupport(memoryAug, {
+  connectWebSocket: async (url) => {
+    // Your implementation here
+    return {
+      connectionId: 'ws-1',
+      url,
+      status: 'connected'
+    }
+  }
+})
+
+// Process static data through a pipeline
+const result = await processStaticData(
+  'Input data',
+  [
+    {
+      augmentation: senseAug,
+      method: 'processRawData',
+      transformArgs: (data) => [data, 'text']
+    },
+    {
+      augmentation: memoryAug,
+      method: 'storeData',
+      transformArgs: (data) => ['processed-data', data]
+    }
+  ]
+)
+
+// Create a reusable pipeline
+const pipeline = createPipeline([
+  {
+    augmentation: senseAug,
+    method: 'processRawData',
+    transformArgs: (data) => [data, 'text']
+  },
+  {
+    augmentation: memoryAug,
+    method: 'storeData',
+    transformArgs: (data) => ['processed-data', data]
+  }
+])
+
+// Use the pipeline
+const result = await pipeline('New input data')
+
+// Dynamically load augmentations at runtime
+const loadedAugmentations = await loadAugmentationModule(
+  import('./my-augmentations.js'),
+  {
+    autoRegister: true,
+    autoInitialize: true
+  }
+)
+```
+
+The simplified augmentation system provides:
+
+1. **Factory Functions** - Create augmentations with minimal boilerplate
+2. **WebSocket Support** - Add WebSocket capabilities to any augmentation
+3. **Streamlined Pipeline** - Process data through augmentations more efficiently
+4. **Dynamic Loading** - Load augmentations at runtime when needed
+5. **Static & Streaming Data** - Handle both static and streaming data with the same API
+
+For a complete example, see [examples/simplified-augmentations.js](examples/simplified-augmentations.js).
+
 ### Model Control Protocol (MCP)
 
 Brainy includes a Model Control Protocol (MCP) implementation that allows external models to access Brainy data and use the augmentation pipeline as tools:
@@ -863,7 +972,7 @@ You can use the conduit augmentations to sync Brainy instances:
 ```typescript
 import {
     BrainyData,
-    augmentationPipeline,
+    pipeline,
     createConduitAugmentation
 } from '@soulcraft/brainy'
 
@@ -875,11 +984,11 @@ await db.init()
 const wsConduit = await createConduitAugmentation('websocket', 'my-websocket-sync')
 
 // Register the augmentation with the pipeline
-augmentationPipeline.register(wsConduit)
+pipeline.register(wsConduit)
 
 // Connect to another Brainy instance (server or browser)
 // Replace the example URL below with your actual WebSocket server URL
-const connectionResult = await augmentationPipeline.executeConduitPipeline(
+const connectionResult = await pipeline.executeConduitPipeline(
     'establishConnection',
     ['wss://example-websocket-server.com/brainy-sync', {protocols: 'brainy-sync'}]
 )
@@ -888,7 +997,7 @@ if (connectionResult[0] && (await connectionResult[0]).success) {
     const connection = (await connectionResult[0]).data
 
     // Read data from the remote instance
-    const readResult = await augmentationPipeline.executeConduitPipeline(
+    const readResult = await pipeline.executeConduitPipeline(
         'readData',
         [{connectionId: connection.connectionId, query: {type: 'getAllNouns'}}]
     )
@@ -918,7 +1027,7 @@ if (connectionResult[0] && (await connectionResult[0]).success) {
 ```typescript
 import {
     BrainyData,
-    augmentationPipeline,
+    pipeline,
     createConduitAugmentation
 } from '@soulcraft/brainy'
 
@@ -930,11 +1039,11 @@ await db.init()
 const webrtcConduit = await createConduitAugmentation('webrtc', 'my-webrtc-sync')
 
 // Register the augmentation with the pipeline
-augmentationPipeline.register(webrtcConduit)
+pipeline.register(webrtcConduit)
 
 // Connect to a peer using a signaling server
 // Replace the example values below with your actual configuration
-const connectionResult = await augmentationPipeline.executeConduitPipeline(
+const connectionResult = await pipeline.executeConduitPipeline(
     'establishConnection',
     [
         'peer-id-to-connect-to', // Replace with actual peer ID
@@ -963,7 +1072,7 @@ if (connectionResult[0] && (await connectionResult[0]).success) {
     const nounId = await db.add("New data to sync", {noun: "Thing"})
 
     // Send the new noun to the peer
-    await augmentationPipeline.executeConduitPipeline(
+    await pipeline.executeConduitPipeline(
         'writeData',
         [
             {
