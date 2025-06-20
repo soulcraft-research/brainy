@@ -40,7 +40,7 @@ it gets - learning from your data to provide increasingly relevant results and c
 
 ## 🚀 Live Demo
 
-**[Try the live demo](https://soulcraft-research.github.io/brainy/examples/demo.html)** - Check out the interactive demo on GitHub Pages that showcases Brainy's main features.
+**[Try the live demo](https://soulcraft-research.github.io/brainy/examples/)** - Check out the interactive demo on GitHub Pages that showcases Brainy's main features. You can access it at either [https://soulcraft-research.github.io/brainy/examples/](https://soulcraft-research.github.io/brainy/examples/) or [https://soulcraft-research.github.io/brainy/examples/demo.html](https://soulcraft-research.github.io/brainy/examples/demo.html).
 
 ## 📊 What Can You Build?
 
