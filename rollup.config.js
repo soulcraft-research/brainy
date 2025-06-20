@@ -15,13 +15,6 @@ const nodeModuleShims = () => {
         'fs',
         'path',
         'util',
-        'crypto',
-        'os',
-        'stream',
-        'http',
-        'http2',
-        'https',
-        'zlib',
         'child_process'
       ]
 
