@@ -57,30 +57,75 @@ export {
   createStorage
 }
 
-// Export augmentation pipeline
+// Export unified pipeline
 import {
-  AugmentationPipeline,
+  Pipeline,
+  pipeline,
   augmentationPipeline,
   ExecutionMode,
-  PipelineOptions
-} from './augmentationPipeline.js'
+  PipelineOptions,
+  PipelineResult,
+  executeStreamlined,
+  executeByType,
+  executeSingle,
+  processStaticData,
+  processStreamingData,
+  createPipeline,
+  createStreamingPipeline,
+  StreamlinedExecutionMode,
+  StreamlinedPipelineOptions,
+  StreamlinedPipelineResult
+} from './pipeline.js'
 
-// Export sequential pipeline
+// Export sequential pipeline (for backward compatibility)
 import {
   SequentialPipeline,
   sequentialPipeline,
-  PipelineResult,
   SequentialPipelineOptions
 } from './sequentialPipeline.js'
 
+// Export augmentation factory
+import {
+  createSenseAugmentation,
+  addWebSocketSupport,
+  executeAugmentation,
+  loadAugmentationModule,
+  AugmentationOptions
+} from './augmentationFactory.js'
+
 export {
-  AugmentationPipeline,
+  // Unified pipeline exports
+  Pipeline,
+  pipeline,
   augmentationPipeline,
   ExecutionMode,
   SequentialPipeline,
-  sequentialPipeline
+  sequentialPipeline,
+
+  // Streamlined pipeline exports (now part of unified pipeline)
+  executeStreamlined,
+  executeByType,
+  executeSingle,
+  processStaticData,
+  processStreamingData,
+  createPipeline,
+  createStreamingPipeline,
+  StreamlinedExecutionMode,
+
+  // Augmentation factory exports
+  createSenseAugmentation,
+  addWebSocketSupport,
+  executeAugmentation,
+  loadAugmentationModule
 }
-export type { PipelineOptions, PipelineResult, SequentialPipelineOptions }
+export type { 
+  PipelineOptions, 
+  PipelineResult, 
+  SequentialPipelineOptions,
+  StreamlinedPipelineOptions,
+  StreamlinedPipelineResult,
+  AugmentationOptions
+}
 
 // Export augmentation registry for build-time loading
 import {
