@@ -9,6 +9,8 @@ A standalone web service wrapper for the [Brainy](https://github.com/soulcraft/b
 ## Features
 
 - RESTful API for all Brainy operations
+- WebSocket API for real-time updates and subscriptions
+- Model Control Protocol (MCP) service for external model access
 - Support for multiple storage backends (Memory, FileSystem, S3)
 - Configurable via environment variables
 - Deployment scripts for AWS, Google Cloud, and Cloudflare
@@ -66,6 +68,18 @@ When using `STORAGE_TYPE=s3`, the following environment variables are required:
 - `S3_REGION`: The S3 region (default: `us-east-1`)
 - `S3_ENDPOINT` (optional): Custom endpoint for S3-compatible services
 
+### MCP Service Configuration
+
+The Model Control Protocol (MCP) service can be configured using the following environment variables:
+
+- `MCP_WS_PORT`: Port for the MCP WebSocket server (if not set, WebSocket server is disabled)
+- `MCP_REST_PORT`: Port for the MCP REST server (if not set, REST server is disabled)
+- `MCP_ENABLE_AUTH`: Enable authentication for MCP requests (`true` or `false`)
+- `MCP_API_KEYS`: Comma-separated list of API keys for authentication
+- `MCP_RATE_LIMIT_REQUESTS`: Maximum number of requests per time window
+- `MCP_RATE_LIMIT_WINDOW_MS`: Time window for rate limiting in milliseconds (default: `60000`)
+- `MCP_ENABLE_CORS`: Enable CORS for MCP REST server (`true` or `false`)
+
 ## Local Development
 
 1. Build the project:
@@ -82,7 +96,7 @@ When using `STORAGE_TYPE=s3`, the following environment variables are required:
 
 ## API Endpoints
 
-Brainy Cloud Wrapper provides both REST API and WebSocket API for interacting with the database.
+Brainy Cloud Wrapper provides REST API, WebSocket API, and Model Control Protocol (MCP) API for interacting with the database.
 
 ### REST API
 
@@ -221,6 +235,37 @@ When subscribed, you'll receive messages when relevant events occur:
   }
 }
 ```
+
+### MCP API
+
+The Model Control Protocol (MCP) API provides a standardized interface for external models to access Brainy data and use the augmentation pipeline as tools. The MCP API is available through both WebSocket and REST endpoints.
+
+#### MCP REST API Endpoints
+
+- `POST /mcp/data`: Access Brainy data (search, get, add, etc.)
+- `POST /mcp/tools`: Execute augmentation pipeline tools
+- `POST /mcp/system`: Get system information
+- `POST /mcp/auth`: Authenticate with the MCP service
+- `GET /mcp/tools`: Get available tools
+
+#### MCP WebSocket
+
+Connect to the MCP WebSocket server at `ws://your-server:MCP_WS_PORT` and send JSON messages in the MCP format:
+
+```json
+{
+  "type": "DATA_ACCESS",
+  "requestId": "unique-request-id",
+  "version": "1.0",
+  "operation": "search",
+  "parameters": {
+    "query": "Your search query",
+    "k": 5
+  }
+}
+```
+
+For detailed documentation on the MCP API, see the [MCP documentation](../src/mcp/README.md).
 
 ## Cloud Deployment
 

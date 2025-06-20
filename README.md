@@ -151,6 +151,7 @@ Brainy combines four key technologies to create its adaptive intelligence:
 2. **HNSW Algorithm** - Enables fast similarity search through a hierarchical graph structure (like a super-efficient
    treasure map for your data)
 3. **Adaptive Environment Detection** - Automatically senses your platform and optimizes accordingly:
+    - Detects browser, Node.js, and serverless environments automatically
     - Adjusts performance parameters based on available resources
     - Learns from query patterns to optimize future searches
     - Tunes itself for your specific use cases the more you use it
@@ -159,6 +160,7 @@ Brainy combines four key technologies to create its adaptive intelligence:
     - Browser: Origin Private File System (OPFS)
     - Node.js: File system
     - Server: S3-compatible storage (optional)
+    - Serverless: In-memory storage with optional cloud persistence
     - Fallback: In-memory storage
     - Automatically migrates between storage types as needed!
 
@@ -731,13 +733,13 @@ const restoreResult = await db.restore(backupData, {
   clearExisting: true // Whether to clear existing data before restore
 })
 
-// Restore sparse data (without vectors)
+// Import sparse data (without vectors)
 // Vectors will be automatically created using the embedding function
 const sparseData = {
   nouns: [
     {
       id: '123',
-      // No vector field - will be created during restore
+      // No vector field - will be created during import
       metadata: {
         noun: 'Thing',
         text: 'This text will be used to generate a vector'
@@ -748,7 +750,7 @@ const sparseData = {
   version: '1.0.0'
 }
 
-const sparseRestoreResult = await db.restore(sparseData)
+const sparseImportResult = await db.importSparseData(sparseData)
 ```
 
 ### CLI Backup/Restore
@@ -760,8 +762,8 @@ brainy backup --output brainy-backup.json
 # Restore data from a file
 brainy restore --input brainy-backup.json --clear-existing
 
-# Restore sparse data (without vectors)
-brainy restore --input sparse-data.json
+# Import sparse data (without vectors)
+brainy import-sparse --input sparse-data.json
 ```
 
 ## 🔋 Embedding
@@ -782,7 +784,54 @@ Brainy includes an augmentation system for extending functionality:
 - **Perception Augmentations**: Data interpretation and visualization
 - **Activation Augmentations**: Trigger actions
 
-## 🌐 Browser Compatibility
+### Model Control Protocol (MCP)
+
+Brainy includes a Model Control Protocol (MCP) implementation that allows external models to access Brainy data and use the augmentation pipeline as tools:
+
+- **BrainyMCPAdapter**: Provides access to Brainy data through MCP
+- **MCPAugmentationToolset**: Exposes the augmentation pipeline as tools
+- **BrainyMCPService**: Integrates the adapter and toolset, providing WebSocket and REST server implementations
+
+The MCP components have different environment compatibility:
+
+- **BrainyMCPAdapter** and **MCPAugmentationToolset** can run in any environment (browser, Node.js, server)
+- **BrainyMCPService** has core functionality that works in any environment, but its server functionality (WebSocket/REST) has been moved to the cloud-wrapper project to avoid including Node.js-specific dependencies in the browser bundle
+
+For detailed documentation and usage examples, see the [MCP documentation](src/mcp/README.md).
+
+## 🌐 Cross-Environment Compatibility
+
+Brainy is designed to run seamlessly in any environment, from browsers to Node.js to serverless functions and containers. All Brainy data, functions, and augmentations are environment-agnostic, allowing you to use the same code everywhere.
+
+### Environment Detection
+
+Brainy automatically detects the environment it's running in:
+
+```typescript
+import { environment } from '@soulcraft/brainy'
+
+// Check which environment we're running in
+console.log(`Running in ${
+  environment.isBrowser ? 'browser' : 
+  environment.isNode ? 'Node.js' : 
+  'serverless/unknown'
+} environment`)
+```
+
+### Adaptive Storage
+
+Storage adapters are automatically selected based on the environment:
+
+- **Browser**: Uses Origin Private File System (OPFS) when available, falls back to in-memory storage
+- **Node.js**: Uses file system storage by default, with options for S3-compatible cloud storage
+- **Serverless**: Uses in-memory storage with options for cloud persistence
+- **Container**: Automatically detects and uses the appropriate storage based on available capabilities
+
+### Dynamic Imports
+
+Brainy uses dynamic imports to load environment-specific dependencies only when needed, keeping the bundle size small and ensuring compatibility across environments.
+
+### Browser Support
 
 Works in all modern browsers:
 
@@ -808,6 +857,7 @@ Key features of the cloud wrapper:
 
 - RESTful API for standard CRUD operations
 - WebSocket API for real-time updates and subscriptions
+- Model Control Protocol (MCP) service for external model access
 - Support for multiple storage backends (Memory, FileSystem, S3)
 - Configurable via environment variables
 - Deployment scripts for AWS, Google Cloud, and Cloudflare
