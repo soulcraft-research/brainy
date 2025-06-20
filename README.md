@@ -14,44 +14,33 @@
 
 ## ✨ Overview
 
-Say hello to Brainy, your new favorite data sidekick! 🎉 Brainy combines the power of vector search with graph
-relationships in a lightweight, cross-platform database that's as smart as it is fun to use. Whether you're building AI
-applications, recommendation systems, or knowledge graphs, Brainy provides the tools you need to store, connect, and
-retrieve your data intelligently.
+Brainy combines the power of vector search with graph relationships in a lightweight, cross-platform database. Whether you're building AI applications, recommendation systems, or knowledge graphs, Brainy provides the tools you need to store, connect, and retrieve your data intelligently.
 
-What makes Brainy special? It intelligently adapts to you and your environment! Like a chameleon with a PhD, Brainy
-automatically detects your platform, adjusts its storage strategy, and optimizes performance based on your usage
-patterns. The more you use it, the smarter it gets - learning from your data to provide increasingly relevant results
-and connections.
+What makes Brainy special? It intelligently adapts to your environment! Brainy automatically detects your platform, adjusts its storage strategy, and optimizes performance based on your usage patterns. The more you use it, the smarter it gets - learning from your data to provide increasingly relevant results and connections.
 
 ### 🚀 Key Features
 
-- **Run Everywhere** - Run Brainy in a browser, container, serverless cloud service or the terminal!
-- **Vector Search** - Find semantically similar content using embeddings (like having ESP for your data!)
-- **Graph Relationships** - Connect data with meaningful relationships (your data's social network)
-- **Streaming Pipeline** - Process data in real-time as it flows through the system (like a data waterslide!)
-- **Extensible Augmentations** - Customize and extend functionality with pluggable components (LEGO blocks for your
-  data!)
-- **Built-in Conduits** - Sync and scale across instances with WebSocket and WebRTC (your data's teleportation system!)
-- **TensorFlow Integration** - Use TensorFlow.js for high-quality embeddings (included as a required dependency)
+- **Run Everywhere** - Works in browsers, Node.js, serverless functions, and containers
+- **Vector Search** - Find semantically similar content using embeddings
+- **Graph Relationships** - Connect data with meaningful relationships
+- **Streaming Pipeline** - Process data in real-time as it flows through the system
+- **Extensible Augmentations** - Customize and extend functionality with pluggable components
+- **Built-in Conduits** - Sync and scale across instances with WebSocket and WebRTC
+- **TensorFlow Integration** - Use TensorFlow.js for high-quality embeddings
 - **Adaptive Intelligence** - Automatically optimizes for your environment and usage patterns
-- **Cross-Platform** - Works everywhere you do: browsers, Node.js, and server environments
-- **Persistent Storage** - Data persists across sessions and scales to any size (no memory loss here, even for
-  elephant-sized data!)
-- **TypeScript Support** - Fully typed API with generics (for those who like their code tidy)
-- **CLI Tools** - Powerful command-line interface for data management (command line wizardry)
+- **Persistent Storage** - Data persists across sessions and scales to any size
+- **TypeScript Support** - Fully typed API with generics
+- **CLI Tools** - Powerful command-line interface for data management
 
-## 📊 What Can You Build? (The Fun Stuff!)
+## 📊 What Can You Build?
 
-- **Semantic Search Engines** - Find content based on meaning, not just keywords (mind-reading for your data!)
-- **Recommendation Systems** - Suggest similar items based on vector similarity (like a friend who really gets your
-  taste)
-- **Knowledge Graphs** - Build connected data structures with relationships (your data's family tree)
-- **AI Applications** - Store and retrieve embeddings for machine learning models (brain food for your AI)
+- **Semantic Search Engines** - Find content based on meaning, not just keywords
+- **Recommendation Systems** - Suggest similar items based on vector similarity
+- **Knowledge Graphs** - Build connected data structures with relationships
+- **AI Applications** - Store and retrieve embeddings for machine learning models
 - **AI-Enhanced Applications** - Build applications that leverage vector embeddings for intelligent data processing
-- **Data Organization Tools** - Automatically categorize and connect related information (like having a librarian in
-  your code)
-- **Adaptive Experiences** - Create applications that learn and evolve with your users (digital chameleons!)
+- **Data Organization Tools** - Automatically categorize and connect related information
+- **Adaptive Experiences** - Create applications that learn and evolve with your users
 
 ## 🔧 Installation
 
@@ -59,11 +48,7 @@ and connections.
 npm install @soulcraft/brainy
 ```
 
-### TensorFlow.js Support
-
-TensorFlow-based embeddings are now included as required dependencies. All necessary TensorFlow.js packages are automatically installed when you install Brainy.
-
-Note: If you encounter dependency conflicts with TensorFlow.js packages, you may need to use the `--legacy-peer-deps` flag:
+TensorFlow.js packages are included as required dependencies and will be automatically installed. If you encounter dependency conflicts, you may need to use the `--legacy-peer-deps` flag:
 
 ```bash
 npm install @soulcraft/brainy --legacy-peer-deps
@@ -71,13 +56,10 @@ npm install @soulcraft/brainy --legacy-peer-deps
 
 ## 🏁 Quick Start
 
-Brainy now uses a unified build that automatically adapts to your environment (Node.js, browser, or serverless), so you can use the same code everywhere!
+Brainy uses a unified build that automatically adapts to your environment (Node.js, browser, or serverless):
 
 ```typescript
-import {BrainyData, NounType, VerbType, environment} from '@soulcraft/brainy'
-
-// Check which environment we're running in (optional)
-console.log(`Running in ${environment.isBrowser ? 'browser' : environment.isNode ? 'Node.js' : 'serverless'} environment`)
+import { BrainyData, NounType, VerbType } from '@soulcraft/brainy'
 
 // Create and initialize the database
 const db = new BrainyData()
@@ -85,55 +67,46 @@ await db.init()
 
 // Add data (automatically converted to vectors)
 const catId = await db.add("Cats are independent pets", {
-    noun: NounType.Thing,
-    category: 'animal'
+  noun: NounType.Thing,
+  category: 'animal'
 })
 
 const dogId = await db.add("Dogs are loyal companions", {
-    noun: NounType.Thing,
-    category: 'animal'
+  noun: NounType.Thing,
+  category: 'animal'
 })
 
 // Search for similar items
 const results = await db.searchText("feline pets", 2)
 console.log(results)
-// Returns items similar to "feline pets" with similarity scores
 
 // Add a relationship between items
 await db.addVerb(catId, dogId, {
-    verb: VerbType.RelatedTo,
-    description: 'Both are common household pets'
+  verb: VerbType.RelatedTo,
+  description: 'Both are common household pets'
 })
 ```
 
-### Usage Options
-
-Brainy's unified build works in all environments, but you have several import options:
+### Import Options
 
 ```typescript
 // Standard import - automatically adapts to any environment
-import {BrainyData, NounType, VerbType, environment} from '@soulcraft/brainy'
+import { BrainyData } from '@soulcraft/brainy'
 
 // Minified version for production
-import {BrainyData, NounType, VerbType} from '@soulcraft/brainy/min'
-
-// Use the same API in any environment
-const db = new BrainyData()
-await db.init()
-// ...
+import { BrainyData } from '@soulcraft/brainy/min'
 ```
 
-#### Using a script tag in HTML
+### Browser Usage
 
 ```html
 <script type="module">
   // Use the CDN to load the unified build
-  import {BrainyData, NounType, VerbType} from 'https://cdn.jsdelivr.net/npm/@soulcraft/brainy/dist/unified.js'
+  import { BrainyData } from 'https://cdn.jsdelivr.net/npm/@soulcraft/brainy/dist/unified.js'
 
-  // Or use the minified version
-  // import {BrainyData, NounType, VerbType} from 'https://cdn.jsdelivr.net/npm/@soulcraft/brainy/dist/unified.min.js'
+  // Or minified version
+  // import { BrainyData } from 'https://cdn.jsdelivr.net/npm/@soulcraft/brainy/dist/unified.min.js'
 
-  // Use the same API as in Node.js
   const db = new BrainyData()
   await db.init()
   // ...
@@ -142,184 +115,176 @@ await db.init()
 
 Modern bundlers like Webpack, Rollup, and Vite will automatically use the unified build which adapts to any environment.
 
-## 🧩 How It Works (The Magic Behind the Curtain)
+## 🧩 How It Works
 
 Brainy combines four key technologies to create its adaptive intelligence:
 
-1. **Vector Embeddings** - Converts data (text, images, etc.) into numerical vectors that capture semantic meaning (
-   translating your data into brain-speak!)
-2. **HNSW Algorithm** - Enables fast similarity search through a hierarchical graph structure (like a super-efficient
-   treasure map for your data)
+1. **Vector Embeddings** - Converts data (text, images, etc.) into numerical vectors that capture semantic meaning
+2. **HNSW Algorithm** - Enables fast similarity search through a hierarchical graph structure
 3. **Adaptive Environment Detection** - Automatically senses your platform and optimizes accordingly:
-    - Detects browser, Node.js, and serverless environments automatically
+    - Detects browser, Node.js, and serverless environments
     - Adjusts performance parameters based on available resources
     - Learns from query patterns to optimize future searches
-    - Tunes itself for your specific use cases the more you use it
-4. **Intelligent Storage Selection** - Uses the best available storage option for your environment, scaling effortlessly
-   to any data size (from bytes to petabytes!):
+    - Tunes itself for your specific use cases
+4. **Intelligent Storage Selection** - Uses the best available storage option for your environment:
     - Browser: Origin Private File System (OPFS)
     - Node.js: File system
     - Server: S3-compatible storage (optional)
     - Serverless: In-memory storage with optional cloud persistence
     - Fallback: In-memory storage
-    - Automatically migrates between storage types as needed!
+    - Automatically migrates between storage types as needed
 
-## 🚀 The Brainy Pipeline (Data's Wild Ride!)
+## 🚀 The Brainy Pipeline
 
-Brainy's data processing pipeline transforms raw data into searchable, connected knowledge that gets smarter over time.
-Here's how the magic happens:
+Brainy's data processing pipeline transforms raw data into searchable, connected knowledge that gets smarter over time:
 
 ```
 Raw Data → Embedding → Vector Storage → Graph Connections → Adaptive Learning → Query & Retrieval
 ```
 
-Each time data flows through this pipeline, Brainy learns a little more about your usage patterns and environment,
-making future operations even faster and more relevant!
+Each time data flows through this pipeline, Brainy learns more about your usage patterns and environment, making future operations faster and more relevant.
 
-### 🔄 Pipeline Stages (The Journey of Your Data)
+### Pipeline Stages
 
-1. **Data Ingestion** 🍽️
-    - Raw text or pre-computed vectors enter the pipeline (dinner time for data!)
-    - Data is validated and prepared for processing (washing hands before eating)
+1. **Data Ingestion**
+    - Raw text or pre-computed vectors enter the pipeline
+    - Data is validated and prepared for processing
 
-2. **Embedding Generation** 🧠
-    - Text is transformed into numerical vectors using embedding models (language → math magic)
+2. **Embedding Generation**
+    - Text is transformed into numerical vectors using embedding models
     - Uses TensorFlow Universal Sentence Encoder for high-quality text embeddings
-    - Custom embedding functions can be plugged in for specialized domains (bring your own secret sauce)
+    - Custom embedding functions can be plugged in for specialized domains
 
-3. **Vector Indexing** 🔍
-    - Vectors are indexed using the HNSW algorithm (filing your data in the brain cabinet)
-    - Hierarchical structure enables lightning-fast similarity search (express lanes for your queries)
-    - Configurable parameters for precision vs. performance tradeoffs (dial in your perfect balance)
+3. **Vector Indexing**
+    - Vectors are indexed using the HNSW algorithm
+    - Hierarchical structure enables fast similarity search
+    - Configurable parameters for precision vs. performance tradeoffs
 
-4. **Graph Construction** 🕸️
-    - Nouns (entities) become nodes in the knowledge graph (data gets its own social network)
-    - Verbs (relationships) connect related entities (making friends and connections)
-    - Typed relationships add semantic meaning to connections (not just friends, but BFFs)
+4. **Graph Construction**
+    - Nouns (entities) become nodes in the knowledge graph
+    - Verbs (relationships) connect related entities
+    - Typed relationships add semantic meaning to connections
 
-5. **Adaptive Learning** 🌱
-    - Analyzes usage patterns to optimize future operations (gets to know your habits)
-    - Tunes performance parameters based on your environment (adapts to your digital home)
-    - Adjusts search strategies based on query history (learns what you're really looking for)
-    - Becomes more efficient and relevant the more you use it (like a good friendship)
+5. **Adaptive Learning**
+    - Analyzes usage patterns to optimize future operations
+    - Tunes performance parameters based on your environment
+    - Adjusts search strategies based on query history
+    - Becomes more efficient and relevant the more you use it
 
-6. **Intelligent Storage** 💾
-    - Data is saved using the optimal storage for your environment (finds the coziest home for your data)
-    - Automatic selection between OPFS, filesystem, S3, or memory (no manual configuration needed!)
-    - Migrates between storage types as your application's needs evolve (moves houses without you noticing)
-    - Scales effortlessly from tiny datasets to massive data collections (from ant-sized to elephant-sized data, no
-      problem!)
-    - Configurable storage adapters for custom persistence needs (design your own dream data home)
+6. **Intelligent Storage**
+    - Data is saved using the optimal storage for your environment
+    - Automatic selection between OPFS, filesystem, S3, or memory
+    - Migrates between storage types as your application's needs evolve
+    - Scales from tiny datasets to massive data collections
+    - Configurable storage adapters for custom persistence needs
 
-### 🧩 Augmentation Types
+### Augmentation Types
 
 Brainy uses a powerful augmentation system to extend functionality. Augmentations are processed in the following order:
 
-1. **SENSE** 👁️
+1. **SENSE**
     - Ingests and processes raw, unstructured data into nouns and verbs
     - Handles text, images, audio streams, and other input formats
     - Example: Converting raw text into structured entities
 
-2. **MEMORY** 💾
+2. **MEMORY**
     - Provides storage capabilities for data in different formats
     - Manages persistence across sessions
     - Example: Storing vectors in OPFS or filesystem
 
-3. **COGNITION** 🧠
+3. **COGNITION**
     - Enables advanced reasoning, inference, and logical operations
     - Analyzes relationships between entities
     - Examples:
         - Inferring new connections between existing data
         - Deriving insights from graph relationships
 
-4. **CONDUIT** 🔌
-    - Establishes high-bandwidth channels for structured data exchange
+4. **CONDUIT**
+    - Establishes channels for structured data exchange
     - Connects with external systems and syncs between Brainy instances
     - Two built-in iConduit augmentations for scaling out and syncing:
-        - **WebSocket iConduit** - Syncs data between browsers and servers (like a digital postal service with
-          superpowers!)
-        - **WebRTC iConduit** - Direct peer-to-peer syncing between browsers (like telepathy for your data, no middleman
-          required!)
+        - **WebSocket iConduit** - Syncs data between browsers and servers
+        - **WebRTC iConduit** - Direct peer-to-peer syncing between browsers
     - Examples:
         - Integrating with third-party APIs
         - Syncing Brainy instances between browsers using WebSockets
         - Peer-to-peer syncing between browsers using WebRTC
 
-5. **ACTIVATION** ⚡
+5. **ACTIVATION**
     - Initiates actions, responses, or data manipulations
     - Triggers events based on data changes
     - Example: Sending notifications when new data is processed
 
-6. **PERCEPTION** 🔍
+6. **PERCEPTION**
     - Interprets, contextualizes, and visualizes identified nouns and verbs
     - Creates meaningful representations of data
     - Example: Generating visualizations of graph relationships
 
-7. **DIALOG** 💬
+7. **DIALOG**
     - Facilitates natural language understanding and generation
     - Enables conversational interactions
     - Example: Processing user queries and generating responses
 
-8. **WEBSOCKET** 🌐
+8. **WEBSOCKET**
     - Enables real-time communication via WebSockets
     - Can be combined with other augmentation types
     - Example: Streaming data processing in real-time
 
-### 🌊 Streaming Data Support
+### Streaming Data Support
 
 Brainy's pipeline is designed to handle streaming data efficiently:
 
-1. **WebSocket Integration** 🔄
+1. **WebSocket Integration**
     - Built-in support for WebSocket connections
     - Process data as it arrives without blocking
     - Example: `setupWebSocketPipeline(url, dataType, options)`
 
-2. **Asynchronous Processing** ⚡
+2. **Asynchronous Processing**
     - Non-blocking architecture for real-time data handling
     - Parallel processing of incoming streams
     - Example: `createWebSocketHandler(connection, dataType, options)`
 
-3. **Event-Based Architecture** 📡
+3. **Event-Based Architecture**
     - Augmentations can listen to data feeds and streams
     - Real-time updates propagate through the pipeline
     - Example: `listenToFeed(feedUrl, callback)`
 
-4. **Threaded Execution** 🧵
+4. **Threaded Execution**
     - Optional multi-threading for high-performance streaming
     - Configurable execution modes (SEQUENTIAL, PARALLEL, THREADED)
     - Example: `executeTypedPipeline(augmentations, method, args, { mode: ExecutionMode.THREADED })`
 
-### 🏗️ Build System
+### Build System
 
 Brainy uses a modern build system that optimizes for both Node.js and browser environments:
 
-1. **ES Modules** 📦
+1. **ES Modules**
     - Built as ES modules for maximum compatibility
     - Works in modern browsers and Node.js environments
     - Separate optimized builds for browser and Node.js
 
-2. **Environment-Specific Builds** 🔧
+2. **Environment-Specific Builds**
     - **Node.js Build**: Optimized for server environments with full functionality
     - **Browser Build**: Optimized for browser environments with reduced bundle size
     - Conditional exports in package.json for automatic environment detection
 
-3. **Environment Detection** 🔍
+3. **Environment Detection**
     - Automatically detects whether it's running in a browser or Node.js
     - Loads appropriate dependencies and functionality based on the environment
     - Provides consistent API across all environments
 
-4. **TypeScript** 📝
+4. **TypeScript**
     - Written in TypeScript for type safety and better developer experience
     - Generates type definitions for TypeScript users
     - Compiled to ES2020 for modern JavaScript environments
 
-5. **Build Scripts** 🛠️
+5. **Build Scripts**
     - `npm run build`: Builds the Node.js version
     - `npm run build:browser`: Builds the browser-optimized version
     - `npm run build:all`: Builds both versions
     - `npm run demo`: Builds all versions and starts a demo server
 
-### 🏃‍♀️ Running the Pipeline
+### Running the Pipeline
 
 The pipeline runs automatically when you:
 
@@ -347,11 +312,11 @@ brainy search "Your query here" --limit 5
 brainy addVerb <sourceId> <targetId> RelatedTo
 ```
 
-### 🔧 Extending the Pipeline
+### Extending the Pipeline
 
 Brainy's pipeline is designed for extensibility at every stage:
 
-1. **Custom Embedding** 🧩
+1. **Custom Embedding**
    ```typescript
    // Create your own embedding function
    const myEmbedder = async (text) => {
@@ -365,7 +330,7 @@ Brainy's pipeline is designed for extensibility at every stage:
    })
    ```
 
-2. **Custom Distance Functions** 📏
+2. **Custom Distance Functions**
    ```typescript
    // Define your own distance function
    const myDistance = (a, b) => {
@@ -379,7 +344,7 @@ Brainy's pipeline is designed for extensibility at every stage:
    })
    ```
 
-3. **Custom Storage Adapters** 📦
+3. **Custom Storage Adapters**
    ```typescript
    // Implement the StorageAdapter interface
    class MyStorage implements StorageAdapter {
@@ -392,7 +357,7 @@ Brainy's pipeline is designed for extensibility at every stage:
    })
    ```
 
-4. **Augmentations System** 🧠
+4. **Augmentations System**
    ```typescript
    // Create custom augmentations to extend functionality
    const myAugmentation = {
@@ -405,7 +370,7 @@ Brainy's pipeline is designed for extensibility at every stage:
    db.registerAugmentation(myAugmentation)
    ```
 
-## 📝 Data Model
+## Data Model
 
 Brainy uses a graph-based data model with two primary concepts:
 
@@ -425,7 +390,7 @@ Connections between nouns (edges in the graph):
 - Verbs have types that define the relationship (RelatedTo, Controls, Contains, etc.)
 - Verbs can have their own metadata to describe the relationship
 
-## 🖥️ Command Line Interface
+## Command Line Interface
 
 Brainy includes a powerful CLI for managing your data:
 
@@ -451,7 +416,7 @@ brainy visualize
 brainy visualize --root <id> --depth 3
 ```
 
-### 🔄 Using During Development
+### Development Usage
 
 ```bash
 # Run the CLI directly from the source
@@ -461,7 +426,7 @@ npm run cli help
 npm run cli generate-random-graph --noun-count 20 --verb-count 40
 ```
 
-### 🔍 Available Commands
+### Available Commands
 
 #### Basic Database Operations:
 
@@ -494,7 +459,7 @@ npm run cli generate-random-graph --noun-count 20 --verb-count 40
     - `-v, --verbose` - Show detailed output
 
 
-## 🔌 API Reference
+## API Reference
 
 ### Database Management
 
@@ -546,7 +511,6 @@ const thingNouns = await db.searchByNounTypes([NounType.Thing], numResults)
 
 ### Working with Verbs (Relationships)
 
-
 ```typescript
 // Add a relationship between nouns
 await db.addVerb(sourceId, targetId, {
@@ -574,12 +538,12 @@ await db.deleteVerb(verbId)
 ```
 
 
-## ⚙️ Advanced Configuration
+## Advanced Configuration
 
 ### Embedding
 
 ```typescript
-import {BrainyData, createTensorFlowEmbeddingFunction} from '@soulcraft/brainy'
+import { BrainyData, createTensorFlowEmbeddingFunction } from '@soulcraft/brainy'
 
 // Use the TensorFlow Universal Sentence Encoder embedding function
 const db = new BrainyData({
@@ -594,7 +558,7 @@ const vector = await db.embed("Some text to convert to a vector")
 ### Performance Tuning
 
 ```typescript
-import {BrainyData, euclideanDistance} from '@soulcraft/brainy'
+import { BrainyData, euclideanDistance } from '@soulcraft/brainy'
 
 // Configure with custom options
 const db = new BrainyData({
@@ -630,18 +594,17 @@ const db = new BrainyData({
 
 ### Optimized HNSW for Large Datasets
 
-Brainy includes an optimized HNSW index implementation designed specifically for large datasets that may not fit entirely in memory. This implementation uses a hybrid approach combining:
+Brainy includes an optimized HNSW index implementation for large datasets that may not fit entirely in memory, using a hybrid approach:
 
 1. **Product Quantization** - Reduces vector dimensionality while preserving similarity relationships
 2. **Disk-Based Storage** - Offloads vectors to disk when memory usage exceeds a threshold
 3. **Memory-Efficient Indexing** - Optimizes memory usage for large-scale vector collections
 
 ```typescript
-import {BrainyData} from '@soulcraft/brainy'
+import { BrainyData } from '@soulcraft/brainy'
 
 // Configure with optimized HNSW index for large datasets
 const db = new BrainyData({
-    // Use the optimized HNSW index instead of the standard one
     hnswOptimized: {
         // Standard HNSW parameters
         M: 16,              // Max connections per noun
@@ -664,7 +627,6 @@ const db = new BrainyData({
 
     // Storage configuration (required for disk-based index)
     storage: {
-        // Choose appropriate storage for your environment
         requestPersistentStorage: true
     }
 })
@@ -677,26 +639,18 @@ const db = new BrainyData({
 // Check status to see memory usage and optimization details
 const status = await db.status()
 console.log(status.details.index)
-// Example output:
-// {
-//   indexSize: 10000,
-//   optimized: true,
-//   memoryUsage: 536870912,  // Memory usage in bytes
-//   productQuantization: true,
-//   diskBasedIndex: true
-// }
 ```
 
-## 🧪 Distance Functions
+## Distance Functions
 
 - `cosineDistance` (default)
 - `euclideanDistance`
 - `manhattanDistance`
 - `dotProductDistance`
 
-## 📤📥 Backup and Restore
+## Backup and Restore
 
-Brainy provides powerful backup and restore capabilities that allow you to:
+Brainy provides backup and restore capabilities that allow you to:
 - Back up your data
 - Transfer data between Brainy instances
 - Restore existing data into Brainy for vectorization and indexing
@@ -722,7 +676,7 @@ fs.writeFileSync('brainy-backup.json', JSON.stringify(backupData, null, 2))
 
 ### Restoring Data
 
-Brainy's restore functionality is flexible and can handle:
+Brainy's restore functionality can handle:
 1. Complete backups with vectors and index data
 2. Sparse data without vectors (vectors will be created during restore)
 3. Data without HNSW index (index will be reconstructed if needed)
@@ -766,14 +720,14 @@ brainy restore --input brainy-backup.json --clear-existing
 brainy import-sparse --input sparse-data.json
 ```
 
-## 🔋 Embedding
+## Embedding
 
 Brainy uses the following embedding approach:
 
 - TensorFlow Universal Sentence Encoder (high-quality text embeddings)
 - Custom embedding functions can be plugged in for specialized domains
 
-## 🧰 Extensions
+## Extensions
 
 Brainy includes an augmentation system for extending functionality:
 
@@ -792,14 +746,14 @@ Brainy includes a Model Control Protocol (MCP) implementation that allows extern
 - **MCPAugmentationToolset**: Exposes the augmentation pipeline as tools
 - **BrainyMCPService**: Integrates the adapter and toolset, providing WebSocket and REST server implementations
 
-The MCP components have different environment compatibility:
+Environment compatibility:
 
 - **BrainyMCPAdapter** and **MCPAugmentationToolset** can run in any environment (browser, Node.js, server)
-- **BrainyMCPService** has core functionality that works in any environment, but its server functionality (WebSocket/REST) has been moved to the cloud-wrapper project to avoid including Node.js-specific dependencies in the browser bundle
+- **BrainyMCPService** core functionality works in any environment, but server functionality (WebSocket/REST) is in the cloud-wrapper project
 
 For detailed documentation and usage examples, see the [MCP documentation](src/mcp/README.md).
 
-## 🌐 Cross-Environment Compatibility
+## Cross-Environment Compatibility
 
 Brainy is designed to run seamlessly in any environment, from browsers to Node.js to serverless functions and containers. All Brainy data, functions, and augmentations are environment-agnostic, allowing you to use the same code everywhere.
 
@@ -842,7 +796,7 @@ Works in all modern browsers:
 
 For browsers without OPFS support, falls back to in-memory storage.
 
-## ☁️ Cloud Deployment
+## Cloud Deployment
 
 Brainy can be deployed as a standalone web service on various cloud platforms using the included cloud wrapper:
 
@@ -882,12 +836,12 @@ npm run deploy:cloud
 
 Before deploying, make sure to configure the appropriate environment variables in the `cloud-wrapper/.env` file. See the [Cloud Wrapper README](cloud-wrapper/README.md) for detailed configuration instructions and API documentation.
 
-## 🔗 Related Projects
+## Related Projects
 
 - **[Cartographer](https://github.com/sodal-project/cartographer)** - A companion project that provides standardized
   interfaces for interacting with Brainy
 
-## 📚 Demo
+## Demo
 
 The repository includes a comprehensive demo that showcases Brainy's main features:
 
@@ -897,15 +851,12 @@ The repository includes a comprehensive demo that showcases Brainy's main featur
     - How the noun-verb data model works
     - How HNSW search works
 
-### Syncing Brainy Instances
+## Syncing Brainy Instances
 
 You can use the conduit augmentations to sync Brainy instances:
 
-- **WebSocket iConduit**: For syncing between browsers and servers, or between servers (like a digital postal service
-  with superpowers!). WebSockets cannot be used for direct browser-to-browser communication without a server in the
-  middle.
-- **WebRTC iConduit**: For direct peer-to-peer syncing between browsers (like telepathy for your data, no middleman
-  required!). This is the recommended approach for browser-to-browser communication.
+- **WebSocket iConduit**: For syncing between browsers and servers, or between servers. WebSockets cannot be used for direct browser-to-browser communication without a server in the middle.
+- **WebRTC iConduit**: For direct peer-to-peer syncing between browsers. This is the recommended approach for browser-to-browser communication.
 
 #### WebSocket Sync Example
 
@@ -1076,63 +1027,23 @@ await db.shutDown()
 
 For a complete demonstration of Brainy's features, see the [demo page](examples/demo.html).
 
-## 📋 Requirements
+## Requirements
 
 - Node.js >= 23.11.0
 
-## 🤝 Contributing
+## Contributing
+
+For detailed contribution guidelines, please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Code Style Guidelines
 
 Brainy follows a specific code style to maintain consistency throughout the codebase:
 
-1. **No Semicolons**: All code in the project should avoid using semicolons wherever possible. This applies to:
-    - Source code files (.ts, .js)
-    - Generated code
-    - Code examples in documentation
-    - Templates and snippets
-
-2. **Formatting**: The project uses Prettier for code formatting with the following settings:
-    - No semicolons (`"semi": false`)
-    - Single quotes for strings (`"singleQuote": true`)
-    - 2-space indentation (`"tabWidth": 2`)
-    - Always use parentheses around arrow function parameters (`"arrowParens": "always"`)
-    - Place the closing bracket of JSX elements on the same line (`"bracketSameLine": true`)
-    - Add spaces between brackets and object literals (`"bracketSpacing": true`)
-    - Line width of 80 characters (`"printWidth": 80`)
-    - No trailing commas (`"trailingComma": "none"`)
-    - Use spaces instead of tabs (`"useTabs": false`)
-
-3. **Linting**: ESLint is configured with the following rules:
-    - No semicolons:
-      ```json
-      "semi": ["error", "never"],
-      "@typescript-eslint/semi": ["error", "never"]
-      ```
-    - Unused variables handling:
-      ```json
-      "no-unused-vars": "off",
-      "@typescript-eslint/no-unused-vars": ["warn", {
-        "args": "after-used",
-        "argsIgnorePattern": "^_"
-      }]
-      ```
-    - Extends recommended ESLint and TypeScript ESLint configurations
-
-4. **TypeScript Configuration**:
-    - Strict type checking enabled (`"strict": true`)
-    - Consistent casing in file names enforced (`"forceConsistentCasingInFileNames": true`)
-    - ES2020 target with Node.js module system
-    - Source maps generated for debugging
-
-5. **Commit Messages**:
-    - Use the imperative mood ("Add feature" not "Added feature")
-    - Keep the first line concise (under 50 characters)
-    - Reference issues and pull requests where appropriate
-    - Provide detailed explanations in the commit body when necessary
-
-When contributing to the project, please ensure your code follows these guidelines. The project's CI/CD pipeline will
-automatically check for style violations.
+1. **No Semicolons**: All code in the project should avoid using semicolons wherever possible
+2. **Formatting**: The project uses Prettier for code formatting
+3. **Linting**: ESLint is configured with specific rules for the project
+4. **TypeScript Configuration**: Strict type checking enabled with ES2020 target
+5. **Commit Messages**: Use the imperative mood and keep the first line concise
 
 ### Development Workflow
 
@@ -1142,6 +1053,6 @@ automatically check for style violations.
 4. Run tests with `npm test`
 5. Submit a pull request
 
-## 📄 License
+## License
 
 [MIT](LICENSE)
