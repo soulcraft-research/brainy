@@ -675,7 +675,7 @@ await db.init()
         <button id="clear-db-btn" class="danger">Clear Database</button>
         <button id="export-data-btn">Backup Data</button>
         <button id="import-data-btn">Restore Data</button>
-        <button id="import-sparse-data-btn" class="secondary">Restore Sparse Data</button>
+        <button id="import-sparse-data-btn" class="secondary">Import Sparse Data</button>
       </div>
 
       <div class="results" id="db-status">
@@ -1027,7 +1027,7 @@ await db.init()
     document.getElementById('clear-db-btn').addEventListener('click', clearDatabase)
     document.getElementById('export-data-btn').addEventListener('click', backupData)
     document.getElementById('import-data-btn').addEventListener('click', restoreData)
-    document.getElementById('import-sparse-data-btn').addEventListener('click', restoreSparseData)
+    document.getElementById('import-sparse-data-btn').addEventListener('click', importSparseData)
 
     // Data model operations - Legacy buttons
     document.getElementById('add-entity-btn')?.addEventListener('click', addEntity)
@@ -1481,8 +1481,8 @@ await db.init()
     input.click()
   }
 
-  // Function to create and restore sparse data (without vectors)
-  async function restoreSparseData() {
+  // Function to create and import sparse data (without vectors)
+  async function importSparseData() {
     if (!database) {
       log('db-status', 'Please initialize database first')
       return
@@ -1521,13 +1521,13 @@ await db.init()
         version: '1.0.0'
       }
 
-      // Restore the sparse data
-      await database.restore(sparseData)
-      log('db-status', 'Sparse data restored successfully')
+      // Import the sparse data
+      await database.importSparseData(sparseData)
+      log('db-status', 'Sparse data imported successfully')
       log('db-status', 'Vectors were automatically created for items without vectors')
       updateDatabaseVisualization()
     } catch (error) {
-      log('db-status', 'Error restoring sparse data: ' + error.message)
+      log('db-status', 'Error importing sparse data: ' + error.message)
     }
   }
 
