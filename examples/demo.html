@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Brainy Interactive Demo - A Lightweight Graph & Vector Data Platform</title>
-  <link rel="icon" href="../brainy.png" type="image/png">
+  <link rel="icon" href="https://raw.githubusercontent.com/soulcraft/brainy/main/brainy.png" type="image/png">
   <!--
   IMPORTANT: This demo must be served over HTTP, not opened directly as a file.
   Run the following command from the project root directory:
@@ -57,8 +57,9 @@
       }
 
       header {
-          text-align: center;
-          padding: 40px 0;
+          display: flex;
+          align-items: center;
+          padding: 30px;
           background-color: var(--card-bg);
           border-radius: var(--border-radius);
           box-shadow: var(--box-shadow);
@@ -66,8 +67,12 @@
       }
 
       header img {
-          width: 150px;
-          margin-bottom: 20px;
+          width: 120px;
+          margin-right: 20px;
+      }
+
+      .header-text {
+          text-align: left;
       }
 
       h1, h2, h3 {
@@ -185,6 +190,31 @@
           transform: scale(0.95);
       }
 
+      .zoom-button {
+          width: 2.5rem;
+          height: 2.5rem;
+          border-radius: 50%;
+          background-color: var(--md3-primary);
+          color: var(--md3-on-primary);
+          border: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0.125rem 0.25rem var(--md3-shadow);
+          transition: background-color 0.2s, transform 0.2s;
+      }
+
+      .zoom-button:hover {
+          background-color: #7B68B5;
+          transform: scale(1.05);
+      }
+
+      .zoom-button:active {
+          background-color: #553B93;
+          transform: scale(0.95);
+      }
+
       .graph-container {
           width: 100%;
           height: 100%;
@@ -255,6 +285,93 @@
           overflow-y: auto;
           font-family: monospace;
           white-space: pre-wrap;
+      }
+
+      /* Google-like search results styles */
+      .search-stats {
+          color: #70757a;
+          font-size: 14px;
+          margin-bottom: 10px;
+          font-family: Arial, sans-serif;
+      }
+
+      .search-results-list {
+          font-family: Arial, sans-serif;
+          white-space: normal;
+      }
+
+      .search-result-item {
+          margin-bottom: 25px;
+          padding-bottom: 15px;
+          border-bottom: 1px solid #dfe1e5;
+      }
+
+      .result-title {
+          color: #1a0dab;
+          font-size: 18px;
+          margin: 0 0 5px 0;
+          font-weight: normal;
+          cursor: pointer;
+      }
+
+      .result-title:hover {
+          text-decoration: underline;
+      }
+
+      .result-score {
+          color: #70757a;
+          font-size: 14px;
+          font-weight: normal;
+          margin-left: 10px;
+      }
+
+      .result-url {
+          color: #006621;
+          font-size: 14px;
+          margin-bottom: 5px;
+      }
+
+      .result-snippet {
+          color: #4d5156;
+          font-size: 14px;
+          line-height: 1.58;
+          margin-bottom: 5px;
+      }
+
+      .result-metadata {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 5px;
+      }
+
+      .metadata-item {
+          background-color: #f1f3f4;
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-size: 12px;
+          color: #4d5156;
+      }
+
+      /* Cluster-specific styles */
+      .cluster-header {
+          margin: 25px 0 15px 0;
+          padding-bottom: 8px;
+          border-bottom: 2px solid #dadce0;
+      }
+
+      .cluster-header h3 {
+          color: #202124;
+          font-size: 20px;
+          font-weight: 500;
+          margin: 0;
+      }
+
+      .cluster-item {
+          margin-bottom: 15px;
+          padding-bottom: 10px;
+          border-bottom: 1px solid #f1f3f4;
+          margin-left: 15px;
       }
 
       .tabs {
@@ -426,7 +543,7 @@
           font-weight: bold;
       }
 
-      .features-overview {
+      .features-overview, .what-can-you-build-section {
           background: linear-gradient(135deg, #193c41, #3f6e65);
           color: white;
           padding: 30px;
@@ -435,7 +552,7 @@
           box-shadow: var(--box-shadow);
       }
 
-      .features-overview h2 {
+      .features-overview h2, .what-can-you-build-section h2 {
           color: white;
           margin-top: 0;
       }
@@ -516,9 +633,11 @@
   </div>
 
   <header>
-    <img src="../brainy.png" alt="Brainy Logo">
-    <h1>Brainy Interactive Demo</h1>
-    <p>A lightweight but powerful graph & vector data platform for AI applications across any environment</p>
+    <img src="https://raw.githubusercontent.com/soulcraft/brainy/main/brainy.png" alt="Brainy Logo">
+    <div class="header-text">
+      <h1>Brainy Interactive Demo</h1>
+      <p>A lightweight but powerful graph & vector data platform for AI applications across any environment</p>
+    </div>
   </header>
 
   <!-- Features Overview Section -->
@@ -583,6 +702,49 @@
         <h4>☁️ Cloud Ready</h4>
         <p>Easy deployment to Google, AWS, Azure, and other cloud platforms</p>
       </div>
+      <div class="feature-item">
+        <h4>🎮 Model Control Protocol (MCP)</h4>
+        <p>Allow external AI models to access Brainy data and use augmentation pipeline as tools</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- What Can You Build Section -->
+  <section class="what-can-you-build-section">
+    <h2>📊 What Can You Build?</h2>
+    <div class="features-list">
+      <div class="feature-item">
+        <h4>🔍 Semantic Search Engines</h4>
+        <p>Find content based on meaning, not just keywords</p>
+      </div>
+      <div class="feature-item">
+        <h4>👍 Recommendation Systems</h4>
+        <p>Suggest similar items based on vector similarity</p>
+      </div>
+      <div class="feature-item">
+        <h4>🧠 Knowledge Graphs</h4>
+        <p>Build connected data structures with relationships</p>
+      </div>
+      <div class="feature-item">
+        <h4>🤖 AI Applications</h4>
+        <p>Store and retrieve embeddings for machine learning models</p>
+      </div>
+      <div class="feature-item">
+        <h4>💡 AI-Enhanced Applications</h4>
+        <p>Build applications that leverage vector embeddings for intelligent data processing</p>
+      </div>
+      <div class="feature-item">
+        <h4>📁 Data Organization Tools</h4>
+        <p>Automatically categorize and connect related information</p>
+      </div>
+      <div class="feature-item">
+        <h4>🔄 Adaptive Experiences</h4>
+        <p>Create applications that learn and evolve with your users</p>
+      </div>
+      <div class="feature-item">
+        <h4>🔌 Model-Integrated Systems</h4>
+        <p>Connect external AI models to Brainy data and tools using MCP</p>
+      </div>
     </div>
   </section>
 
@@ -594,7 +756,7 @@
       <div class="code-tab">
         <h3>Node.js Environment</h3>
         <pre class="code-block">
-import {BrainyData, NounType, VerbType} from '@soulcraft/brainy'
+import { BrainyData, NounType, VerbType } from '@soulcraft/brainy'
 
 // Create and initialize the database
 const db = new BrainyData()
@@ -626,12 +788,12 @@ await db.addVerb(catId, dogId, {
 
       <div class="code-tab">
         <h3>Browser Environment</h3>
-        <p>You can import the browser-optimized version in two ways:</p>
+        <p>Brainy uses a unified build that automatically adapts to your environment:</p>
 
-        <h4>Option 1: Using the browser-specific import</h4>
+        <h4>Option 1: Standard Import</h4>
         <pre class="code-block">
-// Import the browser-optimized version
-import {BrainyData, NounType, VerbType} from '@soulcraft/brainy/browser'
+// Standard import - automatically adapts to any environment
+import { BrainyData, NounType, VerbType } from '@soulcraft/brainy'
 
 // Use the same API as in Node.js
 const db = new BrainyData()
@@ -642,40 +804,39 @@ await db.init()
         <h4>Option 2: Using a script tag in HTML</h4>
         <pre class="code-block">
 &lt;script type="module"&gt;
-  // Import Brainy library directly as a module
-  import {BrainyData, NounType, VerbType} from '../node_modules/@soulcraft/brainy/dist/brainy.js'
+  // Use the CDN to load the unified build
+  import { BrainyData, NounType, VerbType } from 'https://cdn.jsdelivr.net/npm/@soulcraft/brainy/dist/unified.js'
 
-  // Use the same API as in Node.js
+  // Or minified version
+  // import { BrainyData, NounType, VerbType } from 'https://cdn.jsdelivr.net/npm/@soulcraft/brainy/dist/unified.min.js'
+
   const db = new BrainyData()
   await db.init()
   // ...
 &lt;/script&gt;
         </pre>
-        <p>Modern bundlers like Webpack, Rollup, and Vite will automatically select the browser-optimized version when
-          targeting browser environments.</p>
+        <p>Modern bundlers like Webpack, Rollup, and Vite will automatically use the unified build which adapts to any
+          environment.</p>
       </div>
     </div>
   </section>
 
   <section class="demo-section">
     <h2>Interactive Brainy Explorer</h2>
-    <p>This interactive demo allows you to experiment with all of Brainy's features. Initialize the database, add
-      data, create relationships, and perform searches - all with real-time visualizations.</p>
+    <p>This interactive demo guides you through Brainy's features step by step, from basic operations to advanced
+      capabilities.</p>
 
-    <!-- All sections are now visible without tabs -->
-
-    <!-- Database Section -->
-    <div class="section-content" id="database-content">
-      <h3>Database Operations</h3>
-      <p>Initialize the database, add sample data, or clear all data.</p>
+    <!-- Step 1: Getting Started -->
+    <div class="section-content" id="step1-content">
+      <h3>Step 1: Getting Started with Brainy</h3>
+      <p>Let's start by initializing the database and exploring basic operations.</p>
 
       <div class="demo-controls">
         <button id="init-db-btn">Initialize Database</button>
         <button id="add-sample-btn" class="secondary">Add Sample Data</button>
+        <button id="backup-db-btn" class="accent">Backup Data</button>
+        <button id="restore-db-btn" class="accent">Restore Data</button>
         <button id="clear-db-btn" class="danger">Clear Database</button>
-        <button id="export-data-btn">Backup Data</button>
-        <button id="import-data-btn">Restore Data</button>
-        <button id="import-sparse-data-btn" class="secondary">Import Sparse Data</button>
       </div>
 
       <div class="results" id="db-status">
@@ -696,110 +857,49 @@ await db.init()
       </div>
     </div>
 
-    <!-- Data Model Section -->
-    <div class="section-content" id="data-model-content">
-      <h3>Data Model Management</h3>
-      <p>Create entities (nouns), define relationships (verbs), and manage your data schema.</p>
+    <!-- Step 2: Adding Data -->
+    <div class="section-content" id="step2-content">
+      <h3>Step 2: Adding Entities (Nouns)</h3>
+      <p>Now that your database is initialized, let's add some entities (nouns) to it.</p>
 
-      <div class="section-divider"></div>
-
-      <!-- Nouns Section -->
-      <div class="subsection-content" id="nouns-content">
-        <div class="form-group">
-          <label for="noun-type">Noun Type:</label>
-          <select id="noun-type">
-            <option value="person">Person</option>
-            <option value="place">Place</option>
-            <option value="thing">Thing</option>
-            <option value="event">Event</option>
-            <option value="concept">Concept</option>
-            <option value="content">Content</option>
-            <option value="group">Group</option>
-            <option value="list">List</option>
-            <option value="category">Category</option>
-            <option value="custom">Custom</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="noun-id">ID (optional):</label>
-          <input type="text" id="noun-id" placeholder="Leave blank for auto-generated ID">
-        </div>
-
-        <div class="form-group">
-          <label for="noun-name">Name:</label>
-          <input type="text" id="noun-name" placeholder="Name of the entity">
-        </div>
-
-        <div class="form-group">
-          <label for="noun-content">Description/Content:</label>
-          <textarea id="noun-content" placeholder="Description or content of the entity"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label for="noun-tags">Tags (comma-separated):</label>
-          <input type="text" id="noun-tags" placeholder="tag1, tag2, tag3">
-        </div>
-
-        <div class="demo-controls">
-          <button id="add-noun-btn">Add Noun</button>
-          <button id="query-nouns-btn" class="accent">Query Nouns</button>
-        </div>
+      <div class="form-group">
+        <label for="noun-type">Noun Type:</label>
+        <select id="noun-type">
+          <option value="person">Person</option>
+          <option value="place">Place</option>
+          <option value="thing">Thing</option>
+          <option value="event">Event</option>
+          <option value="concept">Concept</option>
+          <option value="content">Content</option>
+          <option value="group">Group</option>
+          <option value="list">List</option>
+          <option value="category">Category</option>
+        </select>
       </div>
 
-      <!-- Verbs Section -->
-      <div class="subsection-content" id="verbs-content">
-        <div class="form-group">
-          <label for="verb-type">Verb Type:</label>
-          <select id="verb-type">
-            <option value="attributedTo">Attributed To</option>
-            <option value="controls">Controls</option>
-            <option value="created">Created</option>
-            <option value="earned">Earned</option>
-            <option value="owns">Owns</option>
-            <option value="memberOf">Member Of</option>
-            <option value="relatedTo">Related To</option>
-            <option value="worksWith">Works With</option>
-            <option value="friendOf">Friend Of</option>
-            <option value="reportsTo">Reports To</option>
-            <option value="supervises">Supervises</option>
-            <option value="mentors">Mentors</option>
-            <option value="custom">Custom</option>
-          </select>
-        </div>
+      <div class="form-group">
+        <label for="noun-id">ID (optional):</label>
+        <input type="text" id="noun-id" placeholder="Custom ID for the entity (auto-generated if empty)">
+      </div>
 
-        <div class="form-group">
-          <label for="source-id">Source Noun:</label>
-          <select id="source-id">
-            <option value="">-- Select Source Noun --</option>
-          </select>
-          <button id="refresh-nouns-btn" class="secondary" style="margin-top: 5px; padding: 5px 10px;">Refresh Noun
-            List
-          </button>
-        </div>
+      <div class="form-group">
+        <label for="noun-name">Name:</label>
+        <input type="text" id="noun-name" placeholder="Name of the entity">
+      </div>
 
-        <div class="form-group">
-          <label for="target-id">Target Noun:</label>
-          <select id="target-id">
-            <option value="">-- Select Target Noun --</option>
-          </select>
-        </div>
+      <div class="form-group">
+        <label for="noun-content">Description/Content:</label>
+        <textarea id="noun-content" placeholder="Description or content of the entity"></textarea>
+      </div>
 
-        <div class="form-group">
-          <label for="verb-strength">Relationship Strength (0.0 - 1.0):</label>
-          <input type="number" id="verb-strength" placeholder="0.8" min="0" max="1" step="0.1" value="0.8">
-        </div>
+      <div class="form-group">
+        <label for="noun-tags">Tags (comma-separated):</label>
+        <input type="text" id="noun-tags" placeholder="tag1, tag2, tag3">
+      </div>
 
-        <div class="form-group">
-          <label for="verb-description">Relationship Description:</label>
-          <textarea id="verb-description"
-                    placeholder="Describe the relationship between the source and target"></textarea>
-        </div>
-
-        <div class="demo-controls">
-          <button id="add-verb-btn">Add Verb</button>
-          <button id="query-verbs-btn" class="accent">Query Verbs</button>
-        </div>
+      <div class="demo-controls">
+        <button id="add-noun-btn">Add Noun</button>
+        <button id="query-nouns-btn" class="accent">View All Nouns</button>
       </div>
 
       <div class="results" id="entity-results">
@@ -807,15 +907,67 @@ await db.init()
       </div>
     </div>
 
-    <!-- Vector Search Section -->
-    <div class="section-content" id="search-content">
-      <h3>Vector Search & Semantic Queries</h3>
-      <p>Perform semantic searches using vector embeddings and similarity matching.</p>
+    <!-- Step 3: Creating Relationships -->
+    <div class="section-content" id="step3-content">
+      <h3>Step 3: Creating Relationships (Verbs)</h3>
+      <p>Connect your entities with meaningful relationships to build a knowledge graph.</p>
+
+      <div class="form-group">
+        <label for="source-id">Source Entity:</label>
+        <select id="source-id">
+          <option value="">-- Select Source Entity --</option>
+        </select>
+        <button id="refresh-nouns-btn" class="secondary" style="margin-top: 5px; padding: 5px 10px;">Refresh Entity
+          List
+        </button>
+      </div>
+
+      <div class="form-group">
+        <label for="target-id">Target Entity:</label>
+        <select id="target-id">
+          <option value="">-- Select Target Entity --</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="verb-type">Relationship Type:</label>
+        <select id="verb-type">
+          <option value="relatedTo">Related To</option>
+          <option value="attributedTo">Attributed To</option>
+          <option value="controls">Controls</option>
+          <option value="created">Created</option>
+          <option value="owns">Owns</option>
+          <option value="memberOf">Member Of</option>
+          <option value="worksWith">Works With</option>
+          <option value="friendOf">Friend Of</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="verb-description">Relationship Description:</label>
+        <textarea id="verb-description" placeholder="Describe the relationship between the entities"></textarea>
+      </div>
+
+      <div class="demo-controls">
+        <button id="add-verb-btn">Add Relationship</button>
+        <button id="query-verbs-btn" class="accent">View All Relationships</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Searching -->
+    <div class="section-content" id="step4-content">
+      <h3>Step 4: Semantic Search</h3>
+      <p>Search your data using vector embeddings for semantic understanding.</p>
 
       <div class="form-group">
         <label for="search-query">Search Query:</label>
-        <input type="text" id="search-query" placeholder="Enter your search query...">
+        <input type="text" id="search-query" placeholder="Try: travel, AI, fitness, food, design...">
       </div>
+
+      <p class="search-help" style="font-size: 0.9em; color: #666; margin-top: -10px; margin-bottom: 15px;">
+        Try searching for topics in the sample data like "travel", "AI", "fitness", "food", "design",
+        "sustainability", or specific concepts like "workout challenge", "social media", "photography", etc.
+      </p>
 
       <div class="form-group">
         <label for="search-type">Search Type:</label>
@@ -828,8 +980,7 @@ await db.init()
 
       <div class="demo-controls">
         <button id="search-btn">Search</button>
-        <button id="similar-entities-btn" class="secondary">Find Similar</button>
-        <button id="cluster-analysis-btn" class="accent">Cluster Analysis</button>
+        <button id="similar-entities-btn" class="secondary">Find Similar Entities</button>
       </div>
 
       <div class="results" id="search-results">
@@ -837,45 +988,68 @@ await db.init()
       </div>
 
       <div class="visualization" id="search-visualization">
-        <div style="text-align: center; padding-top: 200px; color: #666;">
-          Search results visualization
+        <div class="zoom-controls">
+          <button class="zoom-fit-button" id="search-zoom-fit-btn" title="Zoom to fit all nodes">
+            <i class="material-icons">fit_screen</i>
+          </button>
+          <button class="zoom-button" id="search-zoom-in-btn" title="Zoom in">
+            <i class="material-icons">add</i>
+          </button>
+          <button class="zoom-button" id="search-zoom-out-btn" title="Zoom out">
+            <i class="material-icons">remove</i>
+          </button>
+        </div>
+        <div class="graph-container">
+          <div style="text-align: center; padding-top: 200px; color: #666;">
+            Search results visualization
+          </div>
         </div>
       </div>
     </div>
 
+    <!-- Step 6: Advanced Features -->
+    <div class="section-content" id="step6-content">
+      <h3>Step 6: Advanced Features</h3>
+      <p>Explore Brainy's advanced capabilities for more complex use cases.</p>
 
-    <!-- Visualization Section -->
-    <div class="section-content" id="visualization-content">
-      <h3>Data Visualization</h3>
-      <p>Interactive visualizations of your graph data and vector spaces.</p>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>🔍 Vector Search</h3>
+          <p>Explore how HNSW makes semantic search fast and efficient.</p>
+          <button class="demo-feature-btn" data-feature="hnsw">Try Vector Search</button>
+        </div>
 
-      <div class="demo-controls">
-        <button id="graph-viz-btn">Graph View</button>
-        <button id="vector-space-btn" class="secondary">Vector Space</button>
-        <button id="timeline-btn" class="accent">Timeline View</button>
-        <button id="heatmap-btn" class="accent">Similarity Heatmap</button>
-      </div>
+        <div class="feature-card">
+          <h3>🌐 Graph Traversal</h3>
+          <p>Navigate through connected entities in your knowledge graph.</p>
+          <button class="demo-feature-btn" data-feature="graph-traversal">Try Graph Traversal</button>
+        </div>
 
-      <div class="visualization" id="main-visualization">
-        <div style="text-align: center; padding-top: 200px; color: #666;">
-          Select a visualization type above
+        <div class="feature-card">
+          <h3>💾 Data Management</h3>
+          <p>Backup, restore, and manage your data.</p>
+          <div class="demo-controls" style="margin-top: 10px;">
+            <button id="export-data-btn">Backup Data</button>
+            <button id="import-data-btn">Restore Data</button>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <h3>🧠 Embedding Pipeline</h3>
+          <p>See how text is converted to vectors for semantic understanding.</p>
+          <button class="demo-feature-btn" data-feature="embedding">Try Embedding Demo</button>
         </div>
       </div>
 
-      <div class="demo-controls">
-        <label>
-          <input type="range" id="zoom-slider" min="0.1" max="3" step="0.1" value="1">
-          Zoom
-        </label>
-        <button id="reset-view-btn">Reset View</button>
-        <button id="export-viz-btn" class="secondary">Export Visualization</button>
+      <div class="results" id="feature-demo-results">
+        Select a feature above to see a detailed demonstration...
       </div>
     </div>
 
-    <!-- CLI Commands Section -->
-    <div class="section-content" id="cli-content">
-      <h3>CLI Command Interface</h3>
-      <p>Simulate CLI commands and explore Brainy's command-line interface.</p>
+    <!-- Step 7: CLI Interface -->
+    <div class="section-content" id="step7-content">
+      <h3>Step 7: Command Line Interface</h3>
+      <p>Try Brainy's CLI commands for scripting and automation.</p>
 
       <div class="cli-terminal">
         <div class="cli-history" id="cli-history"></div>
@@ -895,63 +1069,13 @@ await db.init()
       </div>
 
       <div class="code-block">
-        <strong>Available Commands:</strong><br>
+        <strong>Common Commands:</strong><br>
         brainy init - Initialize a new database<br>
         brainy add &lt;data&gt; - Add data to the database<br>
         brainy search &lt;query&gt; - Search for entities<br>
         brainy relate &lt;from&gt; &lt;to&gt; - Create relationships<br>
-        brainy export - Export database<br>
         brainy status - Show database status<br>
         brainy help - Show all commands
-      </div>
-    </div>
-
-    <!-- Feature Demo Section -->
-    <div class="section-content" id="features-content">
-      <h3>Feature Demonstrations</h3>
-      <p>Explore specific features and capabilities of Brainy with guided demonstrations.</p>
-
-      <div class="feature-grid">
-        <div class="feature-card">
-          <h3>🔍 HNSW Vector Search</h3>
-          <p>Demonstrate fast approximate nearest neighbor search with hierarchical navigable small world
-            graphs.</p>
-          <button class="demo-feature-btn" data-feature="hnsw">Try HNSW Demo</button>
-        </div>
-
-        <div class="feature-card">
-          <h3>🌐 Graph Traversal</h3>
-          <p>Show graph traversal algorithms and relationship queries.</p>
-          <button class="demo-feature-btn" data-feature="graph-traversal">Try Graph Demo</button>
-        </div>
-
-        <div class="feature-card">
-          <h3>🧠 Embedding Pipeline</h3>
-          <p>Demonstrate automatic text-to-vector conversion and similarity computation.</p>
-          <button class="demo-feature-btn" data-feature="embedding">Try Embedding Demo</button>
-        </div>
-
-        <div class="feature-card">
-          <h3>📊 Real-time Updates</h3>
-          <p>Show live data synchronization and event streaming capabilities.</p>
-          <button class="demo-feature-btn" data-feature="realtime">Try Real-time Demo</button>
-        </div>
-
-        <div class="feature-card">
-          <h3>💾 Storage Backends</h3>
-          <p>Compare different storage options: memory, filesystem, and cloud.</p>
-          <button class="demo-feature-btn" data-feature="storage">Try Storage Demo</button>
-        </div>
-
-        <div class="feature-card">
-          <h3>🔧 TypeScript Integration</h3>
-          <p>Show type-safe operations and schema validation.</p>
-          <button class="demo-feature-btn" data-feature="typescript">Try TypeScript Demo</button>
-        </div>
-      </div>
-
-      <div class="results" id="feature-demo-results">
-        Select a feature above to see a detailed demonstration...
       </div>
     </div>
   </section>
@@ -960,7 +1084,7 @@ await db.init()
     <p>&copy; 2024 Brainy - A lightweight graph & vector data platform</p>
     <p>
       <a href="https://github.com/soulcraft/brainy" target="_blank">GitHub</a> |
-      <a href="../README.md" target="_blank">Documentation</a> |
+      <a href="https://github.com/soulcraft/brainy/blob/main/README.md" target="_blank">Documentation</a> |
       <a href="https://npm.im/@soulcraft/brainy" target="_blank">NPM</a>
     </p>
   </footer>
@@ -968,10 +1092,12 @@ await db.init()
 
 <script type="module">
   // Import Brainy library directly as a module
-  import { BrainyData } from '../dist/brainy.js'
+  import { BrainyData, NounType, VerbType } from 'https://cdn.jsdelivr.net/npm/@soulcraft/brainy/dist/unified.js'
 
-  // Make BrainyData available globally
+  // Make BrainyData and types available globally
   window.BrainyData = BrainyData
+  window.NounType = NounType
+  window.VerbType = VerbType
 
   // Initialize demo when DOM is loaded
   document.addEventListener('DOMContentLoaded', async function() {
@@ -1021,53 +1147,36 @@ await db.init()
 
   // Setup all event listeners
   function setupEventListeners() {
-    // Database operations
+    // Step 1: Getting Started - Database operations
     document.getElementById('init-db-btn').addEventListener('click', initializeDatabase)
     document.getElementById('add-sample-btn').addEventListener('click', addSampleData)
+    document.getElementById('backup-db-btn').addEventListener('click', backupData)
+    document.getElementById('restore-db-btn').addEventListener('click', restoreData)
     document.getElementById('clear-db-btn').addEventListener('click', clearDatabase)
-    document.getElementById('export-data-btn').addEventListener('click', backupData)
-    document.getElementById('import-data-btn').addEventListener('click', restoreData)
-    document.getElementById('import-sparse-data-btn').addEventListener('click', importSparseData)
 
-    // Data model operations - Legacy buttons
-    document.getElementById('add-entity-btn')?.addEventListener('click', addEntity)
-    document.getElementById('create-relationship-btn')?.addEventListener('click', createRelationship)
-    document.getElementById('query-entities-btn')?.addEventListener('click', queryEntities)
-
-    // Data model tabs code removed - all sections are now visible
-    // Always populate noun dropdowns for the verbs section
-    populateNounDropdowns()
-
-    // Noun operations
+    // Step 2: Adding Entities - Noun operations
     document.getElementById('add-noun-btn')?.addEventListener('click', addNoun)
     document.getElementById('query-nouns-btn')?.addEventListener('click', queryNouns)
 
-    // Verb operations
+    // Step 3: Creating Relationships - Verb operations
     document.getElementById('add-verb-btn')?.addEventListener('click', addVerb)
     document.getElementById('query-verbs-btn')?.addEventListener('click', queryVerbs)
     document.getElementById('refresh-nouns-btn')?.addEventListener('click', populateNounDropdowns)
 
-    // Search operations
-    document.getElementById('search-btn').addEventListener('click', performSearch)
-    document.getElementById('similar-entities-btn').addEventListener('click', findSimilarEntities)
-    document.getElementById('cluster-analysis-btn').addEventListener('click', performClusterAnalysis)
+    // Step 4: Searching - Search operations
+    document.getElementById('search-btn')?.addEventListener('click', performSearch)
+    document.getElementById('similar-entities-btn')?.addEventListener('click', findSimilarEntities)
 
-    // Augmentation operations removed
+    // Step 6: Advanced Features - Data management
+    document.getElementById('export-data-btn')?.addEventListener('click', backupData)
+    document.getElementById('import-data-btn')?.addEventListener('click', restoreData)
 
-    // Visualization controls
-    document.getElementById('graph-viz-btn').addEventListener('click', () => showVisualization('graph'))
-    document.getElementById('vector-space-btn').addEventListener('click', () => showVisualization('vector'))
-    document.getElementById('timeline-btn').addEventListener('click', () => showVisualization('timeline'))
-    document.getElementById('heatmap-btn').addEventListener('click', () => showVisualization('heatmap'))
-    document.getElementById('reset-view-btn').addEventListener('click', resetVisualization)
-    document.getElementById('export-viz-btn').addEventListener('click', exportVisualization)
-
-    // CLI commands
-    document.getElementById('help-cmd-btn').addEventListener('click', () => executeCLICommand('help'))
-    document.getElementById('status-cmd-btn').addEventListener('click', () => executeCLICommand('status'))
-    document.getElementById('init-cmd-btn').addEventListener('click', () => executeCLICommand('init'))
-    document.getElementById('query-cmd-btn').addEventListener('click', () => executeCLICommand('query sample'))
-    document.getElementById('clear-terminal-btn').addEventListener('click', clearTerminal)
+    // Step 7: CLI Interface - CLI commands
+    document.getElementById('help-cmd-btn')?.addEventListener('click', () => executeCLICommand('help'))
+    document.getElementById('status-cmd-btn')?.addEventListener('click', () => executeCLICommand('status'))
+    document.getElementById('init-cmd-btn')?.addEventListener('click', () => executeCLICommand('init'))
+    document.getElementById('query-cmd-btn')?.addEventListener('click', () => executeCLICommand('query sample'))
+    document.getElementById('clear-terminal-btn')?.addEventListener('click', clearTerminal)
 
     // Feature demonstrations
     document.querySelectorAll('.demo-feature-btn').forEach(btn => {
@@ -1076,6 +1185,9 @@ await db.init()
         demonstrateFeature(feature)
       })
     })
+
+    // Always populate noun dropdowns for the verbs section
+    populateNounDropdowns()
   }
 
   // Setup CLI functionality
@@ -1090,6 +1202,35 @@ await db.init()
         }
       }
     })
+  }
+
+  // Setup visualizations
+  function setupVisualizations() {
+    // Initialize database visualization container
+    const dbVisualizationContainer = document.getElementById('db-visualization')
+    if (dbVisualizationContainer) {
+      const graphContainer = dbVisualizationContainer.querySelector('.graph-container')
+      if (graphContainer) {
+        graphContainer.innerHTML = '<div style="text-align: center; padding-top: 200px; color: #666;">Database visualization will appear here after initialization</div>'
+      }
+    }
+
+    // Hide search visualization container as per requirements
+    const searchVisualizationContainer = document.getElementById('search-visualization')
+    if (searchVisualizationContainer) {
+      searchVisualizationContainer.style.display = 'none'
+    }
+
+    // Setup zoom controls
+    const zoomFitButton = document.getElementById('zoom-fit-btn')
+    if (zoomFitButton) {
+      zoomFitButton.addEventListener('click', function() {
+        // This will be implemented when we have an active visualization
+        if (typeof updateDatabaseVisualization === 'function') {
+          updateDatabaseVisualization()
+        }
+      })
+    }
   }
 
   // Database operations
@@ -1124,134 +1265,162 @@ await db.init()
     }
 
     try {
-      log('db-status', 'Adding sample data...')
+      log('db-status', 'Adding sample social media data...')
 
-      // Sample Nouns with various types from the schema
+      // Sample Nouns with social media personas and content
       const sampleNouns = [
-        // Person nouns
+        // User profiles
         {
-          id: 'person1',
+          id: 'user1',
           type: 'person',
           noun: 'person',
-          name: 'John Smith',
-          content: 'Software engineer with expertise in AI and machine learning.',
-          tags: ['engineer', 'developer']
+          name: 'Alex Johnson',
+          content: 'Tech enthusiast and software developer. Love hiking and photography. Working on AI projects in my spare time.',
+          tags: ['tech', 'developer', 'photography', 'hiking']
         },
         {
-          id: 'person2',
+          id: 'user2',
           type: 'person',
           noun: 'person',
-          name: 'Emily Johnson',
-          content: 'Data scientist specializing in natural language processing.',
-          tags: ['scientist', 'researcher']
+          name: 'Sophia Chen',
+          content: 'Digital marketing specialist with a passion for data analytics. Foodie and travel blogger on weekends.',
+          tags: ['marketing', 'analytics', 'food', 'travel']
         },
         {
-          id: 'person3',
+          id: 'user3',
           type: 'person',
           noun: 'person',
-          name: 'Michael Chen',
-          content: 'Product manager for database technologies.',
-          tags: ['manager', 'product']
+          name: 'Marcus Williams',
+          content: 'Graphic designer and illustrator. Creating visual stories that connect people. Coffee addict.',
+          tags: ['design', 'illustration', 'art', 'coffee']
+        },
+        {
+          id: 'user4',
+          type: 'person',
+          noun: 'person',
+          name: 'Priya Patel',
+          content: 'Environmental scientist studying climate change impacts. Advocate for sustainable living and renewable energy.',
+          tags: ['science', 'environment', 'sustainability', 'climate']
+        },
+        {
+          id: 'user5',
+          type: 'person',
+          noun: 'person',
+          name: 'Jordan Taylor',
+          content: 'Fitness coach and nutrition expert. Helping people achieve their health goals through balanced lifestyle.',
+          tags: ['fitness', 'nutrition', 'health', 'wellness']
         },
 
-        // Place nouns
+        // Posts/Content
         {
-          id: 'place1',
-          type: 'place',
-          noun: 'place',
-          name: 'Silicon Valley',
-          content: 'Technology hub in Northern California.',
-          tags: ['tech', 'innovation']
+          id: 'post1',
+          type: 'document',
+          noun: 'content',
+          title: 'The Future of AI in Everyday Applications',
+          content: 'Artificial intelligence is rapidly transforming how we interact with technology. From smart assistants to recommendation systems, AI is becoming an invisible part of our daily lives. What excites me most is how these technologies can be personalized to individual needs while respecting privacy.',
+          tags: ['AI', 'technology', 'future', 'personalization']
         },
         {
-          id: 'place2',
-          type: 'place',
-          noun: 'place',
-          name: 'Cambridge',
-          content: 'University city with strong research focus.',
-          tags: ['education', 'research']
+          id: 'post2',
+          type: 'document',
+          noun: 'content',
+          title: 'My Southeast Asia Food Tour',
+          content: 'Just returned from an amazing culinary adventure across Thailand, Vietnam, and Malaysia. The street food scenes in Bangkok and Hanoi were incredible! Discovered so many new flavors and cooking techniques that I can\'t wait to try at home.',
+          tags: ['food', 'travel', 'asia', 'culinary']
+        },
+        {
+          id: 'post3',
+          type: 'document',
+          noun: 'content',
+          title: 'Minimalist Design Principles for Digital Interfaces',
+          content: 'Less is more when it comes to effective UI design. This article explores how minimalist principles can improve user experience, reduce cognitive load, and create more accessible digital products.',
+          tags: ['design', 'minimalism', 'UI', 'UX']
+        },
+        {
+          id: 'post4',
+          type: 'document',
+          noun: 'content',
+          title: 'Urban Gardening: Growing Food in Small Spaces',
+          content: 'You don\'t need a large yard to grow your own food. This guide shows how to create productive gardens in apartments, balconies, and small urban spaces using container gardening, vertical systems, and efficient planning.',
+          tags: ['gardening', 'sustainability', 'urban', 'food']
+        },
+        {
+          id: 'post5',
+          type: 'document',
+          noun: 'content',
+          title: '30-Day Home Workout Challenge',
+          content: 'Transform your fitness with this comprehensive 30-day workout plan that requires no equipment. Each day builds on the previous one, gradually increasing intensity while focusing on different muscle groups.',
+          tags: ['fitness', 'workout', 'health', 'challenge']
         },
 
-        // Thing nouns
+        // Comments
         {
-          id: 'thing1',
-          type: 'thing',
-          noun: 'thing',
-          name: 'Neural Network',
-          content: 'Computational model inspired by the human brain.',
-          tags: ['AI', 'computing']
+          id: 'comment1',
+          type: 'document',
+          noun: 'content',
+          title: 'Comment on AI post',
+          content: 'Great insights! I\'m particularly interested in how AI can be applied to healthcare. Have you explored that area?',
+          tags: ['comment', 'AI', 'healthcare']
         },
         {
-          id: 'thing2',
-          type: 'thing',
-          noun: 'thing',
-          name: 'Graph Database',
-          content: 'Database that uses graph structures for semantic queries.',
-          tags: ['database', 'storage']
+          id: 'comment2',
+          type: 'document',
+          noun: 'content',
+          title: 'Comment on food tour',
+          content: 'Your photos are amazing! What was your favorite dish from the entire trip?',
+          tags: ['comment', 'food', 'travel', 'photography']
+        },
+        {
+          id: 'comment3',
+          type: 'document',
+          noun: 'content',
+          title: 'Comment on design article',
+          content: 'Minimalism is definitely underrated. I\'ve found that my conversion rates improved significantly after simplifying our landing page.',
+          tags: ['comment', 'design', 'conversion', 'business']
         },
 
-        // Event nouns
+        // Groups/Communities
+        {
+          id: 'group1',
+          type: 'group',
+          noun: 'group',
+          name: 'Tech Innovators Network',
+          content: 'A community of developers, designers, and tech enthusiasts discussing emerging technologies and their applications.',
+          tags: ['technology', 'innovation', 'community', 'networking']
+        },
+        {
+          id: 'group2',
+          type: 'group',
+          noun: 'group',
+          name: 'Global Foodies',
+          content: 'Sharing culinary experiences, recipes, and food photography from around the world.',
+          tags: ['food', 'cooking', 'international', 'recipes']
+        },
+        {
+          id: 'group3',
+          type: 'group',
+          noun: 'group',
+          name: 'Sustainable Living Collective',
+          content: 'Exploring practical ways to reduce environmental impact and live more sustainably in modern society.',
+          tags: ['sustainability', 'environment', 'lifestyle', 'eco-friendly']
+        },
+
+        // Events
         {
           id: 'event1',
           type: 'event',
           noun: 'event',
-          name: 'AI Conference 2023',
-          content: 'Annual conference on artificial intelligence advancements.',
-          tags: ['conference', 'AI']
+          name: 'Virtual Tech Meetup 2023',
+          content: 'Online gathering of tech professionals sharing insights on latest development frameworks and tools.',
+          tags: ['tech', 'virtual', 'networking', 'learning']
         },
         {
           id: 'event2',
           type: 'event',
           noun: 'event',
-          name: 'Database Summit',
-          content: 'Industry summit on database technologies and trends.',
-          tags: ['summit', 'database']
-        },
-
-        // Concept nouns
-        {
-          id: 'concept1',
-          type: 'concept',
-          noun: 'concept',
-          name: 'Machine Learning',
-          content: 'Field of study that gives computers the ability to learn without being explicitly programmed.',
-          tags: ['AI', 'algorithms']
-        },
-        {
-          id: 'concept2',
-          type: 'concept',
-          noun: 'concept',
-          name: 'Vector Search',
-          content: 'Technique for finding similar items in large datasets using vector representations.',
-          tags: ['search', 'vectors']
-        },
-
-        // Group nouns
-        {
-          id: 'group1',
-          type: 'group',
-          noun: 'group',
-          name: 'Research Team',
-          content: 'Team of researchers working on cutting-edge AI technologies.',
-          tags: ['team', 'research']
-        },
-
-        // Content nouns
-        {
-          id: 'content1',
-          type: 'document',
-          noun: 'content',
-          title: 'Introduction to Machine Learning',
-          content: 'Machine learning is a subset of artificial intelligence that focuses on algorithms.',
-          tags: ['AI', 'ML', 'algorithms']
-        },
-        {
-          id: 'content2',
-          type: 'document',
-          noun: 'content',
-          title: 'Graph Databases Explained',
-          content: 'Graph databases store data in graph structures with nouns, verbs, and properties.',
-          tags: ['databases', 'graphs', 'NoSQL']
+          name: 'International Food Festival',
+          content: 'Annual celebration of global cuisines featuring cooking demonstrations, tastings, and cultural performances.',
+          tags: ['food', 'festival', 'international', 'culture']
         }
       ]
 
@@ -1269,106 +1438,286 @@ await db.init()
       const nounIds = entities.map(entity => entity.id)
       console.log('Available nouns before adding verbs:', nounIds)
 
-      // Sample Verbs with various types from the schema
+      // Sample Verbs with social media relationships
       const sampleVerbs = [
-        // Created verbs
+        // Created/Posted content
         {
-          source: 'person1',
-          target: 'content1',
+          source: 'user1',
+          target: 'post1',
           verb: 'created',
-          label: 'Created',
-          data: { strength: 0.9, description: 'John Smith authored the introduction to machine learning' }
+          label: 'Posted',
+          data: { strength: 0.95, description: 'Alex wrote this article about AI applications' }
         },
         {
-          source: 'person2',
-          target: 'content2',
+          source: 'user2',
+          target: 'post2',
           verb: 'created',
-          label: 'Created',
-          data: { strength: 0.85, description: 'Emily Johnson wrote the graph databases explanation' }
+          label: 'Posted',
+          data: { strength: 0.95, description: 'Sophia shared her food tour experiences' }
+        },
+        {
+          source: 'user3',
+          target: 'post3',
+          verb: 'created',
+          label: 'Posted',
+          data: { strength: 0.95, description: 'Marcus wrote this design article' }
+        },
+        {
+          source: 'user4',
+          target: 'post4',
+          verb: 'created',
+          label: 'Posted',
+          data: { strength: 0.95, description: 'Priya shared gardening tips' }
+        },
+        {
+          source: 'user5',
+          target: 'post5',
+          verb: 'created',
+          label: 'Posted',
+          data: { strength: 0.95, description: 'Jordan created this workout challenge' }
         },
 
-        // WorksWith verbs
+        // Comments on posts
         {
-          source: 'person1',
-          target: 'person2',
-          verb: 'worksWith',
-          label: 'Works With',
-          data: { strength: 0.7, description: 'John and Emily collaborate on research projects' }
+          source: 'user4',
+          target: 'comment1',
+          verb: 'created',
+          label: 'Commented',
+          data: { strength: 0.8, description: 'Priya commented on the AI post' }
         },
         {
-          source: 'person2',
-          target: 'person3',
-          verb: 'worksWith',
-          label: 'Works With',
-          data: { strength: 0.65, description: 'Emily and Michael work together on product development' }
+          source: 'comment1',
+          target: 'post1',
+          verb: 'relatedTo',
+          label: 'Comment On',
+          data: { strength: 0.9, description: 'This comment is on the AI post' }
+        },
+        {
+          source: 'user3',
+          target: 'comment2',
+          verb: 'created',
+          label: 'Commented',
+          data: { strength: 0.8, description: 'Marcus commented on the food tour post' }
+        },
+        {
+          source: 'comment2',
+          target: 'post2',
+          verb: 'relatedTo',
+          label: 'Comment On',
+          data: { strength: 0.9, description: 'This comment is on the food tour post' }
+        },
+        {
+          source: 'user2',
+          target: 'comment3',
+          verb: 'created',
+          label: 'Commented',
+          data: { strength: 0.8, description: 'Sophia commented on the design article' }
+        },
+        {
+          source: 'comment3',
+          target: 'post3',
+          verb: 'relatedTo',
+          label: 'Comment On',
+          data: { strength: 0.9, description: 'This comment is on the design article' }
         },
 
-        // MemberOf verbs
+        // Likes/Reactions
         {
-          source: 'person1',
+          source: 'user2',
+          target: 'post1',
+          verb: 'likes',
+          label: 'Likes',
+          data: { strength: 0.7, description: 'Sophia liked Alex\'s AI post' }
+        },
+        {
+          source: 'user3',
+          target: 'post1',
+          verb: 'likes',
+          label: 'Likes',
+          data: { strength: 0.7, description: 'Marcus liked Alex\'s AI post' }
+        },
+        {
+          source: 'user1',
+          target: 'post2',
+          verb: 'likes',
+          label: 'Likes',
+          data: { strength: 0.7, description: 'Alex liked Sophia\'s food tour post' }
+        },
+        {
+          source: 'user5',
+          target: 'post2',
+          verb: 'likes',
+          label: 'Likes',
+          data: { strength: 0.7, description: 'Jordan liked Sophia\'s food tour post' }
+        },
+        {
+          source: 'user1',
+          target: 'post3',
+          verb: 'likes',
+          label: 'Likes',
+          data: { strength: 0.7, description: 'Alex liked Marcus\'s design article' }
+        },
+        {
+          source: 'user2',
+          target: 'post4',
+          verb: 'likes',
+          label: 'Likes',
+          data: { strength: 0.7, description: 'Sophia liked Priya\'s gardening post' }
+        },
+        {
+          source: 'user4',
+          target: 'post5',
+          verb: 'likes',
+          label: 'Likes',
+          data: { strength: 0.7, description: 'Priya liked Jordan\'s workout challenge' }
+        },
+
+        // Follows
+        {
+          source: 'user1',
+          target: 'user2',
+          verb: 'follows',
+          label: 'Follows',
+          data: { strength: 0.8, description: 'Alex follows Sophia' }
+        },
+        {
+          source: 'user2',
+          target: 'user1',
+          verb: 'follows',
+          label: 'Follows',
+          data: { strength: 0.8, description: 'Sophia follows Alex' }
+        },
+        {
+          source: 'user1',
+          target: 'user3',
+          verb: 'follows',
+          label: 'Follows',
+          data: { strength: 0.8, description: 'Alex follows Marcus' }
+        },
+        {
+          source: 'user2',
+          target: 'user4',
+          verb: 'follows',
+          label: 'Follows',
+          data: { strength: 0.8, description: 'Sophia follows Priya' }
+        },
+        {
+          source: 'user3',
+          target: 'user5',
+          verb: 'follows',
+          label: 'Follows',
+          data: { strength: 0.8, description: 'Marcus follows Jordan' }
+        },
+        {
+          source: 'user4',
+          target: 'user5',
+          verb: 'follows',
+          label: 'Follows',
+          data: { strength: 0.8, description: 'Priya follows Jordan' }
+        },
+        {
+          source: 'user5',
+          target: 'user1',
+          verb: 'follows',
+          label: 'Follows',
+          data: { strength: 0.8, description: 'Jordan follows Alex' }
+        },
+
+        // Group memberships
+        {
+          source: 'user1',
           target: 'group1',
           verb: 'memberOf',
           label: 'Member Of',
-          data: { strength: 0.8, description: 'John is a member of the research team' }
+          data: { strength: 0.85, description: 'Alex is a member of Tech Innovators Network' }
         },
         {
-          source: 'person2',
+          source: 'user3',
           target: 'group1',
           verb: 'memberOf',
           label: 'Member Of',
-          data: { strength: 0.8, description: 'Emily is a member of the research team' }
+          data: { strength: 0.85, description: 'Marcus is a member of Tech Innovators Network' }
+        },
+        {
+          source: 'user2',
+          target: 'group2',
+          verb: 'memberOf',
+          label: 'Member Of',
+          data: { strength: 0.85, description: 'Sophia is a member of Global Foodies' }
+        },
+        {
+          source: 'user5',
+          target: 'group2',
+          verb: 'memberOf',
+          label: 'Member Of',
+          data: { strength: 0.85, description: 'Jordan is a member of Global Foodies' }
+        },
+        {
+          source: 'user4',
+          target: 'group3',
+          verb: 'memberOf',
+          label: 'Member Of',
+          data: { strength: 0.85, description: 'Priya is a member of Sustainable Living Collective' }
+        },
+        {
+          source: 'user2',
+          target: 'group3',
+          verb: 'memberOf',
+          label: 'Member Of',
+          data: { strength: 0.85, description: 'Sophia is a member of Sustainable Living Collective' }
         },
 
-        // RelatedTo verbs
+        // Event attendance
         {
-          source: 'concept1',
-          target: 'concept2',
+          source: 'user1',
+          target: 'event1',
+          verb: 'relatedTo',
+          label: 'Attending',
+          data: { strength: 0.75, description: 'Alex is attending the Virtual Tech Meetup' }
+        },
+        {
+          source: 'user3',
+          target: 'event1',
+          verb: 'relatedTo',
+          label: 'Attending',
+          data: { strength: 0.75, description: 'Marcus is attending the Virtual Tech Meetup' }
+        },
+        {
+          source: 'user2',
+          target: 'event2',
+          verb: 'relatedTo',
+          label: 'Attending',
+          data: { strength: 0.75, description: 'Sophia is attending the International Food Festival' }
+        },
+        {
+          source: 'user5',
+          target: 'event2',
+          verb: 'relatedTo',
+          label: 'Attending',
+          data: { strength: 0.75, description: 'Jordan is attending the International Food Festival' }
+        },
+
+        // Content relationships
+        {
+          source: 'post1',
+          target: 'post3',
           verb: 'relatedTo',
           label: 'Related To',
-          data: { strength: 0.75, description: 'Machine learning is related to vector search' }
+          data: { strength: 0.6, description: 'AI applications post is related to design principles post' }
         },
         {
-          source: 'content1',
-          target: 'content2',
+          source: 'post2',
+          target: 'post5',
           verb: 'relatedTo',
           label: 'Related To',
-          data: { strength: 0.6, description: 'Machine learning content is related to graph databases content' }
+          data: { strength: 0.5, description: 'Food tour post is somewhat related to fitness challenge post' }
         },
-
-        // Owns verbs
         {
-          source: 'person3',
-          target: 'thing2',
-          verb: 'owns',
-          label: 'Owns',
-          data: { strength: 0.9, description: 'Michael owns the graph database product' }
-        },
-
-        // FriendOf verbs
-        {
-          source: 'person1',
-          target: 'person3',
-          verb: 'friendOf',
-          label: 'Friend Of',
-          data: { strength: 0.5, description: 'John and Michael are friends outside of work' }
-        },
-
-        // Mentors verbs
-        {
-          source: 'person2',
-          target: 'person1',
-          verb: 'mentors',
-          label: 'Mentors',
-          data: { strength: 0.85, description: 'Emily mentors John on data science techniques' }
-        },
-
-        // AttributedTo verbs
-        {
-          source: 'thing1',
-          target: 'person2',
-          verb: 'attributedTo',
-          label: 'Attributed To',
-          data: { strength: 0.7, description: 'The neural network implementation is attributed to Emily' }
+          source: 'post4',
+          target: 'group3',
+          verb: 'relatedTo',
+          label: 'Related To',
+          data: { strength: 0.8, description: 'Urban gardening post is related to Sustainable Living Collective' }
         }
       ]
 
@@ -1559,6 +1908,12 @@ await db.init()
 
       // Clear the form
       document.getElementById('entity-data').value = ''
+
+      // Update visualization
+      updateDatabaseVisualization()
+
+      // Update noun dropdowns with the new entity
+      populateNounDropdowns()
     } catch (error) {
       log('entity-results', 'Error adding entity: ' + error.message)
     }
@@ -1585,6 +1940,9 @@ await db.init()
       })
 
       log('entity-results', `Created relationship: ${entities[0].id} -> ${entities[1].id}`)
+
+      // Update visualization
+      updateDatabaseVisualization()
     } catch (error) {
       log('entity-results', 'Error creating relationship: ' + error.message)
     }
@@ -1837,27 +2195,98 @@ await db.init()
       let results
       switch (searchType) {
         case 'semantic':
-          results = await database.search(query, { type: 'semantic', limit: 10 })
+          results = await database.search(query, 10)
           break
         case 'keyword':
-          results = await database.search(query, { type: 'keyword', limit: 10 })
+          results = await database.searchText(query, 10)
           break
         case 'hybrid':
-          results = await database.search(query, { type: 'hybrid', limit: 10 })
+          // For hybrid search, we'll combine results from both methods
+          const semanticResults = await database.search(query, 5)
+          const keywordResults = await database.searchText(query, 5)
+          // Combine and deduplicate results
+          const combinedResults = [...semanticResults]
+          keywordResults.forEach(kr => {
+            if (!combinedResults.some(sr => sr.id === kr.id)) {
+              combinedResults.push(kr)
+            }
+          })
+          results = combinedResults
           break
       }
 
-      let output = `Found ${results.length} results:\n\n`
-      results.forEach((result, index) => {
-        output += `${index + 1}. ${result.title || result.id} (Score: ${result.score?.toFixed(4) || 'N/A'})\n`
-        if (result.content) {
-          output += `   ${result.content.substring(0, 100)}...\n`
-        }
-        output += '\n'
+      // Sort results by score (highest first)
+      results.sort((a, b) => {
+        const scoreA = a.score || 0
+        const scoreB = b.score || 0
+        return scoreB - scoreA
       })
 
-      log('search-results', output)
-      updateSearchVisualization(results)
+      // Create a Google-like search results display
+      const resultsContainer = document.getElementById('search-results')
+      resultsContainer.innerHTML = ''
+
+      // Add search stats
+      const statsDiv = document.createElement('div')
+      statsDiv.className = 'search-stats'
+      statsDiv.innerHTML = `<p>Found ${results.length} results</p>`
+      resultsContainer.appendChild(statsDiv)
+
+      // Create results list
+      const resultsList = document.createElement('div')
+      resultsList.className = 'search-results-list'
+
+      results.forEach((result, index) => {
+        const resultItem = document.createElement('div')
+        resultItem.className = 'search-result-item'
+
+        // Title with score
+        const title = document.createElement('h3')
+        title.className = 'result-title'
+        title.innerHTML = `${result.title || result.id} <span class="result-score">Score: ${result.score?.toFixed(4) || 'N/A'}</span>`
+        resultItem.appendChild(title)
+
+        // URL/ID
+        const url = document.createElement('div')
+        url.className = 'result-url'
+        url.textContent = result.id
+        resultItem.appendChild(url)
+
+        // Content snippet
+        if (result.content) {
+          const snippet = document.createElement('div')
+          snippet.className = 'result-snippet'
+          snippet.textContent = result.content.substring(0, 200) + (result.content.length > 200 ? '...' : '')
+          resultItem.appendChild(snippet)
+        }
+
+        // Metadata section
+        const metadata = document.createElement('div')
+        metadata.className = 'result-metadata'
+
+        // Add all metadata except vectors
+        let metadataHtml = ''
+        for (const [key, value] of Object.entries(result)) {
+          if (key !== 'vector' && key !== 'content' && key !== 'id' && key !== 'title' && key !== 'score') {
+            metadataHtml += `<span class="metadata-item"><strong>${key}:</strong> ${JSON.stringify(value)}</span>`
+          }
+        }
+
+        if (metadataHtml) {
+          metadata.innerHTML = metadataHtml
+          resultItem.appendChild(metadata)
+        }
+
+        resultsList.appendChild(resultItem)
+      })
+
+      resultsContainer.appendChild(resultsList)
+
+      // Hide the visualization container
+      const visualizationContainer = document.getElementById('search-visualization')
+      if (visualizationContainer) {
+        visualizationContainer.style.display = 'none'
+      }
     } catch (error) {
       log('search-results', 'Error performing search: ' + error.message)
     }
@@ -1878,12 +2307,78 @@ await db.init()
 
       const similar = await database.findSimilar(entities[0].id, { limit: 5 })
 
-      let output = `Similar entities to "${entities[0].title || entities[0].id}":\n\n`
-      similar.forEach((entity, index) => {
-        output += `${index + 1}. ${entity.title || entity.id} (Similarity: ${entity.similarity?.toFixed(4) || 'N/A'})\n`
+      // Sort results by similarity score (highest first)
+      similar.sort((a, b) => {
+        const scoreA = a.similarity || 0
+        const scoreB = b.similarity || 0
+        return scoreB - scoreA
       })
 
-      log('search-results', output)
+      // Create a Google-like search results display
+      const resultsContainer = document.getElementById('search-results')
+      resultsContainer.innerHTML = ''
+
+      // Add search stats
+      const statsDiv = document.createElement('div')
+      statsDiv.className = 'search-stats'
+      statsDiv.innerHTML = `<p>Found ${similar.length} entities similar to "${entities[0].title || entities[0].id}"</p>`
+      resultsContainer.appendChild(statsDiv)
+
+      // Create results list
+      const resultsList = document.createElement('div')
+      resultsList.className = 'search-results-list'
+
+      similar.forEach((result, index) => {
+        const resultItem = document.createElement('div')
+        resultItem.className = 'search-result-item'
+
+        // Title with similarity score
+        const title = document.createElement('h3')
+        title.className = 'result-title'
+        title.innerHTML = `${result.title || result.id} <span class="result-score">Similarity: ${result.similarity?.toFixed(4) || 'N/A'}</span>`
+        resultItem.appendChild(title)
+
+        // URL/ID
+        const url = document.createElement('div')
+        url.className = 'result-url'
+        url.textContent = result.id
+        resultItem.appendChild(url)
+
+        // Content snippet
+        if (result.content) {
+          const snippet = document.createElement('div')
+          snippet.className = 'result-snippet'
+          snippet.textContent = result.content.substring(0, 200) + (result.content.length > 200 ? '...' : '')
+          resultItem.appendChild(snippet)
+        }
+
+        // Metadata section
+        const metadata = document.createElement('div')
+        metadata.className = 'result-metadata'
+
+        // Add all metadata except vectors
+        let metadataHtml = ''
+        for (const [key, value] of Object.entries(result)) {
+          if (key !== 'vector' && key !== 'content' && key !== 'id' && key !== 'title' && key !== 'similarity') {
+            metadataHtml += `<span class="metadata-item"><strong>${key}:</strong> ${JSON.stringify(value)}</span>`
+          }
+        }
+
+        if (metadataHtml) {
+          metadata.innerHTML = metadataHtml
+          resultItem.appendChild(metadata)
+        }
+
+        resultsList.appendChild(resultItem)
+      })
+
+      resultsContainer.appendChild(resultsList)
+
+      // Hide the visualization container
+      const visualizationContainer = document.getElementById('search-visualization')
+      if (visualizationContainer) {
+        visualizationContainer.style.display = 'none'
+      }
     } catch (error) {
       log('search-results', 'Error finding similar entities: ' + error.message)
     }
@@ -1902,309 +2397,89 @@ await db.init()
       const entities = await database.search('', 1000, { forceEmbed: false })
       const clusters = Math.min(3, Math.ceil(entities.length / 2))
 
-      let output = `Cluster Analysis Results:\n\n`
-      output += `Total entities: ${entities.length}\n`
-      output += `Suggested clusters: ${clusters}\n\n`
+      // Create a Google-like search results display
+      const resultsContainer = document.getElementById('search-results')
+      resultsContainer.innerHTML = ''
+
+      // Add search stats
+      const statsDiv = document.createElement('div')
+      statsDiv.className = 'search-stats'
+      statsDiv.innerHTML = `<p>Cluster Analysis Results: ${entities.length} entities in ${clusters} clusters</p>`
+      resultsContainer.appendChild(statsDiv)
+
+      // Create results list
+      const resultsList = document.createElement('div')
+      resultsList.className = 'search-results-list'
 
       // Group entities into clusters (simplified simulation)
       for (let i = 0; i < clusters; i++) {
         const clusterEntities = entities.filter((_, index) => index % clusters === i)
-        output += `Cluster ${i + 1} (${clusterEntities.length} entities):\n`
-        clusterEntities.forEach(entity => {
-          output += `  - ${entity.title || entity.id}\n`
+
+        // Create cluster header
+        const clusterHeader = document.createElement('div')
+        clusterHeader.className = 'cluster-header'
+        clusterHeader.innerHTML = `<h3>Cluster ${i + 1} (${clusterEntities.length} entities)</h3>`
+        resultsList.appendChild(clusterHeader)
+
+        // Add entities in this cluster
+        clusterEntities.forEach((entity, index) => {
+          const resultItem = document.createElement('div')
+          resultItem.className = 'search-result-item cluster-item'
+
+          // Title
+          const title = document.createElement('h3')
+          title.className = 'result-title'
+          title.textContent = entity.title || entity.id
+          resultItem.appendChild(title)
+
+          // URL/ID
+          const url = document.createElement('div')
+          url.className = 'result-url'
+          url.textContent = entity.id
+          resultItem.appendChild(url)
+
+          // Content snippet (shorter for clusters)
+          if (entity.content) {
+            const snippet = document.createElement('div')
+            snippet.className = 'result-snippet'
+            snippet.textContent = entity.content.substring(0, 100) + (entity.content.length > 100 ? '...' : '')
+            resultItem.appendChild(snippet)
+          }
+
+          // Metadata section
+          const metadata = document.createElement('div')
+          metadata.className = 'result-metadata'
+
+          // Add all metadata except vectors
+          let metadataHtml = ''
+          for (const [key, value] of Object.entries(entity)) {
+            if (key !== 'vector' && key !== 'content' && key !== 'id' && key !== 'title') {
+              metadataHtml += `<span class="metadata-item"><strong>${key}:</strong> ${JSON.stringify(value)}</span>`
+            }
+          }
+
+          if (metadataHtml) {
+            metadata.innerHTML = metadataHtml
+            resultItem.appendChild(metadata)
+          }
+
+          resultsList.appendChild(resultItem)
         })
-        output += '\n'
       }
 
-      log('search-results', output)
+      resultsContainer.appendChild(resultsList)
+
+      // Hide the visualization container
+      const visualizationContainer = document.getElementById('search-visualization')
+      if (visualizationContainer) {
+        visualizationContainer.style.display = 'none'
+      }
     } catch (error) {
       log('search-results', 'Error performing cluster analysis: ' + error.message)
     }
   }
 
   // Augmentation operations removed
-
-  // Visualization functions
-  function setupVisualizations() {
-    // Initialize D3 visualizations
-    updateDatabaseVisualization()
-  }
-
-  function showVisualization(type) {
-    const container = document.getElementById('main-visualization')
-    container.innerHTML = `<div style="text-align: center; padding-top: 200px; color: #666;">
-            ${type.charAt(0).toUpperCase() + type.slice(1)} visualization would appear here
-        </div>`
-
-    // Simulate different visualization types
-    switch (type) {
-      case 'graph':
-        createGraphVisualization(container)
-        break
-      case 'vector':
-        createVectorSpaceVisualization(container)
-        break
-      case 'timeline':
-        createTimelineVisualization(container)
-        break
-      case 'heatmap':
-        createHeatmapVisualization(container)
-        break
-    }
-  }
-
-  function createGraphVisualization(container) {
-    // Create a graph visualization with D3 that shows both Nouns and Verbs
-    const width = container.clientWidth
-    const height = container.clientHeight
-
-    container.innerHTML = ''
-
-    const svg = d3.select(container)
-      .append('svg')
-      .attr('width', width)
-      .attr('height', height)
-
-    // Sample graph data with explicit Nouns and Verbs
-    const nouns = [
-      {
-        id: 'doc1',
-        type: 'document',
-        noun: 'content',
-        title: 'Introduction to Machine Learning',
-        x: width / 3,
-        y: height / 3
-      },
-      {
-        id: 'doc2',
-        type: 'document',
-        noun: 'content',
-        title: 'Graph Databases Explained',
-        x: 2 * width / 3,
-        y: height / 3
-      },
-      {
-        id: 'doc3',
-        type: 'document',
-        noun: 'content',
-        title: 'Vector Search in Modern Applications',
-        x: width / 2,
-        y: 2 * height / 3
-      }
-    ]
-
-    const verbs = [
-      {
-        id: 'rel1',
-        source: 'doc1',
-        target: 'doc3',
-        verb: 'relatedTo',
-        label: 'Related To',
-        data: { strength: 0.8 }
-      },
-      {
-        id: 'rel2',
-        source: 'doc2',
-        target: 'doc3',
-        verb: 'mentions',
-        label: 'Mentions',
-        data: { strength: 0.6 }
-      }
-    ]
-
-    // Create a legend
-    const legend = svg.append('g')
-      .attr('class', 'legend')
-      .attr('transform', `translate(${width - 150}, 20)`)
-
-    // Noun legend
-    legend.append('circle')
-      .attr('cx', 10)
-      .attr('cy', 10)
-      .attr('r', 8)
-      .attr('fill', '#4CAF50')
-
-    legend.append('text')
-      .attr('x', 25)
-      .attr('y', 15)
-      .text('Nouns')
-      .attr('font-size', '12px')
-
-    // Verb legend
-    legend.append('line')
-      .attr('x1', 0)
-      .attr('y1', 40)
-      .attr('x2', 20)
-      .attr('y2', 40)
-      .attr('stroke', '#2196F3')
-      .attr('stroke-width', 3)
-
-    legend.append('text')
-      .attr('x', 25)
-      .attr('y', 45)
-      .text('Verbs')
-      .attr('font-size', '12px')
-
-    // Create arrow marker for directed edges
-    svg.append('defs').append('marker')
-      .attr('id', 'arrowhead')
-      .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 20)
-      .attr('refY', 0)
-      .attr('orient', 'auto')
-      .attr('markerWidth', 6)
-      .attr('markerHeight', 6)
-      .append('path')
-      .attr('d', 'M0,-5L10,0L0,5')
-      .attr('fill', '#2196F3')
-
-    // Draw verbs (edges)
-    const links = svg.selectAll('.link')
-      .data(verbs)
-      .enter()
-      .append('g')
-      .attr('class', 'link')
-
-    links.append('line')
-      .attr('x1', d => nouns.find(n => n.id === d.source).x)
-      .attr('y1', d => nouns.find(n => n.id === d.source).y)
-      .attr('x2', d => nouns.find(n => n.id === d.target).x)
-      .attr('y2', d => nouns.find(n => n.id === d.target).y)
-      .attr('stroke', '#2196F3')
-      .attr('stroke-width', d => 1 + (d.data?.strength || 0.5) * 3)
-      .attr('marker-end', 'url(#arrowhead)')
-
-    // Add verb labels
-    links.append('text')
-      .attr('x', d => (nouns.find(n => n.id === d.source).x + nouns.find(n => n.id === d.target).x) / 2)
-      .attr('y', d => (nouns.find(n => n.id === d.source).y + nouns.find(n => n.id === d.target).y) / 2 - 10)
-      .attr('text-anchor', 'middle')
-      .attr('fill', '#2196F3')
-      .attr('font-size', '10px')
-      .attr('font-weight', 'bold')
-      .text(d => d.label || d.verb)
-
-    // Draw nouns (nodes)
-    const nodes = svg.selectAll('.node')
-      .data(nouns)
-      .enter()
-      .append('g')
-      .attr('class', 'node')
-      .attr('transform', d => `translate(${d.x}, ${d.y})`)
-
-    nodes.append('circle')
-      .attr('r', 25)
-      .attr('fill', '#4CAF50')
-      .attr('stroke', '#388E3C')
-      .attr('stroke-width', 2)
-
-    // Add noun labels
-    nodes.append('text')
-      .attr('text-anchor', 'middle')
-      .attr('dy', 5)
-      .attr('fill', 'white')
-      .attr('font-size', '12px')
-      .attr('font-weight', 'bold')
-      .text(d => d.id)
-
-    // Add noun type labels
-    nodes.append('text')
-      .attr('text-anchor', 'middle')
-      .attr('dy', 40)
-      .attr('fill', '#333')
-      .attr('font-size', '10px')
-      .text(d => d.noun || d.type)
-  }
-
-  function createVectorSpaceVisualization(container) {
-    const width = container.clientWidth
-    const height = container.clientHeight
-
-    container.innerHTML = ''
-
-    const svg = d3.select(container)
-      .append('svg')
-      .attr('width', width)
-      .attr('height', height)
-
-    // Generate random points in 2D space
-    const points = Array.from({ length: 20 }, (_, i) => ({
-      id: `point${i}`,
-      x: Math.random() * (width - 40) + 20,
-      y: Math.random() * (height - 40) + 20,
-      cluster: Math.floor(Math.random() * 3)
-    }))
-
-    const colors = ['#4CAF50', '#2196F3', '#FF9800']
-
-    svg.selectAll('circle')
-      .data(points)
-      .enter()
-      .append('circle')
-      .attr('cx', d => d.x)
-      .attr('cy', d => d.y)
-      .attr('r', 5)
-      .attr('fill', d => colors[d.cluster])
-      .attr('opacity', 0.7)
-  }
-
-  function createTimelineVisualization(container) {
-    container.innerHTML = `
-            <div style="padding: 20px;">
-                <h4>Timeline Visualization</h4>
-                <div style="height: 400px; background: linear-gradient(to right, #e3f2fd, #bbdefb);
-                           border-radius: 8px; padding: 20px; position: relative;">
-                    <div style="position: absolute; left: 50px; top: 50px; width: 200px; height: 30px;
-                               background: #4CAF50; border-radius: 4px; color: white;
-                               display: flex; align-items: center; justify-content: center;">
-                        Database Init
-                    </div>
-                    <div style="position: absolute; left: 300px; top: 120px; width: 200px; height: 30px;
-                               background: #2196F3; border-radius: 4px; color: white;
-                               display: flex; align-items: center; justify-content: center;">
-                        Data Added
-                    </div>
-                    <div style="position: absolute; left: 150px; top: 190px; width: 200px; height: 30px;
-                               background: #FF9800; border-radius: 4px; color: white;
-                               display: flex; align-items: center; justify-content: center;">
-                        Search Query
-                    </div>
-                </div>
-            </div>
-        `
-  }
-
-  function createHeatmapVisualization(container) {
-    const width = container.clientWidth
-    const height = container.clientHeight
-
-    container.innerHTML = ''
-
-    const svg = d3.select(container)
-      .append('svg')
-      .attr('width', width)
-      .attr('height', height)
-
-    const cellSize = 30
-    const rows = Math.floor(height / cellSize)
-    const cols = Math.floor(width / cellSize)
-
-    const colorScale = d3.scaleSequential(d3.interpolateRdYlBu)
-      .domain([0, 1])
-
-    for (let i = 0; i < rows; i++) {
-      for (let j = 0; j < cols; j++) {
-        const similarity = Math.random()
-        svg.append('rect')
-          .attr('x', j * cellSize)
-          .attr('y', i * cellSize)
-          .attr('width', cellSize - 1)
-          .attr('height', cellSize - 1)
-          .attr('fill', colorScale(similarity))
-          .attr('opacity', 0.8)
-      }
-    }
-  }
 
   // Helper function to create demo entities for visualization
   function createDemoEntities() {
@@ -2565,53 +2840,37 @@ await db.init()
 
     try {
       // Query all entities and relationships from the database
-      const entities = await database.search('', 1000, { forceEmbed: false })
+      const entities = await database.getAllNouns()
       const relationships = await database.getAllVerbs()
 
       // Clear the container
       graphContainer.innerHTML = ''
 
-      // If the database is empty, use demo data for visualization
+      // Remove any existing demo message
+      const existingDemoMessage = visualizationContainer.querySelector('div[style*="position: absolute"]')
+      if (existingDemoMessage) {
+        visualizationContainer.removeChild(existingDemoMessage)
+      }
+
+      // If the database is empty, show empty visualization
       let nodes = []
       let edges = []
 
       if (entities.length === 0) {
-        // Create demo data for visualization purposes only
-        const demoEntities = createDemoEntities()
-        const demoRelationships = createDemoRelationships()
-
-        // Show message that we're using demo data
-        const demoMessage = document.createElement('div')
-        demoMessage.style.position = 'absolute'
-        demoMessage.style.bottom = '10px'
-        demoMessage.style.left = '10px'
-        demoMessage.style.backgroundColor = 'rgba(255, 255, 255, 0.8)'
-        demoMessage.style.padding = '5px 10px'
-        demoMessage.style.borderRadius = '5px'
-        demoMessage.style.fontSize = '12px'
-        demoMessage.style.color = '#666'
-        demoMessage.textContent = 'Using demo data for visualization. Add real data to see your own graph.'
-        visualizationContainer.appendChild(demoMessage)
-
-        // Transform demo data to the format expected by the visualization
-        nodes = demoEntities.map(entity => ({
-          id: entity.id,
-          noun: entity.type || 'concept',
-          data: {
-            displayName: entity.name || entity.title || entity.id,
-            handle: entity.id,
-            avatar: '',
-            ...entity
-          }
-        }))
-
-        edges = demoRelationships.map(rel => ({
-          source: rel.source || rel.from || rel.sourceId,
-          target: rel.target || rel.to || rel.targetId,
-          verb: rel.verb || rel.type || 'relatedTo',
-          confidence: 0.8,
-          data: rel.data || {}
-        }))
+        // Show message that database is empty
+        const emptyMessage = document.createElement('div')
+        emptyMessage.style.position = 'absolute'
+        emptyMessage.style.top = '50%'
+        emptyMessage.style.left = '50%'
+        emptyMessage.style.transform = 'translate(-50%, -50%)'
+        emptyMessage.style.backgroundColor = 'rgba(255, 255, 255, 0.8)'
+        emptyMessage.style.padding = '10px 20px'
+        emptyMessage.style.borderRadius = '5px'
+        emptyMessage.style.fontSize = '14px'
+        emptyMessage.style.color = '#666'
+        emptyMessage.textContent = 'Database is empty. Add data to see your graph.'
+        graphContainer.appendChild(emptyMessage)
+        return
       } else {
         // Transform real data to the format expected by the visualization
         nodes = entities.map(entity => ({
@@ -3103,20 +3362,244 @@ await db.init()
   }
 
   function updateSearchVisualization(results) {
-    const container = document.getElementById('search-visualization')
-    container.innerHTML = `<div style="padding: 20px;">
-            <h4>Search Results Visualization</h4>
-            <p>Found ${results.length} matching results</p>
-        </div>`
+    // This function is now disabled as per requirements to remove the visual graph
+    return;
+
+    // Create SVG container
+    const svg = d3.select(graphContainer)
+      .append('svg')
+      .attr('width', width)
+      .attr('height', height)
+      .attr('class', 'search-viz')
+
+    // Create a group for the graph content that will be transformed by zoom
+    const graphContent = svg.append('g')
+      .attr('class', 'graph-content')
+
+    // Add a title
+    graphContent.append('text')
+      .attr('x', width / 2)
+      .attr('y', 30)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '16px')
+      .attr('font-weight', 'bold')
+      .text(`Search Results: ${results.length} matches`)
+
+    // Create zoom behavior
+    const zoomBehavior = d3.zoom()
+      .scaleExtent([0.1, 4])
+      .on('zoom', (event) => {
+        graphContent.attr('transform', event.transform)
+      })
+
+    // Apply zoom behavior to SVG
+    svg.call(zoomBehavior)
+
+    // Create a force simulation
+    const simulation = d3.forceSimulation()
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('charge', d3.forceManyBody().strength(-200))
+      .force('collide', d3.forceCollide().radius(60))
+
+    // Set up zoom controls
+    const zoomFitBtn = document.getElementById('search-zoom-fit-btn')
+    const zoomInBtn = document.getElementById('search-zoom-in-btn')
+    const zoomOutBtn = document.getElementById('search-zoom-out-btn')
+
+    if (zoomFitBtn) {
+      zoomFitBtn.addEventListener('click', () => {
+        zoomToFit()
+      })
+    }
+
+    if (zoomInBtn) {
+      zoomInBtn.addEventListener('click', () => {
+        const currentTransform = d3.zoomTransform(svg.node())
+        svg.transition()
+          .duration(300)
+          .call(zoomBehavior.transform, 
+                d3.zoomIdentity.translate(currentTransform.x, currentTransform.y).scale(currentTransform.k * 1.3))
+      })
+    }
+
+    if (zoomOutBtn) {
+      zoomOutBtn.addEventListener('click', () => {
+        const currentTransform = d3.zoomTransform(svg.node())
+        svg.transition()
+          .duration(300)
+          .call(zoomBehavior.transform, 
+                d3.zoomIdentity.translate(currentTransform.x, currentTransform.y).scale(currentTransform.k / 1.3))
+      })
+    }
+
+    // Process the results to create nodes
+    const nodes = results.map((result, index) => {
+      // Extract type from result or default to 'document'
+      const type = result.type || 'document'
+
+      // Determine node color based on type
+      let color
+      switch (type) {
+        case 'person':
+          color = '#E91E63' // Pink
+          break
+        case 'document':
+          color = '#4CAF50' // Green
+          break
+        case 'group':
+          color = '#2196F3' // Blue
+          break
+        default:
+          color = '#FF9800' // Orange
+      }
+
+      return {
+        id: result.id,
+        title: result.title || result.id,
+        score: result.score || 0.5,
+        type: type,
+        color: color,
+        content: result.content || '',
+        index: index
+      }
+    })
+
+    // Add nodes to the simulation
+    simulation.nodes(nodes).on('tick', ticked)
+
+    // Create node elements
+    const nodeGroups = graphContent.selectAll('.node')
+      .data(nodes)
+      .enter()
+      .append('g')
+      .attr('class', 'node')
+      .call(d3.drag()
+        .on('start', dragstarted)
+        .on('drag', dragged)
+        .on('end', dragended))
+
+    // Add circles for nodes with size based on score
+    nodeGroups.append('circle')
+      .attr('r', d => 30 + d.score * 20)
+      .attr('fill', d => d.color)
+      .attr('opacity', 0.8)
+      .attr('stroke', '#fff')
+      .attr('stroke-width', 2)
+
+    // Add text labels
+    nodeGroups.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', 4)
+      .attr('fill', 'white')
+      .attr('font-weight', 'bold')
+      .text(d => d.title.substring(0, 10) + (d.title.length > 10 ? '...' : ''))
+
+    // Add score labels
+    nodeGroups.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', 20)
+      .attr('fill', 'white')
+      .attr('font-size', '10px')
+      .text(d => d.score ? `Score: ${d.score.toFixed(2)}` : '')
+
+    // Add tooltips
+    nodeGroups.append('title')
+      .text(d => `${d.title}\nType: ${d.type}\nScore: ${d.score?.toFixed(4) || 'N/A'}\n${d.content.substring(0, 100)}${d.content.length > 100 ? '...' : ''}`)
+
+    // Create a legend (outside the zoom group to keep it fixed)
+    const legend = svg.append('g')
+      .attr('class', 'legend')
+      .attr('transform', `translate(${width - 120}, 50)`)
+
+    // Add legend title
+    legend.append('text')
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr('font-weight', 'bold')
+      .text('Result Types')
+
+    // Define legend items
+    const legendItems = [
+      { type: 'Person', color: '#E91E63' },
+      { type: 'Document', color: '#4CAF50' },
+      { type: 'Group', color: '#2196F3' },
+      { type: 'Other', color: '#FF9800' }
+    ]
+
+    // Add legend items
+    legendItems.forEach((item, i) => {
+      const legendItem = legend.append('g')
+        .attr('transform', `translate(0, ${i * 25 + 20})`)
+
+      legendItem.append('circle')
+        .attr('r', 8)
+        .attr('fill', item.color)
+
+      legendItem.append('text')
+        .attr('x', 15)
+        .attr('y', 4)
+        .attr('font-size', '12px')
+        .text(item.type)
+    })
+
+    // Tick function to update positions
+    function ticked() {
+      nodeGroups
+        .attr('transform', d => `translate(${d.x}, ${d.y})`)
+    }
+
+    // Drag functions
+    function dragstarted(event, d) {
+      if (!event.active) simulation.alphaTarget(0.3).restart()
+      d.fx = d.x
+      d.fy = d.y
+    }
+
+    function dragged(event, d) {
+      d.fx = event.x
+      d.fy = event.y
+    }
+
+    function dragended(event, d) {
+      if (!event.active) simulation.alphaTarget(0)
+      d.fx = null
+      d.fy = null
+    }
+
+    // Function to zoom to fit all nodes
+    function zoomToFit() {
+      if (!svg || !zoomBehavior || !graphContent.node()) return
+
+      // Get the bounds of the graph content
+      const bounds = graphContent.node().getBBox()
+
+      // Calculate the scale and translation to fit the content
+      const scale = 0.9 / Math.max(
+        bounds.width / width,
+        bounds.height / height
+      )
+
+      const translateX = width / 2 - scale * (bounds.x + bounds.width / 2)
+      const translateY = height / 2 - scale * (bounds.y + bounds.height / 2)
+
+      // Apply the zoom transform
+      svg.transition()
+        .duration(750)
+        .call(
+          zoomBehavior.transform,
+          d3.zoomIdentity
+            .translate(translateX, translateY)
+            .scale(scale)
+        )
+    }
+
+    // Auto zoom to fit after the simulation has stabilized
+    simulation.on('end', zoomToFit)
+
+    // Also call zoomToFit after a timeout to ensure it happens even if simulation doesn't end
+    setTimeout(zoomToFit, 1000)
   }
 
-  function resetVisualization() {
-    showVisualization('graph')
-  }
-
-  function exportVisualization() {
-    alert('Visualization export functionality would be implemented here')
-  }
 
   // CLI functions
   function executeCLICommand(command) {
