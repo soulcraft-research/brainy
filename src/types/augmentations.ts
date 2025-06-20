@@ -111,10 +111,10 @@ export namespace BrainyAugmentations {
      * @param rawData The raw, unstructured data (e.g., text, image buffer, audio stream)
      * @param dataType The type of raw data (e.g., 'text', 'image', 'audio')
      */
-    processRawData(rawData: Buffer | string, dataType: string): AugmentationResponse<{
+    processRawData(rawData: Buffer | string, dataType: string): Promise<AugmentationResponse<{
       nouns: string[]
       verbs: string[]
-    }>
+    }>>
 
     /**
      * Registers a listener for real-time data feeds.

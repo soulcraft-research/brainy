@@ -5,8 +5,20 @@
  * It replaces the dynamic loading mechanism in pluginLoader.ts.
  */
 
-import { AugmentationPipeline, augmentationPipeline } from './augmentationPipeline.js'
+import { IPipeline } from './types/pipelineTypes.js'
 import { AugmentationType, IAugmentation } from './types/augmentations.js'
+
+// Forward declaration of the pipeline instance to avoid circular dependency
+// The actual pipeline will be provided when initializeAugmentationPipeline is called
+let defaultPipeline: IPipeline | null = null
+
+/**
+ * Sets the default pipeline instance
+ * This function should be called from pipeline.ts after the pipeline is created
+ */
+export function setDefaultPipeline(pipeline: IPipeline): void {
+  defaultPipeline = pipeline
+}
 
 /**
  * Registry of all available augmentations
@@ -36,10 +48,18 @@ export function registerAugmentation<T extends IAugmentation>(augmentation: T): 
  *
  * @param pipeline Optional custom pipeline to use instead of the default
  * @returns The pipeline that was initialized
+ * @throws Error if no pipeline is provided and the default pipeline hasn't been set
  */
 export function initializeAugmentationPipeline(
-  pipeline: AugmentationPipeline = augmentationPipeline
-): AugmentationPipeline {
+  pipelineInstance?: IPipeline
+): IPipeline {
+  // Use the provided pipeline or fall back to the default
+  const pipeline = pipelineInstance || defaultPipeline
+
+  if (!pipeline) {
+    throw new Error('No pipeline provided and default pipeline not set. Call setDefaultPipeline first.')
+  }
+
   // Register all augmentations with the pipeline
   for (const augmentation of availableAugmentations) {
     if (augmentation.enabled) {
