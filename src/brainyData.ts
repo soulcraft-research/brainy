@@ -756,6 +756,44 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   }
 
   /**
+   * Find entities similar to a given entity ID
+   * @param id ID of the entity to find similar entities for
+   * @param options Additional options
+   * @returns Array of search results with similarity scores
+   */
+  public async findSimilar(
+    id: string,
+    options: {
+      limit?: number // Number of results to return
+      nounTypes?: string[] // Optional array of noun types to search within
+      includeVerbs?: boolean // Whether to include associated GraphVerbs in the results
+      searchMode?: 'local' | 'remote' | 'combined' // Where to search: local, remote, or both
+    } = {}
+  ): Promise<SearchResult<T>[]> {
+    await this.ensureInitialized()
+
+    // Get the entity by ID
+    const entity = await this.get(id)
+    if (!entity) {
+      throw new Error(`Entity with ID ${id} not found`)
+    }
+
+    // Use the entity's vector to search for similar entities
+    const k = (options.limit || 10) + 1 // Add 1 to account for the original entity
+    const searchResults = await this.search(entity.vector, k, {
+      forceEmbed: false,
+      nounTypes: options.nounTypes,
+      includeVerbs: options.includeVerbs,
+      searchMode: options.searchMode
+    })
+
+    // Filter out the original entity and limit to the requested number
+    return searchResults
+      .filter(result => result.id !== id)
+      .slice(0, options.limit || 10)
+  }
+
+  /**
    * Get a vector by ID
    */
   public async get(id: string): Promise<VectorDocument<T> | null> {

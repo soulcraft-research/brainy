@@ -44,4 +44,12 @@ export interface BrainyDataInterface<T = unknown> {
    * @returns The ID of the created relationship
    */
   relate(sourceId: string, targetId: string, relationType: string, metadata?: unknown): Promise<string>
+
+  /**
+   * Find entities similar to a given entity ID
+   * @param id ID of the entity to find similar entities for
+   * @param options Additional options
+   * @returns Array of search results with similarity scores
+   */
+  findSimilar(id: string, options?: { limit?: number }): Promise<unknown[]>
 }
