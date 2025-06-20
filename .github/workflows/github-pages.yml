@@ -24,8 +24,8 @@ jobs:
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
-        with: 
+        uses: actions/upload-pages-artifact@v3
+        with:
           path: './examples'  # Upload the examples directory
 
       - name: Deploy to GitHub Pages
