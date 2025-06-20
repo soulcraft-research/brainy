@@ -383,6 +383,36 @@ program
   })
 
 program
+  .command('import-sparse')
+  .description('Import sparse data (without vectors) from a JSON file into the database')
+  .argument('<filename>', 'Input JSON file')
+  .option('-c, --clear', 'Clear existing data before importing', false)
+  .action(async (filename, options) => {
+    try {
+      const db = createDb()
+      await db.init()
+
+      // Read the file
+      if (!fs.existsSync(filename)) {
+        console.error(`File not found: ${filename}`)
+        process.exit(1)
+      }
+
+      const fileContent = fs.readFileSync(filename, 'utf8')
+      const data = JSON.parse(fileContent)
+
+      // Import the sparse data
+      const result = await db.importSparseData(data, { clearExisting: options.clear })
+
+      console.log(`Sparse data imported successfully from ${filename}`)
+      console.log(`Imported ${result.nounsRestored} nouns and ${result.verbsRestored} verbs`)
+    } catch (error) {
+      console.error('Error:', (error as Error).message)
+      process.exit(1)
+    }
+  })
+
+program
   .command('visualize')
   .description('Visualize the graph structure in ASCII format')
   .option('-r, --root <id>', 'ID of the root noun to start visualization from')
@@ -767,6 +797,7 @@ completion.tree({
     'generate-random-graph',
     'backup',
     'restore',
+    'import-sparse',
     'completion-setup',
     'init',
     'help',
@@ -806,6 +837,9 @@ completion.tree({
     _: () => ['brainy-backup.json', 'database-backup.json']
   },
   restore: {
+    _: () => ['--clear']
+  },
+  'import-sparse': {
     _: () => ['--clear']
   },
   'generate-random-graph': {
