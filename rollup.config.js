@@ -11,12 +11,7 @@ const nodeModuleShims = () => {
     name: 'node-module-shims',
     resolveId(source) {
       // List of Node.js built-in modules to shim
-      const nodeBuiltins = [
-        'fs',
-        'path',
-        'util',
-        'child_process'
-      ]
+      const nodeBuiltins = ['fs', 'path', 'util', 'child_process']
 
       if (nodeBuiltins.includes(source)) {
         // Return a virtual module ID for the shim
@@ -99,7 +94,7 @@ globalThis.__ENV__ = {
     `
   },
   browser: {
-    input: 'examples/browser_compatible_exports.ts',
+    input: 'demo/browser_compatible_exports.ts',
     outputPrefix: 'brainy',
     tsconfig: './tsconfig.browser.json',
     declaration: false,
@@ -135,12 +130,14 @@ export default {
   ],
   plugins: [
     // Add environment replacement for unified build
-    ...(buildType === 'unified' ? [
-      replace({
-        preventAssignment: true,
-        'process.env.NODE_ENV': JSON.stringify('production')
-      })
-    ] : []),
+    ...(buildType === 'unified'
+      ? [
+          replace({
+            preventAssignment: true,
+            'process.env.NODE_ENV': JSON.stringify('production')
+          })
+        ]
+      : []),
     // Add our custom plugins
     fixThisReferences(),
     nodeModuleShims(),
