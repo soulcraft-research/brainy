@@ -370,7 +370,7 @@ async function example5() {
 }
 
 /**
- * Run all demo
+ * Run all examples
  */
 async function runExamples() {
   try {
@@ -380,11 +380,11 @@ async function runExamples() {
     await example4()
     await example5()
 
-    console.log('All demo completed successfully!')
+    console.log('All examples completed successfully!')
   } catch (error) {
-    console.error('Error running demo:', error)
+    console.error('Error running examples:', error)
   }
 }
 
-// Run the demo
+// Run the examples
 runExamples()
