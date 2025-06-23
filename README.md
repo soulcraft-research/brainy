@@ -1,5 +1,5 @@
 <div align="center">
-<img src="https://github.com/soulcraft-research/brainy/blob/HEAD/brainy.png?raw=true" alt="Brainy Logo" width="200"/>
+<img src="https://github.com/soulcraft-research/brainy/blob/d8a572baaf1b3599487ae455dd40e25265b977e4/brainy.png" alt="Brainy Logo" width="200"/>
 <br/><br/>
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -8,7 +8,7 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Cartographer](https://img.shields.io/badge/Cartographer-Official%20Standard-brightgreen)](https://github.com/sodal-project/cartographer)
 
-**A lightweight and powerful graph & vector data platform for AI applications across any environment**
+**A powerful graph & vector data platform for AI applications across any environment**
 
 </div>
 
