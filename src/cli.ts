@@ -345,7 +345,9 @@ program
       fs.writeFileSync(outputFile, JSON.stringify(data, null, 2))
 
       console.log(`Data backed up successfully to ${outputFile}`)
-      console.log(`Backed up ${data.nouns.length} nouns and ${data.verbs.length} verbs`)
+      console.log(
+        `Backed up ${data.nouns.length} nouns and ${data.verbs.length} verbs`
+      )
     } catch (error) {
       console.error('Error:', (error as Error).message)
       process.exit(1)
@@ -375,7 +377,9 @@ program
       const result = await db.restore(data, { clearExisting: options.clear })
 
       console.log(`Data restored successfully from ${filename}`)
-      console.log(`Restored ${result.nounsRestored} nouns and ${result.verbsRestored} verbs`)
+      console.log(
+        `Restored ${result.nounsRestored} nouns and ${result.verbsRestored} verbs`
+      )
     } catch (error) {
       console.error('Error:', (error as Error).message)
       process.exit(1)
@@ -384,7 +388,9 @@ program
 
 program
   .command('import-sparse')
-  .description('Import sparse data (without vectors) from a JSON file into the database')
+  .description(
+    'Import sparse data (without vectors) from a JSON file into the database'
+  )
   .argument('<filename>', 'Input JSON file')
   .option('-c, --clear', 'Clear existing data before importing', false)
   .action(async (filename, options) => {
@@ -402,10 +408,14 @@ program
       const data = JSON.parse(fileContent)
 
       // Import the sparse data
-      const result = await db.importSparseData(data, { clearExisting: options.clear })
+      const result = await db.importSparseData(data, {
+        clearExisting: options.clear
+      })
 
       console.log(`Sparse data imported successfully from ${filename}`)
-      console.log(`Imported ${result.nounsRestored} nouns and ${result.verbsRestored} verbs`)
+      console.log(
+        `Imported ${result.nounsRestored} nouns and ${result.verbsRestored} verbs`
+      )
     } catch (error) {
       console.error('Error:', (error as Error).message)
       process.exit(1)
@@ -746,7 +756,7 @@ program
     }
   })
 
-// Add examples to help text
+// Add demo to help text
 program.addHelpText(
   'after',
   `
@@ -881,7 +891,7 @@ completion.tree({
   },
   'completion-setup': {},
   init: {},
-  help: {},
+  help: {}
 })
 
 // Initialize autocomplete
@@ -1271,8 +1281,6 @@ program
     console.log('Autocomplete setup complete. Please restart your shell.')
   })
 
-
 // Parse command line arguments
-
 
 program.parse()
