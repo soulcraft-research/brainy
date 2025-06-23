@@ -1,5 +1,5 @@
 <div align="center">
-<img src="./brainy.png" alt="Brainy Logo" width="200"/>
+<img src="https://github.com/soulcraft-research/brainy/blob/HEAD/brainy.png?raw=true" alt="Brainy Logo" width="200"/>
 <br/><br/>
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -862,7 +862,7 @@ The simplified augmentation system provides:
 4. **Dynamic Loading** - Load augmentations at runtime when needed
 5. **Static & Streaming Data** - Handle both static and streaming data with the same API
 
-For a complete example, see [examples/simplified-augmentations.js](examples/simplified-augmentations.js).
+For a complete example, see [examples/simplified-augmentations.js](demo/simplified-augmentations.js).
 
 ### Model Control Protocol (MCP)
 
@@ -1174,7 +1174,7 @@ const id = await db.addToBoth('Deep learning is a subset of machine learning', {
 await db.shutDown()
 ```
 
-For a complete demonstration of Brainy's features, see the [demo page](examples/demo.html).
+For a complete demonstration of Brainy's features, see the [demo page](demo/index.html).
 
 ## Requirements
 
