@@ -1,7 +1,7 @@
 import { WebSocketServer } from 'ws'
 import express from 'express'
 import cors from 'cors'
-import { BrainyData, BrainyMCPService } from '@soulcraft/brainy'
+import { BrainyData, BrainyMCPService, MCPRequestType } from '@soulcraft/brainy'
 import { v4 as uuidv4 } from 'uuid'
 
 /**
@@ -177,10 +177,9 @@ function startRESTServer(
   app.get('/mcp/tools', async (req: any, res: any) => {
     try {
       const response = await mcpService.handleMCPRequest({
-        type: 'SYSTEM_INFO',
+        type: MCPRequestType.SYSTEM_INFO,
         requestId: uuidv4(),
-        version: '1.0',
-        infoType: 'availableTools'
+        version: '1.0'
       })
 
       res.json(response)
