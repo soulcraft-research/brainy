@@ -25,6 +25,8 @@ coverage/
 .nyc_output/
 
 # Large files
+# Include the logo but exclude other PNGs
+!brainy.png
 *.png
 encoded-image.*
 README.demo.md

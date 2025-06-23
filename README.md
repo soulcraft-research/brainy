@@ -40,7 +40,8 @@ it gets - learning from your data to provide increasingly relevant results and c
 
 ## 🚀 Live Demo
 
-**[Try the live demo](https://soulcraft-research.github.io/brainy/examples/)** - Check out the interactive demo on GitHub Pages that showcases Brainy's main features. You can access it at either [https://soulcraft-research.github.io/brainy/examples/](https://soulcraft-research.github.io/brainy/examples/) or [https://soulcraft-research.github.io/brainy/examples/demo.html](https://soulcraft-research.github.io/brainy/examples/demo.html).
+**[Try the live demo](https://soulcraft-research.github.io/brainy/examples/)** - Check out the interactive demo on
+GitHub Pages that showcases Brainy's main features.
 
 ## 📊 What Can You Build?
 
@@ -977,17 +978,19 @@ the [Cloud Wrapper README](cloud-wrapper/README.md) for detailed configuration i
 The repository includes a comprehensive demo that showcases Brainy's main features:
 
 - `examples/demo.html` - A single demo page with animations demonstrating Brainy's features.
-    - **[Try the live demo](https://soulcraft-research.github.io/brainy/examples/demo.html)** - Check out the interactive demo on
+    - **[Try the live demo](https://soulcraft-research.github.io/brainy/examples/demo.html)** - Check out the
+      interactive demo on
       GitHub Pages
     - Or run it locally with `npm run demo` (see [demo instructions](README.demo.md) for details)
     - To deploy your own version to GitHub Pages, run `npm run deploy:demo`
-    - To deploy automatically when pushing to the main branch, a GitHub Actions workflow is included in `.github/workflows/deploy-demo.yml`
+    - To deploy automatically when pushing to the main branch, a GitHub Actions workflow is included in
+      `.github/workflows/deploy-demo.yml`
     - To use a custom domain (like www.soulcraft.com):
         1. A CNAME file is already included in the examples directory
         2. In your GitHub repository settings, go to Pages > Custom domain and enter your domain
         3. Configure your domain's DNS settings to point to GitHub Pages:
-           - Add a CNAME record for www pointing to `<username>.github.io` (e.g., `soulcraft-research.github.io`)
-           - Or for an apex domain (soulcraft.com), add A records pointing to GitHub Pages IP addresses
+            - Add a CNAME record for www pointing to `<username>.github.io` (e.g., `soulcraft-research.github.io`)
+            - Or for an apex domain (soulcraft.com), add A records pointing to GitHub Pages IP addresses
 
 The demo showcases:
 
