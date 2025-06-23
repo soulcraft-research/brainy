@@ -1091,8 +1091,15 @@ await db.init()
 </div>
 
 <script type="module">
-  // Import Brainy library directly as a module
-  import { BrainyData, NounType, VerbType } from 'https://cdn.jsdelivr.net/npm/@soulcraft/brainy/dist/unified.js'
+  // Dynamically determine the import path based on the environment
+  // If running on GitHub Pages, use the local files, otherwise use the CDN
+  const isGitHubPages = window.location.hostname.includes('github.io')
+  const importPath = isGitHubPages
+    ? './dist/unified.js'
+    : 'https://cdn.jsdelivr.net/npm/@soulcraft/brainy/dist/unified.js'
+
+  // Dynamic import to handle different environments
+  const { BrainyData, NounType, VerbType } = await import(importPath)
 
   // Make BrainyData and types available globally
   window.BrainyData = BrainyData
@@ -3363,7 +3370,7 @@ await db.init()
 
   function updateSearchVisualization(results) {
     // This function is now disabled as per requirements to remove the visual graph
-    return;
+    return
 
     // Create SVG container
     const svg = d3.select(graphContainer)
@@ -3417,8 +3424,8 @@ await db.init()
         const currentTransform = d3.zoomTransform(svg.node())
         svg.transition()
           .duration(300)
-          .call(zoomBehavior.transform, 
-                d3.zoomIdentity.translate(currentTransform.x, currentTransform.y).scale(currentTransform.k * 1.3))
+          .call(zoomBehavior.transform,
+            d3.zoomIdentity.translate(currentTransform.x, currentTransform.y).scale(currentTransform.k * 1.3))
       })
     }
 
@@ -3427,8 +3434,8 @@ await db.init()
         const currentTransform = d3.zoomTransform(svg.node())
         svg.transition()
           .duration(300)
-          .call(zoomBehavior.transform, 
-                d3.zoomIdentity.translate(currentTransform.x, currentTransform.y).scale(currentTransform.k / 1.3))
+          .call(zoomBehavior.transform,
+            d3.zoomIdentity.translate(currentTransform.x, currentTransform.y).scale(currentTransform.k / 1.3))
       })
     }
 

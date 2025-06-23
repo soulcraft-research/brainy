@@ -27,6 +27,13 @@ jobs:
         run: |
           npm run build
           npm run build:browser
+          mkdir -p demo/dist
+          cp dist/unified.js demo/dist/
+          cp dist/unified.min.js demo/dist/
+          cp dist/brainy.js demo/dist/
+          cp dist/brainy.min.js demo/dist/
+          # Use the GitHub Pages specific version of simplified-augmentations.js
+          cp demo/simplified-augmentations-gh-pages.js demo/simplified-augmentations.js
 
       - name: Deploy to GitHub Pages 🚀
         uses: JamesIves/github-pages-deploy-action@v4
