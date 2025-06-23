@@ -1,6 +1,7 @@
 import { GraphVerb, HNSWNoun, StorageAdapter } from '../coreTypes.js';
 type HNSWNode = HNSWNoun;
 type Edge = GraphVerb;
+export { S3CompatibleStorage as R2Storage };
 /**
  * S3-compatible storage adapter for server environments
  * Uses the AWS S3 client to interact with S3-compatible storage services
@@ -154,20 +155,4 @@ export declare class S3CompatibleStorage implements StorageAdapter {
      */
     private mapToObject;
 }
-/**
- * Cloudflare R2 storage adapter for server environments
- * This class is maintained for backward compatibility
- * It is recommended to use S3CompatibleStorage directly for new code
- *
- * @deprecated Use S3CompatibleStorage with serviceType: 'r2' instead
- */
-export declare class R2Storage extends S3CompatibleStorage {
-    constructor(options: {
-        bucketName: string;
-        accountId: string;
-        accessKeyId: string;
-        secretAccessKey: string;
-    });
-}
-export {};
 //# sourceMappingURL=s3CompatibleStorage.d.ts.map

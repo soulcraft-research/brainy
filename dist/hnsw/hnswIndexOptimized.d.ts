@@ -99,12 +99,12 @@ export declare class HNSWIndexOptimized extends HNSWIndex {
      * Add a vector to the index
      * Uses product quantization if enabled and memory threshold is exceeded
      */
-    addItem(item: VectorDocument): string;
+    addItem(item: VectorDocument): Promise<string>;
     /**
      * Search for nearest neighbors
      * Uses product quantization if enabled
      */
-    search(queryVector: Vector, k?: number): Array<[string, number]>;
+    search(queryVector: Vector, k?: number): Promise<Array<[string, number]>>;
     /**
      * Remove an item from the index
      */

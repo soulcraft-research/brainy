@@ -31,7 +31,6 @@
           --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
           --transition: all 0.3s ease;
 
-          /* Cartographer colors */
           --md3-primary: #6750A4;
           --md3-on-primary: #FFFFFF;
           --md3-secondary-container: #E8DEF8;
@@ -154,7 +153,6 @@
           overflow: hidden;
       }
 
-      /* Cartographer styles */
       .zoom-controls {
           position: absolute;
           bottom: 1.5rem;
@@ -287,6 +285,123 @@
           white-space: pre-wrap;
       }
 
+      /* Google-like search interface styles */
+      .google-search-container {
+          max-width: 800px;
+          margin: 0 auto;
+      }
+
+      .google-search-box-container {
+          margin-bottom: 15px;
+      }
+
+      .google-search-box {
+          display: flex;
+          align-items: center;
+          border: 1px solid #dfe1e5;
+          border-radius: 24px;
+          padding: 8px 16px;
+          max-width: 600px;
+          margin: 0 auto;
+          box-shadow: 0 1px 6px rgba(32, 33, 36, 0.28);
+          transition: box-shadow 0.3s, border-color 0.3s;
+      }
+
+      .google-search-box:hover, .google-search-box:focus-within {
+          box-shadow: 0 1px 8px rgba(32, 33, 36, 0.35);
+          border-color: rgba(223, 225, 229, 0);
+      }
+
+      .google-search-icon {
+          margin-right: 12px;
+          color: #9aa0a6;
+      }
+
+      .google-search-box input {
+          flex: 1;
+          border: none;
+          outline: none;
+          font-size: 16px;
+          color: #202124;
+          background: transparent;
+          padding: 8px 0;
+          font-family: Arial, sans-serif;
+      }
+
+      .google-search-clear {
+          cursor: pointer;
+          color: #70757a;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          visibility: hidden;
+      }
+
+      .google-search-options {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 15px;
+          margin: 20px 0;
+      }
+
+      .search-type-container select {
+          padding: 8px 12px;
+          border: 1px solid #dfe1e5;
+          border-radius: 4px;
+          background-color: white;
+          font-size: 14px;
+          color: #202124;
+          outline: none;
+      }
+
+      .google-search-buttons {
+          display: flex;
+          gap: 10px;
+      }
+
+      .google-search-button {
+          background-color: #f8f9fa;
+          border: 1px solid #f8f9fa;
+          border-radius: 4px;
+          color: #3c4043;
+          font-family: Arial, sans-serif;
+          font-size: 14px;
+          padding: 8px 16px;
+          cursor: pointer;
+          text-align: center;
+          user-select: none;
+          transition: border-color 0.3s, box-shadow 0.3s;
+      }
+
+      .google-search-button:hover {
+          box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+          border-color: #dadce0;
+      }
+
+      .google-search-button:focus {
+          border-color: #4285f4;
+          outline: none;
+      }
+
+      .google-search-button.secondary {
+          color: #1a73e8;
+      }
+
+      .google-results-container {
+          max-width: 650px;
+          margin: 30px auto;
+          font-family: Arial, sans-serif;
+      }
+
+      .google-results-placeholder {
+          color: #70757a;
+          font-size: 14px;
+          text-align: center;
+          padding: 20px;
+      }
+
       /* Google-like search results styles */
       .search-stats {
           color: #70757a;
@@ -338,6 +453,21 @@
           margin-bottom: 5px;
       }
 
+      .match-reason {
+          background-color: #f8f9fa;
+          border-left: 3px solid #fbbc05;
+          padding: 8px 12px;
+          margin: 8px 0;
+          font-size: 13px;
+          color: #5f6368;
+          line-height: 1.5;
+          border-radius: 0 4px 4px 0;
+      }
+
+      .match-reason strong {
+          color: #202124;
+      }
+
       .result-metadata {
           display: flex;
           flex-wrap: wrap;
@@ -351,6 +481,13 @@
           border-radius: 12px;
           font-size: 12px;
           color: #4d5156;
+      }
+
+      /* Highlighted search terms */
+      .highlight {
+          background-color: #FFEB3B;
+          font-weight: bold;
+          padding: 0 1px;
       }
 
       /* Cluster-specific styles */
@@ -636,7 +773,7 @@
     <img src="../brainy.png" alt="Brainy Logo">
     <div class="header-text">
       <h1>Brainy Interactive Demo</h1>
-      <p>A lightweight but powerful graph & vector data platform for AI applications across any environment</p>
+      <p>A powerful graph & vector data platform for AI applications across any environment</p>
     </div>
   </header>
 
@@ -680,7 +817,7 @@
       </div>
       <div class="feature-item">
         <h4>🌍 Cross-Platform</h4>
-        <p>Works everywhere you do: browsers, Node.js, and server environments</p>
+        <p>Works everywhere you do: browsers, Node.js and server environments</p>
       </div>
       <div class="feature-item">
         <h4>💾 Persistent Storage</h4>
@@ -700,7 +837,7 @@
       </div>
       <div class="feature-item">
         <h4>☁️ Cloud Ready</h4>
-        <p>Easy deployment to Google, AWS, Azure, and other cloud platforms</p>
+        <p>Easy deployment to Google, AWS, Azure and other cloud platforms</p>
       </div>
       <div class="feature-item">
         <h4>🎮 Model Control Protocol (MCP)</h4>
@@ -744,6 +881,287 @@
       <div class="feature-item">
         <h4>🔌 Model-Integrated Systems</h4>
         <p>Connect external AI models to Brainy data and tools using MCP</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="demo-section">
+    <h2>Interactive Brainy Explorer</h2>
+    <p>This interactive demo guides you through Brainy's features step by step, from basic operations to advanced
+      capabilities.</p>
+
+    <!-- Step 1: Getting Started -->
+    <div class="section-content" id="step1-content">
+      <h3>Step 1: Getting Started with Brainy</h3>
+      <p>Let's start by initializing the database and exploring basic operations.</p>
+
+      <div class="demo-controls">
+        <button id="init-db-btn">Initialize Database</button>
+        <button id="add-sample-btn" class="secondary">Add Sample Data</button>
+        <button id="backup-db-btn" class="accent">Backup Data</button>
+        <button id="restore-db-btn" class="accent">Restore Data</button>
+        <button id="clear-db-btn" class="danger">Clear Database</button>
+      </div>
+
+      <div class="results" id="db-status">
+        Database not initialized. Click "Initialize Database" to start.
+      </div>
+
+      <div class="visualization" id="db-visualization">
+        <div class="zoom-controls">
+          <button class="zoom-fit-button" id="zoom-fit-btn" title="Zoom to fit all nodes">
+            <i class="material-icons">fit_screen</i>
+          </button>
+        </div>
+        <div class="graph-container">
+          <div style="text-align: center; padding-top: 200px; color: #666;">
+            Database visualization will appear here after initialization
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Searching -->
+    <div class="section-content" id="step2-content">
+      <h3>Step 2: Semantic Search</h3>
+      <p>Search your data using vector embeddings for semantic understanding.</p>
+
+      <!-- Google-like search interface -->
+      <div class="google-search-container">
+        <div class="google-search-box-container">
+          <div class="google-search-box">
+            <div class="google-search-icon">
+              <svg focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+                <path
+                  d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
+                  fill="#9aa0a6"></path>
+              </svg>
+            </div>
+            <input type="text" id="search-query" placeholder="Try: travel, AI, fitness, food, design...">
+            <div class="google-search-clear" id="search-clear">
+              <svg focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+                <path
+                  d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                  fill="#70757a"></path>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="google-search-options">
+          <div class="search-type-container">
+            <select id="search-type">
+              <option value="semantic">Semantic Search</option>
+              <option value="keyword">Keyword Search</option>
+              <option value="hybrid">Hybrid Search</option>
+              <option value="verbs">Verb Search</option>
+              <option value="connected-nouns">Connected Nouns Search</option>
+            </select>
+          </div>
+          <div class="google-search-buttons">
+            <button id="search-btn" class="google-search-button">Search</button>
+            <!--            <button id="similar-entities-btn" class="google-search-button secondary">Find Similar Entities</button>-->
+          </div>
+        </div>
+      </div>
+
+      <p class="search-help" style="font-size: 0.9em; color: #666; margin-top: 10px; margin-bottom: 15px;">
+        Try searching for topics in the sample data like "travel", "AI", "fitness", "food", "design",
+        "sustainability", or specific concepts like "workout challenge", "social media", "photography", etc.
+      </p>
+
+      <div class="google-results-container" id="search-results">
+        <div class="google-results-placeholder">
+          Search results will appear here...
+        </div>
+      </div>
+
+      <div class="visualization" id="search-visualization">
+        <div class="zoom-controls">
+          <button class="zoom-fit-button" id="search-zoom-fit-btn" title="Zoom to fit all nodes">
+            <i class="material-icons">fit_screen</i>
+          </button>
+          <button class="zoom-button" id="search-zoom-in-btn" title="Zoom in">
+            <i class="material-icons">add</i>
+          </button>
+          <button class="zoom-button" id="search-zoom-out-btn" title="Zoom out">
+            <i class="material-icons">remove</i>
+          </button>
+        </div>
+        <div class="graph-container">
+          <div style="text-align: center; padding-top: 200px; color: #666;">
+            Search results visualization
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Adding Data -->
+    <div class="section-content" id="step3-content">
+      <h3>Step 3: Adding Entities (Nouns)</h3>
+      <p>Now that your database is initialized, let's add some entities (nouns) to it.</p>
+
+      <div class="form-group">
+        <label for="noun-type">Noun Type:</label>
+        <select id="noun-type">
+          <option value="person">Person</option>
+          <option value="place">Place</option>
+          <option value="thing">Thing</option>
+          <option value="event">Event</option>
+          <option value="concept">Concept</option>
+          <option value="content">Content</option>
+          <option value="group">Group</option>
+          <option value="list">List</option>
+          <option value="category">Category</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="noun-id">ID (optional):</label>
+        <input type="text" id="noun-id" placeholder="Custom ID for the entity (auto-generated if empty)">
+      </div>
+
+      <div class="form-group">
+        <label for="noun-name">Name:</label>
+        <input type="text" id="noun-name" placeholder="Name of the entity">
+      </div>
+
+      <div class="form-group">
+        <label for="noun-content">Description/Content:</label>
+        <textarea id="noun-content" placeholder="Description or content of the entity"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="noun-tags">Tags (comma-separated):</label>
+        <input type="text" id="noun-tags" placeholder="tag1, tag2, tag3">
+      </div>
+
+      <div class="demo-controls">
+        <button id="add-noun-btn">Add Noun</button>
+        <button id="query-nouns-btn" class="accent">View All Nouns</button>
+      </div>
+
+      <div class="results" id="entity-results">
+        Entity operations will appear here...
+      </div>
+    </div>
+
+    <!-- Step 4: Creating Relationships -->
+    <div class="section-content" id="step4-content">
+      <h3>Step 4: Creating Relationships (Verbs)</h3>
+      <p>Connect your entities with meaningful relationships to build a knowledge graph.</p>
+
+      <div class="form-group">
+        <label for="source-id">Source Entity:</label>
+        <select id="source-id">
+          <option value="">-- Select Source Entity --</option>
+        </select>
+        <button id="refresh-nouns-btn" class="secondary" style="margin-top: 5px; padding: 5px 10px;">Refresh Entity
+          List
+        </button>
+      </div>
+
+      <div class="form-group">
+        <label for="target-id">Target Entity:</label>
+        <select id="target-id">
+          <option value="">-- Select Target Entity --</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="verb-type">Relationship Type:</label>
+        <select id="verb-type">
+          <option value="relatedTo">Related To</option>
+          <option value="attributedTo">Attributed To</option>
+          <option value="controls">Controls</option>
+          <option value="created">Created</option>
+          <option value="owns">Owns</option>
+          <option value="memberOf">Member Of</option>
+          <option value="worksWith">Works With</option>
+          <option value="friendOf">Friend Of</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="verb-description">Relationship Description:</label>
+        <textarea id="verb-description" placeholder="Describe the relationship between the entities"></textarea>
+      </div>
+
+      <div class="demo-controls">
+        <button id="add-verb-btn">Add Relationship</button>
+        <button id="query-verbs-btn" class="accent">View All Relationships</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Advanced Features -->
+    <div class="section-content" id="step6-content">
+      <h3>Step 5: Advanced Features</h3>
+      <p>Explore Brainy's advanced capabilities for more complex use cases.</p>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>🔍 Vector Search</h3>
+          <p>Explore how HNSW makes semantic search fast and efficient.</p>
+          <button class="demo-feature-btn" data-feature="hnsw">Try Vector Search</button>
+        </div>
+
+        <div class="feature-card">
+          <h3>🌐 Graph Traversal</h3>
+          <p>Navigate through connected entities in your knowledge graph.</p>
+          <button class="demo-feature-btn" data-feature="graph-traversal">Try Graph Traversal</button>
+        </div>
+
+        <div class="feature-card">
+          <h3>💾 Data Management</h3>
+          <p>Backup, restore and manage your data.</p>
+          <div class="demo-controls" style="margin-top: 10px;">
+            <button id="export-data-btn">Backup Data</button>
+            <button id="import-data-btn">Restore Data</button>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <h3>🧠 Embedding Pipeline</h3>
+          <p>See how text is converted to vectors for semantic understanding.</p>
+          <button class="demo-feature-btn" data-feature="embedding">Try Embedding Demo</button>
+        </div>
+      </div>
+
+      <div class="results" id="feature-demo-results">
+        Select a feature above to see a detailed demonstration...
+      </div>
+    </div>
+
+    <!-- Step 6: CLI Interface -->
+    <div class="section-content" id="step7-content">
+      <h3>Step 6: Command Line Interface</h3>
+      <p>Try Brainy's CLI commands for scripting and automation.</p>
+
+      <div class="cli-terminal">
+        <div class="cli-history" id="cli-history"></div>
+        <div class="cli-command">
+          <span class="cli-prompt">brainy$</span>
+          <input type="text" class="cli-input" id="cli-input" placeholder="Type a command...">
+        </div>
+        <div class="cli-output" id="cli-output"></div>
+      </div>
+
+      <div class="demo-controls">
+        <button id="help-cmd-btn">Help</button>
+        <button id="status-cmd-btn" class="secondary">Status</button>
+        <button id="init-cmd-btn" class="accent">Init</button>
+        <button id="query-cmd-btn" class="accent">Query</button>
+        <button id="clear-terminal-btn" class="danger">Clear</button>
+      </div>
+
+      <div class="code-block">
+        <strong>Common Commands:</strong><br>
+        brainy init - Initialize a new database<br>
+        brainy add &lt;data&gt; - Add data to the database<br>
+        brainy search &lt;query&gt; - Search for entities<br>
+        brainy relate &lt;from&gt; &lt;to&gt; - Create relationships<br>
+        brainy status - Show database status<br>
+        brainy help - Show all commands
       </div>
     </div>
   </section>
@@ -804,278 +1222,19 @@ await db.init()
         <h4>Option 2: Using a script tag in HTML</h4>
         <pre class="code-block">
 &lt;script type="module"&gt;
-  // Use the CDN to load the unified build
-  import { BrainyData, NounType, VerbType } from 'https://cdn.jsdelivr.net/npm/@soulcraft/brainy/dist/unified.js'
+  // Use local files instead of CDN
+  import { BrainyData, NounType, VerbType } from '../dist/unified.js'
 
   // Or minified version
-  // import { BrainyData, NounType, VerbType } from 'https://cdn.jsdelivr.net/npm/@soulcraft/brainy/dist/unified.min.js'
+  // import { BrainyData, NounType, VerbType } from '../dist/unified.min.js'
 
   const db = new BrainyData()
   await db.init()
   // ...
 &lt;/script&gt;
         </pre>
-        <p>Modern bundlers like Webpack, Rollup, and Vite will automatically use the unified build which adapts to any
+        <p>Modern bundlers like Webpack, Rollup and Vite will automatically use the unified build which adapts to any
           environment.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="demo-section">
-    <h2>Interactive Brainy Explorer</h2>
-    <p>This interactive demo guides you through Brainy's features step by step, from basic operations to advanced
-      capabilities.</p>
-
-    <!-- Step 1: Getting Started -->
-    <div class="section-content" id="step1-content">
-      <h3>Step 1: Getting Started with Brainy</h3>
-      <p>Let's start by initializing the database and exploring basic operations.</p>
-
-      <div class="demo-controls">
-        <button id="init-db-btn">Initialize Database</button>
-        <button id="add-sample-btn" class="secondary">Add Sample Data</button>
-        <button id="backup-db-btn" class="accent">Backup Data</button>
-        <button id="restore-db-btn" class="accent">Restore Data</button>
-        <button id="clear-db-btn" class="danger">Clear Database</button>
-      </div>
-
-      <div class="results" id="db-status">
-        Database not initialized. Click "Initialize Database" to start.
-      </div>
-
-      <div class="visualization" id="db-visualization">
-        <div class="zoom-controls">
-          <button class="zoom-fit-button" id="zoom-fit-btn" title="Zoom to fit all nodes">
-            <i class="material-icons">fit_screen</i>
-          </button>
-        </div>
-        <div class="graph-container">
-          <div style="text-align: center; padding-top: 200px; color: #666;">
-            Database visualization will appear here after initialization
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Step 2: Adding Data -->
-    <div class="section-content" id="step2-content">
-      <h3>Step 2: Adding Entities (Nouns)</h3>
-      <p>Now that your database is initialized, let's add some entities (nouns) to it.</p>
-
-      <div class="form-group">
-        <label for="noun-type">Noun Type:</label>
-        <select id="noun-type">
-          <option value="person">Person</option>
-          <option value="place">Place</option>
-          <option value="thing">Thing</option>
-          <option value="event">Event</option>
-          <option value="concept">Concept</option>
-          <option value="content">Content</option>
-          <option value="group">Group</option>
-          <option value="list">List</option>
-          <option value="category">Category</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="noun-id">ID (optional):</label>
-        <input type="text" id="noun-id" placeholder="Custom ID for the entity (auto-generated if empty)">
-      </div>
-
-      <div class="form-group">
-        <label for="noun-name">Name:</label>
-        <input type="text" id="noun-name" placeholder="Name of the entity">
-      </div>
-
-      <div class="form-group">
-        <label for="noun-content">Description/Content:</label>
-        <textarea id="noun-content" placeholder="Description or content of the entity"></textarea>
-      </div>
-
-      <div class="form-group">
-        <label for="noun-tags">Tags (comma-separated):</label>
-        <input type="text" id="noun-tags" placeholder="tag1, tag2, tag3">
-      </div>
-
-      <div class="demo-controls">
-        <button id="add-noun-btn">Add Noun</button>
-        <button id="query-nouns-btn" class="accent">View All Nouns</button>
-      </div>
-
-      <div class="results" id="entity-results">
-        Entity operations will appear here...
-      </div>
-    </div>
-
-    <!-- Step 3: Creating Relationships -->
-    <div class="section-content" id="step3-content">
-      <h3>Step 3: Creating Relationships (Verbs)</h3>
-      <p>Connect your entities with meaningful relationships to build a knowledge graph.</p>
-
-      <div class="form-group">
-        <label for="source-id">Source Entity:</label>
-        <select id="source-id">
-          <option value="">-- Select Source Entity --</option>
-        </select>
-        <button id="refresh-nouns-btn" class="secondary" style="margin-top: 5px; padding: 5px 10px;">Refresh Entity
-          List
-        </button>
-      </div>
-
-      <div class="form-group">
-        <label for="target-id">Target Entity:</label>
-        <select id="target-id">
-          <option value="">-- Select Target Entity --</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="verb-type">Relationship Type:</label>
-        <select id="verb-type">
-          <option value="relatedTo">Related To</option>
-          <option value="attributedTo">Attributed To</option>
-          <option value="controls">Controls</option>
-          <option value="created">Created</option>
-          <option value="owns">Owns</option>
-          <option value="memberOf">Member Of</option>
-          <option value="worksWith">Works With</option>
-          <option value="friendOf">Friend Of</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="verb-description">Relationship Description:</label>
-        <textarea id="verb-description" placeholder="Describe the relationship between the entities"></textarea>
-      </div>
-
-      <div class="demo-controls">
-        <button id="add-verb-btn">Add Relationship</button>
-        <button id="query-verbs-btn" class="accent">View All Relationships</button>
-      </div>
-    </div>
-
-    <!-- Step 4: Searching -->
-    <div class="section-content" id="step4-content">
-      <h3>Step 4: Semantic Search</h3>
-      <p>Search your data using vector embeddings for semantic understanding.</p>
-
-      <div class="form-group">
-        <label for="search-query">Search Query:</label>
-        <input type="text" id="search-query" placeholder="Try: travel, AI, fitness, food, design...">
-      </div>
-
-      <p class="search-help" style="font-size: 0.9em; color: #666; margin-top: -10px; margin-bottom: 15px;">
-        Try searching for topics in the sample data like "travel", "AI", "fitness", "food", "design",
-        "sustainability", or specific concepts like "workout challenge", "social media", "photography", etc.
-      </p>
-
-      <div class="form-group">
-        <label for="search-type">Search Type:</label>
-        <select id="search-type">
-          <option value="semantic">Semantic Search</option>
-          <option value="keyword">Keyword Search</option>
-          <option value="hybrid">Hybrid Search</option>
-        </select>
-      </div>
-
-      <div class="demo-controls">
-        <button id="search-btn">Search</button>
-        <button id="similar-entities-btn" class="secondary">Find Similar Entities</button>
-      </div>
-
-      <div class="results" id="search-results">
-        Search results will appear here...
-      </div>
-
-      <div class="visualization" id="search-visualization">
-        <div class="zoom-controls">
-          <button class="zoom-fit-button" id="search-zoom-fit-btn" title="Zoom to fit all nodes">
-            <i class="material-icons">fit_screen</i>
-          </button>
-          <button class="zoom-button" id="search-zoom-in-btn" title="Zoom in">
-            <i class="material-icons">add</i>
-          </button>
-          <button class="zoom-button" id="search-zoom-out-btn" title="Zoom out">
-            <i class="material-icons">remove</i>
-          </button>
-        </div>
-        <div class="graph-container">
-          <div style="text-align: center; padding-top: 200px; color: #666;">
-            Search results visualization
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Step 6: Advanced Features -->
-    <div class="section-content" id="step6-content">
-      <h3>Step 6: Advanced Features</h3>
-      <p>Explore Brainy's advanced capabilities for more complex use cases.</p>
-
-      <div class="feature-grid">
-        <div class="feature-card">
-          <h3>🔍 Vector Search</h3>
-          <p>Explore how HNSW makes semantic search fast and efficient.</p>
-          <button class="demo-feature-btn" data-feature="hnsw">Try Vector Search</button>
-        </div>
-
-        <div class="feature-card">
-          <h3>🌐 Graph Traversal</h3>
-          <p>Navigate through connected entities in your knowledge graph.</p>
-          <button class="demo-feature-btn" data-feature="graph-traversal">Try Graph Traversal</button>
-        </div>
-
-        <div class="feature-card">
-          <h3>💾 Data Management</h3>
-          <p>Backup, restore, and manage your data.</p>
-          <div class="demo-controls" style="margin-top: 10px;">
-            <button id="export-data-btn">Backup Data</button>
-            <button id="import-data-btn">Restore Data</button>
-          </div>
-        </div>
-
-        <div class="feature-card">
-          <h3>🧠 Embedding Pipeline</h3>
-          <p>See how text is converted to vectors for semantic understanding.</p>
-          <button class="demo-feature-btn" data-feature="embedding">Try Embedding Demo</button>
-        </div>
-      </div>
-
-      <div class="results" id="feature-demo-results">
-        Select a feature above to see a detailed demonstration...
-      </div>
-    </div>
-
-    <!-- Step 7: CLI Interface -->
-    <div class="section-content" id="step7-content">
-      <h3>Step 7: Command Line Interface</h3>
-      <p>Try Brainy's CLI commands for scripting and automation.</p>
-
-      <div class="cli-terminal">
-        <div class="cli-history" id="cli-history"></div>
-        <div class="cli-command">
-          <span class="cli-prompt">brainy$</span>
-          <input type="text" class="cli-input" id="cli-input" placeholder="Type a command...">
-        </div>
-        <div class="cli-output" id="cli-output"></div>
-      </div>
-
-      <div class="demo-controls">
-        <button id="help-cmd-btn">Help</button>
-        <button id="status-cmd-btn" class="secondary">Status</button>
-        <button id="init-cmd-btn" class="accent">Init</button>
-        <button id="query-cmd-btn" class="accent">Query</button>
-        <button id="clear-terminal-btn" class="danger">Clear</button>
-      </div>
-
-      <div class="code-block">
-        <strong>Common Commands:</strong><br>
-        brainy init - Initialize a new database<br>
-        brainy add &lt;data&gt; - Add data to the database<br>
-        brainy search &lt;query&gt; - Search for entities<br>
-        brainy relate &lt;from&gt; &lt;to&gt; - Create relationships<br>
-        brainy status - Show database status<br>
-        brainy help - Show all commands
       </div>
     </div>
   </section>
@@ -1091,14 +1250,10 @@ await db.init()
 </div>
 
 <script type="module">
-  // Dynamically determine the import path based on the environment
-  // If running on GitHub Pages, use the local files, otherwise use the CDN
-  const isGitHubPages = window.location.hostname.includes('github.io')
-  const importPath = isGitHubPages
-    ? './dist/unified.js'
-    : 'https://cdn.jsdelivr.net/npm/@soulcraft/brainy/dist/unified.js'
+  // Always use local files instead of CDN
+  const importPath = '../dist/unified.js'
 
-  // Dynamic import to handle different environments
+  // Dynamic import
   const { BrainyData, NounType, VerbType } = await import(importPath)
 
   // Make BrainyData and types available globally
@@ -1106,24 +1261,22 @@ await db.init()
   window.NounType = NounType
   window.VerbType = VerbType
 
-  // Initialize demo when DOM is loaded
-  document.addEventListener('DOMContentLoaded', async function() {
-    // Check if we're running over HTTP
-    if (window.location.protocol === 'file:') {
-      document.getElementById('http-warning').style.display = 'block'
-    }
+  // Initialize demo immediately since modules already run after DOM is loaded
+  // Check if we're running over HTTP
+  if (window.location.protocol === 'file:') {
+    document.getElementById('http-warning').style.display = 'block'
+  }
 
-    try {
-      // Verify the imported module has the required exports
-      if (BrainyData) {
-        initializeDemo()
-      } else {
-        showError('Brainy library not found. Please build the project first by running: npm run build')
-      }
-    } catch (error) {
-      showError('Failed to initialize demo: ' + error.message)
+  try {
+    // Verify the imported module has the required exports
+    if (BrainyData) {
+      initializeDemo()
+    } else {
+      showError('Brainy library not found. Please build the project first by running: npm run build')
     }
-  })
+  } catch (error) {
+    showError('Failed to initialize demo: ' + error.message)
+  }
 
   // Tab switching functionality removed - all sections are now visible
 
@@ -1161,24 +1314,49 @@ await db.init()
     document.getElementById('restore-db-btn').addEventListener('click', restoreData)
     document.getElementById('clear-db-btn').addEventListener('click', clearDatabase)
 
-    // Step 2: Adding Entities - Noun operations
+    // Step 2: Searching - Search operations
+    document.getElementById('search-btn')?.addEventListener('click', performSearch)
+    document.getElementById('similar-entities-btn')?.addEventListener('click', findSimilarEntities)
+
+    // Google-like search functionality
+    const searchInput = document.getElementById('search-query')
+    const searchClear = document.getElementById('search-clear')
+
+    if (searchInput && searchClear) {
+      // Show/hide clear button based on input content
+      searchInput.addEventListener('input', function() {
+        searchClear.style.visibility = this.value ? 'visible' : 'hidden'
+      })
+
+      // Clear the search input when the clear button is clicked
+      searchClear.addEventListener('click', function() {
+        searchInput.value = ''
+        searchClear.style.visibility = 'hidden'
+        searchInput.focus()
+      })
+
+      // Allow pressing Enter to search
+      searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          performSearch()
+        }
+      })
+    }
+
+    // Step 3: Adding Entities - Noun operations
     document.getElementById('add-noun-btn')?.addEventListener('click', addNoun)
     document.getElementById('query-nouns-btn')?.addEventListener('click', queryNouns)
 
-    // Step 3: Creating Relationships - Verb operations
+    // Step 4: Creating Relationships - Verb operations
     document.getElementById('add-verb-btn')?.addEventListener('click', addVerb)
     document.getElementById('query-verbs-btn')?.addEventListener('click', queryVerbs)
     document.getElementById('refresh-nouns-btn')?.addEventListener('click', populateNounDropdowns)
 
-    // Step 4: Searching - Search operations
-    document.getElementById('search-btn')?.addEventListener('click', performSearch)
-    document.getElementById('similar-entities-btn')?.addEventListener('click', findSimilarEntities)
-
-    // Step 6: Advanced Features - Data management
+    // Step 5: Advanced Features - Data management
     document.getElementById('export-data-btn')?.addEventListener('click', backupData)
     document.getElementById('import-data-btn')?.addEventListener('click', restoreData)
 
-    // Step 7: CLI Interface - CLI commands
+    // Step 6: CLI Interface - CLI commands
     document.getElementById('help-cmd-btn')?.addEventListener('click', () => executeCLICommand('help'))
     document.getElementById('status-cmd-btn')?.addEventListener('click', () => executeCLICommand('status'))
     document.getElementById('init-cmd-btn')?.addEventListener('click', () => executeCLICommand('init'))
@@ -1193,8 +1371,8 @@ await db.init()
       })
     })
 
-    // Always populate noun dropdowns for the verbs section
-    populateNounDropdowns()
+    // We'll populate noun dropdowns after database initialization
+    // populateNounDropdowns() - This will be called after database is initialized
   }
 
   // Setup CLI functionality
@@ -2182,6 +2360,20 @@ await db.init()
   }
 
   // Search operations
+  // Helper function to highlight search terms
+  function highlightSearchTerms(text, searchQuery) {
+    if (!searchQuery || !text) return text
+
+    // Escape special regex characters in the search query
+    const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+    // Create a regex to match the search query (case insensitive)
+    const regex = new RegExp(`(${escapedQuery})`, 'gi')
+
+    // Replace matches with highlighted version
+    return text.replace(regex, '<span class="highlight">$1</span>')
+  }
+
   async function performSearch() {
     if (!database) {
       log('search-results', 'Please initialize database first')
@@ -2198,6 +2390,9 @@ await db.init()
       }
 
       log('search-results', `Searching for: "${query}" (${searchType})`)
+
+      // Record start time for search
+      const startTime = performance.now()
 
       let results
       switch (searchType) {
@@ -2220,7 +2415,28 @@ await db.init()
           })
           results = combinedResults
           break
+        case 'verbs':
+          // Search for verbs directly
+          results = await database.search(query, 10, {
+            searchVerbs: true,
+            // Optionally filter by verb types
+            // verbTypes: ['RelatedTo', 'Created', 'Owns']
+          })
+          break
+        case 'connected-nouns':
+          // Search for nouns connected by verbs
+          results = await database.search(query, 10, {
+            searchConnectedNouns: true,
+            // Optionally filter by verb types
+            // verbTypes: ['RelatedTo', 'Created', 'Owns'],
+            verbDirection: 'both' // 'outgoing', 'incoming', or 'both'
+          })
+          break
       }
+
+      // Calculate search time
+      const endTime = performance.now()
+      const searchTime = ((endTime - startTime) / 1000).toFixed(2)
 
       // Sort results by score (highest first)
       results.sort((a, b) => {
@@ -2236,7 +2452,7 @@ await db.init()
       // Add search stats
       const statsDiv = document.createElement('div')
       statsDiv.className = 'search-stats'
-      statsDiv.innerHTML = `<p>Found ${results.length} results</p>`
+      statsDiv.innerHTML = `<p>About ${results.length} results (${searchTime} seconds)</p>`
       resultsContainer.appendChild(statsDiv)
 
       // Create results list
@@ -2250,7 +2466,9 @@ await db.init()
         // Title with score
         const title = document.createElement('h3')
         title.className = 'result-title'
-        title.innerHTML = `${result.title || result.id} <span class="result-score">Score: ${result.score?.toFixed(4) || 'N/A'}</span>`
+        // Highlight search terms in the title
+        const titleText = result.title || result.id
+        title.innerHTML = `${highlightSearchTerms(titleText, query)} <span class="result-score">Score: ${result.score?.toFixed(4) || 'N/A'}</span>`
         resultItem.appendChild(title)
 
         // URL/ID
@@ -2263,8 +2481,121 @@ await db.init()
         if (result.content) {
           const snippet = document.createElement('div')
           snippet.className = 'result-snippet'
-          snippet.textContent = result.content.substring(0, 200) + (result.content.length > 200 ? '...' : '')
+
+          // Extract relevant parts of content that contain search terms
+          let snippetText = ''
+          if (query && query.trim()) {
+            const terms = query.toLowerCase().split(/\s+/).filter(term => term.length > 0)
+            const content = result.content.toLowerCase()
+
+            // Find positions of all search terms in the content
+            let positions = []
+            terms.forEach(term => {
+              let pos = content.indexOf(term)
+              while (pos !== -1) {
+                positions.push({ start: pos, end: pos + term.length })
+                pos = content.indexOf(term, pos + 1)
+              }
+            })
+
+            // Sort positions by start index
+            positions.sort((a, b) => a.start - b.start)
+
+            // Merge overlapping or close positions
+            let mergedPositions = []
+            if (positions.length > 0) {
+              let current = positions[0]
+              for (let i = 1; i < positions.length; i++) {
+                if (positions[i].start <= current.end + 50) { // 50 chars buffer between matches
+                  current.end = Math.max(current.end, positions[i].end)
+                } else {
+                  mergedPositions.push(current)
+                  current = positions[i]
+                }
+              }
+              mergedPositions.push(current)
+            }
+
+            // Extract snippets around each match position (with context)
+            if (mergedPositions.length > 0) {
+              mergedPositions.forEach((pos, idx) => {
+                const contextStart = Math.max(0, pos.start - 30)
+                const contextEnd = Math.min(result.content.length, pos.end + 30)
+
+                if (idx > 0) snippetText += ' [...] '
+                snippetText += result.content.substring(contextStart, contextEnd)
+              })
+            } else {
+              // Fallback to first 200 chars if no matches found
+              snippetText = result.content.substring(0, 200) + (result.content.length > 200 ? '...' : '')
+            }
+          } else {
+            // If no query, use first 200 chars
+            snippetText = result.content.substring(0, 200) + (result.content.length > 200 ? '...' : '')
+          }
+
+          // Highlight search terms in the snippet
+          snippet.innerHTML = highlightSearchTerms(snippetText, query)
+
           resultItem.appendChild(snippet)
+        }
+
+        // Match reason section
+        if (query && query.trim()) {
+          const matchReason = document.createElement('div')
+          matchReason.className = 'match-reason'
+
+          const terms = query.toLowerCase().split(/\s+/).filter(term => term.length > 0)
+          let matchDetails = []
+
+          // Check title matches
+          if (result.title) {
+            const titleLower = result.title.toLowerCase()
+            const titleMatches = terms.filter(term => titleLower.includes(term))
+            if (titleMatches.length > 0) {
+              matchDetails.push(`Title matches: "${titleMatches.join('", "')}"`)
+            }
+          }
+
+          // Check content matches
+          if (result.content) {
+            const contentLower = result.content.toLowerCase()
+            const contentMatches = terms.filter(term => contentLower.includes(term))
+            if (contentMatches.length > 0) {
+              const matchCounts = contentMatches.map(term => {
+                let count = 0
+                let pos = contentLower.indexOf(term)
+                while (pos !== -1) {
+                  count++
+                  pos = contentLower.indexOf(term, pos + 1)
+                }
+                return `"${term}" (${count}x)`
+              })
+              matchDetails.push(`Content matches: ${matchCounts.join(', ')}`)
+            }
+          }
+
+          // Check metadata matches
+          const metadataMatches = []
+          for (const [key, value] of Object.entries(result)) {
+            if (key !== 'vector' && key !== 'content' && key !== 'id' && key !== 'title' && key !== 'score') {
+              const valueStr = JSON.stringify(value).toLowerCase()
+              const termMatches = terms.filter(term => valueStr.includes(term))
+              if (termMatches.length > 0) {
+                metadataMatches.push(`${key}: "${termMatches.join('", "')}"`)
+              }
+            }
+          }
+
+          if (metadataMatches.length > 0) {
+            matchDetails.push(`Metadata matches: ${metadataMatches.join(', ')}`)
+          }
+
+          // If we have match details, display them
+          if (matchDetails.length > 0) {
+            matchReason.innerHTML = `<strong>Why this matched:</strong> ${matchDetails.join(' | ')}`
+            resultItem.appendChild(matchReason)
+          }
         }
 
         // Metadata section
@@ -2923,8 +3254,7 @@ await db.init()
         })
       }
 
-      // Create the cartographer-style visualization
-      createCartographerGraph(graphContainer, nodes, validEdges)
+      createVisualGraph(graphContainer, nodes, validEdges)
 
       // Set up zoom-fit button
       const zoomFitBtn = document.getElementById('zoom-fit-btn')
@@ -2948,7 +3278,7 @@ await db.init()
   let zoomBehavior = null
   let graphContentContainer = null
 
-  function createCartographerGraph(container, nodes, edges) {
+  function createVisualGraph(container, nodes, edges) {
     // Remove any existing SVG
     d3.select(container).select('svg').remove()
 
@@ -3005,7 +3335,7 @@ await db.init()
 
     // Create arrow marker for directed edges (from explore view)
     defs.append('marker')
-      .attr('id', 'arrowhead-cartographer')
+      .attr('id', 'arrowhead')
       .attr('viewBox', '0 -5 10 10')
       .attr('refX', 22)  // Adjusted to match explore view
       .attr('refY', 0)
@@ -3059,7 +3389,7 @@ await db.init()
       .attr('stroke-width', (d) => {
         return d.confidence ? 1 + d.confidence * 5 : 1.5
       })
-      .attr('marker-end', 'url(#arrowhead-cartographer)')
+      .attr('marker-end', 'url(#arrowhead)')
 
     // Add edge labels (styled to match explore view)
     const labelGroup = linkGroup

@@ -65,6 +65,11 @@ export interface GraphVerb extends HNSWNoun {
     type?: string;
     weight?: number;
     metadata?: any;
+    source?: string;
+    target?: string;
+    verb?: string;
+    data?: Record<string, any>;
+    embedding?: Vector;
 }
 /**
  * HNSW index configuration

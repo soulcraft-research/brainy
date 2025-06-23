@@ -37,9 +37,19 @@ export declare function createEmbeddingFunction(model: EmbeddingModel): Embeddin
  */
 export declare function createTensorFlowEmbeddingFunction(): EmbeddingFunction;
 /**
+ * Creates a TensorFlow-based Universal Sentence Encoder embedding function that runs in a separate thread
+ * This provides better performance for CPU-intensive embedding operations
+ * @param options Configuration options
+ * @returns An embedding function that runs in a separate thread
+ */
+export declare function createThreadedEmbeddingFunction(options?: {
+    fallbackToMain?: boolean;
+}): EmbeddingFunction;
+/**
  * Default embedding function
  * Uses UniversalSentenceEncoder for all text embeddings
  * TensorFlow.js is required for this to work
+ * Uses threading when available for better performance
  */
 export declare const defaultEmbeddingFunction: EmbeddingFunction;
 //# sourceMappingURL=embedding.d.ts.map

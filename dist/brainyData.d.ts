@@ -64,12 +64,6 @@ export interface BrainyDataConfig {
      */
     embeddingFunction?: EmbeddingFunction;
     /**
-     * Request persistent storage when running in a browser
-     * This will prompt the user for permission to use persistent storage
-     * @deprecated Use storage.requestPersistentStorage instead
-     */
-    requestPersistentStorage?: boolean;
-    /**
      * Set the database to read-only mode
      * When true, all write operations will throw an error
      */
@@ -170,6 +164,7 @@ export declare class BrainyData<T = any> implements BrainyDataInterface<T> {
     }>, options?: {
         forceEmbed?: boolean;
         addToRemote?: boolean;
+        concurrency?: number;
     }): Promise<string[]>;
     /**
      * Add multiple vectors or data items to both local and remote databases
@@ -182,6 +177,7 @@ export declare class BrainyData<T = any> implements BrainyDataInterface<T> {
         metadata?: T;
     }>, options?: {
         forceEmbed?: boolean;
+        concurrency?: number;
     }): Promise<string[]>;
     /**
      * Search for similar vectors within specific noun types
@@ -206,6 +202,10 @@ export declare class BrainyData<T = any> implements BrainyDataInterface<T> {
         nounTypes?: string[];
         includeVerbs?: boolean;
         searchMode?: 'local' | 'remote' | 'combined';
+        searchVerbs?: boolean;
+        verbTypes?: string[];
+        searchConnectedNouns?: boolean;
+        verbDirection?: 'outgoing' | 'incoming' | 'both';
     }): Promise<SearchResult<T>[]>;
     /**
      * Search the local database for similar vectors
@@ -314,6 +314,31 @@ export declare class BrainyData<T = any> implements BrainyDataInterface<T> {
      * @returns A promise that resolves to the embedded vector
      */
     embed(data: string | string[]): Promise<Vector>;
+    /**
+     * Search for verbs by type and/or vector similarity
+     * @param queryVectorOrData Query vector or data to search for
+     * @param k Number of results to return
+     * @param options Additional options
+     * @returns Array of verbs with similarity scores
+     */
+    searchVerbs(queryVectorOrData: Vector | any, k?: number, options?: {
+        forceEmbed?: boolean;
+        verbTypes?: string[];
+    }): Promise<Array<GraphVerb & {
+        similarity: number;
+    }>>;
+    /**
+     * Search for nouns connected by specific verb types
+     * @param queryVectorOrData Query vector or data to search for
+     * @param k Number of results to return
+     * @param options Additional options
+     * @returns Array of search results
+     */
+    searchNounsByVerbs(queryVectorOrData: Vector | any, k?: number, options?: {
+        forceEmbed?: boolean;
+        verbTypes?: string[];
+        direction?: 'outgoing' | 'incoming' | 'both';
+    }): Promise<SearchResult<T>[]>;
     /**
      * Search for similar documents using a text query
      * This is a convenience method that embeds the query text and performs a search

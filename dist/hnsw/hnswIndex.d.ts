@@ -10,15 +10,34 @@ export declare class HNSWIndex {
     private config;
     private distanceFunction;
     private dimension;
-    constructor(config?: Partial<HNSWConfig>, distanceFunction?: DistanceFunction);
+    private useParallelization;
+    constructor(config?: Partial<HNSWConfig>, distanceFunction?: DistanceFunction, options?: {
+        useParallelization?: boolean;
+    });
+    /**
+     * Set whether to use parallelization for performance-critical operations
+     */
+    setUseParallelization(useParallelization: boolean): void;
+    /**
+     * Get whether parallelization is enabled
+     */
+    getUseParallelization(): boolean;
+    /**
+     * Calculate distances between a query vector and multiple vectors in parallel
+     * This is used to optimize performance for search operations
+     * @param queryVector The query vector
+     * @param vectors Array of vectors to compare against
+     * @returns Array of distances
+     */
+    private calculateDistancesInParallel;
     /**
      * Add a vector to the index
      */
-    addItem(item: VectorDocument): string;
+    addItem(item: VectorDocument): Promise<string>;
     /**
      * Search for nearest neighbors
      */
-    search(queryVector: Vector, k?: number): Array<[string, number]>;
+    search(queryVector: Vector, k?: number): Promise<Array<[string, number]>>;
     /**
      * Remove an item from the index
      */
@@ -27,11 +46,6 @@ export declare class HNSWIndex {
      * Get all nouns in the index
      */
     getNouns(): Map<string, HNSWNoun>;
-    /**
-     * Get all nodes in the index (alias for getNouns for backward compatibility)
-     * @deprecated Use getNouns() instead
-     */
-    getNodes(): Map<string, HNSWNoun>;
     /**
      * Clear the index
      */
