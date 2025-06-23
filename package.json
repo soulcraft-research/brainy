@@ -67,9 +67,12 @@
     "url": "https://github.com/soulcraft-research/brainy.git"
   },
   "files": [
-    "dist/",
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/types/",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "cli-wrapper.js"
   ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",
