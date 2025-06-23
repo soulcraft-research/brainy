@@ -1,5 +1,5 @@
 /**
- * Simplified Augmentations Example
+ * Simplified Augmentations Example for GitHub Pages
  *
  * This example demonstrates how to use the simplified augmentation factory and streamlined pipeline
  * to create, import, and execute augmentations for both static and streaming data.
@@ -25,7 +25,7 @@ import {
 
   // Core types
   AugmentationType
-} from '../src/index.js'
+} from './dist/brainy.js'
 
 /**
  * Example 1: Creating a simple memory augmentation
