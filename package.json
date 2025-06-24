@@ -34,6 +34,7 @@
     "start": "node dist/unified.js",
     "demo": "npm run build && npm run build:browser && npx http-server -o /index.html",
     "cli": "node ./cli-wrapper.js",
+    "version": "node scripts/generate-version.js",
     "version:patch": "npm version patch",
     "version:minor": "npm version minor",
     "version:major": "npm version major",

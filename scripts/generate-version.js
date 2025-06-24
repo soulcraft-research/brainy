@@ -56,19 +56,37 @@ fs.writeFileSync(outputFile, content)
 
 console.log(`Generated version.ts with version ${version}`)
 
-// Update README.md with the current version
+// Update README.md with the current version, Node.js version, and TypeScript version
 try {
   let readmeContent = fs.readFileSync(readmePath, 'utf8')
 
-  // Replace the version in the badge URL
-  const updatedReadme = readmeContent.replace(
-    /\[\!\[Version\]\(https:\/\/img\.shields\.io\/badge\/version-[0-9]+\.[0-9]+\.[0-9]+-blue\.svg\)\]/g,
-    `[![Version](https://img.shields.io/badge/version-${version}-blue.svg)]`
+  // Get Node.js version requirement from package.json
+  const nodeVersion = packageJson.engines.node.replace('>=', '')
+
+  // Get TypeScript version from package.json devDependencies
+  const typescriptVersion = packageJson.devDependencies.typescript.replace('^', '')
+
+  // Update npm badge
+  readmeContent = readmeContent.replace(
+    /\[\!\[npm\]\(https:\/\/img\.shields\.io\/npm\/v\/@soulcraft\/brainy\.svg\)\]\(https:\/\/www\.npmjs\.com\/package\/@soulcraft\/brainy\)/g,
+    `[![npm](https://img.shields.io/npm/v/@soulcraft/brainy.svg)](https://www.npmjs.com/package/@soulcraft/brainy)`
+  )
+
+  // Update Node.js badge
+  readmeContent = readmeContent.replace(
+    /\[\!\[Node\.js\]\(https:\/\/img\.shields\.io\/badge\/node-%3E%3D[0-9]+\.[0-9]+\.[0-9]+-brightgreen\.svg\)\]\(https:\/\/nodejs\.org\/\)/g,
+    `[![Node.js](https://img.shields.io/badge/node-%3E%3D${nodeVersion}-brightgreen.svg)](https://nodejs.org/)`
+  )
+
+  // Update TypeScript badge
+  readmeContent = readmeContent.replace(
+    /\[\!\[TypeScript\]\(https:\/\/img\.shields\.io\/badge\/TypeScript-[0-9]+\.[0-9]+\.[0-9]+-blue\.svg\)\]\(https:\/\/www\.typescriptlang\.org\/\)/g,
+    `[![TypeScript](https://img.shields.io/badge/TypeScript-${typescriptVersion}-blue.svg)](https://www.typescriptlang.org/)`
   )
 
   // Write the updated README back to disk
-  fs.writeFileSync(readmePath, updatedReadme)
-  console.log(`Updated README.md with version ${version}`)
+  fs.writeFileSync(readmePath, readmeContent)
+  console.log(`Updated README.md with npm version ${version}, Node.js version ${nodeVersion}, and TypeScript version ${typescriptVersion}`)
 } catch (error) {
   console.error('Error updating README.md:', error)
 }
