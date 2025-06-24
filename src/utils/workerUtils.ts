@@ -1,0 +1,145 @@
+/**
+ * Utility functions for working with Web Workers and Worker Threads
+ */
+
+import { isNode, isBrowser } from './environment.js'
+
+/**
+ * Execute a function in a Web Worker (browser environment)
+ *
+ * @param fnString The function to execute as a string
+ * @param args The arguments to pass to the function
+ * @returns A promise that resolves with the result of the function
+ */
+export function executeInWebWorker<T>(fnString: string, args: any): Promise<T> {
+  return new Promise((resolve, reject) => {
+    // Create a blob URL for the worker script
+    const workerScript = `
+      self.onmessage = async function(e) {
+        try {
+          const fn = ${fnString};
+          const result = await fn(e.data);
+          self.postMessage({ success: true, data: result });
+        } catch (error) {
+          self.postMessage({ 
+            success: false, 
+            error: error instanceof Error ? error.message : String(error) 
+          });
+        }
+      };
+    `
+
+    const blob = new Blob([workerScript], { type: 'application/javascript' })
+    const blobURL = URL.createObjectURL(blob)
+
+    // Create a worker
+    const worker = new Worker(blobURL)
+
+    // Set up message handling
+    worker.onmessage = function (
+      e: MessageEvent<{ success: boolean; data: T; error?: string }>
+    ) {
+      URL.revokeObjectURL(blobURL) // Clean up
+      worker.terminate() // Terminate the worker
+
+      if (e.data.success) {
+        resolve(e.data.data)
+      } else {
+        reject(new Error(e.data.error))
+      }
+    }
+
+    worker.onerror = function (error: ErrorEvent) {
+      URL.revokeObjectURL(blobURL) // Clean up
+      worker.terminate() // Terminate the worker
+      reject(error)
+    }
+
+    // Start the worker
+    worker.postMessage(args)
+  })
+}
+
+/**
+ * Execute a function in a Worker Thread (Node.js environment)
+ *
+ * @param fnString The function to execute as a string
+ * @param args The arguments to pass to the function
+ * @returns A promise that resolves with the result of the function
+ */
+export function executeInWorkerThread<T>(
+  fnString: string,
+  args: any
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    try {
+      // Dynamic import to avoid errors in browser environments
+      const { Worker } = require('worker_threads')
+
+      // Create a worker script
+      const workerScript = `
+        const { parentPort } = require('worker_threads');
+
+        parentPort.once('message', async (data) => {
+          try {
+            const fn = ${fnString};
+            const result = await fn(data);
+            parentPort.postMessage({ success: true, data: result });
+          } catch (error) {
+            parentPort.postMessage({ 
+              success: false, 
+              error: error instanceof Error ? error.message : String(error) 
+            });
+          }
+        });
+      `
+
+      // Create a worker
+      const worker = new Worker(workerScript, { eval: true })
+
+      // Set up message handling
+      worker.on(
+        'message',
+        (data: { success: boolean; data: T; error?: string }) => {
+          worker.terminate() // Terminate the worker
+
+          if (data.success) {
+            resolve(data.data)
+          } else {
+            reject(new Error(data.error))
+          }
+        }
+      )
+
+      worker.on('error', (error: Error) => {
+        worker.terminate() // Terminate the worker
+        reject(error)
+      })
+
+      // Start the worker
+      worker.postMessage(args)
+    } catch (error) {
+      reject(error)
+    }
+  })
+}
+
+/**
+ * Execute a function in a separate thread based on the environment
+ *
+ * @param fnString The function to execute as a string
+ * @param args The arguments to pass to the function
+ * @returns A promise that resolves with the result of the function
+ */
+export function executeInThread<T>(fnString: string, args: any): Promise<T> {
+  if (isBrowser()) {
+    return executeInWebWorker<T>(fnString, args)
+  } else if (isNode()) {
+    return executeInWorkerThread<T>(fnString, args)
+  } else {
+    // Fall back to executing in the main thread
+    // Parse the function from string and execute it
+    const fn = new Function('return ' + fnString)()
+    return Promise.resolve(fn(args) as T)
+  }
+}
