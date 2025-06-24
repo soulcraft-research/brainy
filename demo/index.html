@@ -1223,7 +1223,7 @@ await db.init()
         <pre class="code-block">
 &lt;script type="module"&gt;
   // Use local files instead of CDN
-  // For GitHub Pages, use relative path: '../dist/unified.js'
+  // For GitHub Pages, use relative path: './dist/unified.js'
   // For local development, use absolute path: '/dist/unified.js'
   // This import is replaced by the dynamic import below
 
@@ -1260,7 +1260,7 @@ await db.init()
   // Use different paths based on hosting environment
   let importPath;
   if (isGitHubPages) {
-    importPath = '../dist/unified.js';
+    importPath = './dist/unified.js'; // Direct access to dist folder in demo directory
   } else if (isCodeSoulcraft) {
     importPath = '/brainy/dist/unified.js'; // Absolute path for code.soulcraft.com
   } else {
