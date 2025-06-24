@@ -66,23 +66,38 @@ try {
   // Get TypeScript version from package.json devDependencies
   const typescriptVersion = packageJson.devDependencies.typescript.replace('^', '')
 
-  // Update npm badge
-  readmeContent = readmeContent.replace(
-    /\[\!\[npm\]\(https:\/\/img\.shields\.io\/npm\/v\/@soulcraft\/brainy\.svg\)\]\(https:\/\/www\.npmjs\.com\/package\/@soulcraft\/brainy\)/g,
-    `[![npm](https://img.shields.io/npm/v/@soulcraft/brainy.svg)](https://www.npmjs.com/package/@soulcraft/brainy)`
-  )
+  // Update npm badge - using a more flexible approach
+  const npmBadgeRegex = /\[\!\[npm\].*?\]\(https:\/\/www\.npmjs\.com\/package\/@soulcraft\/brainy\)/g
+  if (npmBadgeRegex.test(readmeContent)) {
+    readmeContent = readmeContent.replace(
+      npmBadgeRegex,
+      `[![npm](https://img.shields.io/npm/v/@soulcraft/brainy.svg)](https://www.npmjs.com/package/@soulcraft/brainy)`
+    )
+  } else {
+    console.log('Warning: Could not find npm badge in README.md')
+  }
 
-  // Update Node.js badge
-  readmeContent = readmeContent.replace(
-    /\[\!\[Node\.js\]\(https:\/\/img\.shields\.io\/badge\/node-%3E%3D[0-9]+\.[0-9]+\.[0-9]+-brightgreen\.svg\)\]\(https:\/\/nodejs\.org\/\)/g,
-    `[![Node.js](https://img.shields.io/badge/node-%3E%3D${nodeVersion}-brightgreen.svg)](https://nodejs.org/)`
-  )
+  // Update Node.js badge - using a more flexible approach
+  const nodeBadgeRegex = /\[\!\[Node\.js\].*?\]\(https:\/\/nodejs\.org\/\)/g
+  if (nodeBadgeRegex.test(readmeContent)) {
+    readmeContent = readmeContent.replace(
+      nodeBadgeRegex,
+      `[![Node.js](https://img.shields.io/badge/node-%3E%3D${nodeVersion}-brightgreen.svg)](https://nodejs.org/)`
+    )
+  } else {
+    console.log('Warning: Could not find Node.js badge in README.md')
+  }
 
-  // Update TypeScript badge
-  readmeContent = readmeContent.replace(
-    /\[\!\[TypeScript\]\(https:\/\/img\.shields\.io\/badge\/TypeScript-[0-9]+\.[0-9]+\.[0-9]+-blue\.svg\)\]\(https:\/\/www\.typescriptlang\.org\/\)/g,
-    `[![TypeScript](https://img.shields.io/badge/TypeScript-${typescriptVersion}-blue.svg)](https://www.typescriptlang.org/)`
-  )
+  // Update TypeScript badge - using a more flexible approach
+  const tsBadgeRegex = /\[\!\[TypeScript\].*?\]\(https:\/\/www\.typescriptlang\.org\/\)/g
+  if (tsBadgeRegex.test(readmeContent)) {
+    readmeContent = readmeContent.replace(
+      tsBadgeRegex,
+      `[![TypeScript](https://img.shields.io/badge/TypeScript-${typescriptVersion}-blue.svg)](https://www.typescriptlang.org/)`
+    )
+  } else {
+    console.log('Warning: Could not find TypeScript badge in README.md')
+  }
 
   // Write the updated README back to disk
   fs.writeFileSync(readmePath, readmeContent)
