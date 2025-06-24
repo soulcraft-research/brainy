@@ -1267,8 +1267,7 @@ Brainy follows a specific code style to maintain consistency throughout the code
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Run tests with `npm test`
-5. Submit a pull request
+4. Submit a pull request
 
 ## License
 

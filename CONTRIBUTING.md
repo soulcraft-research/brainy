@@ -32,7 +32,6 @@ Update API documentation
 Add support for IndexedDB storage
 Change API parameter order
 Simplify vector comparison logic
-Add tests for metadata filtering
 Update build dependencies
 ```
 
@@ -40,16 +39,14 @@ Update build dependencies
 
 1. Ensure your code follows the project's coding standards
 2. Update the documentation if necessary
-3. Make sure all tests pass
-4. Use conventional commit messages in your PR
-5. Your PR will be reviewed by maintainers and merged if approved
+3. Use conventional commit messages in your PR
+4. Your PR will be reviewed by maintainers and merged if approved
 
 ## Development Setup
 
 1. Fork and clone the repository
 2. Install dependencies: `npm install`
 3. Build the project: `npm run build`
-4. Run tests: `npm test`
 
 ## Code Style
 
