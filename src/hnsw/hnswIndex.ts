@@ -69,17 +69,21 @@ export class HNSWIndex {
 
     // Function to be executed in a worker thread
     const distanceCalculator = (
-      query: Vector,
-      items: Array<{ id: string; vector: Vector }>,
-      distanceFn: string
+      args: {
+        queryVector: Vector,
+        vectors: Array<{ id: string; vector: Vector }>,
+        distanceFnString: string
+      }
     ) => {
+      const { queryVector, vectors, distanceFnString } = args;
+
       // Recreate the distance function from its string representation
-      const distanceFunction = new Function('return ' + distanceFn)() as DistanceFunction
+      const distanceFunction = new Function('return ' + distanceFnString)() as DistanceFunction
 
       // Calculate distances for all items
-      return items.map(item => ({
+      return vectors.map(item => ({
         id: item.id,
-        distance: distanceFunction(query, item.vector)
+        distance: distanceFunction(queryVector, item.vector)
       }))
     }
 
@@ -89,10 +93,8 @@ export class HNSWIndex {
 
       // Execute the distance calculation in a separate thread
       return await executeInThread<Array<{ id: string; distance: number }>>(
-        distanceCalculator,
-        queryVector,
-        vectors,
-        distanceFnString
+        distanceCalculator.toString(),
+        { queryVector, vectors, distanceFnString }
       )
     } catch (error) {
       console.error('Error in parallel distance calculation, falling back to sequential:', error)

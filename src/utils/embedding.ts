@@ -214,7 +214,15 @@ export function createThreadedEmbeddingFunction(
 
     try {
       // Function to be executed in a worker thread
-      const embedInWorker = async (inputData: any) => {
+      // This must be a regular function (not async) to avoid Promise cloning issues
+      const embedInWorker = (inputData: any) => {
+        // Return a plain object with the input data
+        // All async operations will be performed inside the worker
+        return { data: inputData }
+      }
+
+      // Worker implementation function that will be stringified and run in the worker
+      const workerImplementation = async ({ data }: { data: any }) => {
         // We need to dynamically import TensorFlow.js and USE in the worker
         const tf = await import('@tensorflow/tfjs')
         const use = await import('@tensorflow-models/universal-sentence-encoder')
@@ -224,19 +232,19 @@ export function createThreadedEmbeddingFunction(
 
         // Handle different input types
         let textToEmbed: string[]
-        if (typeof inputData === 'string') {
-          if (inputData.trim() === '') {
+        if (typeof data === 'string') {
+          if (data.trim() === '') {
             return new Array(512).fill(0)
           }
-          textToEmbed = [inputData]
+          textToEmbed = [data]
         } else if (
-          Array.isArray(inputData) &&
-          inputData.every((item) => typeof item === 'string')
+          Array.isArray(data) &&
+          data.every((item) => typeof item === 'string')
         ) {
-          if (inputData.length === 0 || inputData.every((item) => item.trim() === '')) {
+          if (data.length === 0 || data.every((item) => item.trim() === '')) {
             return new Array(512).fill(0)
           }
-          textToEmbed = inputData.filter((item) => item.trim() !== '')
+          textToEmbed = data.filter((item) => item.trim() !== '')
           if (textToEmbed.length === 0) {
             return new Array(512).fill(0)
           }
@@ -259,7 +267,8 @@ export function createThreadedEmbeddingFunction(
       }
 
       // Execute the embedding function in a separate thread
-      return await executeInThread<Vector>(embedInWorker, data)
+      // Pass the worker implementation as a string to avoid Promise cloning issues
+      return await executeInThread<Vector>(workerImplementation.toString(), embedInWorker(data))
     } catch (error) {
       // If threading fails and fallback is enabled, use the standard embedding function
       if (options.fallbackToMain) {

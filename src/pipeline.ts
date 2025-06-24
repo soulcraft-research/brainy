@@ -418,7 +418,7 @@ export class Pipeline implements IPipeline {
                 return augFn.apply(augmentation, workerArgs)
               }
 
-              methodPromise = executeInThread<AugmentationResponse<T>>(workerFn, ...args)
+              methodPromise = executeInThread<AugmentationResponse<T>>(workerFn.toString(), args)
             } catch (threadError) {
               console.warn(`Failed to execute in thread, falling back to main thread: ${threadError}`)
               // Fall back to executing in the main thread
