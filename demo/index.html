@@ -1254,8 +1254,18 @@ await db.init()
 <script type="module">
   // Always use local files instead of CDN
   // Use relative path for GitHub Pages compatibility
-  const isGitHubPages = window.location.hostname.includes('github.io') || window.location.hostname.includes('code.soulcraft.com');
-  const importPath = isGitHubPages ? '../dist/unified.js' : '/dist/unified.js'
+  const isGitHubPages = window.location.hostname.includes('github.io');
+  const isCodeSoulcraft = window.location.hostname.includes('code.soulcraft.com');
+
+  // Use different paths based on hosting environment
+  let importPath;
+  if (isGitHubPages) {
+    importPath = '../dist/unified.js';
+  } else if (isCodeSoulcraft) {
+    importPath = '/brainy/dist/unified.js'; // Absolute path for code.soulcraft.com
+  } else {
+    importPath = '/dist/unified.js'; // Local development
+  }
 
   // Dynamic import
   const { BrainyData, NounType, VerbType } = await import(importPath)
