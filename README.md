@@ -6,7 +6,9 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D23.11.0-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.1.6-blue.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Cartographer](https://img.shields.io/badge/Cartographer-Official%20Standard-brightgreen)](https://github.com/sodal-project/cartographer)
+[![npm](https://img.shields.io/npm/v/@soulcraft/brainy.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
+
+[//]: # ([![Cartographer]&#40;https://img.shields.io/badge/Cartographer-Official%20Standard-brightgreen&#41;]&#40;https://github.com/sodal-project/cartographer&#41;)
 
 **A powerful graph & vector data platform for AI applications across any environment**
 
@@ -1026,7 +1028,8 @@ The repository includes a comprehensive demo that showcases Brainy's main featur
       interactive demo on
       GitHub Pages
     - Or run it locally with `npm run demo` (see [demo instructions](README.demo.md) for details)
-    - To deploy your own version to GitHub Pages, use the GitHub Actions workflow in `.github/workflows/deploy-demo.yml`,
+    - To deploy your own version to GitHub Pages, use the GitHub Actions workflow in
+      `.github/workflows/deploy-demo.yml`,
       which automatically deploys when pushing to the main branch or can be manually triggered
     - To use a custom domain (like www.soulcraft.com):
         1. A CNAME file is already included in the demo directory
@@ -1221,13 +1224,15 @@ await db.shutDown()
 
 ## 📈 Scaling Strategy
 
-Brainy is designed to handle datasets of various sizes, from small collections to large-scale deployments. For terabyte-scale data that can't fit entirely in memory, we provide several approaches:
+Brainy is designed to handle datasets of various sizes, from small collections to large-scale deployments. For
+terabyte-scale data that can't fit entirely in memory, we provide several approaches:
 
 - **Disk-Based HNSW**: Modified implementations using intelligent caching and partial loading
 - **Distributed HNSW**: Sharding and partitioning across multiple machines
 - **Hybrid Solutions**: Combining quantization techniques with multi-tier architectures
 
-For detailed information on how to scale Brainy for large datasets, see our comprehensive [Scaling Strategy](scalingStrategy.md) document.
+For detailed information on how to scale Brainy for large datasets, see our
+comprehensive [Scaling Strategy](scalingStrategy.md) document.
 
 ## Requirements
 
