@@ -1254,17 +1254,18 @@ await db.init()
 <script type="module">
   // Always use local files instead of CDN
   // Use relative path for GitHub Pages compatibility
-  const isGitHubPages = window.location.hostname.includes('github.io');
-  const isCodeSoulcraft = window.location.hostname.includes('code.soulcraft.com');
+  const isGitHubPages = window.location.hostname.includes('github.io')
+  const isCodeSoulcraft = window.location.hostname.includes('code.soulcraft.com')
 
   // Use different paths based on hosting environment
-  let importPath;
+  let importPath
   if (isGitHubPages) {
-    importPath = './dist/unified.js'; // Direct access to dist folder in demo directory
+    importPath = './dist/unified.js' // Direct access to dist folder in demo directory
   } else if (isCodeSoulcraft) {
-    importPath = '/brainy/dist/unified.js'; // Absolute path for code.soulcraft.com
+    // Use relative path instead of absolute path for code.soulcraft.com
+    importPath = './dist/unified.js'
   } else {
-    importPath = '/dist/unified.js'; // Local development
+    importPath = '/dist/unified.js' // Local development
   }
 
   // Dynamic import
@@ -2432,7 +2433,7 @@ await db.init()
         case 'verbs':
           // Search for verbs directly
           results = await database.search(query, 10, {
-            searchVerbs: true,
+            searchVerbs: true
             // Optionally filter by verb types
             // verbTypes: ['RelatedTo', 'Created', 'Owns']
           })
