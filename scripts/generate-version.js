@@ -66,12 +66,12 @@ try {
   // Get TypeScript version from package.json devDependencies
   const typescriptVersion = packageJson.devDependencies.typescript.replace('^', '')
 
-  // Update npm badge - using a more flexible approach
+  // Update npm badge - using a more flexible approach with explicit version
   const npmBadgeRegex = /\[\!\[npm\].*?\]\(https:\/\/www\.npmjs\.com\/package\/@soulcraft\/brainy\)/g
   if (npmBadgeRegex.test(readmeContent)) {
     readmeContent = readmeContent.replace(
       npmBadgeRegex,
-      `[![npm](https://img.shields.io/npm/v/@soulcraft/brainy.svg)](https://www.npmjs.com/package/@soulcraft/brainy)`
+      `[![npm](https://img.shields.io/badge/npm-v${version}-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)`
     )
   } else {
     console.log('Warning: Could not find npm badge in README.md')

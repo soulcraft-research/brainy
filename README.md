@@ -6,7 +6,7 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D23.11.0-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.1.6-blue.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![npm](https://img.shields.io/npm/v/@soulcraft/brainy.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
+[![npm](https://img.shields.io/badge/npm-v0.9.9-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
 
 [//]: # ([![Cartographer]&#40;https://img.shields.io/badge/Cartographer-Official%20Standard-brightgreen&#41;]&#40;https://github.com/sodal-project/cartographer&#41;)
 
@@ -1268,6 +1268,17 @@ Brainy follows a specific code style to maintain consistency throughout the code
 2. Create a feature branch
 3. Make your changes
 4. Submit a pull request
+
+### Badge Maintenance
+
+The README badges are automatically updated during the build process:
+
+1. **npm Version Badge**: The npm version badge is automatically updated to match the version in package.json when:
+   - Running `npm run build` (via the prebuild script)
+   - Running `npm version` commands (patch, minor, major)
+   - Manually running `node scripts/generate-version.js`
+
+This ensures that the badge always reflects the current version in package.json, even before publishing to npm.
 
 ## License
 
