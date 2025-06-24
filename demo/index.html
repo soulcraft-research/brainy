@@ -1223,10 +1223,10 @@ await db.init()
         <pre class="code-block">
 &lt;script type="module"&gt;
   // Use local files instead of CDN
-  import { BrainyData, NounType, VerbType } from '../dist/unified.js'
+  import { BrainyData, NounType, VerbType } from '/brainy/dist/unified.js'
 
   // Or minified version
-  // import { BrainyData, NounType, VerbType } from '../dist/unified.min.js'
+  // import { BrainyData, NounType, VerbType } from '/brainy/dist/unified.min.js'
 
   const db = new BrainyData()
   await db.init()
@@ -1251,7 +1251,7 @@ await db.init()
 
 <script type="module">
   // Always use local files instead of CDN
-  const importPath = '../dist/unified.js'
+  const importPath = '/brainy/dist/unified.js'
 
   // Dynamic import
   const { BrainyData, NounType, VerbType } = await import(importPath)
