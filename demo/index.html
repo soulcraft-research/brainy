@@ -1223,7 +1223,9 @@ await db.init()
         <pre class="code-block">
 &lt;script type="module"&gt;
   // Use local files instead of CDN
-  import { BrainyData, NounType, VerbType } from '/dist/unified.js'
+  // For GitHub Pages, use relative path: '../dist/unified.js'
+  // For local development, use absolute path: '/dist/unified.js'
+  // This import is replaced by the dynamic import below
 
   // Or minified version
   // import { BrainyData, NounType, VerbType } from '/dist/unified.min.js'
@@ -1251,7 +1253,9 @@ await db.init()
 
 <script type="module">
   // Always use local files instead of CDN
-  const importPath = '/dist/unified.js'
+  // Use relative path for GitHub Pages compatibility
+  const isGitHubPages = window.location.hostname.includes('github.io') || window.location.hostname.includes('code.soulcraft.com');
+  const importPath = isGitHubPages ? '../dist/unified.js' : '/dist/unified.js'
 
   // Dynamic import
   const { BrainyData, NounType, VerbType } = await import(importPath)
