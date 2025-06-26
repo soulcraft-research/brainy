@@ -607,7 +607,20 @@ threading is not available in the current environment.
 
 ### Performance Tuning
 
-Brainy now includes comprehensive multithreading support to improve performance across all environments:
+Brainy includes comprehensive performance optimizations that work across all environments (browser, CLI, Node.js, container, server):
+
+#### GPU Acceleration
+
+Brainy now leverages GPU acceleration via WebGL for compute-intensive operations:
+
+1. **GPU-Accelerated Embeddings**: Generate text embeddings using TensorFlow.js with WebGL backend
+2. **GPU-Accelerated Distance Calculations**: Perform vector similarity calculations on the GPU for faster search
+3. **Automatic Fallback**: Falls back to CPU processing when GPU is not available or fails to initialize
+4. **Cross-Environment Support**: Works in browsers (via WebGL) and Node.js environments
+
+#### Multithreading Support
+
+Brainy includes comprehensive multithreading support to improve performance across all environments:
 
 1. **Parallel Batch Processing**: Add multiple items concurrently with controlled parallelism
 2. **Multithreaded Vector Search**: Perform distance calculations in parallel for faster search operations
@@ -629,9 +642,11 @@ const db = new BrainyData({
     efSearch: 50,       // Search candidate list size
   },
 
-  // Multithreading options
-  threading: {
+  // Performance optimization options
+  performance: {
     useParallelization: true, // Enable multithreaded search operations
+    useGPUAcceleration: true, // Enable GPU acceleration for compute-intensive operations
+    fallbackToCPU: true,      // Fall back to CPU processing if GPU acceleration fails
   },
 
   // Noun and Verb type validation
@@ -706,10 +721,19 @@ console.log(status.details.index)
 
 ## Distance Functions
 
-- `cosineDistance` (default)
-- `euclideanDistance`
-- `manhattanDistance`
-- `dotProductDistance`
+Brainy provides several distance functions for vector similarity calculations:
+
+- `cosineDistance` (default): Measures the cosine of the angle between vectors (1 - cosine similarity)
+- `euclideanDistance`: Measures the straight-line distance between vectors
+- `manhattanDistance`: Measures the sum of absolute differences between vector components
+- `dotProductDistance`: Measures the negative dot product between vectors
+
+All distance functions have GPU-accelerated versions that are automatically used when:
+1. GPU acceleration is enabled in the configuration
+2. The operation involves a large number of vectors
+3. WebGL is available in the environment
+
+The GPU-accelerated distance calculations provide significant performance improvements for large datasets and high-dimensional vectors.
 
 ## Backup and Restore
 
