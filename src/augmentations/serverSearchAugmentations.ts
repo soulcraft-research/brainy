@@ -45,7 +45,9 @@ export class ServerSearchConduitAugmentation extends WebSocketConduitAugmentatio
 
       // Local DB must be set before initialization
       if (!this.localDb) {
-        throw new Error('Local database not set. Call setLocalDb before initializing.')
+        throw new Error(
+          'Local database not set. Call setLocalDb before initializing.'
+        )
       }
 
       this.isInitialized = true
@@ -215,7 +217,7 @@ export class ServerSearchConduitAugmentation extends WebSocketConduitAugmentatio
 
       // Combine results, removing duplicates
       const combinedResults = [...localResults]
-      const localIds = new Set(localResults.map(r => r.id))
+      const localIds = new Set(localResults.map((r) => r.id))
 
       for (const result of serverResults) {
         if (!localIds.has(result.id)) {
@@ -264,7 +266,9 @@ export class ServerSearchConduitAugmentation extends WebSocketConduitAugmentatio
       const id = await this.localDb.add(data, metadata)
 
       // Get the vector and metadata
-      const noun = await this.localDb.get(id) as import('../coreTypes.js').VectorDocument<unknown>
+      const noun = (await this.localDb.get(
+        id
+      )) as import('../coreTypes.js').VectorDocument<unknown>
 
       if (!noun) {
         return {
@@ -312,7 +316,9 @@ export class ServerSearchConduitAugmentation extends WebSocketConduitAugmentatio
  *
  * An activation augmentation that provides actions for server search functionality.
  */
-export class ServerSearchActivationAugmentation implements IActivationAugmentation {
+export class ServerSearchActivationAugmentation
+  implements IActivationAugmentation
+{
   readonly name: string
   readonly description: string
   enabled: boolean = true
@@ -454,7 +460,7 @@ export class ServerSearchActivationAugmentation implements IActivationAugmentati
   ): AugmentationResponse<unknown> {
     const connectionId = parameters.connectionId as string
     const query = parameters.query as string
-    const limit = parameters.limit as number || 10
+    const limit = (parameters.limit as number) || 10
 
     if (!connectionId) {
       return {
@@ -487,7 +493,7 @@ export class ServerSearchActivationAugmentation implements IActivationAugmentati
     parameters: Record<string, unknown>
   ): AugmentationResponse<unknown> {
     const query = parameters.query as string
-    const limit = parameters.limit as number || 10
+    const limit = (parameters.limit as number) || 10
 
     if (!query) {
       return {
@@ -513,7 +519,7 @@ export class ServerSearchActivationAugmentation implements IActivationAugmentati
   ): AugmentationResponse<unknown> {
     const connectionId = parameters.connectionId as string
     const query = parameters.query as string
-    const limit = parameters.limit as number || 10
+    const limit = (parameters.limit as number) || 10
 
     if (!connectionId) {
       return {
@@ -568,7 +574,11 @@ export class ServerSearchActivationAugmentation implements IActivationAugmentati
     // Return a promise that will be resolved when the add is complete
     return {
       success: true,
-      data: this.conduitAugmentation!.addToBoth(connectionId, data as any, metadata as any)
+      data: this.conduitAugmentation!.addToBoth(
+        connectionId,
+        data as any,
+        metadata as any
+      )
     }
   }
 
@@ -585,7 +595,8 @@ export class ServerSearchActivationAugmentation implements IActivationAugmentati
     return {
       success: false,
       data: '',
-      error: 'generateOutput is not implemented for ServerSearchActivationAugmentation'
+      error:
+        'generateOutput is not implemented for ServerSearchActivationAugmentation'
     }
   }
 
@@ -602,7 +613,8 @@ export class ServerSearchActivationAugmentation implements IActivationAugmentati
     return {
       success: false,
       data: null,
-      error: 'interactExternal is not implemented for ServerSearchActivationAugmentation'
+      error:
+        'interactExternal is not implemented for ServerSearchActivationAugmentation'
     }
   }
 }
@@ -616,14 +628,14 @@ export class ServerSearchActivationAugmentation implements IActivationAugmentati
 export async function createServerSearchAugmentations(
   serverUrl: string,
   options: {
-    conduitName?: string,
-    activationName?: string,
-    protocols?: string | string[],
+    conduitName?: string
+    activationName?: string
+    protocols?: string | string[]
     localDb?: BrainyDataInterface
   } = {}
 ): Promise<{
-  conduit: ServerSearchConduitAugmentation,
-  activation: ServerSearchActivationAugmentation,
+  conduit: ServerSearchConduitAugmentation
+  activation: ServerSearchActivationAugmentation
   connection: WebSocketConnection
 }> {
   // Create the conduit augmentation
@@ -636,17 +648,18 @@ export async function createServerSearchAugmentations(
   }
 
   // Create the activation augmentation
-  const activation = new ServerSearchActivationAugmentation(options.activationName)
+  const activation = new ServerSearchActivationAugmentation(
+    options.activationName
+  )
   await activation.initialize()
 
   // Link the augmentations
   activation.setConduitAugmentation(conduit)
 
   // Connect to the server
-  const connectionResult = await conduit.establishConnection(
-    serverUrl,
-    { protocols: options.protocols }
-  )
+  const connectionResult = await conduit.establishConnection(serverUrl, {
+    protocols: options.protocols
+  })
 
   if (!connectionResult.success || !connectionResult.data) {
     throw new Error(`Failed to connect to server: ${connectionResult.error}`)
