@@ -5,7 +5,10 @@
 
 import { v4 as uuidv4 } from 'uuid'
 import { HNSWIndex } from './hnsw/hnswIndex.js'
-import { HNSWIndexOptimized, HNSWOptimizedConfig } from './hnsw/hnswIndexOptimized.js'
+import {
+  HNSWIndexOptimized,
+  HNSWOptimizedConfig
+} from './hnsw/hnswIndexOptimized.js'
 import { createStorage } from './storage/opfsStorage.js'
 import {
   DistanceFunction,
@@ -93,7 +96,6 @@ export interface BrainyDataConfig {
    */
   embeddingFunction?: EmbeddingFunction
 
-
   /**
    * Set the database to read-only mode
    * When true, all write operations will throw an error
@@ -166,7 +168,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       config.embeddingFunction || defaultEmbeddingFunction
 
     // Set persistent storage request flag
-    this.requestPersistentStorage = config.storage?.requestPersistentStorage || false
+    this.requestPersistentStorage =
+      config.storage?.requestPersistentStorage || false
 
     // Set read-only flag
     this.readOnly = config.readOnly || false
@@ -496,7 +499,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
         // Process this batch in parallel
         const batchResults = await Promise.all(
-          batch.map(item => this.add(item.vectorOrData, item.metadata, options))
+          batch.map((item) =>
+            this.add(item.vectorOrData, item.metadata, options)
+          )
         )
 
         // Add the results to our ids array
@@ -687,10 +692,10 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       const verbResults = await this.searchVerbs(queryVectorOrData, k, {
         forceEmbed: options.forceEmbed,
         verbTypes: options.verbTypes
-      });
+      })
 
       // Convert verb results to SearchResult format
-      return verbResults.map(verb => ({
+      return verbResults.map((verb) => ({
         id: verb.id,
         score: verb.similarity,
         vector: verb.embedding || [],
@@ -700,7 +705,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           target: verb.target,
           ...verb.data
         } as unknown as T
-      }));
+      }))
     }
 
     // If searching for nouns connected by verbs
@@ -709,7 +714,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         forceEmbed: options.forceEmbed,
         verbTypes: options.verbTypes,
         direction: options.verbDirection
-      });
+      })
     }
 
     // If a specific search mode is specified, use the appropriate search method
@@ -829,7 +834,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
     // Filter out the original entity and limit to the requested number
     return searchResults
-      .filter(result => result.id !== id)
+      .filter((result) => result.id !== id)
       .slice(0, options.limit || 10)
   }
 
@@ -1338,7 +1343,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       }
 
       // Filter out verbs without embeddings
-      verbs = verbs.filter(verb => verb.embedding && verb.embedding.length > 0)
+      verbs = verbs.filter(
+        (verb) => verb.embedding && verb.embedding.length > 0
+      )
 
       // Calculate similarity for each verb
       const results: Array<GraphVerb & { similarity: number }> = []
@@ -1420,8 +1427,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
         // Filter by verb types if specified
         if (options.verbTypes && options.verbTypes.length > 0) {
-          connectedVerbs = connectedVerbs.filter(verb => 
-            verb.verb && options.verbTypes!.includes(verb.verb)
+          connectedVerbs = connectedVerbs.filter(
+            (verb) => verb.verb && options.verbTypes!.includes(verb.verb)
           )
         }
 
@@ -1942,7 +1949,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     nounsRestored: number
     verbsRestored: number
   }> {
-    return this.restore(data, options);
+    return this.restore(data, options)
   }
 
   /**
