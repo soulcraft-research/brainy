@@ -3,8 +3,14 @@
  * Based on the paper: "Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs"
  */
 
-import { DistanceFunction, HNSWConfig, HNSWNoun, Vector, VectorDocument } from '../coreTypes.js'
-import { euclideanDistance } from '../utils/index.js'
+import {
+  DistanceFunction,
+  HNSWConfig,
+  HNSWNoun,
+  Vector,
+  VectorDocument
+} from '../coreTypes.js'
+import { euclideanDistance, calculateDistancesWithGPU } from '../utils/index.js'
 import { executeInThread } from '../utils/workerUtils.js'
 
 // Default HNSW parameters
@@ -31,7 +37,10 @@ export class HNSWIndex {
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config }
     this.distanceFunction = distanceFunction
-    this.useParallelization = options.useParallelization !== undefined ? options.useParallelization : true
+    this.useParallelization =
+      options.useParallelization !== undefined
+        ? options.useParallelization
+        : true
   }
 
   /**
@@ -51,6 +60,8 @@ export class HNSWIndex {
   /**
    * Calculate distances between a query vector and multiple vectors in parallel
    * This is used to optimize performance for search operations
+   * Uses GPU acceleration when available for optimal performance
+   *
    * @param queryVector The query vector
    * @param vectors Array of vectors to compare against
    * @returns Array of distances
@@ -61,48 +72,75 @@ export class HNSWIndex {
   ): Promise<Array<{ id: string; distance: number }>> {
     // If parallelization is disabled or there are very few vectors, use sequential processing
     if (!this.useParallelization || vectors.length < 10) {
-      return vectors.map(item => ({
+      return vectors.map((item) => ({
         id: item.id,
         distance: this.distanceFunction(queryVector, item.vector)
-      }))
-    }
-
-    // Function to be executed in a worker thread
-    const distanceCalculator = (
-      args: {
-        queryVector: Vector,
-        vectors: Array<{ id: string; vector: Vector }>,
-        distanceFnString: string
-      }
-    ) => {
-      const { queryVector, vectors, distanceFnString } = args;
-
-      // Recreate the distance function from its string representation
-      const distanceFunction = new Function('return ' + distanceFnString)() as DistanceFunction
-
-      // Calculate distances for all items
-      return vectors.map(item => ({
-        id: item.id,
-        distance: distanceFunction(queryVector, item.vector)
       }))
     }
 
     try {
-      // Convert the distance function to a string for serialization
-      const distanceFnString = this.distanceFunction.toString()
+      // Extract just the vectors from the input array
+      const vectorsOnly = vectors.map((item) => item.vector)
 
-      // Execute the distance calculation in a separate thread
-      return await executeInThread<Array<{ id: string; distance: number }>>(
-        distanceCalculator.toString(),
-        { queryVector, vectors, distanceFnString }
+      // Use GPU-accelerated distance calculation when possible
+      const distances = await calculateDistancesWithGPU(
+        queryVector,
+        vectorsOnly,
+        this.distanceFunction
       )
-    } catch (error) {
-      console.error('Error in parallel distance calculation, falling back to sequential:', error)
-      // Fall back to sequential processing if parallel execution fails
-      return vectors.map(item => ({
+
+      // Map the distances back to their IDs
+      return vectors.map((item, index) => ({
         id: item.id,
-        distance: this.distanceFunction(queryVector, item.vector)
+        distance: distances[index]
       }))
+    } catch (error) {
+      console.error(
+        'Error in GPU-accelerated distance calculation, falling back to threaded CPU:',
+        error
+      )
+
+      // Fall back to threaded CPU processing if GPU acceleration fails
+      // Function to be executed in a worker thread
+      const distanceCalculator = (args: {
+        queryVector: Vector
+        vectors: Array<{ id: string; vector: Vector }>
+        distanceFnString: string
+      }) => {
+        const { queryVector, vectors, distanceFnString } = args
+
+        // Recreate the distance function from its string representation
+        const distanceFunction = new Function(
+          'return ' + distanceFnString
+        )() as DistanceFunction
+
+        // Calculate distances for all items
+        return vectors.map((item) => ({
+          id: item.id,
+          distance: distanceFunction(queryVector, item.vector)
+        }))
+      }
+
+      try {
+        // Convert the distance function to a string for serialization
+        const distanceFnString = this.distanceFunction.toString()
+
+        // Execute the distance calculation in a separate thread
+        return await executeInThread<Array<{ id: string; distance: number }>>(
+          distanceCalculator.toString(),
+          { queryVector, vectors, distanceFnString }
+        )
+      } catch (threadError) {
+        console.error(
+          'Error in threaded distance calculation, falling back to sequential:',
+          threadError
+        )
+        // Fall back to sequential processing if both GPU and threaded execution fail
+        return vectors.map((item) => ({
+          id: item.id,
+          distance: this.distanceFunction(queryVector, item.vector)
+        }))
+      }
     }
   }
 
@@ -250,7 +288,9 @@ export class HNSWIndex {
           currDist = nearestDist
           const nearestNoun = this.nouns.get(nearestId)
           if (!nearestNoun) {
-            console.error(`Nearest noun with ID ${nearestId} not found in addItem`)
+            console.error(
+              `Nearest noun with ID ${nearestId} not found in addItem`
+            )
             // Keep the current object as is
           } else {
             currObj = nearestNoun
@@ -273,7 +313,10 @@ export class HNSWIndex {
   /**
    * Search for nearest neighbors
    */
-  public async search(queryVector: Vector, k: number = 10): Promise<Array<[string, number]>> {
+  public async search(
+    queryVector: Vector,
+    k: number = 10
+  ): Promise<Array<[string, number]>> {
     if (this.nouns.size === 0) {
       return []
     }
@@ -324,7 +367,10 @@ export class HNSWIndex {
           }
 
           // Calculate distances in parallel
-          const distances = await this.calculateDistancesInParallel(queryVector, vectors)
+          const distances = await this.calculateDistancesInParallel(
+            queryVector,
+            vectors
+          )
 
           // Find the closest neighbor
           for (const { id, distance } of distances) {
@@ -451,7 +497,6 @@ export class HNSWIndex {
     return new Map(this.nouns)
   }
 
-
   /**
    * Clear the index
    */
@@ -565,7 +610,10 @@ export class HNSWIndex {
 
         if (unvisitedNeighbors.length > 0) {
           // Calculate distances in parallel
-          const distances = await this.calculateDistancesInParallel(queryVector, unvisitedNeighbors)
+          const distances = await this.calculateDistancesInParallel(
+            queryVector,
+            unvisitedNeighbors
+          )
 
           // Process the results
           for (const { id, distance } of distances) {
