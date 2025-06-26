@@ -20,14 +20,14 @@ import { executeInThread } from './utils/workerUtils.js'
  * Type definitions for the augmentation registry
  */
 type AugmentationRegistry = {
-  sense: BrainyAugmentations.ISenseAugmentation[];
-  conduit: BrainyAugmentations.IConduitAugmentation[];
-  cognition: BrainyAugmentations.ICognitionAugmentation[];
-  memory: BrainyAugmentations.IMemoryAugmentation[];
-  perception: BrainyAugmentations.IPerceptionAugmentation[];
-  dialog: BrainyAugmentations.IDialogAugmentation[];
-  activation: BrainyAugmentations.IActivationAugmentation[];
-  webSocket: IWebSocketSupport[];
+  sense: BrainyAugmentations.ISenseAugmentation[]
+  conduit: BrainyAugmentations.IConduitAugmentation[]
+  cognition: BrainyAugmentations.ICognitionAugmentation[]
+  memory: BrainyAugmentations.IMemoryAugmentation[]
+  perception: BrainyAugmentations.IPerceptionAugmentation[]
+  dialog: BrainyAugmentations.IDialogAugmentation[]
+  activation: BrainyAugmentations.IActivationAugmentation[]
+  webSocket: IWebSocketSupport[]
 }
 
 /**
@@ -38,18 +38,18 @@ export enum ExecutionMode {
   PARALLEL = 'parallel',
   FIRST_SUCCESS = 'firstSuccess',
   FIRST_RESULT = 'firstResult',
-  THREADED = 'threaded'  // Execute in separate threads when available
+  THREADED = 'threaded' // Execute in separate threads when available
 }
 
 /**
  * Options for pipeline execution
  */
 export interface PipelineOptions {
-  mode?: ExecutionMode;
-  timeout?: number;
-  stopOnError?: boolean;
-  forceThreading?: boolean;  // Force threading even if not in THREADED mode
-  disableThreading?: boolean;  // Disable threading even if in THREADED mode
+  mode?: ExecutionMode
+  timeout?: number
+  stopOnError?: boolean
+  forceThreading?: boolean // Force threading even if not in THREADED mode
+  disableThreading?: boolean // Disable threading even if in THREADED mode
 }
 
 /**
@@ -86,78 +86,96 @@ export class AugmentationPipeline {
    * @param augmentation The augmentation to register
    * @returns The pipeline instance for chaining
    */
-  public register<T extends IAugmentation>(augmentation: T): AugmentationPipeline {
+  public register<T extends IAugmentation>(
+    augmentation: T
+  ): AugmentationPipeline {
     let registered = false
 
     // Check for specific augmentation types
-    if (this.isAugmentationType<BrainyAugmentations.ISenseAugmentation>(
-      augmentation,
-      'processRawData',
-      'listenToFeed'
-    )) {
+    if (
+      this.isAugmentationType<BrainyAugmentations.ISenseAugmentation>(
+        augmentation,
+        'processRawData',
+        'listenToFeed'
+      )
+    ) {
       this.registry.sense.push(augmentation)
       registered = true
-    } else if (this.isAugmentationType<BrainyAugmentations.IConduitAugmentation>(
-      augmentation,
-      'establishConnection',
-      'readData',
-      'writeData',
-      'monitorStream'
-    )) {
+    } else if (
+      this.isAugmentationType<BrainyAugmentations.IConduitAugmentation>(
+        augmentation,
+        'establishConnection',
+        'readData',
+        'writeData',
+        'monitorStream'
+      )
+    ) {
       this.registry.conduit.push(augmentation)
       registered = true
-    } else if (this.isAugmentationType<BrainyAugmentations.ICognitionAugmentation>(
-      augmentation,
-      'reason',
-      'infer',
-      'executeLogic'
-    )) {
+    } else if (
+      this.isAugmentationType<BrainyAugmentations.ICognitionAugmentation>(
+        augmentation,
+        'reason',
+        'infer',
+        'executeLogic'
+      )
+    ) {
       this.registry.cognition.push(augmentation)
       registered = true
-    } else if (this.isAugmentationType<BrainyAugmentations.IMemoryAugmentation>(
-      augmentation,
-      'storeData',
-      'retrieveData',
-      'updateData',
-      'deleteData',
-      'listDataKeys'
-    )) {
+    } else if (
+      this.isAugmentationType<BrainyAugmentations.IMemoryAugmentation>(
+        augmentation,
+        'storeData',
+        'retrieveData',
+        'updateData',
+        'deleteData',
+        'listDataKeys'
+      )
+    ) {
       this.registry.memory.push(augmentation)
       registered = true
-    } else if (this.isAugmentationType<BrainyAugmentations.IPerceptionAugmentation>(
-      augmentation,
-      'interpret',
-      'organize',
-      'generateVisualization'
-    )) {
+    } else if (
+      this.isAugmentationType<BrainyAugmentations.IPerceptionAugmentation>(
+        augmentation,
+        'interpret',
+        'organize',
+        'generateVisualization'
+      )
+    ) {
       this.registry.perception.push(augmentation)
       registered = true
-    } else if (this.isAugmentationType<BrainyAugmentations.IDialogAugmentation>(
-      augmentation,
-      'processUserInput',
-      'generateResponse',
-      'manageContext'
-    )) {
+    } else if (
+      this.isAugmentationType<BrainyAugmentations.IDialogAugmentation>(
+        augmentation,
+        'processUserInput',
+        'generateResponse',
+        'manageContext'
+      )
+    ) {
       this.registry.dialog.push(augmentation)
       registered = true
-    } else if (this.isAugmentationType<BrainyAugmentations.IActivationAugmentation>(
-      augmentation,
-      'triggerAction',
-      'generateOutput',
-      'interactExternal'
-    )) {
+    } else if (
+      this.isAugmentationType<BrainyAugmentations.IActivationAugmentation>(
+        augmentation,
+        'triggerAction',
+        'generateOutput',
+        'interactExternal'
+      )
+    ) {
       this.registry.activation.push(augmentation)
       registered = true
     }
 
     // Check if the augmentation supports WebSocket
-    if (this.isAugmentationType<IWebSocketSupport>(
-      augmentation,
-      'connectWebSocket',
-      'sendWebSocketMessage',
-      'onWebSocketMessage',
-      'closeWebSocket'
-    )) {
+    if (
+      this.isAugmentationType<IWebSocketSupport>(
+        augmentation,
+        'connectWebSocket',
+        'sendWebSocketMessage',
+        'onWebSocketMessage',
+        'closeWebSocket'
+      )
+    ) {
       this.registry.webSocket.push(augmentation as IWebSocketSupport)
       registered = true
     }
@@ -182,7 +200,9 @@ export class AugmentationPipeline {
     // Remove from all registries
     for (const type in this.registry) {
       const typedRegistry = this.registry[type as keyof AugmentationRegistry]
-      const index = typedRegistry.findIndex(aug => aug.name === augmentationName)
+      const index = typedRegistry.findIndex(
+        (aug) => aug.name === augmentationName
+      )
 
       if (index !== -1) {
         typedRegistry.splice(index, 1)
@@ -202,9 +222,12 @@ export class AugmentationPipeline {
     const allAugmentations = this.getAllAugmentations()
 
     await Promise.all(
-      allAugmentations.map(augmentation =>
-        augmentation.initialize().catch(error => {
-          console.error(`Failed to initialize augmentation ${augmentation.name}:`, error)
+      allAugmentations.map((augmentation) =>
+        augmentation.initialize().catch((error) => {
+          console.error(
+            `Failed to initialize augmentation ${augmentation.name}:`,
+            error
+          )
         })
       )
     )
@@ -219,9 +242,12 @@ export class AugmentationPipeline {
     const allAugmentations = this.getAllAugmentations()
 
     await Promise.all(
-      allAugmentations.map(augmentation =>
-        augmentation.shutDown().catch(error => {
-          console.error(`Failed to shut down augmentation ${augmentation.name}:`, error)
+      allAugmentations.map((augmentation) =>
+        augmentation.shutDown().catch((error) => {
+          console.error(
+            `Failed to shut down augmentation ${augmentation.name}:`,
+            error
+          )
         })
       )
     )
@@ -237,19 +263,30 @@ export class AugmentationPipeline {
    */
   public async executeSensePipeline<
     M extends keyof BrainyAugmentations.ISenseAugmentation & string,
-    R extends BrainyAugmentations.ISenseAugmentation[M] extends (...args: any[]) => AugmentationResponse<infer U> ? U : never
+    R extends BrainyAugmentations.ISenseAugmentation[M] extends (
+      ...args: any[]
+    ) => AugmentationResponse<infer U>
+      ? U
+      : never
   >(
-    method: M & (BrainyAugmentations.ISenseAugmentation[M] extends (...args: any[]) => any ? M : never),
-    args: Parameters<Extract<BrainyAugmentations.ISenseAugmentation[M], (...args: any[]) => any>>,
+    method: M &
+      (BrainyAugmentations.ISenseAugmentation[M] extends (...args: any[]) => any
+        ? M
+        : never),
+    args: Parameters<
+      Extract<
+        BrainyAugmentations.ISenseAugmentation[M],
+        (...args: any[]) => any
+      >
+    >,
     options: PipelineOptions = {}
   ): Promise<Promise<{ success: boolean; data: R; error?: string }>[]> {
     const opts = { ...DEFAULT_PIPELINE_OPTIONS, ...options }
-    return this.executeTypedPipeline<BrainyAugmentations.ISenseAugmentation, M, R>(
-      this.registry.sense,
-      method,
-      args,
-      opts
-    )
+    return this.executeTypedPipeline<
+      BrainyAugmentations.ISenseAugmentation,
+      M,
+      R
+    >(this.registry.sense, method, args, opts)
   }
 
   /**
@@ -262,19 +299,32 @@ export class AugmentationPipeline {
    */
   public async executeConduitPipeline<
     M extends keyof BrainyAugmentations.IConduitAugmentation & string,
-    R extends BrainyAugmentations.IConduitAugmentation[M] extends (...args: any[]) => AugmentationResponse<infer U> ? U : never
+    R extends BrainyAugmentations.IConduitAugmentation[M] extends (
+      ...args: any[]
+    ) => AugmentationResponse<infer U>
+      ? U
+      : never
   >(
-    method: M & (BrainyAugmentations.IConduitAugmentation[M] extends (...args: any[]) => any ? M : never),
-    args: Parameters<Extract<BrainyAugmentations.IConduitAugmentation[M], (...args: any[]) => any>>,
+    method: M &
+      (BrainyAugmentations.IConduitAugmentation[M] extends (
+        ...args: any[]
+      ) => any
+        ? M
+        : never),
+    args: Parameters<
+      Extract<
+        BrainyAugmentations.IConduitAugmentation[M],
+        (...args: any[]) => any
+      >
+    >,
     options: PipelineOptions = {}
   ): Promise<Promise<{ success: boolean; data: R; error?: string }>[]> {
     const opts = { ...DEFAULT_PIPELINE_OPTIONS, ...options }
-    return this.executeTypedPipeline<BrainyAugmentations.IConduitAugmentation, M, R>(
-      this.registry.conduit,
-      method,
-      args,
-      opts
-    )
+    return this.executeTypedPipeline<
+      BrainyAugmentations.IConduitAugmentation,
+      M,
+      R
+    >(this.registry.conduit, method, args, opts)
   }
 
   /**
@@ -287,19 +337,32 @@ export class AugmentationPipeline {
    */
   public async executeCognitionPipeline<
     M extends keyof BrainyAugmentations.ICognitionAugmentation & string,
-    R extends BrainyAugmentations.ICognitionAugmentation[M] extends (...args: any[]) => AugmentationResponse<infer U> ? U : never
+    R extends BrainyAugmentations.ICognitionAugmentation[M] extends (
+      ...args: any[]
+    ) => AugmentationResponse<infer U>
+      ? U
+      : never
   >(
-    method: M & (BrainyAugmentations.ICognitionAugmentation[M] extends (...args: any[]) => any ? M : never),
-    args: Parameters<Extract<BrainyAugmentations.ICognitionAugmentation[M], (...args: any[]) => any>>,
+    method: M &
+      (BrainyAugmentations.ICognitionAugmentation[M] extends (
+        ...args: any[]
+      ) => any
+        ? M
+        : never),
+    args: Parameters<
+      Extract<
+        BrainyAugmentations.ICognitionAugmentation[M],
+        (...args: any[]) => any
+      >
+    >,
     options: PipelineOptions = {}
   ): Promise<Promise<{ success: boolean; data: R; error?: string }>[]> {
     const opts = { ...DEFAULT_PIPELINE_OPTIONS, ...options }
-    return this.executeTypedPipeline<BrainyAugmentations.ICognitionAugmentation, M, R>(
-      this.registry.cognition,
-      method,
-      args,
-      opts
-    )
+    return this.executeTypedPipeline<
+      BrainyAugmentations.ICognitionAugmentation,
+      M,
+      R
+    >(this.registry.cognition, method, args, opts)
   }
 
   /**
@@ -312,19 +375,32 @@ export class AugmentationPipeline {
    */
   public async executeMemoryPipeline<
     M extends keyof BrainyAugmentations.IMemoryAugmentation & string,
-    R extends BrainyAugmentations.IMemoryAugmentation[M] extends (...args: any[]) => AugmentationResponse<infer U> ? U : never
+    R extends BrainyAugmentations.IMemoryAugmentation[M] extends (
+      ...args: any[]
+    ) => AugmentationResponse<infer U>
+      ? U
+      : never
   >(
-    method: M & (BrainyAugmentations.IMemoryAugmentation[M] extends (...args: any[]) => any ? M : never),
-    args: Parameters<Extract<BrainyAugmentations.IMemoryAugmentation[M], (...args: any[]) => any>>,
+    method: M &
+      (BrainyAugmentations.IMemoryAugmentation[M] extends (
+        ...args: any[]
+      ) => any
+        ? M
+        : never),
+    args: Parameters<
+      Extract<
+        BrainyAugmentations.IMemoryAugmentation[M],
+        (...args: any[]) => any
+      >
+    >,
     options: PipelineOptions = {}
   ): Promise<Promise<{ success: boolean; data: R; error?: string }>[]> {
     const opts = { ...DEFAULT_PIPELINE_OPTIONS, ...options }
-    return this.executeTypedPipeline<BrainyAugmentations.IMemoryAugmentation, M, R>(
-      this.registry.memory,
-      method,
-      args,
-      opts
-    )
+    return this.executeTypedPipeline<
+      BrainyAugmentations.IMemoryAugmentation,
+      M,
+      R
+    >(this.registry.memory, method, args, opts)
   }
 
   /**
@@ -337,19 +413,32 @@ export class AugmentationPipeline {
    */
   public async executePerceptionPipeline<
     M extends keyof BrainyAugmentations.IPerceptionAugmentation & string,
-    R extends BrainyAugmentations.IPerceptionAugmentation[M] extends (...args: any[]) => AugmentationResponse<infer U> ? U : never
+    R extends BrainyAugmentations.IPerceptionAugmentation[M] extends (
+      ...args: any[]
+    ) => AugmentationResponse<infer U>
+      ? U
+      : never
   >(
-    method: M & (BrainyAugmentations.IPerceptionAugmentation[M] extends (...args: any[]) => any ? M : never),
-    args: Parameters<Extract<BrainyAugmentations.IPerceptionAugmentation[M], (...args: any[]) => any>>,
+    method: M &
+      (BrainyAugmentations.IPerceptionAugmentation[M] extends (
+        ...args: any[]
+      ) => any
+        ? M
+        : never),
+    args: Parameters<
+      Extract<
+        BrainyAugmentations.IPerceptionAugmentation[M],
+        (...args: any[]) => any
+      >
+    >,
     options: PipelineOptions = {}
   ): Promise<Promise<{ success: boolean; data: R; error?: string }>[]> {
     const opts = { ...DEFAULT_PIPELINE_OPTIONS, ...options }
-    return this.executeTypedPipeline<BrainyAugmentations.IPerceptionAugmentation, M, R>(
-      this.registry.perception,
-      method,
-      args,
-      opts
-    )
+    return this.executeTypedPipeline<
+      BrainyAugmentations.IPerceptionAugmentation,
+      M,
+      R
+    >(this.registry.perception, method, args, opts)
   }
 
   /**
@@ -362,19 +451,32 @@ export class AugmentationPipeline {
    */
   public async executeDialogPipeline<
     M extends keyof BrainyAugmentations.IDialogAugmentation & string,
-    R extends BrainyAugmentations.IDialogAugmentation[M] extends (...args: any[]) => AugmentationResponse<infer U> ? U : never
+    R extends BrainyAugmentations.IDialogAugmentation[M] extends (
+      ...args: any[]
+    ) => AugmentationResponse<infer U>
+      ? U
+      : never
   >(
-    method: M & (BrainyAugmentations.IDialogAugmentation[M] extends (...args: any[]) => any ? M : never),
-    args: Parameters<Extract<BrainyAugmentations.IDialogAugmentation[M], (...args: any[]) => any>>,
+    method: M &
+      (BrainyAugmentations.IDialogAugmentation[M] extends (
+        ...args: any[]
+      ) => any
+        ? M
+        : never),
+    args: Parameters<
+      Extract<
+        BrainyAugmentations.IDialogAugmentation[M],
+        (...args: any[]) => any
+      >
+    >,
     options: PipelineOptions = {}
   ): Promise<Promise<{ success: boolean; data: R; error?: string }>[]> {
     const opts = { ...DEFAULT_PIPELINE_OPTIONS, ...options }
-    return this.executeTypedPipeline<BrainyAugmentations.IDialogAugmentation, M, R>(
-      this.registry.dialog,
-      method,
-      args,
-      opts
-    )
+    return this.executeTypedPipeline<
+      BrainyAugmentations.IDialogAugmentation,
+      M,
+      R
+    >(this.registry.dialog, method, args, opts)
   }
 
   /**
@@ -387,19 +489,32 @@ export class AugmentationPipeline {
    */
   public async executeActivationPipeline<
     M extends keyof BrainyAugmentations.IActivationAugmentation & string,
-    R extends BrainyAugmentations.IActivationAugmentation[M] extends (...args: any[]) => AugmentationResponse<infer U> ? U : never
+    R extends BrainyAugmentations.IActivationAugmentation[M] extends (
+      ...args: any[]
+    ) => AugmentationResponse<infer U>
+      ? U
+      : never
   >(
-    method: M & (BrainyAugmentations.IActivationAugmentation[M] extends (...args: any[]) => any ? M : never),
-    args: Parameters<Extract<BrainyAugmentations.IActivationAugmentation[M], (...args: any[]) => any>>,
+    method: M &
+      (BrainyAugmentations.IActivationAugmentation[M] extends (
+        ...args: any[]
+      ) => any
+        ? M
+        : never),
+    args: Parameters<
+      Extract<
+        BrainyAugmentations.IActivationAugmentation[M],
+        (...args: any[]) => any
+      >
+    >,
     options: PipelineOptions = {}
   ): Promise<Promise<{ success: boolean; data: R; error?: string }>[]> {
     const opts = { ...DEFAULT_PIPELINE_OPTIONS, ...options }
-    return this.executeTypedPipeline<BrainyAugmentations.IActivationAugmentation, M, R>(
-      this.registry.activation,
-      method,
-      args,
-      opts
-    )
+    return this.executeTypedPipeline<
+      BrainyAugmentations.IActivationAugmentation,
+      M,
+      R
+    >(this.registry.activation, method, args, opts)
   }
 
   /**
@@ -461,14 +576,22 @@ export class AugmentationPipeline {
   public getAvailableAugmentationTypes(): AugmentationType[] {
     const availableTypes: AugmentationType[] = []
 
-    if (this.registry.sense.length > 0) availableTypes.push(AugmentationType.SENSE)
-    if (this.registry.conduit.length > 0) availableTypes.push(AugmentationType.CONDUIT)
-    if (this.registry.cognition.length > 0) availableTypes.push(AugmentationType.COGNITION)
-    if (this.registry.memory.length > 0) availableTypes.push(AugmentationType.MEMORY)
-    if (this.registry.perception.length > 0) availableTypes.push(AugmentationType.PERCEPTION)
-    if (this.registry.dialog.length > 0) availableTypes.push(AugmentationType.DIALOG)
-    if (this.registry.activation.length > 0) availableTypes.push(AugmentationType.ACTIVATION)
-    if (this.registry.webSocket.length > 0) availableTypes.push(AugmentationType.WEBSOCKET)
+    if (this.registry.sense.length > 0)
+      availableTypes.push(AugmentationType.SENSE)
+    if (this.registry.conduit.length > 0)
+      availableTypes.push(AugmentationType.CONDUIT)
+    if (this.registry.cognition.length > 0)
+      availableTypes.push(AugmentationType.COGNITION)
+    if (this.registry.memory.length > 0)
+      availableTypes.push(AugmentationType.MEMORY)
+    if (this.registry.perception.length > 0)
+      availableTypes.push(AugmentationType.PERCEPTION)
+    if (this.registry.dialog.length > 0)
+      availableTypes.push(AugmentationType.DIALOG)
+    if (this.registry.activation.length > 0)
+      availableTypes.push(AugmentationType.ACTIVATION)
+    if (this.registry.webSocket.length > 0)
+      availableTypes.push(AugmentationType.WEBSOCKET)
 
     return availableTypes
   }
@@ -494,44 +617,44 @@ export class AugmentationPipeline {
     ...methods: (keyof T)[]
   ): augmentation is T {
     // First check that the augmentation has all the required base methods
-    const baseMethodsExist = [
-      'initialize',
-      'shutDown',
-      'getStatus'
-    ].every(method => typeof (augmentation as any)[method] === 'function')
+    const baseMethodsExist = ['initialize', 'shutDown', 'getStatus'].every(
+      (method) => typeof (augmentation as any)[method] === 'function'
+    )
 
     if (!baseMethodsExist) {
       return false
     }
 
     // Then check that it has all the specific methods for this type
-    return methods.every(method => typeof (augmentation as any)[method] === 'function')
+    return methods.every(
+      (method) => typeof (augmentation as any)[method] === 'function'
+    )
   }
 
   /**
    * Determines if threading should be used based on options and environment
-   * 
+   *
    * @param options The pipeline options
    * @returns True if threading should be used, false otherwise
    */
   private shouldUseThreading(options: PipelineOptions): boolean {
     // If threading is explicitly disabled, don't use it
     if (options.disableThreading) {
-      return false;
+      return false
     }
 
     // If threading is explicitly forced, use it if available
     if (options.forceThreading) {
-      return isThreadingAvailable();
+      return isThreadingAvailable()
     }
 
     // If in THREADED mode, use threading if available
     if (options.mode === ExecutionMode.THREADED) {
-      return isThreadingAvailable();
+      return isThreadingAvailable()
     }
 
     // Otherwise, don't use threading
-    return false;
+    return false
   }
 
   /**
@@ -546,26 +669,34 @@ export class AugmentationPipeline {
   private async executeTypedPipeline<
     T extends IAugmentation,
     M extends keyof T & string,
-    R extends T[M] extends (...args: any[]) => AugmentationResponse<infer U> ? U : never
+    R extends T[M] extends (...args: any[]) => AugmentationResponse<infer U>
+      ? U
+      : never
   >(
     augmentations: T[],
     method: M & (T[M] extends (...args: any[]) => any ? M : never),
     args: Parameters<Extract<T[M], (...args: any[]) => any>>,
     options: PipelineOptions
-  ): Promise<Promise<{
-    success: boolean
-    data: R
-    error?: string
-  }>[]> {
+  ): Promise<
+    Promise<{
+      success: boolean
+      data: R
+      error?: string
+    }>[]
+  > {
     // Filter out disabled augmentations
-    const enabledAugmentations = augmentations.filter(aug => aug.enabled !== false)
+    const enabledAugmentations = augmentations.filter(
+      (aug) => aug.enabled !== false
+    )
 
     if (enabledAugmentations.length === 0) {
       return []
     }
 
     // Create a function to execute the method on an augmentation
-    const executeMethod = async (augmentation: T): Promise<{
+    const executeMethod = async (
+      augmentation: T
+    ): Promise<{
       success: boolean
       data: R
       error?: string
@@ -574,21 +705,25 @@ export class AugmentationPipeline {
         // Create a timeout promise if a timeout is specified
         const timeoutPromise = options.timeout
           ? new Promise<{
-            success: boolean
-            data: R
-            error?: string
-          }>((_, reject) => {
-            setTimeout(() => {
-              reject(new Error(`Timeout executing ${String(method)} on ${augmentation.name}`))
-            }, options.timeout)
-          })
+              success: boolean
+              data: R
+              error?: string
+            }>((_, reject) => {
+              setTimeout(() => {
+                reject(
+                  new Error(
+                    `Timeout executing ${String(method)} on ${augmentation.name}`
+                  )
+                )
+              }, options.timeout)
+            })
           : null
 
         // Check if threading should be used
-        const useThreading = this.shouldUseThreading(options);
+        const useThreading = this.shouldUseThreading(options)
 
         // Execute the method on the augmentation, using threading if appropriate
-        let methodPromise: Promise<AugmentationResponse<R>>;
+        let methodPromise: Promise<AugmentationResponse<R>>
 
         if (useThreading) {
           // Execute in a separate thread
@@ -597,19 +732,32 @@ export class AugmentationPipeline {
             const workerFn = (...workerArgs: any[]) => {
               // This function will be stringified and executed in the worker
               // It needs to be self-contained
-              const augFn = augmentation[method as string] as Function;
-              return augFn.apply(augmentation, workerArgs);
-            };
+              const augFn = augmentation[method as string] as Function
+              return augFn.apply(augmentation, workerArgs)
+            }
 
-            methodPromise = executeInThread<AugmentationResponse<R>>(workerFn.toString(), args);
+            methodPromise = executeInThread<AugmentationResponse<R>>(
+              workerFn.toString(),
+              args
+            )
           } catch (threadError) {
-            console.warn(`Failed to execute in thread, falling back to main thread: ${threadError}`);
+            console.warn(
+              `Failed to execute in thread, falling back to main thread: ${threadError}`
+            )
             // Fall back to executing in the main thread
-            methodPromise = Promise.resolve((augmentation[method] as Function)(...args) as AugmentationResponse<R>);
+            methodPromise = Promise.resolve(
+              (augmentation[method] as Function)(
+                ...args
+              ) as AugmentationResponse<R>
+            )
           }
         } else {
           // Execute in the main thread
-          methodPromise = Promise.resolve((augmentation[method] as Function)(...args) as AugmentationResponse<R>);
+          methodPromise = Promise.resolve(
+            (augmentation[method] as Function)(
+              ...args
+            ) as AugmentationResponse<R>
+          )
         }
 
         // Race the method promise against the timeout promise if a timeout is specified
@@ -619,7 +767,10 @@ export class AugmentationPipeline {
 
         return result
       } catch (error) {
-        console.error(`Error executing ${String(method)} on ${augmentation.name}:`, error)
+        console.error(
+          `Error executing ${String(method)} on ${augmentation.name}:`,
+          error
+        )
         return {
           success: false,
           data: null as unknown as R,
@@ -637,26 +788,26 @@ export class AugmentationPipeline {
       case ExecutionMode.THREADED:
         // Execute all augmentations in parallel with threading enabled
         // Force threading for this mode
-        const threadedOptions = { ...options, forceThreading: true };
+        const threadedOptions = { ...options, forceThreading: true }
 
         // Create a new executeMethod function that uses the threaded options
         const executeMethodThreaded = async (augmentation: T) => {
           // Save the original options
-          const originalOptions = options;
+          const originalOptions = options
 
           // Set the options to the threaded options
-          options = threadedOptions;
+          options = threadedOptions
 
           // Execute the method
-          const result = await executeMethod(augmentation);
+          const result = await executeMethod(augmentation)
 
           // Restore the original options
-          options = originalOptions;
+          options = originalOptions
 
-          return result;
-        };
+          return result
+        }
 
-        return enabledAugmentations.map(executeMethodThreaded);
+        return enabledAugmentations.map(executeMethodThreaded)
 
       case ExecutionMode.FIRST_SUCCESS:
         // Execute augmentations sequentially until one succeeds
