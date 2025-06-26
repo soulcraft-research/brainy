@@ -15,18 +15,24 @@ export function executeInWebWorker<T>(fnString: string, args: any): Promise<T> {
   return new Promise((resolve, reject) => {
     // Create a blob URL for the worker script
     const workerScript = `
+      // Define global variables to prevent "is not defined" errors
+      // This ensures that any minified variable names used by bundlers are available
+      self.index = {}
+      self.index$1 = {}
+      self.index$2 = {}
+
       self.onmessage = async function(e) {
         try {
-          const fn = ${fnString};
-          const result = await fn(e.data);
-          self.postMessage({ success: true, data: result });
+          const fn = ${fnString}
+          const result = await fn(e.data)
+          self.postMessage({ success: true, data: result })
         } catch (error) {
           self.postMessage({ 
             success: false, 
             error: error instanceof Error ? error.message : String(error) 
-          });
+          })
         }
-      };
+      }
     `
 
     const blob = new Blob([workerScript], { type: 'application/javascript' })
@@ -78,20 +84,20 @@ export function executeInWorkerThread<T>(
 
       // Create a worker script
       const workerScript = `
-        const { parentPort } = require('worker_threads');
+        const { parentPort } = require('worker_threads')
 
         parentPort.once('message', async (data) => {
           try {
-            const fn = ${fnString};
-            const result = await fn(data);
-            parentPort.postMessage({ success: true, data: result });
+            const fn = ${fnString}
+            const result = await fn(data)
+            parentPort.postMessage({ success: true, data: result })
           } catch (error) {
             parentPort.postMessage({ 
               success: false, 
               error: error instanceof Error ? error.message : String(error) 
-            });
+            })
           }
-        });
+        })
       `
 
       // Create a worker
