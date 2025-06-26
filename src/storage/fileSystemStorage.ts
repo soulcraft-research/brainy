@@ -86,7 +86,9 @@ export class FileSystemStorage implements StorageAdapter {
         this.contentDir = path.join(this.nounsDir, CONTENT_DIR)
         this.defaultDir = path.join(this.nounsDir, DEFAULT_DIR)
       } catch (importError) {
-        throw new Error(`Failed to import Node.js modules: ${importError}. This adapter requires a Node.js environment.`)
+        throw new Error(
+          `Failed to import Node.js modules: ${importError}. This adapter requires a Node.js environment.`
+        )
       }
 
       // Create directories if they don't exist
@@ -121,7 +123,9 @@ export class FileSystemStorage implements StorageAdapter {
       // Convert connections Map to a serializable format
       const serializableNode = {
         ...noun,
-        connections: this.mapToObject(noun.connections, (set) => Array.from(set as Set<string>))
+        connections: this.mapToObject(noun.connections, (set) =>
+          Array.from(set as Set<string>)
+        )
       }
 
       // Get the appropriate directory based on the node's metadata
@@ -166,7 +170,9 @@ export class FileSystemStorage implements StorageAdapter {
 
             // Convert serialized connections back to Map<number, Set<string>>
             const connections = new Map<number, Set<string>>()
-            for (const [level, nodeIds] of Object.entries(parsedNode.connections)) {
+            for (const [level, nodeIds] of Object.entries(
+              parsedNode.connections
+            )) {
               connections.set(Number(level), new Set(nodeIds as string[]))
             }
 
@@ -198,7 +204,9 @@ export class FileSystemStorage implements StorageAdapter {
 
                 // Convert serialized connections back to Map<number, Set<string>>
                 const connections = new Map<number, Set<string>>()
-                for (const [level, nodeIds] of Object.entries(parsedNode.connections)) {
+                for (const [level, nodeIds] of Object.entries(
+                  parsedNode.connections
+                )) {
                   connections.set(Number(level), new Set(nodeIds as string[]))
                 }
 
@@ -284,10 +292,15 @@ export class FileSystemStorage implements StorageAdapter {
           })
 
         const dirNodes = await Promise.all(nodePromises)
-        nodes.push(...dirNodes.filter((node): node is HNSWNoun => node !== null))
+        nodes.push(
+          ...dirNodes.filter((node): node is HNSWNoun => node !== null)
+        )
       } catch (dirError) {
         // If directory doesn't exist or can't be read, log a warning
-        console.warn(`Could not read directory for noun type ${nounType}:`, dirError)
+        console.warn(
+          `Could not read directory for noun type ${nounType}:`,
+          dirError
+        )
       }
 
       return nodes
@@ -316,7 +329,9 @@ export class FileSystemStorage implements StorageAdapter {
       ]
 
       // Run searches in parallel for all noun types
-      const nodePromises = nounTypes.map(nounType => this.getNounsByNounType(nounType))
+      const nodePromises = nounTypes.map((nounType) =>
+        this.getNounsByNounType(nounType)
+      )
       const nodeArrays = await Promise.all(nodePromises)
 
       // Combine all results
@@ -427,7 +442,9 @@ export class FileSystemStorage implements StorageAdapter {
       // Convert connections Map to a serializable format
       const serializableEdge = {
         ...verb,
-        connections: this.mapToObject(verb.connections, (set) => Array.from(set as Set<string>))
+        connections: this.mapToObject(verb.connections, (set) =>
+          Array.from(set as Set<string>)
+        )
       }
 
       const filePath = path.join(this.verbsDir, `${verb.id}.json`)
@@ -514,7 +531,7 @@ export class FileSystemStorage implements StorageAdapter {
 
     try {
       const allEdges = await this.getAllVerbs()
-      return allEdges.filter(edge => edge.sourceId === sourceId)
+      return allEdges.filter((edge) => edge.sourceId === sourceId)
     } catch (error) {
       console.error(`Failed to get edges by source ${sourceId}:`, error)
       throw new Error(`Failed to get edges by source ${sourceId}: ${error}`)
@@ -529,7 +546,7 @@ export class FileSystemStorage implements StorageAdapter {
 
     try {
       const allEdges = await this.getAllVerbs()
-      return allEdges.filter(edge => edge.targetId === targetId)
+      return allEdges.filter((edge) => edge.targetId === targetId)
     } catch (error) {
       console.error(`Failed to get edges by target ${targetId}:`, error)
       throw new Error(`Failed to get edges by target ${targetId}: ${error}`)
@@ -544,7 +561,7 @@ export class FileSystemStorage implements StorageAdapter {
 
     try {
       const allEdges = await this.getAllVerbs()
-      return allEdges.filter(edge => edge.type === type)
+      return allEdges.filter((edge) => edge.type === type)
     } catch (error) {
       console.error(`Failed to get edges by type ${type}:`, error)
       throw new Error(`Failed to get edges by type ${type}: ${error}`)
@@ -768,10 +785,10 @@ export class FileSystemStorage implements StorageAdapter {
    * Get information about storage usage and capacity
    */
   public async getStorageStatus(): Promise<{
-    type: string;
-    used: number;
-    quota: number | null;
-    details?: Record<string, any>;
+    type: string
+    used: number
+    quota: number | null
+    details?: Record<string, any>
   }> {
     await this.ensureInitialized()
 
@@ -824,17 +841,17 @@ export class FileSystemStorage implements StorageAdapter {
       let quota = null
       let details: {
         nounTypes?: {
-          person: { size: number; count: number };
-          place: { size: number; count: number };
-          thing: { size: number; count: number };
-          event: { size: number; count: number };
-          concept: { size: number; count: number };
-          content: { size: number; count: number };
-          default: { size: number; count: number };
-        };
-        availableSpace?: number;
-        totalSpace?: number;
-        freePercentage?: number;
+          person: { size: number; count: number }
+          place: { size: number; count: number }
+          thing: { size: number; count: number }
+          event: { size: number; count: number }
+          concept: { size: number; count: number }
+          content: { size: number; count: number }
+          default: { size: number; count: number }
+        }
+        availableSpace?: number
+        totalSpace?: number
+        freePercentage?: number
       } = {
         nounTypes: {
           person: {
