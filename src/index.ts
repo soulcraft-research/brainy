@@ -48,7 +48,10 @@ import {
   createStorage
 } from './storage/opfsStorage.js'
 import { FileSystemStorage } from './storage/fileSystemStorage.js'
-import { R2Storage, S3CompatibleStorage } from './storage/s3CompatibleStorage.js'
+import {
+  R2Storage,
+  S3CompatibleStorage
+} from './storage/s3CompatibleStorage.js'
 
 export {
   OPFSStorage,
@@ -120,9 +123,9 @@ export {
   executeAugmentation,
   loadAugmentationModule
 }
-export type { 
-  PipelineOptions, 
-  PipelineResult, 
+export type {
+  PipelineOptions,
+  PipelineResult,
   SequentialPipelineOptions,
   StreamlinedPipelineOptions,
   StreamlinedPipelineResult,
@@ -162,10 +165,7 @@ export {
   createAugmentationRegistryPlugin,
   createAugmentationRegistryRollupPlugin
 }
-export type {
-  AugmentationRegistryLoaderOptions,
-  AugmentationLoadResult
-}
+export type { AugmentationRegistryLoaderOptions, AugmentationLoadResult }
 
 // Export augmentation implementations
 import {
@@ -203,7 +203,6 @@ export {
 // They can be imported directly from their module if needed:
 // import { LLMCognitionAugmentation, LLMActivationAugmentation, createLLMAugmentations } from './augmentations/llmAugmentations.js'
 
-
 // Export types
 import type {
   Vector,
@@ -220,12 +219,12 @@ import type {
 
 // Export HNSW index and optimized version
 import { HNSWIndex } from './hnsw/hnswIndex.js'
-import { HNSWIndexOptimized, HNSWOptimizedConfig } from './hnsw/hnswIndexOptimized.js'
+import {
+  HNSWIndexOptimized,
+  HNSWOptimizedConfig
+} from './hnsw/hnswIndexOptimized.js'
 
-export {
-  HNSWIndex,
-  HNSWIndexOptimized
-}
+export { HNSWIndex, HNSWIndexOptimized }
 
 export type {
   Vector,
@@ -256,11 +255,7 @@ import type {
 } from './types/augmentations.js'
 import { AugmentationType, BrainyAugmentations } from './types/augmentations.js'
 
-export type {
-  IAugmentation,
-  AugmentationResponse,
-  IWebSocketSupport
-}
+export type { IAugmentation, AugmentationResponse, IWebSocketSupport }
 export {
   AugmentationType,
   BrainyAugmentations,
