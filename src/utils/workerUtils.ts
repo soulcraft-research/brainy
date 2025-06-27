@@ -31,7 +31,6 @@ export function executeInWebWorker<T>(fnString: string, args: any): Promise<T> {
       self.use = {}
       self.tf = {}
       self.sentenceEncoder = {}
-      self.sentenceEncoderModule = {}
 
       self.onmessage = async function(e) {
         try {
