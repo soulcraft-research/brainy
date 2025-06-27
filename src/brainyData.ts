@@ -24,7 +24,9 @@ import {
 import {
   cosineDistance,
   defaultEmbeddingFunction,
-  euclideanDistance
+  defaultBatchEmbeddingFunction,
+  euclideanDistance,
+  cleanupWorkerPools
 } from './utils/index.js'
 import { NounType, VerbType, GraphNoun } from './types/graphTypes.js'
 import {
@@ -127,6 +129,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   private index: HNSWIndex | HNSWIndexOptimized
   private storage: StorageAdapter | null = null
   private isInitialized = false
+  private isInitializing = false
   private embeddingFunction: EmbeddingFunction
   private distanceFunction: DistanceFunction
   private requestPersistentStorage: boolean
@@ -204,7 +207,48 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       return
     }
 
+    // Prevent recursive initialization
+    if (this.isInitializing) {
+      return
+    }
+
+    this.isInitializing = true
+
     try {
+      // Pre-load the embedding model early to ensure it's always available
+      // This helps prevent issues with the Universal Sentence Encoder not being loaded
+      try {
+        console.log('Pre-loading Universal Sentence Encoder model...')
+        // Call embedding function directly to avoid circular dependency with embed()
+        await this.embeddingFunction('')
+        console.log('Universal Sentence Encoder model loaded successfully')
+      } catch (embedError) {
+        console.warn('Failed to pre-load Universal Sentence Encoder:', embedError)
+
+        // Try again with a retry mechanism
+        console.log('Retrying Universal Sentence Encoder initialization...')
+        try {
+          // Wait a moment before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000))
+
+          // Try again with a different approach - use the non-threaded version
+          // This is a fallback in case the threaded version fails
+          const { createTensorFlowEmbeddingFunction } = await import('./utils/embedding.js')
+          const fallbackEmbeddingFunction = createTensorFlowEmbeddingFunction()
+
+          // Test the fallback embedding function
+          await fallbackEmbeddingFunction('')
+
+          // If successful, replace the embedding function
+          console.log('Successfully loaded Universal Sentence Encoder with fallback method')
+          this.embeddingFunction = fallbackEmbeddingFunction
+        } catch (retryError) {
+          console.error('All attempts to load Universal Sentence Encoder failed:', retryError)
+          // Continue initialization even if embedding model fails to load
+          // The application will need to handle missing embedding functionality
+        }
+      }
+
       // Initialize storage if not provided in constructor
       if (!this.storage) {
         // Combine storage config with requestPersistentStorage for backward compatibility
@@ -251,8 +295,10 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       }
 
       this.isInitialized = true
+      this.isInitializing = false
     } catch (error) {
       console.error('Failed to initialize BrainyData:', error)
+      this.isInitializing = false
       throw new Error(`Failed to initialize BrainyData: ${error}`)
     }
   }
@@ -478,6 +524,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       forceEmbed?: boolean // Force using the embedding function even if input is a vector
       addToRemote?: boolean // Whether to also add to the remote server if connected
       concurrency?: number // Maximum number of concurrent operations (default: 4)
+      batchSize?: number // Maximum number of items to process in a single batch (default: 50)
     } = {}
   ): Promise<string[]> {
     await this.ensureInitialized()
@@ -488,21 +535,85 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     // Default concurrency to 4 if not specified
     const concurrency = options.concurrency || 4
 
+    // Default batch size to 50 if not specified
+    const batchSize = options.batchSize || 50
+
     try {
-      // Process items in batches to control concurrency
+      // Process items in batches to control concurrency and memory usage
       const ids: string[] = []
       const itemsToProcess = [...items] // Create a copy to avoid modifying the original array
 
       while (itemsToProcess.length > 0) {
-        // Take up to 'concurrency' items to process in parallel
-        const batch = itemsToProcess.splice(0, concurrency)
+        // Take up to 'batchSize' items to process in a batch
+        const batch = itemsToProcess.splice(0, batchSize)
 
-        // Process this batch in parallel
-        const batchResults = await Promise.all(
-          batch.map((item) =>
-            this.add(item.vectorOrData, item.metadata, options)
-          )
+        // Separate items that are already vectors from those that need embedding
+        const vectorItems: Array<{
+          vectorOrData: Vector
+          metadata?: T
+          index: number
+        }> = []
+
+        const textItems: Array<{
+          text: string
+          metadata?: T
+          index: number
+        }> = []
+
+        // Categorize items
+        batch.forEach((item, index) => {
+          if (
+            Array.isArray(item.vectorOrData) &&
+            item.vectorOrData.every((val) => typeof val === 'number') &&
+            !options.forceEmbed
+          ) {
+            // Item is already a vector
+            vectorItems.push({
+              vectorOrData: item.vectorOrData,
+              metadata: item.metadata,
+              index
+            })
+          } else if (typeof item.vectorOrData === 'string') {
+            // Item is text that needs embedding
+            textItems.push({
+              text: item.vectorOrData,
+              metadata: item.metadata,
+              index
+            })
+          } else {
+            // For now, treat other types as text
+            // In a more complete implementation, we might handle other types differently
+            const textRepresentation = String(item.vectorOrData)
+            textItems.push({
+              text: textRepresentation,
+              metadata: item.metadata,
+              index
+            })
+          }
+        })
+
+        // Process vector items (already embedded)
+        const vectorPromises = vectorItems.map(item => 
+          this.add(item.vectorOrData, item.metadata, options)
         )
+
+        // Process text items in a single batch embedding operation
+        let textPromises: Promise<string>[] = []
+        if (textItems.length > 0) {
+          // Extract just the text for batch embedding
+          const texts = textItems.map(item => item.text)
+
+          // Perform batch embedding
+          const embeddings = await defaultBatchEmbeddingFunction(texts)
+
+          // Add each item with its embedding
+          textPromises = textItems.map((item, i) => 
+            this.add(embeddings[i], item.metadata, { ...options, forceEmbed: false })
+          )
+        }
+
+        // Combine all promises
+        const batchResults = await Promise.all([...vectorPromises, ...textPromises])
 
         // Add the results to our ids array
         ids.push(...batchResults)
@@ -1729,7 +1840,28 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
    * Ensure the database is initialized
    */
   private async ensureInitialized(): Promise<void> {
-    if (!this.isInitialized) {
+    if (this.isInitialized) {
+      return
+    }
+
+    if (this.isInitializing) {
+      // If initialization is already in progress, wait for it to complete
+      // by polling the isInitialized flag
+      let attempts = 0
+      const maxAttempts = 100 // Prevent infinite loop
+      const delay = 50 // ms
+
+      while (this.isInitializing && !this.isInitialized && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, delay))
+        attempts++
+      }
+
+      if (!this.isInitialized) {
+        // If still not initialized after waiting, try to initialize again
+        await this.init()
+      }
+    } else {
+      // Normal case - not initialized and not initializing
       await this.init()
     }
   }
@@ -1837,6 +1969,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       if (this.isConnectedToRemoteServer()) {
         await this.disconnectFromRemoteServer()
       }
+
+      // Clean up worker pools to release resources
+      cleanupWorkerPools()
 
       // Additional cleanup could be added here in the future
 

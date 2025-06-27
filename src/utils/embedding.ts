@@ -10,14 +10,15 @@ import { executeInThread } from './workerUtils.js'
  * This model provides high-quality text embeddings using TensorFlow.js
  * The required TensorFlow.js dependencies are automatically installed with this package
  *
- * This implementation will use GPU acceleration via WebGL when available,
- * falling back to CPU processing when GPU is not available or fails to initialize.
+ * This implementation attempts to use GPU processing when available for better performance,
+ * falling back to CPU processing for compatibility across all environments.
  */
 export class UniversalSentenceEncoder implements EmbeddingModel {
   private model: any = null
   private initialized = false
   private tf: any = null
   private use: any = null
+  private backend: string = 'cpu' // Default to CPU
 
   /**
    * Initialize the embedding model
@@ -47,36 +48,59 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
       // Use type assertions to tell TypeScript these modules exist
       this.tf = await import('@tensorflow/tfjs-core')
 
-      // Import CPU and WebGL backends
+      // Import CPU backend (always needed as fallback)
       await import('@tensorflow/tfjs-backend-cpu')
 
+      // Try to import WebGL backend for GPU acceleration in browser environments
       try {
-        // Try to import and use WebGL backend first (GPU)
-        await import('@tensorflow/tfjs-backend-webgl')
-
-        // Check if WebGL is available and set it as the backend
-        if (
-          (await this.tf.findBackend('webgl')) ||
-          (await this.tf.ready().then(() => this.tf.findBackend('webgl')))
-        ) {
-          console.log('Using WebGL backend (GPU acceleration)')
-          await this.tf.setBackend('webgl')
-        } else {
-          console.log('WebGL backend not available, falling back to CPU')
-          await this.tf.setBackend('cpu')
+        if (typeof window !== 'undefined') {
+          await import('@tensorflow/tfjs-backend-webgl')
+          // Check if WebGL is available using setBackend instead of findBackend
+          try {
+            if (this.tf.setBackend) {
+              await this.tf.setBackend('webgl')
+              this.backend = 'webgl'
+              console.log('Using WebGL backend for TensorFlow.js')
+            } else {
+              console.warn(
+                'tf.setBackend is not available, falling back to CPU'
+              )
+            }
+          } catch (e) {
+            console.warn('WebGL backend not available, falling back to CPU:', e)
+            this.backend = 'cpu'
+          }
         }
-      } catch (err) {
-        console.warn(
-          'WebGL backend failed to initialize, using CPU backend:',
-          err
-        )
-        await this.tf.setBackend('cpu')
+      } catch (error) {
+        console.warn('WebGL backend not available, falling back to CPU:', error)
+        this.backend = 'cpu'
+      }
+
+      // Set the backend
+      if (this.tf.setBackend) {
+        await this.tf.setBackend(this.backend)
       }
 
       this.use = await import('@tensorflow-models/universal-sentence-encoder')
 
+      // Log the module structure to help with debugging
+      console.log(
+        'Universal Sentence Encoder module structure in main thread:',
+        Object.keys(this.use),
+        this.use.default ? Object.keys(this.use.default) : 'No default export'
+      )
+
+      // Try to find the load function in different possible module structures
+      const loadFunction = findUSELoadFunction(this.use)
+
+      if (!loadFunction) {
+        throw new Error(
+          'Could not find Universal Sentence Encoder load function'
+        )
+      }
+
       // Load the model
-      this.model = await this.use.load()
+      this.model = await loadFunction()
       this.initialized = true
 
       // Restore original console.warn
@@ -132,6 +156,10 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
 
       // Convert to array and return the first embedding
       const embeddingArray = await embeddings.array()
+
+      // Dispose of the tensor to free memory
+      embeddings.dispose()
+
       return embeddingArray[0]
     } catch (error) {
       console.error(
@@ -140,6 +168,70 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
       )
       throw new Error(
         `Failed to embed text with Universal Sentence Encoder: ${error}`
+      )
+    }
+  }
+
+  /**
+   * Embed multiple texts into vectors using Universal Sentence Encoder
+   * This is more efficient than calling embed() multiple times
+   * @param dataArray Array of texts to embed
+   * @returns Array of embedding vectors
+   */
+  public async embedBatch(dataArray: string[]): Promise<Vector[]> {
+    if (!this.initialized) {
+      await this.init()
+    }
+
+    try {
+      // Handle empty array case
+      if (dataArray.length === 0) {
+        return []
+      }
+
+      // Filter out empty strings and handle edge cases
+      const textToEmbed = dataArray.filter(
+        (text: string) => typeof text === 'string' && text.trim() !== ''
+      )
+
+      // If all strings were empty, return appropriate zero vectors
+      if (textToEmbed.length === 0) {
+        return dataArray.map(() => new Array(512).fill(0))
+      }
+
+      // Get embeddings for all texts in a single batch operation
+      const embeddings = await this.model.embed(textToEmbed)
+
+      // Convert to array
+      const embeddingArray = await embeddings.array()
+
+      // Dispose of the tensor to free memory
+      embeddings.dispose()
+
+      // Map the results back to the original array order
+      const results: Vector[] = []
+      let embeddingIndex = 0
+
+      for (let i = 0; i < dataArray.length; i++) {
+        const text = dataArray[i]
+        if (typeof text === 'string' && text.trim() !== '') {
+          // Use the embedding for non-empty strings
+          results.push(embeddingArray[embeddingIndex])
+          embeddingIndex++
+        } else {
+          // Use a zero vector for empty strings
+          results.push(new Array(512).fill(0))
+        }
+      }
+
+      return results
+    } catch (error) {
+      console.error(
+        'Failed to batch embed text with Universal Sentence Encoder:',
+        error
+      )
+      throw new Error(
+        `Failed to batch embed text with Universal Sentence Encoder: ${error}`
       )
     }
   }
@@ -163,6 +255,105 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
 }
 
 /**
+ * Helper function to load the Universal Sentence Encoder model
+ * This tries multiple approaches to find the correct load function
+ * @param sentenceEncoderModule The imported module
+ * @returns The load function or null if not found
+ */
+function findUSELoadFunction(sentenceEncoderModule: any): Function | null {
+  // Log the module structure for debugging
+  console.log(
+    'Universal Sentence Encoder module structure:',
+    Object.keys(sentenceEncoderModule),
+    sentenceEncoderModule.default
+      ? Object.keys(sentenceEncoderModule.default)
+      : 'No default export'
+  )
+
+  let loadFunction = null
+
+  // Try sentenceEncoderModule.load first (direct export)
+  if (
+    sentenceEncoderModule.load &&
+    typeof sentenceEncoderModule.load === 'function'
+  ) {
+    loadFunction = sentenceEncoderModule.load
+    console.log('Using sentenceEncoderModule.load')
+  }
+  // Then try sentenceEncoderModule.default.load (default export)
+  else if (
+    sentenceEncoderModule.default &&
+    sentenceEncoderModule.default.load &&
+    typeof sentenceEncoderModule.default.load === 'function'
+  ) {
+    loadFunction = sentenceEncoderModule.default.load
+    console.log('Using sentenceEncoderModule.default.load')
+  }
+  // Try sentenceEncoderModule.default directly if it's a function
+  else if (
+    sentenceEncoderModule.default &&
+    typeof sentenceEncoderModule.default === 'function'
+  ) {
+    loadFunction = sentenceEncoderModule.default
+    console.log('Using sentenceEncoderModule.default as function')
+  }
+  // Try sentenceEncoderModule directly if it's a function
+  else if (typeof sentenceEncoderModule === 'function') {
+    loadFunction = sentenceEncoderModule
+    console.log('Using sentenceEncoderModule as function')
+  }
+  // Try additional common patterns
+  else if (
+    sentenceEncoderModule.UniversalSentenceEncoder &&
+    typeof sentenceEncoderModule.UniversalSentenceEncoder.load === 'function'
+  ) {
+    loadFunction = sentenceEncoderModule.UniversalSentenceEncoder.load
+    console.log('Using sentenceEncoderModule.UniversalSentenceEncoder.load')
+  } else if (
+    sentenceEncoderModule.default &&
+    sentenceEncoderModule.default.UniversalSentenceEncoder &&
+    typeof sentenceEncoderModule.default.UniversalSentenceEncoder.load ===
+      'function'
+  ) {
+    loadFunction = sentenceEncoderModule.default.UniversalSentenceEncoder.load
+    console.log(
+      'Using sentenceEncoderModule.default.UniversalSentenceEncoder.load'
+    )
+  }
+  // Try to find the load function in the module's properties
+  else {
+    // Look for any property that might be a load function
+    for (const key in sentenceEncoderModule) {
+      if (typeof sentenceEncoderModule[key] === 'function') {
+        // Check if the function name or key contains 'load'
+        const fnName = sentenceEncoderModule[key].name || key;
+        if (fnName.toLowerCase().includes('load')) {
+          loadFunction = sentenceEncoderModule[key];
+          console.log(`Using sentenceEncoderModule.${key} as load function`);
+          break;
+        }
+      }
+      // Also check nested objects
+      else if (typeof sentenceEncoderModule[key] === 'object' && sentenceEncoderModule[key] !== null) {
+        for (const nestedKey in sentenceEncoderModule[key]) {
+          if (typeof sentenceEncoderModule[key][nestedKey] === 'function') {
+            const fnName = sentenceEncoderModule[key][nestedKey].name || nestedKey;
+            if (fnName.toLowerCase().includes('load')) {
+              loadFunction = sentenceEncoderModule[key][nestedKey];
+              console.log(`Using sentenceEncoderModule.${key}.${nestedKey} as load function`);
+              break;
+            }
+          }
+        }
+        if (loadFunction) break;
+      }
+    }
+  }
+
+  return loadFunction;
+}
+
+/**
  * Create an embedding function from an embedding model
  * @param model Embedding model to use
  */
@@ -177,21 +368,22 @@ export function createEmbeddingFunction(
 /**
  * Creates a TensorFlow-based Universal Sentence Encoder embedding function
  * This is the required embedding function for all text embeddings
+ * Uses a shared model instance for better performance across multiple calls
  */
-export function createTensorFlowEmbeddingFunction(): EmbeddingFunction {
-  // Create a single shared instance of the model
-  const model = new UniversalSentenceEncoder()
-  let modelInitialized = false
+// Create a single shared instance of the model that persists across all embedding calls
+const sharedModel = new UniversalSentenceEncoder()
+let sharedModelInitialized = false
 
+export function createTensorFlowEmbeddingFunction(): EmbeddingFunction {
   return async (data: any): Promise<Vector> => {
     try {
       // Initialize the model if it hasn't been initialized yet
-      if (!modelInitialized) {
-        await model.init()
-        modelInitialized = true
+      if (!sharedModelInitialized) {
+        await sharedModel.init()
+        sharedModelInitialized = true
       }
 
-      return await model.embed(data)
+      return await sharedModel.embed(data)
     } catch (error) {
       console.error('Failed to use TensorFlow embedding:', error)
       throw new Error(
@@ -202,165 +394,59 @@ export function createTensorFlowEmbeddingFunction(): EmbeddingFunction {
 }
 
 /**
- * Creates a TensorFlow-based Universal Sentence Encoder embedding function that runs in a separate thread
- * This provides better performance for embedding operations by:
- * 1. Using GPU acceleration via WebGL when available
- * 2. Running in a separate thread to avoid blocking the main thread
- * 3. Falling back to CPU processing when GPU is not available
- *
- * @param options Configuration options
- * @returns An embedding function that runs in a separate thread with GPU acceleration when available
+ * Default embedding function
+ * Uses UniversalSentenceEncoder for all text embeddings
+ * TensorFlow.js is required for this to work
+ * Uses CPU for compatibility
  */
-export function createThreadedEmbeddingFunction(
-  options: { fallbackToMain?: boolean } = {}
-): EmbeddingFunction {
-  // Create a standard embedding function to use as fallback
-  const standardEmbedding = createTensorFlowEmbeddingFunction()
+export const defaultEmbeddingFunction: EmbeddingFunction =
+  createTensorFlowEmbeddingFunction()
 
-  // Flag to track if we've fallen back to main thread
-  let useFallback = false
+/**
+ * Default batch embedding function
+ * Uses UniversalSentenceEncoder for all text embeddings
+ * TensorFlow.js is required for this to work
+ * Processes all items in a single batch operation
+ * Uses a shared model instance for better performance across multiple calls
+ */
+// Create a single shared instance of the model that persists across function calls
+const sharedBatchModel = new UniversalSentenceEncoder()
+let sharedBatchModelInitialized = false
 
-  return async (data: any): Promise<Vector> => {
-    // If we've already determined that threading doesn't work, use the fallback
-    if (useFallback) {
-      return standardEmbedding(data)
+export const defaultBatchEmbeddingFunction: (
+  dataArray: string[]
+) => Promise<Vector[]> = async (dataArray: string[]): Promise<Vector[]> => {
+  try {
+    // Initialize the model if it hasn't been initialized yet
+    if (!sharedBatchModelInitialized) {
+      await sharedBatchModel.init()
+      sharedBatchModelInitialized = true
     }
 
-    try {
-      // Function to be executed in a worker thread
-      // This must be a regular function (not async) to avoid Promise cloning issues
-      const embedInWorker = (inputData: any) => {
-        // Return a plain object with the input data
-        // All async operations will be performed inside the worker
-        return { data: inputData }
-      }
-
-      // Worker implementation function that will be stringified and run in the worker
-      const workerImplementation = async ({ data }: { data: any }) => {
-        try {
-          // We need to dynamically import TensorFlow.js core module and USE in the worker
-          // Use a variable name that won't conflict with any minified variables
-
-          // TensorFlow.js will use its default EPSILON value
-
-          // Import TensorFlow.js modules
-          const tf = await import('@tensorflow/tfjs-core')
-
-          // Import CPU backend in the worker
-          await import('@tensorflow/tfjs-backend-cpu')
-
-          try {
-            // Try to import and use WebGL backend first (GPU)
-            await import('@tensorflow/tfjs-backend-webgl')
-
-            // Check if WebGL is available and set it as the backend
-            if (
-              (tf.findBackend && (await tf.findBackend('webgl'))) ||
-              (tf.ready &&
-                (await tf
-                  .ready()
-                  .then(() => tf.findBackend && tf.findBackend('webgl'))))
-            ) {
-              console.log('Worker: Using WebGL backend (GPU acceleration)')
-              if (tf.setBackend) {
-                await tf.setBackend('webgl')
-              }
-            } else {
-              console.log(
-                'Worker: WebGL backend not available, falling back to CPU'
-              )
-              if (tf.setBackend) {
-                await tf.setBackend('cpu')
-              }
-            }
-          } catch (err) {
-            console.warn(
-              'Worker: WebGL backend failed to initialize, using CPU backend:',
-              err
-            )
-            if (tf.setBackend) {
-              await tf.setBackend('cpu')
-            }
-          }
-
-          // Import the Universal Sentence Encoder
-          const sentenceEncoderModule = await import(
-            '@tensorflow-models/universal-sentence-encoder'
-          )
-
-          // Load the model directly from the module
-          const model = await sentenceEncoderModule.load()
-
-          // Handle different input types
-          let textToEmbed: string[]
-          if (typeof data === 'string') {
-            if (data.trim() === '') {
-              return new Array(512).fill(0)
-            }
-            textToEmbed = [data]
-          } else if (
-            Array.isArray(data) &&
-            data.every((item) => typeof item === 'string')
-          ) {
-            if (data.length === 0 || data.every((item) => item.trim() === '')) {
-              return new Array(512).fill(0)
-            }
-            textToEmbed = data.filter((item) => item.trim() !== '')
-            if (textToEmbed.length === 0) {
-              return new Array(512).fill(0)
-            }
-          } else {
-            throw new Error(
-              'UniversalSentenceEncoder only supports string or string[] data'
-            )
-          }
-
-          // Get embeddings
-          const embeddings = await model.embed(textToEmbed)
-
-          // Convert to array and return the first embedding
-          const embeddingArray = await embeddings.array()
-
-          // Dispose of the tensor to free memory
-          embeddings.dispose()
-
-          return embeddingArray[0]
-        } catch (error) {
-          console.error('Worker error:', error)
-          throw error
-        }
-      }
-
-      // Execute the embedding function in a separate thread
-      // Pass the worker implementation as a string to avoid Promise cloning issues
-      return await executeInThread<Vector>(
-        workerImplementation.toString(),
-        embedInWorker(data)
-      )
-    } catch (error) {
-      // If threading fails and fallback is enabled, use the standard embedding function
-      if (options.fallbackToMain) {
-        console.warn(
-          'Threaded embedding failed, falling back to main thread:',
-          error
-        )
-        useFallback = true
-        return standardEmbedding(data)
-      }
-
-      // Otherwise, propagate the error
-      throw new Error(`Threaded embedding failed: ${error}`)
-    }
+    return await sharedBatchModel.embedBatch(dataArray)
+  } catch (error) {
+    console.error('Failed to use TensorFlow batch embedding:', error)
+    throw new Error(
+      `Universal Sentence Encoder batch embedding failed: ${error}`
+    )
   }
 }
 
 /**
- * Default embedding function
- * Uses UniversalSentenceEncoder for all text embeddings
- * TensorFlow.js is required for this to work
- * Uses GPU acceleration via WebGL when available for optimal performance
- * Uses threading when available to avoid blocking the main thread
- * Falls back to CPU processing when GPU is not available
+ * Creates an embedding function that runs in a separate thread
+ * This is a wrapper around createEmbeddingFunction that uses executeInThread
+ * @param model Embedding model to use
  */
-export const defaultEmbeddingFunction: EmbeddingFunction =
-  createThreadedEmbeddingFunction({ fallbackToMain: true })
+export function createThreadedEmbeddingFunction(
+  model: EmbeddingModel
+): EmbeddingFunction {
+  const embeddingFunction = createEmbeddingFunction(model)
+
+  return async (data: any): Promise<Vector> => {
+    // Convert the embedding function to a string
+    const fnString = embeddingFunction.toString()
+
+    // Execute the embedding function in a "thread" (main thread in this implementation)
+    return await executeInThread<Vector>(fnString, data)
+  }
+}

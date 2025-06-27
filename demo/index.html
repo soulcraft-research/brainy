@@ -1448,7 +1448,10 @@ await db.init()
 
       await database.init()
 
-      log('db-status', 'Database initialized successfully!\nStorage: OPFS\nAugmentations: Embedding, Search')
+      // Clear the database after initialization
+      await database.clear()
+
+      log('db-status', 'Database initialized and cleared successfully!\nStorage: OPFS\nAugmentations: Embedding, Search')
       updateDatabaseVisualization()
 
       // Populate noun dropdowns after initialization
@@ -1475,40 +1478,40 @@ await db.init()
           type: 'person',
           noun: 'person',
           name: 'Alex Johnson',
-          content: 'Tech enthusiast and software developer. Love hiking and photography. Working on AI projects in my spare time.',
-          tags: ['tech', 'developer', 'photography', 'hiking']
+          content: 'Tech enthusiast and senior software developer with 10+ years of experience in AI and machine learning. I love hiking through national parks on weekends and capturing landscape photography. Currently working on several open-source AI projects that focus on natural language processing and computer vision applications for everyday use cases.',
+          tags: ['tech', 'developer', 'photography', 'hiking', 'AI', 'machine learning']
         },
         {
           id: 'user2',
           type: 'person',
           noun: 'person',
           name: 'Sophia Chen',
-          content: 'Digital marketing specialist with a passion for data analytics. Foodie and travel blogger on weekends.',
-          tags: ['marketing', 'analytics', 'food', 'travel']
+          content: 'Digital marketing specialist with a passion for data analytics and consumer behavior research. I run a popular food and travel blog documenting culinary experiences across continents. My background in statistics helps me analyze food trends and cultural patterns in different regions. Recently completed a six-month journey through Southeast Asia exploring local cuisines.',
+          tags: ['marketing', 'analytics', 'food', 'travel', 'statistics', 'blogging']
         },
         {
           id: 'user3',
           type: 'person',
           noun: 'person',
           name: 'Marcus Williams',
-          content: 'Graphic designer and illustrator. Creating visual stories that connect people. Coffee addict.',
-          tags: ['design', 'illustration', 'art', 'coffee']
+          content: 'Award-winning graphic designer and illustrator specializing in brand identity and visual storytelling. I believe in the power of minimalist design to communicate complex ideas effectively. My work has been featured in several international design publications and exhibitions. When not designing, I\'m exploring local coffee shops and perfecting my home brewing techniques.',
+          tags: ['design', 'illustration', 'art', 'coffee', 'branding', 'minimalism']
         },
         {
           id: 'user4',
           type: 'person',
           noun: 'person',
           name: 'Priya Patel',
-          content: 'Environmental scientist studying climate change impacts. Advocate for sustainable living and renewable energy.',
-          tags: ['science', 'environment', 'sustainability', 'climate']
+          content: 'Environmental scientist with a PhD in climate science, currently researching the long-term impacts of climate change on urban ecosystems. I advocate for sustainable living practices and renewable energy adoption through community workshops and educational programs. My research has been published in several peer-reviewed journals, and I consult with local governments on sustainability initiatives.',
+          tags: ['science', 'environment', 'sustainability', 'climate', 'research', 'education']
         },
         {
           id: 'user5',
           type: 'person',
           noun: 'person',
           name: 'Jordan Taylor',
-          content: 'Fitness coach and nutrition expert. Helping people achieve their health goals through balanced lifestyle.',
-          tags: ['fitness', 'nutrition', 'health', 'wellness']
+          content: 'Certified fitness coach and nutrition expert with specializations in functional training and plant-based nutrition. I develop personalized fitness programs that integrate physical training with mental wellness practices. My approach focuses on sustainable lifestyle changes rather than quick fixes. I\'ve helped hundreds of clients transform their health through balanced nutrition and consistent exercise routines.',
+          tags: ['fitness', 'nutrition', 'health', 'wellness', 'coaching', 'plant-based']
         },
 
         // Posts/Content
@@ -1517,40 +1520,40 @@ await db.init()
           type: 'document',
           noun: 'content',
           title: 'The Future of AI in Everyday Applications',
-          content: 'Artificial intelligence is rapidly transforming how we interact with technology. From smart assistants to recommendation systems, AI is becoming an invisible part of our daily lives. What excites me most is how these technologies can be personalized to individual needs while respecting privacy.',
-          tags: ['AI', 'technology', 'future', 'personalization']
+          content: 'Artificial intelligence is rapidly transforming how we interact with technology in ways that weren\'t possible just a few years ago. From smart assistants that understand context and nuance to recommendation systems that seem to know our preferences better than we do, AI is becoming an invisible yet powerful part of our daily lives. The most exciting developments are happening at the intersection of machine learning and edge computing, where AI models can run directly on our devices without sending sensitive data to the cloud. This preserves privacy while still delivering personalized experiences. Looking ahead, I believe we\'ll see AI becoming more explainable and transparent, addressing current concerns about "black box" algorithms. The challenge for developers will be creating systems that can be personalized to individual needs while maintaining ethical standards and avoiding algorithmic bias. The companies that succeed will be those that treat AI as an augmentation of human capabilities rather than a replacement.',
+          tags: ['AI', 'technology', 'future', 'personalization', 'machine learning', 'privacy', 'ethics']
         },
         {
           id: 'post2',
           type: 'document',
           noun: 'content',
-          title: 'My Southeast Asia Food Tour',
-          content: 'Just returned from an amazing culinary adventure across Thailand, Vietnam, and Malaysia. The street food scenes in Bangkok and Hanoi were incredible! Discovered so many new flavors and cooking techniques that I can\'t wait to try at home.',
-          tags: ['food', 'travel', 'asia', 'culinary']
+          title: 'My Southeast Asia Food Tour: A Culinary Journey',
+          content: 'I\'ve just returned from an incredible three-month culinary adventure across Thailand, Vietnam, Malaysia, and Singapore that completely transformed my understanding of Asian cuisine. The vibrant street food scenes in Bangkok and Hanoi were particularly eye-opening - watching skilled vendors prepare dishes they\'ve perfected over decades, using techniques passed down through generations. In Bangkok\'s Chinatown, I discovered that the best pad thai comes from a 70-year-old woman who cooks only 50 portions each night, selling out within an hour. The complex interplay of sweet, sour, salty, and spicy flavors in authentic Thai cuisine is something that western adaptations rarely capture correctly. Moving to Vietnam, I was fascinated by the regional variations in pho - from the clearer, more delicate broths in the south to the richer, more aromatic versions in Hanoi. The Malaysian food scene in Penang revealed the beautiful fusion of Chinese, Indian, and Malay influences, creating dishes that tell the story of the country\'s multicultural history. I\'ve returned home with not just memories, but with cooking techniques, ingredient combinations, and flavor profiles that I\'m excited to incorporate into my own cooking. The experience has reinforced my belief that food is one of the most authentic ways to understand a culture\'s values and history.',
+          tags: ['food', 'travel', 'asia', 'culinary', 'culture', 'cooking', 'Thailand', 'Vietnam', 'Malaysia']
         },
         {
           id: 'post3',
           type: 'document',
           noun: 'content',
-          title: 'Minimalist Design Principles for Digital Interfaces',
-          content: 'Less is more when it comes to effective UI design. This article explores how minimalist principles can improve user experience, reduce cognitive load, and create more accessible digital products.',
-          tags: ['design', 'minimalism', 'UI', 'UX']
+          title: 'Minimalist Design Principles for Digital Interfaces: Beyond Aesthetics',
+          content: 'The principle that "less is more" has never been more relevant than in today\'s overcrowded digital landscape. Minimalist design isn\'t just an aesthetic choice—it\'s a functional imperative for creating interfaces that users can navigate intuitively. Through my work with various clients, I\'ve observed that minimalist interfaces consistently outperform cluttered ones in key metrics like time-on-task, error rates, and user satisfaction. The core principles of minimalist design extend beyond simply removing elements. It involves a careful analysis of user needs, prioritizing functions based on frequency and importance, and creating visual hierarchies that guide attention naturally. Color should be used strategically, not decoratively—each color choice should serve a specific communicative purpose. Typography plays an equally crucial role; a well-chosen font hierarchy can eliminate the need for additional visual elements like dividers or boxes. White space (or negative space) is perhaps the most undervalued element in digital design. It\'s not just empty space—it\'s a powerful tool for creating focus, improving readability, and giving content room to breathe. When implementing minimalist principles, it\'s important to test with real users to ensure that simplification doesn\'t compromise usability. The goal is to reduce cognitive load while maintaining all necessary functionality, creating digital products that feel effortless to use while being fully featured. This approach not only improves user experience but also tends to create more accessible interfaces that work better for users with disabilities or those using assistive technologies.',
+          tags: ['design', 'minimalism', 'UI', 'UX', 'accessibility', 'typography', 'user experience', 'digital interfaces']
         },
         {
           id: 'post4',
           type: 'document',
           noun: 'content',
           title: 'Urban Gardening: Growing Food in Small Spaces',
-          content: 'You don\'t need a large yard to grow your own food. This guide shows how to create productive gardens in apartments, balconies, and small urban spaces using container gardening, vertical systems, and efficient planning.',
-          tags: ['gardening', 'sustainability', 'urban', 'food']
+          content: 'The misconception that you need a large yard to grow your own food is preventing many urban dwellers from experiencing the satisfaction and benefits of home gardening. Through five years of experimentation in my 500-square-foot apartment, I\'ve developed systems for growing approximately 30% of my own produce year-round. Vertical gardening is the cornerstone of space-efficient food production. By utilizing wall space with hanging planters, tiered shelving, and trellis systems, even the smallest balcony can become surprisingly productive. I\'ve found that leafy greens like kale, spinach, and various lettuces offer the best return on investment in small spaces—they grow quickly, can be harvested continuously, and would otherwise be expensive to purchase organically. For those without outdoor space, windowsill herb gardens and microgreens under grow lights provide fresh flavors with minimal space requirements. The key to successful small-space gardening is understanding the specific light conditions of your space and selecting appropriate plants. Most vegetables need at least 6 hours of direct sunlight, but many herbs and leafy greens can thrive with less. Container selection is equally important—self-watering containers have revolutionized urban gardening by reducing maintenance and improving plant health. Soil quality becomes even more critical in container gardening; investing in high-quality potting mix and implementing a regular composting system (even a small worm bin under the sink) creates a sustainable cycle. Beyond the practical benefits of fresh, pesticide-free produce, urban gardening creates a connection to natural cycles that is often missing in city life. The psychological benefits of tending plants and watching them grow should not be underestimated, especially in high-stress urban environments.',
+          tags: ['gardening', 'sustainability', 'urban', 'food', 'containers', 'vertical gardening', 'organic', 'small spaces']
         },
         {
           id: 'post5',
           type: 'document',
           noun: 'content',
-          title: '30-Day Home Workout Challenge',
-          content: 'Transform your fitness with this comprehensive 30-day workout plan that requires no equipment. Each day builds on the previous one, gradually increasing intensity while focusing on different muscle groups.',
-          tags: ['fitness', 'workout', 'health', 'challenge']
+          title: '30-Day Home Workout Challenge: Progressive Fitness Without Equipment',
+          content: 'After years of designing fitness programs, I\'ve found that the biggest obstacle for most people isn\'t motivation—it\'s complexity and accessibility. This 30-day challenge addresses both issues by requiring zero equipment while providing a structured progression that prevents plateaus and reduces injury risk. The program is built around functional movement patterns that strengthen the body for real-world activities, not just gym performance. The first week focuses on establishing proper form in fundamental movements like squats, lunges, planks, and push-ups, with modifications provided for all fitness levels. Rather than counting reps, many exercises use time-based intervals, allowing each person to work at their own pace while still being challenged. As the program progresses, intensity increases through three primary mechanisms: increasing time under tension, incorporating unilateral (single-limb) variations, and adding rhythmic changes that challenge coordination and cardiovascular fitness simultaneously. Recovery is programmed as deliberately as the workouts themselves, with specific mobility routines for rest days that address common problem areas like hip flexors and shoulders that become tight from sedentary work. The nutrition guidance accompanying the program emphasizes timing and composition rather than strict calorie counting—particularly the importance of protein intake for recovery and carbohydrate timing around workouts. Participants who\'ve completed this challenge report not just physical changes, but improvements in sleep quality, energy levels, and mental clarity. The program includes a tracking system that helps identify patterns between workout performance and variables like sleep, stress, and nutrition, teaching participants to understand their body\'s unique responses and needs.',
+          tags: ['fitness', 'workout', 'health', 'challenge', 'home exercise', 'bodyweight', 'functional fitness', 'progressive training']
         },
 
         // Comments
@@ -1559,24 +1562,24 @@ await db.init()
           type: 'document',
           noun: 'content',
           title: 'Comment on AI post',
-          content: 'Great insights! I\'m particularly interested in how AI can be applied to healthcare. Have you explored that area?',
-          tags: ['comment', 'AI', 'healthcare']
+          content: 'Your insights on the intersection of AI and privacy are particularly relevant given the recent controversies surrounding facial recognition technologies. I\'m currently researching how AI can be applied to healthcare diagnostics while maintaining patient confidentiality. Have you explored how federated learning might offer solutions in this domain? I\'d love to discuss this further as it seems aligned with your interest in edge computing applications.',
+          tags: ['comment', 'AI', 'healthcare', 'privacy', 'federated learning', 'edge computing']
         },
         {
           id: 'comment2',
           type: 'document',
           noun: 'content',
           title: 'Comment on food tour',
-          content: 'Your photos are amazing! What was your favorite dish from the entire trip?',
-          tags: ['comment', 'food', 'travel', 'photography']
+          content: 'Your detailed description of regional Vietnamese pho variations brought back memories of my own travels there! The photos you shared of the Hanoi street food markets are absolutely stunning - the composition and lighting really capture the vibrant atmosphere. I\'m curious about your experience with Malaysian laksa - did you find significant differences between the Penang and Sarawak versions? I\'ve been trying to recreate authentic laksa at home but struggling to find the right balance of spices.',
+          tags: ['comment', 'food', 'travel', 'photography', 'Vietnam', 'Malaysia', 'cooking', 'recipes']
         },
         {
           id: 'comment3',
           type: 'document',
           noun: 'content',
           title: 'Comment on design article',
-          content: 'Minimalism is definitely underrated. I\'ve found that my conversion rates improved significantly after simplifying our landing page.',
-          tags: ['comment', 'design', 'conversion', 'business']
+          content: 'Your analysis of minimalism as a functional imperative rather than just an aesthetic choice resonates strongly with my experience in e-commerce design. After implementing many of the principles you outlined, particularly regarding strategic color usage and improved typography hierarchy, our conversion rates improved by 23% while customer support inquiries decreased by almost 30%. The point about accessibility benefits is especially important and often overlooked in design discussions. Have you found any effective methods for convincing stakeholders who equate visual complexity with feature richness?',
+          tags: ['comment', 'design', 'conversion', 'business', 'accessibility', 'minimalism', 'typography', 'e-commerce']
         },
 
         // Groups/Communities
@@ -1585,24 +1588,24 @@ await db.init()
           type: 'group',
           noun: 'group',
           name: 'Tech Innovators Network',
-          content: 'A community of developers, designers, and tech enthusiasts discussing emerging technologies and their applications.',
-          tags: ['technology', 'innovation', 'community', 'networking']
+          content: 'A global community of developers, designers, and tech enthusiasts collaborating on emerging technologies and their practical applications. Our members range from startup founders to corporate innovators, all sharing insights on AI, blockchain, IoT, and other transformative technologies. We host monthly virtual meetups featuring expert speakers, maintain an active knowledge base of implementation case studies, and facilitate mentorship connections between experienced professionals and those entering the field.',
+          tags: ['technology', 'innovation', 'community', 'networking', 'AI', 'blockchain', 'IoT', 'collaboration']
         },
         {
           id: 'group2',
           type: 'group',
           noun: 'group',
-          name: 'Global Foodies',
-          content: 'Sharing culinary experiences, recipes, and food photography from around the world.',
-          tags: ['food', 'cooking', 'international', 'recipes']
+          name: 'Global Foodies Collective',
+          content: 'An international community dedicated to exploring culinary traditions and innovations from around the world. Our members share authentic recipes, cooking techniques, and food photography that celebrates cultural diversity through cuisine. We organize themed cooking challenges, virtual cook-alongs with chefs from different countries, and discussions about sustainable food systems and the preservation of traditional cooking methods. The community also maintains a searchable database of member-tested recipes organized by region, dietary preferences, and difficulty level.',
+          tags: ['food', 'cooking', 'international', 'recipes', 'culture', 'sustainability', 'traditions', 'culinary']
         },
         {
           id: 'group3',
           type: 'group',
           noun: 'group',
           name: 'Sustainable Living Collective',
-          content: 'Exploring practical ways to reduce environmental impact and live more sustainably in modern society.',
-          tags: ['sustainability', 'environment', 'lifestyle', 'eco-friendly']
+          content: 'A community focused on practical approaches to reducing environmental impact in everyday life. We share evidence-based strategies for sustainable living in urban, suburban, and rural contexts, with special emphasis on solutions that are economically accessible. Our resources include guides for zero-waste home management, energy efficiency improvements, ethical consumption, and small-space gardening. Members collaborate on neighborhood initiatives like community gardens, repair cafés, and local policy advocacy for environmental protection and green infrastructure.',
+          tags: ['sustainability', 'environment', 'lifestyle', 'eco-friendly', 'zero-waste', 'community', 'gardening', 'advocacy']
         },
 
         // Events
@@ -1610,28 +1613,29 @@ await db.init()
           id: 'event1',
           type: 'event',
           noun: 'event',
-          name: 'Virtual Tech Meetup 2023',
-          content: 'Online gathering of tech professionals sharing insights on latest development frameworks and tools.',
-          tags: ['tech', 'virtual', 'networking', 'learning']
+          name: 'Virtual Tech Meetup 2023: Responsible AI Development',
+          content: 'An online gathering of technology professionals sharing insights on ethical AI development frameworks and implementation tools. The event features keynote presentations on bias detection in machine learning models, panel discussions on regulatory compliance across different jurisdictions, and hands-on workshops demonstrating techniques for making AI systems more transparent and explainable. Participants will have opportunities for structured networking with peers working in similar domains and access to a resource library of code samples, case studies, and best practice guidelines.',
+          tags: ['tech', 'virtual', 'networking', 'learning', 'AI', 'ethics', 'development', 'workshops']
         },
         {
           id: 'event2',
           type: 'event',
           noun: 'event',
-          name: 'International Food Festival',
-          content: 'Annual celebration of global cuisines featuring cooking demonstrations, tastings, and cultural performances.',
-          tags: ['food', 'festival', 'international', 'culture']
+          name: 'International Food Festival: Culinary Traditions in a Modern World',
+          content: 'Annual celebration of global cuisines featuring cooking demonstrations from renowned chefs representing diverse culinary traditions. The festival includes interactive tastings with detailed exploration of ingredient origins and cultural significance, panel discussions on preserving food heritage while embracing innovation, and cultural performances that contextualize food within broader cultural expressions. Special exhibition areas focus on sustainable food systems, the impact of climate change on traditional agriculture, and the role of technology in modern food production and distribution.',
+          tags: ['food', 'festival', 'international', 'culture', 'cooking', 'sustainability', 'traditions', 'innovation']
         }
       ]
 
-      // Add Nouns to the database
-      for (const item of sampleNouns) {
-        // Pass the content as the data to vectorize, and the entire item as metadata
-        await database.add(item.content || item.name, item)
-      }
+      // Add Nouns to the database using batch processing for better performance
+      const nounItems = sampleNouns.map(item => ({
+        vectorOrData: item.content || item.name,
+        metadata: item
+      }))
 
-      // Wait a moment to ensure nouns are fully indexed before adding verbs
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await database.addBatch(nounItems, { batchSize: 50 })
+
+      // No need to wait as addBatch ensures all items are fully processed
 
       // Verify nouns exist before adding verbs
       const entities = await database.getAllNouns()
@@ -1921,24 +1925,38 @@ await db.init()
         }
       ]
 
-      // Add Verbs to the database
-      for (const item of sampleVerbs) {
-        try {
-          // Check if source and target nouns exist before adding the verb
-          if (!nounIds.includes(item.source)) {
-            throw new Error(`Source noun with ID ${item.source} not found. Available nouns: ${nounIds.join(', ')}`)
-          }
-          if (!nounIds.includes(item.target)) {
-            throw new Error(`Target noun with ID ${item.target} not found. Available nouns: ${nounIds.join(', ')}`)
-          }
-
-          await database.relate(item.source, item.target, item.verb, item.data)
-          console.log(`Added verb: ${item.source} ${item.verb} ${item.target}`)
-        } catch (verbError) {
-          console.error(`Failed to add verb: ${verbError.message}`)
-          log('db-status', `Failed to add verb: ${verbError.message}`)
+      // Add Verbs to the database using parallel processing for better performance
+      // First filter out verbs with invalid source or target nouns
+      const validVerbs = sampleVerbs.filter(item => {
+        if (!nounIds.includes(item.source)) {
+          console.error(`Source noun with ID ${item.source} not found. Available nouns: ${nounIds.join(', ')}`)
+          log('db-status', `Failed to add verb: Source noun with ID ${item.source} not found`)
+          return false
         }
-      }
+        if (!nounIds.includes(item.target)) {
+          console.error(`Target noun with ID ${item.target} not found. Available nouns: ${nounIds.join(', ')}`)
+          log('db-status', `Failed to add verb: Target noun with ID ${item.target} not found`)
+          return false
+        }
+        return true
+      })
+
+      // Process verbs in parallel using Promise.all
+      const verbPromises = validVerbs.map(item =>
+        database.relate(item.source, item.target, item.verb, item.data)
+          .then(() => {
+            console.log(`Added verb: ${item.source} ${item.verb} ${item.target}`)
+            return true
+          })
+          .catch(verbError => {
+            console.error(`Failed to add verb: ${verbError.message}`)
+            log('db-status', `Failed to add verb: ${verbError.message}`)
+            return false
+          })
+      )
+
+      // Wait for all verbs to be processed
+      await Promise.all(verbPromises)
 
       // Count successfully added verbs
       const addedVerbs = await database.getAllVerbs()

@@ -10,7 +10,7 @@ import {
   Vector,
   VectorDocument
 } from '../coreTypes.js'
-import { euclideanDistance, calculateDistancesWithGPU } from '../utils/index.js'
+import { euclideanDistance, calculateDistancesBatch } from '../utils/index.js'
 import { executeInThread } from '../utils/workerUtils.js'
 
 // Default HNSW parameters
@@ -83,7 +83,7 @@ export class HNSWIndex {
       const vectorsOnly = vectors.map((item) => item.vector)
 
       // Use GPU-accelerated distance calculation when possible
-      const distances = await calculateDistancesWithGPU(
+      const distances = await calculateDistancesBatch(
         queryVector,
         vectorsOnly,
         this.distanceFunction
@@ -96,51 +96,15 @@ export class HNSWIndex {
       }))
     } catch (error) {
       console.error(
-        'Error in GPU-accelerated distance calculation, falling back to threaded CPU:',
+        'Error in GPU-accelerated distance calculation, falling back to sequential processing:',
         error
       )
 
-      // Fall back to threaded CPU processing if GPU acceleration fails
-      // Function to be executed in a worker thread
-      const distanceCalculator = (args: {
-        queryVector: Vector
-        vectors: Array<{ id: string; vector: Vector }>
-        distanceFnString: string
-      }) => {
-        const { queryVector, vectors, distanceFnString } = args
-
-        // Recreate the distance function from its string representation
-        const distanceFunction = new Function(
-          'return ' + distanceFnString
-        )() as DistanceFunction
-
-        // Calculate distances for all items
-        return vectors.map((item) => ({
-          id: item.id,
-          distance: distanceFunction(queryVector, item.vector)
-        }))
-      }
-
-      try {
-        // Convert the distance function to a string for serialization
-        const distanceFnString = this.distanceFunction.toString()
-
-        // Execute the distance calculation in a separate thread
-        return await executeInThread<Array<{ id: string; distance: number }>>(
-          distanceCalculator.toString(),
-          { queryVector, vectors, distanceFnString }
-        )
-      } catch (threadError) {
-        console.error(
-          'Error in threaded distance calculation, falling back to sequential:',
-          threadError
-        )
-        // Fall back to sequential processing if both GPU and threaded execution fail
-        return vectors.map((item) => ({
-          id: item.id,
-          distance: this.distanceFunction(queryVector, item.vector)
-        }))
-      }
+      // Fall back to sequential processing if GPU acceleration fails
+      return vectors.map((item) => ({
+        id: item.id,
+        distance: this.distanceFunction(queryVector, item.vector)
+      }))
     }
   }
 

@@ -39,7 +39,7 @@ export function areWebWorkersAvailable(): boolean {
  */
 export function areWorkerThreadsAvailable(): boolean {
   if (!isNode()) return false;
-  
+
   try {
     // Dynamic import to avoid errors in browser environments
     require('worker_threads');
@@ -51,7 +51,8 @@ export function areWorkerThreadsAvailable(): boolean {
 
 /**
  * Determine if threading is available in the current environment
+ * Always returns false since multithreading has been removed
  */
 export function isThreadingAvailable(): boolean {
-  return areWebWorkersAvailable() || areWorkerThreadsAvailable();
+  return false;
 }

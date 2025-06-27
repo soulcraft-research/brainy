@@ -508,7 +508,7 @@ const id = await db.add(textOrVector, {
   // other metadata...
 })
 
-// Add multiple nouns in parallel (with multithreading)
+// Add multiple nouns in parallel (with multithreading and batch embedding)
 const ids = await db.addBatch([
   {
     vectorOrData: "First item to add",
@@ -521,7 +521,8 @@ const ids = await db.addBatch([
   // More items...
 ], {
   forceEmbed: false,
-  concurrency: 4 // Control the level of parallelism (default: 4)
+  concurrency: 4, // Control the level of parallelism (default: 4)
+  batchSize: 50   // Control the number of items to process in a single batch (default: 50)
 })
 
 // Retrieve a noun
@@ -591,9 +592,7 @@ await db.init()
 
 // Or use the threaded embedding function for better performance
 const threadedDb = new BrainyData({
-  embeddingFunction: createThreadedEmbeddingFunction({
-    fallbackToMain: true // Fall back to main thread if threading fails
-  })
+  embeddingFunction: createThreadedEmbeddingFunction()
 })
 await threadedDb.init()
 
@@ -602,21 +601,24 @@ const vector = await db.embed("Some text to convert to a vector")
 ```
 
 The threaded embedding function runs in a separate thread (Web Worker in browsers, Worker Thread in Node.js) to improve
-performance, especially for CPU-intensive embedding operations. It automatically falls back to the main thread if
-threading is not available in the current environment.
+performance, especially for embedding operations. It uses GPU acceleration when available (via WebGL in browsers) and
+falls back to CPU processing for compatibility. Universal Sentence Encoder is always used for embeddings. The
+implementation includes worker reuse and model caching for optimal performance.
 
 ### Performance Tuning
 
-Brainy includes comprehensive performance optimizations that work across all environments (browser, CLI, Node.js, container, server):
+Brainy includes comprehensive performance optimizations that work across all environments (browser, CLI, Node.js,
+container, server):
 
-#### GPU Acceleration
+#### GPU and CPU Optimization
 
-Brainy now leverages GPU acceleration via WebGL for compute-intensive operations:
+Brainy uses GPU and CPU optimization for compute-intensive operations:
 
-1. **GPU-Accelerated Embeddings**: Generate text embeddings using TensorFlow.js with WebGL backend
-2. **GPU-Accelerated Distance Calculations**: Perform vector similarity calculations on the GPU for faster search
-3. **Automatic Fallback**: Falls back to CPU processing when GPU is not available or fails to initialize
-4. **Cross-Environment Support**: Works in browsers (via WebGL) and Node.js environments
+1. **GPU-Accelerated Embeddings**: Generate text embeddings using TensorFlow.js with WebGL backend when available
+2. **Automatic Fallback**: Falls back to CPU backend when GPU is not available
+3. **Optimized Distance Calculations**: Perform vector similarity calculations with optimized algorithms
+4. **Cross-Environment Support**: Works consistently across browsers and Node.js environments
+5. **Memory Management**: Properly disposes of tensors to prevent memory leaks
 
 #### Multithreading Support
 
@@ -625,7 +627,10 @@ Brainy includes comprehensive multithreading support to improve performance acro
 1. **Parallel Batch Processing**: Add multiple items concurrently with controlled parallelism
 2. **Multithreaded Vector Search**: Perform distance calculations in parallel for faster search operations
 3. **Threaded Embedding Generation**: Generate embeddings in separate threads to avoid blocking the main thread
-4. **Automatic Environment Detection**: Adapts to browser (Web Workers) and Node.js (Worker Threads) environments
+4. **Worker Reuse**: Maintains a pool of workers to avoid the overhead of creating and terminating workers
+5. **Model Caching**: Initializes the embedding model once per worker and reuses it for multiple operations
+6. **Batch Embedding**: Processes multiple items in a single embedding operation for better performance
+7. **Automatic Environment Detection**: Adapts to browser (Web Workers) and Node.js (Worker Threads) environments
 
 ```typescript
 import { BrainyData, euclideanDistance } from '@soulcraft/brainy'
@@ -645,8 +650,6 @@ const db = new BrainyData({
   // Performance optimization options
   performance: {
     useParallelization: true, // Enable multithreaded search operations
-    useGPUAcceleration: true, // Enable GPU acceleration for compute-intensive operations
-    fallbackToCPU: true,      // Fall back to CPU processing if GPU acceleration fails
   },
 
   // Noun and Verb type validation
@@ -728,12 +731,9 @@ Brainy provides several distance functions for vector similarity calculations:
 - `manhattanDistance`: Measures the sum of absolute differences between vector components
 - `dotProductDistance`: Measures the negative dot product between vectors
 
-All distance functions have GPU-accelerated versions that are automatically used when:
-1. GPU acceleration is enabled in the configuration
-2. The operation involves a large number of vectors
-3. WebGL is available in the environment
-
-The GPU-accelerated distance calculations provide significant performance improvements for large datasets and high-dimensional vectors.
+All distance functions are optimized for performance and automatically use the most efficient implementation based on
+the dataset size and available resources. For large datasets and high-dimensional vectors, Brainy uses batch processing
+and multithreading when available to improve performance.
 
 ## Backup and Restore
 
@@ -815,6 +815,9 @@ brainy import-sparse --input sparse-data.json
 Brainy uses the following embedding approach:
 
 - TensorFlow Universal Sentence Encoder (high-quality text embeddings)
+- GPU acceleration when available (via WebGL in browsers)
+- Batch embedding for processing multiple items efficiently
+- Worker reuse and model caching for optimal performance
 - Custom embedding functions can be plugged in for specialized domains
 
 ## Extensions
@@ -1240,7 +1243,7 @@ const id = await db.addToBoth('Deep learning is a subset of machine learning', {
   tags: ['deep learning', 'neural networks']
 })
 
-// Clean up when done
+// Clean up when done (this also cleans up worker pools)
 await db.shutDown()
 ```
 
@@ -1298,9 +1301,9 @@ Brainy follows a specific code style to maintain consistency throughout the code
 The README badges are automatically updated during the build process:
 
 1. **npm Version Badge**: The npm version badge is automatically updated to match the version in package.json when:
-   - Running `npm run build` (via the prebuild script)
-   - Running `npm version` commands (patch, minor, major)
-   - Manually running `node scripts/generate-version.js`
+    - Running `npm run build` (via the prebuild script)
+    - Running `npm version` commands (patch, minor, major)
+    - Manually running `node scripts/generate-version.js`
 
 This ensures that the badge always reflects the current version in package.json, even before publishing to npm.
 
