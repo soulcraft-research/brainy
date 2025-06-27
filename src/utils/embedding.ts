@@ -9,6 +9,9 @@ import { executeInThread } from './workerUtils.js'
  * TensorFlow Universal Sentence Encoder embedding model
  * This model provides high-quality text embeddings using TensorFlow.js
  * The required TensorFlow.js dependencies are automatically installed with this package
+ *
+ * This implementation will use GPU acceleration via WebGL when available,
+ * falling back to CPU processing when GPU is not available or fails to initialize.
  */
 export class UniversalSentenceEncoder implements EmbeddingModel {
   private model: any = null
@@ -38,31 +41,38 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
         originalWarn(message, ...optionalParams)
       }
 
-      // Define EPSILON flag before TensorFlow.js is loaded
-      // This prevents the "Cannot evaluate flag 'EPSILON': no evaluation function found" error
-      if (typeof window !== 'undefined') {
-        ;(window as any).EPSILON = 1e-7
-        // Define the flag with an evaluation function for TensorFlow.js
-        ;(window as any).ENV = (window as any).ENV || {}
-        ;(window as any).ENV.flagRegistry =
-          (window as any).ENV.flagRegistry || {}
-        ;(window as any).ENV.flagRegistry.EPSILON = {
-          evaluationFn: () => 1e-7
+      // TensorFlow.js will use its default EPSILON value
+
+      // Dynamically import TensorFlow.js core module and backends
+      // Use type assertions to tell TypeScript these modules exist
+      this.tf = await import('@tensorflow/tfjs-core')
+
+      // Import CPU and WebGL backends
+      await import('@tensorflow/tfjs-backend-cpu')
+
+      try {
+        // Try to import and use WebGL backend first (GPU)
+        await import('@tensorflow/tfjs-backend-webgl')
+
+        // Check if WebGL is available and set it as the backend
+        if (
+          (await this.tf.findBackend('webgl')) ||
+          (await this.tf.ready().then(() => this.tf.findBackend('webgl')))
+        ) {
+          console.log('Using WebGL backend (GPU acceleration)')
+          await this.tf.setBackend('webgl')
+        } else {
+          console.log('WebGL backend not available, falling back to CPU')
+          await this.tf.setBackend('cpu')
         }
-      } else if (typeof global !== 'undefined') {
-        ;(global as any).EPSILON = 1e-7
-        // Define the flag with an evaluation function for TensorFlow.js
-        ;(global as any).ENV = (global as any).ENV || {}
-        ;(global as any).ENV.flagRegistry =
-          (global as any).ENV.flagRegistry || {}
-        ;(global as any).ENV.flagRegistry.EPSILON = {
-          evaluationFn: () => 1e-7
-        }
+      } catch (err) {
+        console.warn(
+          'WebGL backend failed to initialize, using CPU backend:',
+          err
+        )
+        await this.tf.setBackend('cpu')
       }
 
-      // Dynamically import TensorFlow.js and Universal Sentence Encoder
-      // Use type assertions to tell TypeScript these modules exist
-      this.tf = await import('@tensorflow/tfjs')
       this.use = await import('@tensorflow-models/universal-sentence-encoder')
 
       // Load the model
@@ -193,9 +203,13 @@ export function createTensorFlowEmbeddingFunction(): EmbeddingFunction {
 
 /**
  * Creates a TensorFlow-based Universal Sentence Encoder embedding function that runs in a separate thread
- * This provides better performance for CPU-intensive embedding operations
+ * This provides better performance for embedding operations by:
+ * 1. Using GPU acceleration via WebGL when available
+ * 2. Running in a separate thread to avoid blocking the main thread
+ * 3. Falling back to CPU processing when GPU is not available
+ *
  * @param options Configuration options
- * @returns An embedding function that runs in a separate thread
+ * @returns An embedding function that runs in a separate thread with GPU acceleration when available
  */
 export function createThreadedEmbeddingFunction(
   options: { fallbackToMain?: boolean } = {}
@@ -223,56 +237,113 @@ export function createThreadedEmbeddingFunction(
 
       // Worker implementation function that will be stringified and run in the worker
       const workerImplementation = async ({ data }: { data: any }) => {
-        // We need to dynamically import TensorFlow.js and USE in the worker
-        const tf = await import('@tensorflow/tfjs')
-        const use = await import('@tensorflow-models/universal-sentence-encoder')
+        try {
+          // We need to dynamically import TensorFlow.js core module and USE in the worker
+          // Use a variable name that won't conflict with any minified variables
 
-        // Load the model
-        const model = await use.load()
+          // TensorFlow.js will use its default EPSILON value
 
-        // Handle different input types
-        let textToEmbed: string[]
-        if (typeof data === 'string') {
-          if (data.trim() === '') {
-            return new Array(512).fill(0)
+          // Import TensorFlow.js modules
+          const tf = await import('@tensorflow/tfjs-core')
+
+          // Import CPU backend in the worker
+          await import('@tensorflow/tfjs-backend-cpu')
+
+          try {
+            // Try to import and use WebGL backend first (GPU)
+            await import('@tensorflow/tfjs-backend-webgl')
+
+            // Check if WebGL is available and set it as the backend
+            if (
+              (tf.findBackend && (await tf.findBackend('webgl'))) ||
+              (tf.ready &&
+                (await tf
+                  .ready()
+                  .then(() => tf.findBackend && tf.findBackend('webgl'))))
+            ) {
+              console.log('Worker: Using WebGL backend (GPU acceleration)')
+              if (tf.setBackend) {
+                await tf.setBackend('webgl')
+              }
+            } else {
+              console.log(
+                'Worker: WebGL backend not available, falling back to CPU'
+              )
+              if (tf.setBackend) {
+                await tf.setBackend('cpu')
+              }
+            }
+          } catch (err) {
+            console.warn(
+              'Worker: WebGL backend failed to initialize, using CPU backend:',
+              err
+            )
+            if (tf.setBackend) {
+              await tf.setBackend('cpu')
+            }
           }
-          textToEmbed = [data]
-        } else if (
-          Array.isArray(data) &&
-          data.every((item) => typeof item === 'string')
-        ) {
-          if (data.length === 0 || data.every((item) => item.trim() === '')) {
-            return new Array(512).fill(0)
-          }
-          textToEmbed = data.filter((item) => item.trim() !== '')
-          if (textToEmbed.length === 0) {
-            return new Array(512).fill(0)
-          }
-        } else {
-          throw new Error(
-            'UniversalSentenceEncoder only supports string or string[] data'
+
+          // Import the Universal Sentence Encoder
+          const sentenceEncoderModule = await import(
+            '@tensorflow-models/universal-sentence-encoder'
           )
+
+          // Load the model directly from the module
+          const model = await sentenceEncoderModule.load()
+
+          // Handle different input types
+          let textToEmbed: string[]
+          if (typeof data === 'string') {
+            if (data.trim() === '') {
+              return new Array(512).fill(0)
+            }
+            textToEmbed = [data]
+          } else if (
+            Array.isArray(data) &&
+            data.every((item) => typeof item === 'string')
+          ) {
+            if (data.length === 0 || data.every((item) => item.trim() === '')) {
+              return new Array(512).fill(0)
+            }
+            textToEmbed = data.filter((item) => item.trim() !== '')
+            if (textToEmbed.length === 0) {
+              return new Array(512).fill(0)
+            }
+          } else {
+            throw new Error(
+              'UniversalSentenceEncoder only supports string or string[] data'
+            )
+          }
+
+          // Get embeddings
+          const embeddings = await model.embed(textToEmbed)
+
+          // Convert to array and return the first embedding
+          const embeddingArray = await embeddings.array()
+
+          // Dispose of the tensor to free memory
+          embeddings.dispose()
+
+          return embeddingArray[0]
+        } catch (error) {
+          console.error('Worker error:', error)
+          throw error
         }
-
-        // Get embeddings
-        const embeddings = await model.embed(textToEmbed)
-
-        // Convert to array and return the first embedding
-        const embeddingArray = await embeddings.array()
-
-        // Dispose of the tensor to free memory
-        embeddings.dispose()
-
-        return embeddingArray[0]
       }
 
       // Execute the embedding function in a separate thread
       // Pass the worker implementation as a string to avoid Promise cloning issues
-      return await executeInThread<Vector>(workerImplementation.toString(), embedInWorker(data))
+      return await executeInThread<Vector>(
+        workerImplementation.toString(),
+        embedInWorker(data)
+      )
     } catch (error) {
       // If threading fails and fallback is enabled, use the standard embedding function
       if (options.fallbackToMain) {
-        console.warn('Threaded embedding failed, falling back to main thread:', error)
+        console.warn(
+          'Threaded embedding failed, falling back to main thread:',
+          error
+        )
         useFallback = true
         return standardEmbedding(data)
       }
@@ -287,7 +358,9 @@ export function createThreadedEmbeddingFunction(
  * Default embedding function
  * Uses UniversalSentenceEncoder for all text embeddings
  * TensorFlow.js is required for this to work
- * Uses threading when available for better performance
+ * Uses GPU acceleration via WebGL when available for optimal performance
+ * Uses threading when available to avoid blocking the main thread
+ * Falls back to CPU processing when GPU is not available
  */
 export const defaultEmbeddingFunction: EmbeddingFunction =
   createThreadedEmbeddingFunction({ fallbackToMain: true })
