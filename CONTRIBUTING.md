@@ -60,7 +60,18 @@ This project uses ESLint and Prettier for code formatting and style checking. Th
 
 You can check your code style by running:
 ```bash
-npx eslint src/
+npm run check-style
+```
+
+This will run all code style checks, including a specific check for semicolons.
+
+You can also run individual checks:
+
+```bash
+npm run lint         # Run ESLint to check for code issues
+npm run lint:fix     # Automatically fix linting issues
+npm run format       # Format your code with Prettier
+npm run check-format # Check if your code is properly formatted
 ```
 
 ## Branching Strategy
