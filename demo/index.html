@@ -1260,12 +1260,12 @@ await db.init()
   // Use different paths based on hosting environment
   let importPath
   if (isGitHubPages) {
-    importPath = './dist/unified.js' // Direct access to dist folder in demo directory
+    importPath = './dist/unified.min.js' // Direct access to dist folder in demo directory
   } else if (isCodeSoulcraft) {
     // Use relative path instead of absolute path for code.soulcraft.com
-    importPath = './dist/unified.js'
+    importPath = './dist/unified.min.js'
   } else {
-    importPath = '/dist/unified.js' // Local development
+    importPath = '/dist/unified.min.js' // Local development
   }
 
   // Dynamic import
@@ -1479,40 +1479,40 @@ await db.init()
           type: 'person',
           noun: 'person',
           name: 'Alex Johnson',
-          content: 'Tech enthusiast and senior software developer with 10+ years of experience in AI and machine learning. I love hiking through national parks on weekends and capturing landscape photography. Currently working on several open-source AI projects that focus on natural language processing and computer vision applications for everyday use cases.',
-          tags: ['tech', 'developer', 'photography', 'hiking', 'AI', 'machine learning']
+          content: 'Tech enthusiast and senior software developer with 10+ years of experience in AI and machine learning. I love hiking through national parks on weekends and capturing landscape photography. Currently working on several open-source AI projects that focus on natural language processing and computer vision applications for everyday use cases. My latest project involves developing a privacy-focused recommendation system that runs entirely on-device without sending user data to the cloud.',
+          tags: ['tech', 'developer', 'photography', 'hiking', 'AI', 'machine learning', 'privacy', 'open-source']
         },
         {
           id: 'user2',
           type: 'person',
           noun: 'person',
           name: 'Sophia Chen',
-          content: 'Digital marketing specialist with a passion for data analytics and consumer behavior research. I run a popular food and travel blog documenting culinary experiences across continents. My background in statistics helps me analyze food trends and cultural patterns in different regions. Recently completed a six-month journey through Southeast Asia exploring local cuisines.',
-          tags: ['marketing', 'analytics', 'food', 'travel', 'statistics', 'blogging']
+          content: 'Digital marketing specialist with a passion for data analytics and consumer behavior research. I run a popular food and travel blog documenting culinary experiences across continents. My background in statistics helps me analyze food trends and cultural patterns in different regions. Recently completed a six-month journey through Southeast Asia exploring local cuisines and sustainable food practices. I\'m particularly interested in how traditional cooking methods are being preserved in the face of modernization and globalization.',
+          tags: ['marketing', 'analytics', 'food', 'travel', 'statistics', 'blogging', 'sustainability', 'culture']
         },
         {
           id: 'user3',
           type: 'person',
           noun: 'person',
           name: 'Marcus Williams',
-          content: 'Award-winning graphic designer and illustrator specializing in brand identity and visual storytelling. I believe in the power of minimalist design to communicate complex ideas effectively. My work has been featured in several international design publications and exhibitions. When not designing, I\'m exploring local coffee shops and perfecting my home brewing techniques.',
-          tags: ['design', 'illustration', 'art', 'coffee', 'branding', 'minimalism']
+          content: 'Award-winning graphic designer and UI/UX specialist focusing on minimalist design principles and accessible interfaces. My work has been featured in several international design publications and exhibitions. I believe in the power of thoughtful design to solve complex problems and improve user experiences. When not designing, I\'m exploring local coffee shops, perfecting my home brewing techniques, and researching the intersection of design thinking and cognitive psychology. Currently working on a design system that emphasizes accessibility without compromising aesthetic quality.',
+          tags: ['design', 'UI/UX', 'minimalism', 'accessibility', 'coffee', 'psychology', 'user experience', 'typography']
         },
         {
           id: 'user4',
           type: 'person',
           noun: 'person',
           name: 'Priya Patel',
-          content: 'Environmental scientist with a PhD in climate science, currently researching the long-term impacts of climate change on urban ecosystems. I advocate for sustainable living practices and renewable energy adoption through community workshops and educational programs. My research has been published in several peer-reviewed journals, and I consult with local governments on sustainability initiatives.',
-          tags: ['science', 'environment', 'sustainability', 'climate', 'research', 'education']
+          content: 'Environmental scientist with a PhD in climate science, currently researching the long-term impacts of climate change on urban ecosystems and food security. I advocate for sustainable living practices and renewable energy adoption through community workshops and educational programs. My research has been published in several peer-reviewed journals, and I consult with local governments on sustainability initiatives. I\'m particularly passionate about urban gardening as a solution to food deserts in low-income neighborhoods and have developed several community garden projects that combine food production with environmental education.',
+          tags: ['science', 'environment', 'sustainability', 'climate', 'research', 'education', 'urban gardening', 'food security']
         },
         {
           id: 'user5',
           type: 'person',
           noun: 'person',
           name: 'Jordan Taylor',
-          content: 'Certified fitness coach and nutrition expert with specializations in functional training and plant-based nutrition. I develop personalized fitness programs that integrate physical training with mental wellness practices. My approach focuses on sustainable lifestyle changes rather than quick fixes. I\'ve helped hundreds of clients transform their health through balanced nutrition and consistent exercise routines.',
-          tags: ['fitness', 'nutrition', 'health', 'wellness', 'coaching', 'plant-based']
+          content: 'Certified fitness coach and holistic wellness expert specializing in functional training and plant-based nutrition. I develop personalized fitness programs that integrate physical training with mental wellness practices like mindfulness and stress management. My approach focuses on sustainable lifestyle changes rather than quick fixes, emphasizing the connection between physical health, nutrition, sleep quality, and mental wellbeing. I\'ve helped hundreds of clients transform their health through balanced nutrition and consistent exercise routines tailored to their unique needs and circumstances. Recently launched a 30-day home workout program that requires no equipment and adapts to all fitness levels.',
+          tags: ['fitness', 'nutrition', 'health', 'wellness', 'coaching', 'plant-based', 'mindfulness', 'home workouts']
         },
 
         // Posts/Content
@@ -1521,40 +1521,82 @@ await db.init()
           type: 'document',
           noun: 'content',
           title: 'The Future of AI in Everyday Applications',
-          content: 'Artificial intelligence is rapidly transforming how we interact with technology in ways that weren\'t possible just a few years ago. From smart assistants that understand context and nuance to recommendation systems that seem to know our preferences better than we do, AI is becoming an invisible yet powerful part of our daily lives. The most exciting developments are happening at the intersection of machine learning and edge computing, where AI models can run directly on our devices without sending sensitive data to the cloud. This preserves privacy while still delivering personalized experiences. Looking ahead, I believe we\'ll see AI becoming more explainable and transparent, addressing current concerns about "black box" algorithms. The challenge for developers will be creating systems that can be personalized to individual needs while maintaining ethical standards and avoiding algorithmic bias. The companies that succeed will be those that treat AI as an augmentation of human capabilities rather than a replacement.',
-          tags: ['AI', 'technology', 'future', 'personalization', 'machine learning', 'privacy', 'ethics']
+          content: 'Artificial intelligence is rapidly transforming how we interact with technology in ways that weren\'t possible just a few years ago. From smart assistants that understand context and nuance to recommendation systems that seem to know our preferences better than we do, AI is becoming an invisible yet powerful part of our daily lives. The most exciting developments are happening at the intersection of machine learning and edge computing, where AI models can run directly on our devices without sending sensitive data to the cloud. This preserves privacy while still delivering personalized experiences. Looking ahead, I believe we\'ll see AI becoming more explainable and transparent, addressing current concerns about "black box" algorithms. The challenge for developers will be creating systems that can be personalized to individual needs while maintaining ethical standards and avoiding algorithmic bias. The companies that succeed will be those that treat AI as an augmentation of human capabilities rather than a replacement. I\'m particularly excited about applications in healthcare, where AI can help identify patterns in symptoms and treatment outcomes that might be missed by human practitioners. However, these systems must be designed with careful attention to privacy concerns and the potential for bias in training data. Another promising area is environmental monitoring, where machine learning models can process vast amounts of sensor data to detect patterns related to climate change, pollution levels, and biodiversity loss. These applications demonstrate how AI can be a powerful tool for addressing some of our most pressing global challenges.',
+          tags: ['AI', 'technology', 'future', 'personalization', 'machine learning', 'privacy', 'ethics', 'healthcare', 'environment']
         },
         {
           id: 'post2',
           type: 'document',
           noun: 'content',
           title: 'My Southeast Asia Food Tour: A Culinary Journey',
-          content: 'I\'ve just returned from an incredible three-month culinary adventure across Thailand, Vietnam, Malaysia, and Singapore that completely transformed my understanding of Asian cuisine. The vibrant street food scenes in Bangkok and Hanoi were particularly eye-opening - watching skilled vendors prepare dishes they\'ve perfected over decades, using techniques passed down through generations. In Bangkok\'s Chinatown, I discovered that the best pad thai comes from a 70-year-old woman who cooks only 50 portions each night, selling out within an hour. The complex interplay of sweet, sour, salty, and spicy flavors in authentic Thai cuisine is something that western adaptations rarely capture correctly. Moving to Vietnam, I was fascinated by the regional variations in pho - from the clearer, more delicate broths in the south to the richer, more aromatic versions in Hanoi. The Malaysian food scene in Penang revealed the beautiful fusion of Chinese, Indian, and Malay influences, creating dishes that tell the story of the country\'s multicultural history. I\'ve returned home with not just memories, but with cooking techniques, ingredient combinations, and flavor profiles that I\'m excited to incorporate into my own cooking. The experience has reinforced my belief that food is one of the most authentic ways to understand a culture\'s values and history.',
-          tags: ['food', 'travel', 'asia', 'culinary', 'culture', 'cooking', 'Thailand', 'Vietnam', 'Malaysia']
+          content: 'I\'ve just returned from an incredible three-month culinary adventure across Thailand, Vietnam, Malaysia, and Singapore that completely transformed my understanding of Asian cuisine. The vibrant street food scenes in Bangkok and Hanoi were particularly eye-opening - watching skilled vendors prepare dishes they\'ve perfected over decades, using techniques passed down through generations. In Bangkok\'s Chinatown, I discovered that the best pad thai comes from a 70-year-old woman who cooks only 50 portions each night, selling out within an hour. The complex interplay of sweet, sour, salty, and spicy flavors in authentic Thai cuisine is something that western adaptations rarely capture correctly. Moving to Vietnam, I was fascinated by the regional variations in pho - from the clearer, more delicate broths in the south to the richer, more aromatic versions in Hanoi. The Malaysian food scene in Penang revealed the beautiful fusion of Chinese, Indian, and Malay influences, creating dishes that tell the story of the country\'s multicultural history. I was particularly impressed by the laksa in Penang, which differs significantly from the Sarawak version I tried later in my journey. The Penang laksa has a sour, fish-based broth with tamarind, while Sarawak laksa uses a rich, spicy coconut milk base with sambal belacan. In Singapore, I explored how traditional hawker stalls are adapting to changing consumer preferences while preserving authentic cooking methods. Many vendors are now incorporating sustainable practices, like using locally-sourced ingredients and biodegradable packaging, without compromising on flavor. I\'ve returned home with not just memories, but with cooking techniques, ingredient combinations, and flavor profiles that I\'m excited to incorporate into my own cooking. The experience has reinforced my belief that food is one of the most authentic ways to understand a culture\'s values and history.',
+          tags: ['food', 'travel', 'asia', 'culinary', 'culture', 'cooking', 'Thailand', 'Vietnam', 'Malaysia', 'Singapore', 'sustainability', 'street food', 'laksa', 'pho', 'pad thai']
         },
         {
           id: 'post3',
           type: 'document',
           noun: 'content',
           title: 'Minimalist Design Principles for Digital Interfaces: Beyond Aesthetics',
-          content: 'The principle that "less is more" has never been more relevant than in today\'s overcrowded digital landscape. Minimalist design isn\'t just an aesthetic choice—it\'s a functional imperative for creating interfaces that users can navigate intuitively. Through my work with various clients, I\'ve observed that minimalist interfaces consistently outperform cluttered ones in key metrics like time-on-task, error rates, and user satisfaction. The core principles of minimalist design extend beyond simply removing elements. It involves a careful analysis of user needs, prioritizing functions based on frequency and importance, and creating visual hierarchies that guide attention naturally. Color should be used strategically, not decoratively—each color choice should serve a specific communicative purpose. Typography plays an equally crucial role; a well-chosen font hierarchy can eliminate the need for additional visual elements like dividers or boxes. White space (or negative space) is perhaps the most undervalued element in digital design. It\'s not just empty space—it\'s a powerful tool for creating focus, improving readability, and giving content room to breathe. When implementing minimalist principles, it\'s important to test with real users to ensure that simplification doesn\'t compromise usability. The goal is to reduce cognitive load while maintaining all necessary functionality, creating digital products that feel effortless to use while being fully featured. This approach not only improves user experience but also tends to create more accessible interfaces that work better for users with disabilities or those using assistive technologies.',
-          tags: ['design', 'minimalism', 'UI', 'UX', 'accessibility', 'typography', 'user experience', 'digital interfaces']
+          content: 'The principle that "less is more" has never been more relevant than in today\'s overcrowded digital landscape. Minimalist design isn\'t just an aesthetic choice—it\'s a functional imperative for creating interfaces that users can navigate intuitively. Through my work with various clients, I\'ve observed that minimalist interfaces consistently outperform cluttered ones in key metrics like time-on-task, error rates, and user satisfaction. The core principles of minimalist design extend beyond simply removing elements. It involves a careful analysis of user needs, prioritizing functions based on frequency and importance, and creating visual hierarchies that guide attention naturally. Color should be used strategically, not decoratively—each color choice should serve a specific communicative purpose. Typography plays an equally crucial role; a well-chosen font hierarchy can eliminate the need for additional visual elements like dividers or boxes. White space (or negative space) is perhaps the most undervalued element in digital design. It\'s not just empty space—it\'s a powerful tool for creating focus, improving readability, and giving content room to breathe. When implementing minimalist principles, it\'s important to test with real users to ensure that simplification doesn\'t compromise usability. The goal is to reduce cognitive load while maintaining all necessary functionality, creating digital products that feel effortless to use while being fully featured. This approach not only improves user experience but also tends to create more accessible interfaces that work better for users with disabilities or those using assistive technologies. For example, a recent e-commerce project I completed saw a 23% increase in conversion rates after implementing minimalist design principles, while customer support inquiries decreased by almost 30%. The simplified navigation and clearer visual hierarchy made it easier for users to find products and complete purchases without confusion. The project also prioritized accessibility, ensuring that the interface worked well with screen readers and supported keyboard navigation, making the site usable for people with various disabilities.',
+          tags: ['design', 'minimalism', 'UI', 'UX', 'accessibility', 'typography', 'user experience', 'digital interfaces', 'white space', 'visual hierarchy', 'cognitive load', 'e-commerce', 'conversion rates']
         },
         {
           id: 'post4',
           type: 'document',
           noun: 'content',
           title: 'Urban Gardening: Growing Food in Small Spaces',
-          content: 'The misconception that you need a large yard to grow your own food is preventing many urban dwellers from experiencing the satisfaction and benefits of home gardening. Through five years of experimentation in my 500-square-foot apartment, I\'ve developed systems for growing approximately 30% of my own produce year-round. Vertical gardening is the cornerstone of space-efficient food production. By utilizing wall space with hanging planters, tiered shelving, and trellis systems, even the smallest balcony can become surprisingly productive. I\'ve found that leafy greens like kale, spinach, and various lettuces offer the best return on investment in small spaces—they grow quickly, can be harvested continuously, and would otherwise be expensive to purchase organically. For those without outdoor space, windowsill herb gardens and microgreens under grow lights provide fresh flavors with minimal space requirements. The key to successful small-space gardening is understanding the specific light conditions of your space and selecting appropriate plants. Most vegetables need at least 6 hours of direct sunlight, but many herbs and leafy greens can thrive with less. Container selection is equally important—self-watering containers have revolutionized urban gardening by reducing maintenance and improving plant health. Soil quality becomes even more critical in container gardening; investing in high-quality potting mix and implementing a regular composting system (even a small worm bin under the sink) creates a sustainable cycle. Beyond the practical benefits of fresh, pesticide-free produce, urban gardening creates a connection to natural cycles that is often missing in city life. The psychological benefits of tending plants and watching them grow should not be underestimated, especially in high-stress urban environments.',
-          tags: ['gardening', 'sustainability', 'urban', 'food', 'containers', 'vertical gardening', 'organic', 'small spaces']
+          content: 'The misconception that you need a large yard to grow your own food is preventing many urban dwellers from experiencing the satisfaction and benefits of home gardening. Through five years of experimentation in my 500-square-foot apartment, I\'ve developed systems for growing approximately 30% of my own produce year-round. Vertical gardening is the cornerstone of space-efficient food production. By utilizing wall space with hanging planters, tiered shelving, and trellis systems, even the smallest balcony can become surprisingly productive. I\'ve found that leafy greens like kale, spinach, and various lettuces offer the best return on investment in small spaces—they grow quickly, can be harvested continuously, and would otherwise be expensive to purchase organically. For those without outdoor space, windowsill herb gardens and microgreens under grow lights provide fresh flavors with minimal space requirements. The key to successful small-space gardening is understanding the specific light conditions of your space and selecting appropriate plants. Most vegetables need at least 6 hours of direct sunlight, but many herbs and leafy greens can thrive with less. Container selection is equally important—self-watering containers have revolutionized urban gardening by reducing maintenance and improving plant health. Soil quality becomes even more critical in container gardening; investing in high-quality potting mix and implementing a regular composting system (even a small worm bin under the sink) creates a sustainable cycle. Beyond the practical benefits of fresh, pesticide-free produce, urban gardening creates a connection to natural cycles that is often missing in city life. The psychological benefits of tending plants and watching them grow should not be underestimated, especially in high-stress urban environments. I\'ve recently started working with community organizations to develop urban gardening programs in food desert neighborhoods, where access to fresh produce is limited. These community gardens not only provide nutritious food but also serve as educational spaces where residents can learn about sustainable growing practices, nutrition, and environmental science. The social connections formed through these community gardening initiatives have proven to be as valuable as the food produced, creating stronger neighborhood bonds and support networks.',
+          tags: ['gardening', 'sustainability', 'urban', 'food', 'containers', 'vertical gardening', 'organic', 'small spaces', 'food security', 'community gardens', 'composting', 'mental health', 'food deserts']
         },
         {
           id: 'post5',
           type: 'document',
           noun: 'content',
           title: '30-Day Home Workout Challenge: Progressive Fitness Without Equipment',
-          content: 'After years of designing fitness programs, I\'ve found that the biggest obstacle for most people isn\'t motivation—it\'s complexity and accessibility. This 30-day challenge addresses both issues by requiring zero equipment while providing a structured progression that prevents plateaus and reduces injury risk. The program is built around functional movement patterns that strengthen the body for real-world activities, not just gym performance. The first week focuses on establishing proper form in fundamental movements like squats, lunges, planks, and push-ups, with modifications provided for all fitness levels. Rather than counting reps, many exercises use time-based intervals, allowing each person to work at their own pace while still being challenged. As the program progresses, intensity increases through three primary mechanisms: increasing time under tension, incorporating unilateral (single-limb) variations, and adding rhythmic changes that challenge coordination and cardiovascular fitness simultaneously. Recovery is programmed as deliberately as the workouts themselves, with specific mobility routines for rest days that address common problem areas like hip flexors and shoulders that become tight from sedentary work. The nutrition guidance accompanying the program emphasizes timing and composition rather than strict calorie counting—particularly the importance of protein intake for recovery and carbohydrate timing around workouts. Participants who\'ve completed this challenge report not just physical changes, but improvements in sleep quality, energy levels, and mental clarity. The program includes a tracking system that helps identify patterns between workout performance and variables like sleep, stress, and nutrition, teaching participants to understand their body\'s unique responses and needs.',
-          tags: ['fitness', 'workout', 'health', 'challenge', 'home exercise', 'bodyweight', 'functional fitness', 'progressive training']
+          content: 'After years of designing fitness programs, I\'ve found that the biggest obstacle for most people isn\'t motivation—it\'s complexity and accessibility. This 30-day challenge addresses both issues by requiring zero equipment while providing a structured progression that prevents plateaus and reduces injury risk. The program is built around functional movement patterns that strengthen the body for real-world activities, not just gym performance. The first week focuses on establishing proper form in fundamental movements like squats, lunges, planks, and push-ups, with modifications provided for all fitness levels. Rather than counting reps, many exercises use time-based intervals, allowing each person to work at their own pace while still being challenged. As the program progresses, intensity increases through three primary mechanisms: increasing time under tension, incorporating unilateral (single-limb) variations, and adding rhythmic changes that challenge coordination and cardiovascular fitness simultaneously. Recovery is programmed as deliberately as the workouts themselves, with specific mobility routines for rest days that address common problem areas like hip flexors and shoulders that become tight from sedentary work. The nutrition guidance accompanying the program emphasizes timing and composition rather than strict calorie counting—particularly the importance of protein intake for recovery and carbohydrate timing around workouts. Participants who\'ve completed this challenge report not just physical changes, but improvements in sleep quality, energy levels, and mental clarity. The program includes a tracking system that helps identify patterns between workout performance and variables like sleep, stress, and nutrition, teaching participants to understand their body\'s unique responses and needs. What sets this program apart from others is its holistic approach to fitness that acknowledges the interconnectedness of physical activity, nutrition, sleep, and stress management. Each week includes not only workout instructions but also mindfulness practices, sleep optimization strategies, and stress reduction techniques. This integrated approach has proven particularly effective for participants who previously struggled with consistency, as it addresses the root causes of exercise avoidance rather than just prescribing more willpower.',
+          tags: ['fitness', 'workout', 'health', 'challenge', 'home exercise', 'bodyweight', 'functional fitness', 'progressive training', 'mindfulness', 'sleep', 'stress management', 'nutrition', 'mobility', 'recovery']
+        },
+
+        // Additional Posts
+        {
+          id: 'post6',
+          type: 'document',
+          noun: 'content',
+          title: 'Cybersecurity Essentials for Small Businesses: Affordable Protection Strategies',
+          content: 'Small businesses often believe they\'re too insignificant to be targeted by hackers, but this misconception makes them particularly vulnerable. In reality, over 40% of cyberattacks target small businesses precisely because they typically have weaker security measures than larger organizations while still holding valuable data. This guide outlines practical, cost-effective security measures that don\'t require a dedicated IT department. First, implement multi-factor authentication (MFA) on all business accounts - this single step can prevent 99.9% of automated attacks. Next, establish a regular update schedule for all software and devices to patch security vulnerabilities promptly. For data protection, adopt the 3-2-1 backup strategy: maintain three copies of important data on two different media types with one copy stored off-site or in the cloud. Employee training is equally crucial - create clear security policies and conduct regular phishing simulations to help staff recognize threats.',
+          tags: ['cybersecurity', 'small business', 'data protection', 'security', 'multi-factor authentication', 'backups', 'employee training', 'password management', 'cloud security', 'risk assessment', 'cyber insurance', 'incident response']
+        },
+        {
+          id: 'post7',
+          type: 'document',
+          noun: 'content',
+          title: 'Ocean Conservation Through Indigenous Knowledge Systems',
+          content: 'The intersection of traditional ecological knowledge and modern marine conservation offers powerful solutions for ocean protection that neither approach could achieve alone. Indigenous coastal communities worldwide have maintained sustainable relationships with marine ecosystems for thousands of years through sophisticated management practices often dismissed by Western science until recently. In the Pacific Islands, traditional conservation methods like the Polynesian rahui (temporary fishing bans) and Hawaiian ahupua\'a (integrated land-sea management systems) are now being recognized for their effectiveness in maintaining biodiversity and fish stocks.',
+          tags: ['ocean conservation', 'indigenous knowledge', 'marine protection', 'traditional ecological knowledge', 'sustainable fishing', 'biodiversity', 'climate change', 'co-management', 'environmental monitoring', 'cultural preservation', 'conservation technology']
+        },
+        {
+          id: 'post8',
+          type: 'document',
+          noun: 'content',
+          title: 'Neuroplasticity and Meditation: How Mindfulness Reshapes the Brain',
+          content: 'Recent advances in neuroimaging technology have allowed scientists to observe the remarkable ways meditation practices physically reshape the brain, providing scientific validation for what practitioners have reported for centuries. Longitudinal studies using MRI scans show that regular meditation practice leads to measurable changes in brain structure and function in as little as eight weeks. The most consistent findings involve increased gray matter density in regions associated with attention, sensory processing, and emotional regulation.',
+          tags: ['neuroscience', 'meditation', 'mindfulness', 'brain', 'neuroplasticity', 'mental health', 'cognitive function', 'emotional regulation', 'MRI', 'psychology', 'attention', 'stress reduction', 'neuroimaging', 'prefrontal cortex', 'amygdala']
+        },
+        {
+          id: 'post9',
+          type: 'document',
+          noun: 'content',
+          title: 'Reimagining Urban Mobility: Beyond Cars and Highways',
+          content: 'The 20th-century approach to urban transportation - prioritizing private vehicles and highway expansion - has created cities choked by congestion, pollution, and inefficient land use. A paradigm shift is underway as cities worldwide reimagine mobility systems that move people, not just cars. The most successful urban transformations begin with a "complete streets" philosophy that equitably serves all users regardless of age, ability, or mode of transportation. This approach typically involves converting vehicle lanes to protected bicycle infrastructure, widening sidewalks, improving transit priority, and adding green infrastructure.',
+          tags: ['urban planning', 'transportation', 'mobility', 'cycling', 'public transit', 'micromobility', 'complete streets', 'superblocks', '15-minute city', 'e-bikes', 'walkability', 'urban design', 'sustainability', 'livable cities', 'car dependency']
+        },
+        {
+          id: 'post10',
+          type: 'document',
+          noun: 'content',
+          title: 'Quantum Computing Explained: Beyond Bits to Qubits',
+          content: 'Quantum computing represents a fundamental shift in how we process information, potentially solving problems that would take classical computers millions of years in just minutes. Unlike classical computers that use bits representing either 0 or 1, quantum computers use quantum bits or "qubits" that can exist in multiple states simultaneously through a property called superposition. This allows quantum computers to explore multiple solutions to a problem at once rather than sequentially. Another key quantum property is entanglement, where qubits become correlated so that the state of one instantly influences another, regardless of distance.',
+          tags: ['quantum computing', 'technology', 'qubits', 'superposition', 'entanglement', 'quantum supremacy', 'encryption', 'algorithms', 'quantum chemistry', 'optimization', 'machine learning', 'computing', 'physics', 'superconducting', 'error correction']
         },
 
         // Comments
@@ -1563,24 +1605,48 @@ await db.init()
           type: 'document',
           noun: 'content',
           title: 'Comment on AI post',
-          content: 'Your insights on the intersection of AI and privacy are particularly relevant given the recent controversies surrounding facial recognition technologies. I\'m currently researching how AI can be applied to healthcare diagnostics while maintaining patient confidentiality. Have you explored how federated learning might offer solutions in this domain? I\'d love to discuss this further as it seems aligned with your interest in edge computing applications.',
-          tags: ['comment', 'AI', 'healthcare', 'privacy', 'federated learning', 'edge computing']
+          content: 'Your insights on the intersection of AI and privacy are particularly relevant given the recent controversies surrounding facial recognition technologies. I\'m currently researching how AI can be applied to healthcare diagnostics while maintaining patient confidentiality. Have you explored how federated learning might offer solutions in this domain? I\'d love to discuss this further as it seems aligned with your interest in edge computing applications. I\'ve been experimenting with a system that allows medical institutions to train shared AI models without exchanging sensitive patient data, and the preliminary results are promising. The challenge we\'re facing now is balancing model accuracy with the computational limitations of edge devices in clinical settings.',
+          tags: ['comment', 'AI', 'healthcare', 'privacy', 'federated learning', 'edge computing', 'diagnostics', 'patient confidentiality', 'machine learning']
         },
         {
           id: 'comment2',
           type: 'document',
           noun: 'content',
           title: 'Comment on food tour',
-          content: 'Your detailed description of regional Vietnamese pho variations brought back memories of my own travels there! The photos you shared of the Hanoi street food markets are absolutely stunning - the composition and lighting really capture the vibrant atmosphere. I\'m curious about your experience with Malaysian laksa - did you find significant differences between the Penang and Sarawak versions? I\'ve been trying to recreate authentic laksa at home but struggling to find the right balance of spices.',
-          tags: ['comment', 'food', 'travel', 'photography', 'Vietnam', 'Malaysia', 'cooking', 'recipes']
+          content: 'Your detailed description of regional Vietnamese pho variations brought back memories of my own travels there! The photos you shared of the Hanoi street food markets are absolutely stunning - the composition and lighting really capture the vibrant atmosphere. I\'m curious about your experience with Malaysian laksa - did you find significant differences between the Penang and Sarawak versions? I\'ve been trying to recreate authentic laksa at home but struggling to find the right balance of spices. During my trip to Malaysia last year, I took a cooking class in Penang where we made assam laksa from scratch, including pounding our own spice paste. The instructor emphasized that the key to authentic flavor is using fresh torch ginger flower (bunga kantan) and Vietnamese coriander (daun kesum), which I\'ve had trouble finding in my local Asian markets. Did you discover any particular ingredients or techniques that were game-changers for your home cooking?',
+          tags: ['comment', 'food', 'travel', 'photography', 'Vietnam', 'Malaysia', 'cooking', 'recipes', 'laksa', 'pho', 'spices', 'street food', 'Penang', 'Sarawak', 'cooking class']
         },
         {
           id: 'comment3',
           type: 'document',
           noun: 'content',
           title: 'Comment on design article',
-          content: 'Your analysis of minimalism as a functional imperative rather than just an aesthetic choice resonates strongly with my experience in e-commerce design. After implementing many of the principles you outlined, particularly regarding strategic color usage and improved typography hierarchy, our conversion rates improved by 23% while customer support inquiries decreased by almost 30%. The point about accessibility benefits is especially important and often overlooked in design discussions. Have you found any effective methods for convincing stakeholders who equate visual complexity with feature richness?',
-          tags: ['comment', 'design', 'conversion', 'business', 'accessibility', 'minimalism', 'typography', 'e-commerce']
+          content: 'Your analysis of minimalism as a functional imperative rather than just an aesthetic choice resonates strongly with my experience in e-commerce design. After implementing many of the principles you outlined, particularly regarding strategic color usage and improved typography hierarchy, our conversion rates improved by 23% while customer support inquiries decreased by almost 30%. The point about accessibility benefits is especially important and often overlooked in design discussions. Have you found any effective methods for convincing stakeholders who equate visual complexity with feature richness? I\'ve been struggling with this exact challenge on a current project where the client insists on cramming as much information as possible onto each page. I\'ve tried showing them user testing videos and heat maps demonstrating how users get overwhelmed, but they\'re still resistant to embracing white space and prioritization. Do you have any case studies or metrics that have been particularly persuasive in these situations?',
+          tags: ['comment', 'design', 'conversion', 'business', 'accessibility', 'minimalism', 'typography', 'e-commerce', 'user testing', 'stakeholders', 'white space', 'visual hierarchy', 'case studies']
+        },
+        {
+          id: 'comment4',
+          type: 'document',
+          noun: 'content',
+          title: 'Comment on cybersecurity article',
+          content: 'As someone who works with small nonprofits, I found your cybersecurity guide incredibly practical. The multi-factor authentication recommendation alone has already prevented several attempted breaches in our organization. One additional tip I\'d suggest is creating a security incident response plan - even a simple one-page document outlining who to contact and immediate steps to take if a breach is suspected. We learned this lesson the hard way when a staff member\'s email was compromised, and precious time was lost figuring out the proper response. Do you have any recommendations for affordable security awareness training platforms suitable for organizations with high volunteer turnover? We\'ve been creating our own materials, but it\'s becoming unsustainable to keep them updated with evolving threats.',
+          tags: ['comment', 'cybersecurity', 'nonprofits', 'incident response', 'multi-factor authentication', 'security training', 'small business', 'volunteers', 'email security', 'phishing', 'budget', 'data protection']
+        },
+        {
+          id: 'comment5',
+          type: 'document',
+          noun: 'content',
+          title: 'Comment on indigenous knowledge article',
+          content: 'Your article on indigenous marine conservation practices reminded me of my fieldwork with coastal communities in the Solomon Islands. The integration of traditional ecological knowledge with scientific monitoring there has been remarkably effective. One elder showed me how they track fish populations by observing specific bird behaviors above the water - something our scientific instruments would miss entirely. I\'ve found that the most successful conservation initiatives are those where traditional knowledge holders have equal decision-making power, not just advisory roles. Have you encountered examples where traditional seasonal harvesting restrictions have been formally incorporated into government regulations? I\'m researching policy frameworks that successfully bridge these knowledge systems without appropriating or diminishing indigenous authority over their traditional practices.',
+          tags: ['comment', 'indigenous knowledge', 'conservation', 'marine protection', 'traditional ecological knowledge', 'Solomon Islands', 'policy', 'governance', 'co-management', 'decision-making', 'seasonal harvesting', 'regulations', 'fieldwork']
+        },
+        {
+          id: 'comment6',
+          type: 'document',
+          noun: 'content',
+          title: 'Comment on meditation research',
+          content: 'As a clinical psychologist who incorporates mindfulness practices in therapy, I\'ve seen firsthand how meditation can help patients with anxiety and depression. Your summary of the neuroimaging research provides valuable scientific backing for what we observe clinically. I\'m particularly interested in the findings about increased gray matter in the prefrontal cortex, as executive function improvement is something my patients frequently report. Have you come across research specifically examining how different meditation techniques (focused attention vs. open monitoring vs. loving-kindness) might affect different brain regions? I\'ve noticed that certain practices seem more beneficial for specific conditions, but the research I\'ve found doesn\'t clearly differentiate between meditation types. Also, do you know of any studies looking at minimum effective "doses" of practice? Many patients struggle to maintain lengthy daily sessions.',
+          tags: ['comment', 'meditation', 'psychology', 'clinical practice', 'neuroimaging', 'anxiety', 'depression', 'prefrontal cortex', 'executive function', 'mindfulness', 'therapy', 'mental health', 'meditation techniques', 'research']
         },
 
         // Groups/Communities
@@ -1589,24 +1655,24 @@ await db.init()
           type: 'group',
           noun: 'group',
           name: 'Tech Innovators Network',
-          content: 'A global community of developers, designers, and tech enthusiasts collaborating on emerging technologies and their practical applications. Our members range from startup founders to corporate innovators, all sharing insights on AI, blockchain, IoT, and other transformative technologies. We host monthly virtual meetups featuring expert speakers, maintain an active knowledge base of implementation case studies, and facilitate mentorship connections between experienced professionals and those entering the field.',
-          tags: ['technology', 'innovation', 'community', 'networking', 'AI', 'blockchain', 'IoT', 'collaboration']
+          content: 'A global community of developers, designers, and tech enthusiasts collaborating on emerging technologies and their practical applications. Our members range from startup founders to corporate innovators, all sharing insights on AI, blockchain, IoT, and other transformative technologies. We host monthly virtual meetups featuring expert speakers, maintain an active knowledge base of implementation case studies, and facilitate mentorship connections between experienced professionals and those entering the field. Recent discussions have focused on ethical AI development, privacy-preserving machine learning techniques, and the potential of edge computing to reduce cloud dependency. Our upcoming virtual conference will explore how these technologies can be applied to address pressing global challenges in healthcare, climate science, and sustainable development.',
+          tags: ['technology', 'innovation', 'community', 'networking', 'AI', 'blockchain', 'IoT', 'collaboration', 'ethics', 'privacy', 'edge computing', 'mentorship', 'healthcare', 'sustainability']
         },
         {
           id: 'group2',
           type: 'group',
           noun: 'group',
           name: 'Global Foodies Collective',
-          content: 'An international community dedicated to exploring culinary traditions and innovations from around the world. Our members share authentic recipes, cooking techniques, and food photography that celebrates cultural diversity through cuisine. We organize themed cooking challenges, virtual cook-alongs with chefs from different countries, and discussions about sustainable food systems and the preservation of traditional cooking methods. The community also maintains a searchable database of member-tested recipes organized by region, dietary preferences, and difficulty level.',
-          tags: ['food', 'cooking', 'international', 'recipes', 'culture', 'sustainability', 'traditions', 'culinary']
+          content: 'An international community dedicated to exploring culinary traditions and innovations from around the world. Our members share authentic recipes, cooking techniques, and food photography that celebrates cultural diversity through cuisine. We organize themed cooking challenges, virtual cook-alongs with chefs from different countries, and discussions about sustainable food systems and the preservation of traditional cooking methods. The community also maintains a searchable database of member-tested recipes organized by region, dietary preferences, and difficulty level. Recent initiatives include a documentary series on endangered culinary traditions, a seed-sharing program for heirloom varieties, and partnerships with indigenous communities to document and preserve their food knowledge. Our monthly virtual potlucks feature dishes from a specific region, with members preparing the same recipes and sharing their results, adaptations, and experiences.',
+          tags: ['food', 'cooking', 'international', 'recipes', 'culture', 'sustainability', 'traditions', 'culinary', 'photography', 'indigenous', 'heirloom', 'seed-sharing', 'documentary', 'virtual events']
         },
         {
           id: 'group3',
           type: 'group',
           noun: 'group',
           name: 'Sustainable Living Collective',
-          content: 'A community focused on practical approaches to reducing environmental impact in everyday life. We share evidence-based strategies for sustainable living in urban, suburban, and rural contexts, with special emphasis on solutions that are economically accessible. Our resources include guides for zero-waste home management, energy efficiency improvements, ethical consumption, and small-space gardening. Members collaborate on neighborhood initiatives like community gardens, repair cafés, and local policy advocacy for environmental protection and green infrastructure.',
-          tags: ['sustainability', 'environment', 'lifestyle', 'eco-friendly', 'zero-waste', 'community', 'gardening', 'advocacy']
+          content: 'A community focused on practical approaches to reducing environmental impact in everyday life. We share evidence-based strategies for sustainable living in urban, suburban, and rural contexts, with special emphasis on solutions that are economically accessible. Our resources include guides for zero-waste home management, energy efficiency improvements, ethical consumption, and small-space gardening. Members collaborate on neighborhood initiatives like community gardens, repair cafés, and local policy advocacy for environmental protection and green infrastructure. Recent projects include a tool library that allows members to borrow rarely-used equipment instead of purchasing new items, a series of workshops on DIY home energy audits and weatherization, and a community-supported agriculture program connecting urban residents with local farmers. The collective also maintains a comprehensive database of local recycling options for hard-to-recycle items and coordinates monthly neighborhood cleanup events focused on plastic pollution reduction.',
+          tags: ['sustainability', 'environment', 'lifestyle', 'eco-friendly', 'zero-waste', 'community', 'gardening', 'advocacy', 'tool library', 'energy efficiency', 'repair café', 'local food', 'recycling', 'plastic pollution']
         },
 
         // Events
@@ -1615,16 +1681,58 @@ await db.init()
           type: 'event',
           noun: 'event',
           name: 'Virtual Tech Meetup 2023: Responsible AI Development',
-          content: 'An online gathering of technology professionals sharing insights on ethical AI development frameworks and implementation tools. The event features keynote presentations on bias detection in machine learning models, panel discussions on regulatory compliance across different jurisdictions, and hands-on workshops demonstrating techniques for making AI systems more transparent and explainable. Participants will have opportunities for structured networking with peers working in similar domains and access to a resource library of code samples, case studies, and best practice guidelines.',
-          tags: ['tech', 'virtual', 'networking', 'learning', 'AI', 'ethics', 'development', 'workshops']
+          content: 'An online gathering of technology professionals sharing insights on ethical AI development frameworks and implementation tools. The event features keynote presentations on bias detection in machine learning models, panel discussions on regulatory compliance across different jurisdictions, and hands-on workshops demonstrating techniques for making AI systems more transparent and explainable. Participants will have opportunities for structured networking with peers working in similar domains and access to a resource library of code samples, case studies, and best practice guidelines. The meetup will address critical questions about AI ethics, including how to implement fairness metrics in machine learning pipelines, techniques for conducting algorithmic impact assessments, and strategies for engaging diverse stakeholders in AI governance. Special sessions will focus on privacy-preserving AI methods like federated learning and differential privacy, as well as practical approaches to implementing AI ethics principles in real-world applications. The event will conclude with a collaborative workshop where participants develop action plans for implementing responsible AI practices within their organizations.',
+          tags: ['tech', 'virtual', 'networking', 'learning', 'AI', 'ethics', 'development', 'workshops', 'bias', 'transparency', 'explainability', 'regulation', 'privacy', 'federated learning', 'differential privacy', 'governance']
         },
         {
           id: 'event2',
           type: 'event',
           noun: 'event',
           name: 'International Food Festival: Culinary Traditions in a Modern World',
-          content: 'Annual celebration of global cuisines featuring cooking demonstrations from renowned chefs representing diverse culinary traditions. The festival includes interactive tastings with detailed exploration of ingredient origins and cultural significance, panel discussions on preserving food heritage while embracing innovation, and cultural performances that contextualize food within broader cultural expressions. Special exhibition areas focus on sustainable food systems, the impact of climate change on traditional agriculture, and the role of technology in modern food production and distribution.',
-          tags: ['food', 'festival', 'international', 'culture', 'cooking', 'sustainability', 'traditions', 'innovation']
+          content: 'Annual celebration of global cuisines featuring cooking demonstrations from renowned chefs representing diverse culinary traditions. The festival includes interactive tastings with detailed exploration of ingredient origins and cultural significance, panel discussions on preserving food heritage while embracing innovation, and cultural performances that contextualize food within broader cultural expressions. Special exhibition areas focus on sustainable food systems, the impact of climate change on traditional agriculture, and the role of technology in modern food production and distribution. This year\'s festival will highlight endangered food traditions from indigenous communities around the world, with a special emphasis on preservation efforts and adaptation strategies. Featured chefs will demonstrate traditional cooking techniques that are at risk of being lost, including fermentation methods from Korea, ancient grain processing from the Andes, and specialized fish preservation techniques from coastal Japan. The innovation pavilion will showcase how these traditional methods are being adapted for contemporary kitchens and scaled for commercial production while maintaining cultural authenticity and environmental sustainability. A special section on urban farming will connect traditional agricultural knowledge with modern space-efficient growing techniques for city dwellers.',
+          tags: ['food', 'festival', 'international', 'culture', 'cooking', 'sustainability', 'traditions', 'innovation', 'indigenous', 'climate change', 'agriculture', 'technology', 'fermentation', 'preservation', 'urban farming']
+        }
+        ,
+        // Additional User Profiles
+        {
+          id: 'user6',
+          type: 'person',
+          noun: 'person',
+          name: 'Emily Rodriguez',
+          content: 'Cybersecurity specialist with expertise in ethical hacking and digital forensics. I help organizations identify and address security vulnerabilities before they can be exploited. My background includes 8 years working with financial institutions to protect sensitive customer data and transaction systems. I regularly speak at security conferences about emerging threats in the IoT space and best practices for securing smart home devices. Outside of work, I\'m an avid rock climber and volunteer teaching digital literacy and online safety to seniors in my community. I believe that security awareness should be accessible to everyone, not just technical professionals.',
+          tags: ['cybersecurity', 'hacking', 'digital forensics', 'IoT', 'security', 'technology', 'rock climbing', 'education', 'digital literacy']
+        },
+        {
+          id: 'user7',
+          type: 'person',
+          noun: 'person',
+          name: 'David Kim',
+          content: 'Documentary filmmaker focusing on environmental conservation and indigenous rights. My work has taken me to over 30 countries documenting the intersection of traditional ecological knowledge and modern conservation efforts. My latest project explores community-led marine protection initiatives in coastal Southeast Asia, where local fishermen are combining traditional practices with modern monitoring technology to create sustainable fishing zones. I\'m particularly interested in how storytelling can bridge cultural divides and inspire environmental action. When not filming, I teach visual anthropology at the university level and mentor emerging filmmakers from underrepresented communities.',
+          tags: ['filmmaker', 'documentary', 'environment', 'conservation', 'indigenous', 'storytelling', 'marine protection', 'visual anthropology', 'education', 'mentorship']
+        },
+        {
+          id: 'user8',
+          type: 'person',
+          noun: 'person',
+          name: 'Aisha Mahmoud',
+          content: 'Neuroscientist and public health advocate specializing in the cognitive effects of meditation and mindfulness practices. My research lab uses advanced neuroimaging techniques to study how different meditation practices affect brain structure and function over time. We\'ve published several papers demonstrating the positive impacts of regular meditation on attention, emotional regulation, and stress response. I\'m passionate about translating scientific findings into practical applications that can improve mental health outcomes in diverse communities. I\'ve developed mindfulness programs specifically adapted for schools, healthcare settings, and corporate environments that respect cultural differences in approaches to mental wellbeing.',
+          tags: ['neuroscience', 'meditation', 'mindfulness', 'mental health', 'research', 'neuroimaging', 'education', 'healthcare', 'stress management', 'cognitive science']
+        },
+        {
+          id: 'user9',
+          type: 'person',
+          noun: 'person',
+          name: 'Carlos Mendez',
+          content: 'Urban planner and sustainable transportation advocate working to transform car-centric cities into people-friendly spaces. My projects focus on implementing complete streets designs that safely accommodate all users - pedestrians, cyclists, transit riders, and drivers. I\'ve helped several mid-sized cities develop and implement bicycle master plans that have significantly increased cycling rates and reduced car dependency. My approach combines technical expertise with community engagement to ensure that transportation solutions reflect local needs and build public support. I\'m currently researching how micromobility options like e-scooters and bike sharing can be integrated with public transit to solve the "last mile" problem in suburban areas.',
+          tags: ['urban planning', 'transportation', 'sustainability', 'cycling', 'pedestrian', 'complete streets', 'community engagement', 'micromobility', 'public transit', 'urban design']
+        },
+        {
+          id: 'user10',
+          type: 'person',
+          noun: 'person',
+          name: 'Zoe Thompson',
+          content: 'Quantum computing researcher and science communicator making complex physics concepts accessible to general audiences. My technical work focuses on quantum error correction and the development of fault-tolerant quantum processors. I maintain a popular science blog that explains quantum concepts through creative analogies and interactive visualizations, reaching over 100,000 monthly readers. I believe that public understanding of quantum computing is crucial as we approach the era where these technologies will have significant societal impacts. I\'ve consulted on several science fiction productions to help them portray quantum physics more accurately while still telling compelling stories.',
+          tags: ['quantum computing', 'physics', 'science communication', 'research', 'technology', 'education', 'blogging', 'visualization', 'quantum error correction', 'science fiction']
         }
       ]
 
@@ -2516,57 +2624,8 @@ await db.init()
           const snippet = document.createElement('div')
           snippet.className = 'result-snippet'
 
-          // Extract relevant parts of content that contain search terms
-          let snippetText = ''
-          if (query && query.trim()) {
-            const terms = query.toLowerCase().split(/\s+/).filter(term => term.length > 0)
-            const content = result.content.toLowerCase()
-
-            // Find positions of all search terms in the content
-            let positions = []
-            terms.forEach(term => {
-              let pos = content.indexOf(term)
-              while (pos !== -1) {
-                positions.push({ start: pos, end: pos + term.length })
-                pos = content.indexOf(term, pos + 1)
-              }
-            })
-
-            // Sort positions by start index
-            positions.sort((a, b) => a.start - b.start)
-
-            // Merge overlapping or close positions
-            let mergedPositions = []
-            if (positions.length > 0) {
-              let current = positions[0]
-              for (let i = 1; i < positions.length; i++) {
-                if (positions[i].start <= current.end + 50) { // 50 chars buffer between matches
-                  current.end = Math.max(current.end, positions[i].end)
-                } else {
-                  mergedPositions.push(current)
-                  current = positions[i]
-                }
-              }
-              mergedPositions.push(current)
-            }
-
-            // Extract snippets around each match position (with context)
-            if (mergedPositions.length > 0) {
-              mergedPositions.forEach((pos, idx) => {
-                const contextStart = Math.max(0, pos.start - 30)
-                const contextEnd = Math.min(result.content.length, pos.end + 30)
-
-                if (idx > 0) snippetText += ' [...] '
-                snippetText += result.content.substring(contextStart, contextEnd)
-              })
-            } else {
-              // Fallback to first 200 chars if no matches found
-              snippetText = result.content.substring(0, 200) + (result.content.length > 200 ? '...' : '')
-            }
-          } else {
-            // If no query, use first 200 chars
-            snippetText = result.content.substring(0, 200) + (result.content.length > 200 ? '...' : '')
-          }
+          // Always show the full content of the retrieved data
+          let snippetText = result.content
 
           // Highlight search terms in the snippet
           snippet.innerHTML = highlightSearchTerms(snippetText, query)
@@ -2579,56 +2638,124 @@ await db.init()
           const matchReason = document.createElement('div')
           matchReason.className = 'match-reason'
 
-          const terms = query.toLowerCase().split(/\s+/).filter(term => term.length > 0)
-          let matchDetails = []
+          // Get the current search type
+          const searchType = document.getElementById('search-type').value
 
-          // Check title matches
-          if (result.title) {
-            const titleLower = result.title.toLowerCase()
-            const titleMatches = terms.filter(term => titleLower.includes(term))
-            if (titleMatches.length > 0) {
-              matchDetails.push(`Title matches: "${titleMatches.join('", "')}"`)
-            }
-          }
+          // For semantic or hybrid searches, provide a better explanation
+          if (searchType === 'semantic' || searchType === 'hybrid') {
+            // Extract the most relevant parts of the content to explain the match
+            let matchExplanation = ''
 
-          // Check content matches
-          if (result.content) {
-            const contentLower = result.content.toLowerCase()
-            const contentMatches = terms.filter(term => contentLower.includes(term))
-            if (contentMatches.length > 0) {
-              const matchCounts = contentMatches.map(term => {
-                let count = 0
-                let pos = contentLower.indexOf(term)
-                while (pos !== -1) {
-                  count++
-                  pos = contentLower.indexOf(term, pos + 1)
-                }
-                return `"${term}" (${count}x)`
-              })
-              matchDetails.push(`Content matches: ${matchCounts.join(', ')}`)
-            }
-          }
+            // Get content to analyze
+            const contentToAnalyze = result.content || ''
+            const titleToAnalyze = result.title || ''
 
-          // Check metadata matches
-          const metadataMatches = []
-          for (const [key, value] of Object.entries(result)) {
-            if (key !== 'vector' && key !== 'content' && key !== 'id' && key !== 'title' && key !== 'score') {
-              const valueStr = JSON.stringify(value).toLowerCase()
-              const termMatches = terms.filter(term => valueStr.includes(term))
-              if (termMatches.length > 0) {
-                metadataMatches.push(`${key}: "${termMatches.join('", "')}"`)
+            // Split query into words for analysis
+            const queryWords = query.toLowerCase().split(/\s+/).filter(word => word.length > 2)
+
+            // Find sentences that contain query words or concepts
+            if (contentToAnalyze) {
+              const sentences = contentToAnalyze.split(/[.!?]+/).filter(s => s.trim().length > 0)
+              const relevantSentences = sentences.filter(sentence => {
+                const sentenceLower = sentence.toLowerCase()
+                return queryWords.some(word => sentenceLower.includes(word))
+              }).slice(0, 2) // Take up to 2 most relevant sentences
+
+              if (relevantSentences.length > 0) {
+                // Identify which specific query words matched in the content
+                const matchedWords = queryWords.filter(word =>
+                  relevantSentences.some(sentence => sentence.toLowerCase().includes(word))
+                )
+                matchExplanation = `<p>Matched terms in content: "${matchedWords.join('", "')}"</p>`
+                matchExplanation += `<p>Relevant content: "${relevantSentences.join('... ')}"</p>`
               }
             }
-          }
 
-          if (metadataMatches.length > 0) {
-            matchDetails.push(`Metadata matches: ${metadataMatches.join(', ')}`)
-          }
+            // Add title match information if relevant
+            if (titleToAnalyze && queryWords.some(word => titleToAnalyze.toLowerCase().includes(word))) {
+              // Identify which specific query words matched in the title
+              const matchedTitleWords = queryWords.filter(word =>
+                titleToAnalyze.toLowerCase().includes(word)
+              )
+              matchExplanation += `<p>Title matches: "${matchedTitleWords.join('", "')}"</p>`
+            }
 
-          // If we have match details, display them
-          if (matchDetails.length > 0) {
-            matchReason.innerHTML = `<strong>Why this matched:</strong> ${matchDetails.join(' | ')}`
+            // Check metadata matches for semantic search too
+            const metadataMatches = []
+            for (const [key, value] of Object.entries(result)) {
+              if (key !== 'vector' && key !== 'content' && key !== 'id' && key !== 'title' && key !== 'score' && value !== null && value !== undefined) {
+                const valueStr = JSON.stringify(value).toLowerCase()
+                const termMatches = queryWords.filter(word => valueStr.includes(word))
+                if (termMatches.length > 0) {
+                  metadataMatches.push(`${key}: "${termMatches.join('", "')}"`)
+                }
+              }
+            }
+
+            if (metadataMatches.length > 0) {
+              matchExplanation += `<p>Metadata matches: ${metadataMatches.join(', ')}</p>`
+            }
+
+            // If we couldn't find specific matches, provide a more detailed semantic explanation
+            if (!matchExplanation) {
+              matchExplanation = `<p>This result was found based on semantic similarity to your query "${query}". The content contains conceptually related information even without exact keyword matches.</p>`
+            }
+
+            matchReason.innerHTML = `<strong>Semantic match:</strong> ${matchExplanation} <p>Score: ${result.score?.toFixed(4) || 'N/A'} indicates how closely the content matches the semantic meaning of your search.</p>`
             resultItem.appendChild(matchReason)
+          } else {
+            // For keyword searches, show detailed match information
+            const terms = query.toLowerCase().split(/\s+/).filter(term => term.length > 0)
+            let matchDetails = []
+
+            // Check title matches
+            if (result.title) {
+              const titleLower = result.title.toLowerCase()
+              const titleMatches = terms.filter(term => titleLower.includes(term))
+              if (titleMatches.length > 0) {
+                matchDetails.push(`Title matches: "${titleMatches.join('", "')}"`)
+              }
+            }
+
+            // Check content matches
+            if (result.content) {
+              const contentLower = result.content.toLowerCase()
+              const contentMatches = terms.filter(term => contentLower.includes(term))
+              if (contentMatches.length > 0) {
+                const matchCounts = contentMatches.map(term => {
+                  let count = 0
+                  let pos = contentLower.indexOf(term)
+                  while (pos !== -1) {
+                    count++
+                    pos = contentLower.indexOf(term, pos + 1)
+                  }
+                  return `"${term}" (${count}x)`
+                })
+                matchDetails.push(`Content matches: ${matchCounts.join(', ')}`)
+              }
+            }
+
+            // Check metadata matches
+            const metadataMatches = []
+            for (const [key, value] of Object.entries(result)) {
+              if (key !== 'vector' && key !== 'content' && key !== 'id' && key !== 'title' && key !== 'score') {
+                const valueStr = JSON.stringify(value).toLowerCase()
+                const termMatches = terms.filter(term => valueStr.includes(term))
+                if (termMatches.length > 0) {
+                  metadataMatches.push(`${key}: "${termMatches.join('", "')}"`)
+                }
+              }
+            }
+
+            if (metadataMatches.length > 0) {
+              matchDetails.push(`Metadata matches: ${metadataMatches.join(', ')}`)
+            }
+
+            // If we have match details, display them
+            if (matchDetails.length > 0) {
+              matchReason.innerHTML = `<strong>Keyword match:</strong> ${matchDetails.join(' | ')}`
+              resultItem.appendChild(matchReason)
+            }
           }
         }
 
@@ -2638,16 +2765,58 @@ await db.init()
 
         // Add all metadata except vectors
         let metadataHtml = ''
+        let hasMetadata = false
+
+        // First check if we have any valid metadata
         for (const [key, value] of Object.entries(result)) {
           if (key !== 'vector' && key !== 'content' && key !== 'id' && key !== 'title' && key !== 'score') {
-            metadataHtml += `<span class="metadata-item"><strong>${key}:</strong> ${JSON.stringify(value)}</span>`
+            if (value !== null && value !== undefined) {
+              hasMetadata = true
+              break
+            }
           }
         }
 
-        if (metadataHtml) {
-          metadata.innerHTML = metadataHtml
-          resultItem.appendChild(metadata)
+        // If we have metadata, display it
+        if (hasMetadata) {
+          for (const [key, value] of Object.entries(result)) {
+            if (key !== 'vector' && key !== 'content' && key !== 'id' && key !== 'title' && key !== 'score') {
+              // Skip null or undefined values
+              if (value === null || value === undefined) continue
+
+              // Format the value for display
+              let displayValue = value
+              if (typeof value === 'object') {
+                displayValue = JSON.stringify(value)
+              }
+
+              metadataHtml += `<span class="metadata-item"><strong>${key}:</strong> ${displayValue}</span>`
+            }
+          }
         }
+        // If no metadata was found, add type and content summary
+        else {
+          if (result.type) {
+            metadataHtml += `<span class="metadata-item"><strong>type:</strong> ${result.type}</span>`
+          }
+
+          // Add a content summary if available
+          if (result.content) {
+            const contentSummary = result.content.length > 100
+              ? result.content.substring(0, 100) + '...'
+              : result.content
+            metadataHtml += `<span class="metadata-item"><strong>content:</strong> ${contentSummary}</span>`
+          }
+
+          // If still no metadata, add a placeholder
+          if (!metadataHtml) {
+            metadataHtml = `<span class="metadata-item"><strong>info:</strong> Basic search result</span>`
+          }
+        }
+
+        // Always display metadata section
+        metadata.innerHTML = metadataHtml
+        resultItem.appendChild(metadata)
 
         resultsList.appendChild(resultItem)
       })
