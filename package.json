@@ -48,7 +48,8 @@
     "deploy:cloud:gcp": "cd cloud-wrapper && npm run build && npm run deploy:gcp",
     "deploy:cloud:cloudflare": "cd cloud-wrapper && npm run build && npm run deploy:cloudflare",
     "deploy:cloud": "echo 'Please use one of the following commands to deploy to a specific cloud provider:' && echo '  npm run deploy:cloud:aws' && echo '  npm run deploy:cloud:gcp' && echo '  npm run deploy:cloud:cloudflare'",
-    "postinstall": "echo 'Note: If you encounter dependency conflicts with TensorFlow.js packages, please use: npm install --legacy-peer-deps'"
+    "postinstall": "echo 'Note: If you encounter dependency conflicts with TensorFlow.js packages, please use: npm install --legacy-peer-deps'",
+    "dry-run": "npm pack --dry-run"
   },
   "bin": {
     "brainy": "cli-wrapper.js"
