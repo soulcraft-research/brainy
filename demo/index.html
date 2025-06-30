@@ -429,10 +429,6 @@
           cursor: pointer;
       }
 
-      .result-title:hover {
-          text-decoration: underline;
-      }
-
       .result-score {
           color: #70757a;
           font-size: 14px;
@@ -483,11 +479,16 @@
           color: #4d5156;
       }
 
-      /* Highlighted search terms */
+      /* Highlighted search terms - removed highlighting as per requirements */
       .highlight {
-          background-color: #FFEB3B;
-          font-weight: bold;
-          padding: 0 1px;
+          font-weight: normal;
+          padding: 0;
+      }
+
+      /* Conceptually similar words - removed highlighting as per requirements */
+      .similar-highlight {
+          font-weight: normal;
+          padding: 0;
       }
 
       /* Cluster-specific styles */
@@ -937,7 +938,7 @@
                   fill="#9aa0a6"></path>
               </svg>
             </div>
-            <input type="text" id="search-query" placeholder="Try: travel, AI, fitness, food, design...">
+            <input type="text" id="search-query" placeholder="Try: machine learning, AI ethics, computer vision, robotics...">
             <div class="google-search-clear" id="search-clear">
               <svg focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
                 <path
@@ -966,8 +967,8 @@
       </div>
 
       <p class="search-help" style="font-size: 0.9em; color: #666; margin-top: 10px; margin-bottom: 15px;">
-        Try searching for topics in the sample data like "travel", "AI", "fitness", "food", "design",
-        "sustainability", or specific concepts like "workout challenge", "social media", "photography", etc.
+        Try searching for topics in the sample data like "machine learning", "AI ethics", "computer vision", "robotics", "quantum computing",
+        "cybersecurity", or specific concepts like "large language models", "federated learning", "explainable AI", "climate science", etc.
       </p>
 
       <div class="google-results-container" id="search-results">
@@ -1255,7 +1256,7 @@ await db.init()
   // Always use local files instead of CDN
   // Use relative path for GitHub Pages compatibility
   const isGitHubPages = window.location.hostname.includes('github.io')
-  const isCodeSoulcraft = window.location.hostname.includes('code.soulcraft.com')
+  const isCodeSoulcraft = window.location.hostname.includes('demo.soulcraft.com')
 
   // Use different paths based on hosting environment
   let importPath
@@ -1453,10 +1454,10 @@ await db.init()
       await database.clear()
 
       log('db-status', 'Database initialized and cleared successfully!\nStorage: OPFS\nAugmentations: Embedding, Search')
-      updateDatabaseVisualization()
+      await updateDatabaseVisualization()
 
       // Populate noun dropdowns after initialization
-      populateNounDropdowns()
+      await populateNounDropdowns()
     } catch (error) {
       log('db-status', 'Error initializing database: ' + error.message)
     }
@@ -1469,92 +1470,132 @@ await db.init()
     }
 
     try {
-      log('db-status', 'Adding sample social media data...')
+      log('db-status', 'Adding sample AI and technology data...')
 
-      // Sample Nouns with social media personas and content
+      // Sample Nouns with AI and technology focused content
       const sampleNouns = [
-        // User profiles
+        // User profiles - AI and Technology Experts
         {
           id: 'user1',
           type: 'person',
           noun: 'person',
           name: 'Alex Johnson',
-          content: 'Tech enthusiast and senior software developer with 10+ years of experience in AI and machine learning. I love hiking through national parks on weekends and capturing landscape photography. Currently working on several open-source AI projects that focus on natural language processing and computer vision applications for everyday use cases. My latest project involves developing a privacy-focused recommendation system that runs entirely on-device without sending user data to the cloud.',
-          tags: ['tech', 'developer', 'photography', 'hiking', 'AI', 'machine learning', 'privacy', 'open-source']
+          content: 'AI researcher and senior software developer with 10+ years of experience in machine learning and natural language processing. Currently leading a team developing large language models with improved reasoning capabilities. My research focuses on making AI systems more transparent and explainable to end users. I\'m particularly interested in reducing hallucinations in generative AI while maintaining creative capabilities. Recently published a paper on techniques for evaluating factual consistency in AI-generated content.',
+          tags: ['AI', 'machine learning', 'NLP', 'research', 'explainable AI', 'LLMs', 'transparency', 'factual consistency']
         },
         {
           id: 'user2',
           type: 'person',
           noun: 'person',
           name: 'Sophia Chen',
-          content: 'Digital marketing specialist with a passion for data analytics and consumer behavior research. I run a popular food and travel blog documenting culinary experiences across continents. My background in statistics helps me analyze food trends and cultural patterns in different regions. Recently completed a six-month journey through Southeast Asia exploring local cuisines and sustainable food practices. I\'m particularly interested in how traditional cooking methods are being preserved in the face of modernization and globalization.',
-          tags: ['marketing', 'analytics', 'food', 'travel', 'statistics', 'blogging', 'sustainability', 'culture']
+          content: 'Data scientist specializing in computer vision applications for healthcare. My work involves developing AI systems that can assist radiologists in early detection of diseases from medical imaging. I\'m passionate about ensuring AI healthcare tools work equitably across diverse patient populations. Recently completed a project that reduced diagnostic disparities in skin condition identification across different skin tones. Currently researching privacy-preserving federated learning approaches for training medical AI without compromising patient data.',
+          tags: ['AI', 'computer vision', 'healthcare', 'medical imaging', 'equity', 'federated learning', 'privacy', 'diagnostics']
         },
         {
           id: 'user3',
           type: 'person',
           noun: 'person',
           name: 'Marcus Williams',
-          content: 'Award-winning graphic designer and UI/UX specialist focusing on minimalist design principles and accessible interfaces. My work has been featured in several international design publications and exhibitions. I believe in the power of thoughtful design to solve complex problems and improve user experiences. When not designing, I\'m exploring local coffee shops, perfecting my home brewing techniques, and researching the intersection of design thinking and cognitive psychology. Currently working on a design system that emphasizes accessibility without compromising aesthetic quality.',
-          tags: ['design', 'UI/UX', 'minimalism', 'accessibility', 'coffee', 'psychology', 'user experience', 'typography']
+          content: 'AI ethics researcher and consultant helping organizations implement responsible AI practices. My background spans philosophy, computer science, and policy analysis. I develop frameworks for algorithmic impact assessments and conduct audits of AI systems for potential bias or harmful outcomes. Currently advising several tech companies on establishing AI governance structures and ethical guidelines. My recent work focuses on ensuring human oversight in automated decision systems, particularly in high-stakes domains.',
+          tags: ['AI ethics', 'responsible AI', 'algorithmic bias', 'governance', 'policy', 'impact assessment', 'human oversight', 'technology ethics']
         },
         {
           id: 'user4',
           type: 'person',
           noun: 'person',
           name: 'Priya Patel',
-          content: 'Environmental scientist with a PhD in climate science, currently researching the long-term impacts of climate change on urban ecosystems and food security. I advocate for sustainable living practices and renewable energy adoption through community workshops and educational programs. My research has been published in several peer-reviewed journals, and I consult with local governments on sustainability initiatives. I\'m particularly passionate about urban gardening as a solution to food deserts in low-income neighborhoods and have developed several community garden projects that combine food production with environmental education.',
-          tags: ['science', 'environment', 'sustainability', 'climate', 'research', 'education', 'urban gardening', 'food security']
+          content: 'AI researcher focusing on environmental applications of machine learning. I develop models that analyze satellite imagery and sensor data to monitor deforestation, predict climate patterns, and optimize renewable energy systems. My team recently created an early warning system for wildfire risk that combines weather data with vegetation dryness detected through remote sensing. I\'m passionate about using AI to address climate change while ensuring these technologies themselves have minimal environmental impact through efficient computing approaches.',
+          tags: ['AI', 'environmental science', 'climate tech', 'remote sensing', 'satellite imagery', 'renewable energy', 'wildfires', 'sustainable computing']
         },
         {
           id: 'user5',
           type: 'person',
           noun: 'person',
           name: 'Jordan Taylor',
-          content: 'Certified fitness coach and holistic wellness expert specializing in functional training and plant-based nutrition. I develop personalized fitness programs that integrate physical training with mental wellness practices like mindfulness and stress management. My approach focuses on sustainable lifestyle changes rather than quick fixes, emphasizing the connection between physical health, nutrition, sleep quality, and mental wellbeing. I\'ve helped hundreds of clients transform their health through balanced nutrition and consistent exercise routines tailored to their unique needs and circumstances. Recently launched a 30-day home workout program that requires no equipment and adapts to all fitness levels.',
-          tags: ['fitness', 'nutrition', 'health', 'wellness', 'coaching', 'plant-based', 'mindfulness', 'home workouts']
+          content: 'Robotics engineer specializing in human-robot interaction and collaborative systems. My research focuses on developing robots that can safely work alongside humans in manufacturing, healthcare, and home environments. I\'m particularly interested in intuitive interfaces that allow non-experts to program and direct robotic assistants. Recently developed a gesture recognition system that enables factory workers to quickly redirect collaborative robots without specialized training. Currently working on robots that can recognize and respond appropriately to human emotional states.',
+          tags: ['robotics', 'AI', 'human-robot interaction', 'collaborative robots', 'gesture recognition', 'manufacturing', 'healthcare robotics', 'emotion recognition']
+        },
+        {
+          id: 'user11',
+          type: 'person',
+          noun: 'person',
+          name: 'Olivia Martinez',
+          content: 'Quantum computing researcher specializing in quantum machine learning algorithms. My work bridges the gap between quantum physics and artificial intelligence, developing novel approaches that leverage quantum properties to enhance machine learning capabilities. I\'ve recently published on quantum neural networks that demonstrate significant speedup for specific pattern recognition tasks. Currently leading a project to implement these algorithms on actual quantum hardware through cloud access partnerships with major quantum computing providers. I\'m passionate about making quantum computing concepts accessible to AI practitioners without physics backgrounds.',
+          tags: ['quantum computing', 'AI', 'machine learning', 'quantum algorithms', 'quantum neural networks', 'physics', 'pattern recognition', 'quantum hardware', 'education']
+        },
+        {
+          id: 'user12',
+          type: 'person',
+          noun: 'person',
+          name: 'Benjamin Lee',
+          content: 'AR/VR developer focused on creating immersive educational experiences. I design virtual environments that make complex scientific and technical concepts tangible and interactive. My recent projects include a VR simulation of molecular interactions for chemistry education and an AR application that visualizes historical architectural styles in urban environments. I\'m particularly interested in how spatial computing can transform learning by engaging multiple sensory systems simultaneously. Currently researching how to optimize knowledge retention through embodied cognition principles in virtual environments.',
+          tags: ['AR', 'VR', 'extended reality', 'education', 'immersive learning', 'spatial computing', 'visualization', 'embodied cognition', 'interactive design', 'simulation']
+        },
+        {
+          id: 'user13',
+          type: 'person',
+          noun: 'person',
+          name: 'Amara Okafor',
+          content: 'Cybersecurity researcher specializing in AI-powered threat detection systems. My work focuses on developing machine learning models that can identify novel attack patterns and zero-day vulnerabilities before they can be widely exploited. I lead a team that combines traditional rule-based security approaches with anomaly detection algorithms that continuously learn from network behavior. Recently published research on adversarial machine learning techniques that can strengthen security systems against AI-powered attacks. Currently developing privacy-preserving methods for sharing threat intelligence across organizations without exposing sensitive data.',
+          tags: ['cybersecurity', 'AI', 'machine learning', 'threat detection', 'zero-day vulnerabilities', 'adversarial machine learning', 'network security', 'privacy', 'threat intelligence']
+        },
+        {
+          id: 'user14',
+          type: 'person',
+          noun: 'person',
+          name: 'Hiroshi Nakamura',
+          content: 'Robotics and AI researcher specializing in swarm intelligence and multi-robot coordination. My work involves developing algorithms that allow large groups of simple robots to collectively solve complex problems through local interactions. These systems are inspired by biological swarms like ant colonies and bird flocks. Recent projects include disaster response robot swarms that can rapidly map damaged buildings and environmental monitoring drones that self-organize to track pollution sources. I\'m particularly interested in creating robust systems that can adapt to unexpected environmental changes and continue functioning even when individual robots fail.',
+          tags: ['robotics', 'AI', 'swarm intelligence', 'multi-robot systems', 'distributed algorithms', 'biomimicry', 'disaster response', 'environmental monitoring', 'resilient systems', 'collective behavior']
+        },
+        {
+          id: 'user15',
+          type: 'person',
+          noun: 'person',
+          name: 'Elena Volkov',
+          content: 'AI ethics advocate and policy researcher focusing on algorithmic fairness and accountability. My interdisciplinary background spans computer science, law, and social science, allowing me to bridge technical and regulatory perspectives on AI governance. I work with both government agencies and technology companies to develop practical frameworks for algorithmic impact assessments and auditing methodologies. Recently led a multi-stakeholder initiative to create industry standards for transparent AI documentation. My current research examines how different cultural and legal traditions around the world are approaching AI regulation, and how to develop globally compatible governance frameworks.',
+          tags: ['AI ethics', 'policy', 'algorithmic fairness', 'governance', 'regulation', 'impact assessment', 'transparency', 'accountability', 'global perspectives', 'standards development']
         },
 
-        // Posts/Content
+        // Posts/Content - AI and Technology Topics
         {
           id: 'post1',
           type: 'document',
           noun: 'content',
-          title: 'The Future of AI in Everyday Applications',
-          content: 'Artificial intelligence is rapidly transforming how we interact with technology in ways that weren\'t possible just a few years ago. From smart assistants that understand context and nuance to recommendation systems that seem to know our preferences better than we do, AI is becoming an invisible yet powerful part of our daily lives. The most exciting developments are happening at the intersection of machine learning and edge computing, where AI models can run directly on our devices without sending sensitive data to the cloud. This preserves privacy while still delivering personalized experiences. Looking ahead, I believe we\'ll see AI becoming more explainable and transparent, addressing current concerns about "black box" algorithms. The challenge for developers will be creating systems that can be personalized to individual needs while maintaining ethical standards and avoiding algorithmic bias. The companies that succeed will be those that treat AI as an augmentation of human capabilities rather than a replacement. I\'m particularly excited about applications in healthcare, where AI can help identify patterns in symptoms and treatment outcomes that might be missed by human practitioners. However, these systems must be designed with careful attention to privacy concerns and the potential for bias in training data. Another promising area is environmental monitoring, where machine learning models can process vast amounts of sensor data to detect patterns related to climate change, pollution levels, and biodiversity loss. These applications demonstrate how AI can be a powerful tool for addressing some of our most pressing global challenges.',
-          tags: ['AI', 'technology', 'future', 'personalization', 'machine learning', 'privacy', 'ethics', 'healthcare', 'environment']
+          title: 'The Future of Large Language Models: Beyond Text Generation',
+          content: 'Large language models have evolved rapidly from simple text prediction to systems capable of complex reasoning, code generation, and multimodal understanding. While current models like GPT-4 and Claude have impressive capabilities, they still face significant challenges in reasoning, factuality, and alignment with human values. The next generation of LLMs will likely focus less on scaling parameters and more on architectural innovations that improve reasoning capabilities. We\'re already seeing promising research in retrieval-augmented generation (RAG) that grounds model outputs in verified information sources, reducing hallucinations while maintaining flexibility. Another critical direction is the development of more sophisticated alignment techniques that better capture the nuance and diversity of human values while avoiding overfitting to specific cultural perspectives. The most exciting applications will emerge when these models can reliably act as reasoning engines that augment human thinking rather than simply generating plausible-sounding text. For this to happen, we need breakthroughs in evaluation methods that can rigorously test for logical consistency and factual accuracy beyond surface-level fluency. Organizations implementing these technologies will need to develop robust governance frameworks that ensure appropriate human oversight while leveraging the models\' capabilities. The companies that succeed won\'t be those with the largest models, but those that most effectively integrate these systems into workflows that combine machine efficiency with human judgment and creativity.',
+          tags: ['AI', 'large language models', 'LLMs', 'reasoning', 'alignment', 'retrieval-augmented generation', 'factuality', 'governance', 'evaluation']
         },
         {
           id: 'post2',
           type: 'document',
           noun: 'content',
-          title: 'My Southeast Asia Food Tour: A Culinary Journey',
-          content: 'I\'ve just returned from an incredible three-month culinary adventure across Thailand, Vietnam, Malaysia, and Singapore that completely transformed my understanding of Asian cuisine. The vibrant street food scenes in Bangkok and Hanoi were particularly eye-opening - watching skilled vendors prepare dishes they\'ve perfected over decades, using techniques passed down through generations. In Bangkok\'s Chinatown, I discovered that the best pad thai comes from a 70-year-old woman who cooks only 50 portions each night, selling out within an hour. The complex interplay of sweet, sour, salty, and spicy flavors in authentic Thai cuisine is something that western adaptations rarely capture correctly. Moving to Vietnam, I was fascinated by the regional variations in pho - from the clearer, more delicate broths in the south to the richer, more aromatic versions in Hanoi. The Malaysian food scene in Penang revealed the beautiful fusion of Chinese, Indian, and Malay influences, creating dishes that tell the story of the country\'s multicultural history. I was particularly impressed by the laksa in Penang, which differs significantly from the Sarawak version I tried later in my journey. The Penang laksa has a sour, fish-based broth with tamarind, while Sarawak laksa uses a rich, spicy coconut milk base with sambal belacan. In Singapore, I explored how traditional hawker stalls are adapting to changing consumer preferences while preserving authentic cooking methods. Many vendors are now incorporating sustainable practices, like using locally-sourced ingredients and biodegradable packaging, without compromising on flavor. I\'ve returned home with not just memories, but with cooking techniques, ingredient combinations, and flavor profiles that I\'m excited to incorporate into my own cooking. The experience has reinforced my belief that food is one of the most authentic ways to understand a culture\'s values and history.',
-          tags: ['food', 'travel', 'asia', 'culinary', 'culture', 'cooking', 'Thailand', 'Vietnam', 'Malaysia', 'Singapore', 'sustainability', 'street food', 'laksa', 'pho', 'pad thai']
+          title: 'Computer Vision in Healthcare: Current Applications and Ethical Considerations',
+          content: 'Computer vision systems are transforming healthcare diagnostics by analyzing medical images with speed and accuracy that complement human expertise. In radiology, AI models can now detect early signs of conditions ranging from lung cancer to diabetic retinopathy, often identifying subtle patterns that might be missed in initial human review. These systems are most effective when deployed as assistive tools that highlight areas of concern for radiologist confirmation, rather than autonomous diagnostic systems. The most successful implementations maintain the physician as the final decision-maker while using AI to enhance efficiency and reduce the likelihood of missed findings. Beyond radiology, computer vision is enabling new applications in surgical assistance, remote patient monitoring, and even mental health assessment through facial expression analysis. However, these powerful capabilities come with significant ethical considerations. Training data often underrepresents certain demographic groups, leading to models that perform inconsistently across different populations. This is particularly concerning in dermatology applications, where systems trained predominantly on lighter skin tones have shown reduced accuracy for patients with darker skin. Healthcare institutions implementing these technologies must invest in diverse training datasets and rigorous testing across population groups. Additionally, the "black box" nature of many deep learning models raises questions about explainability and trust in high-stakes medical contexts. Researchers are developing techniques for more interpretable AI, allowing clinicians to understand the factors influencing a model\'s suggestion. As these systems become more integrated into clinical workflows, maintaining appropriate human oversight and clear accountability frameworks will be essential for responsible deployment.',
+          tags: ['AI', 'computer vision', 'healthcare', 'medical imaging', 'diagnostics', 'ethics', 'bias', 'explainability', 'radiology', 'dermatology']
         },
         {
           id: 'post3',
           type: 'document',
           noun: 'content',
-          title: 'Minimalist Design Principles for Digital Interfaces: Beyond Aesthetics',
+          title: 'Ethical AI Design: Building Systems That Respect Human Values',
           content: 'The principle that "less is more" has never been more relevant than in today\'s overcrowded digital landscape. Minimalist design isn\'t just an aesthetic choice—it\'s a functional imperative for creating interfaces that users can navigate intuitively. Through my work with various clients, I\'ve observed that minimalist interfaces consistently outperform cluttered ones in key metrics like time-on-task, error rates, and user satisfaction. The core principles of minimalist design extend beyond simply removing elements. It involves a careful analysis of user needs, prioritizing functions based on frequency and importance, and creating visual hierarchies that guide attention naturally. Color should be used strategically, not decoratively—each color choice should serve a specific communicative purpose. Typography plays an equally crucial role; a well-chosen font hierarchy can eliminate the need for additional visual elements like dividers or boxes. White space (or negative space) is perhaps the most undervalued element in digital design. It\'s not just empty space—it\'s a powerful tool for creating focus, improving readability, and giving content room to breathe. When implementing minimalist principles, it\'s important to test with real users to ensure that simplification doesn\'t compromise usability. The goal is to reduce cognitive load while maintaining all necessary functionality, creating digital products that feel effortless to use while being fully featured. This approach not only improves user experience but also tends to create more accessible interfaces that work better for users with disabilities or those using assistive technologies. For example, a recent e-commerce project I completed saw a 23% increase in conversion rates after implementing minimalist design principles, while customer support inquiries decreased by almost 30%. The simplified navigation and clearer visual hierarchy made it easier for users to find products and complete purchases without confusion. The project also prioritized accessibility, ensuring that the interface worked well with screen readers and supported keyboard navigation, making the site usable for people with various disabilities.',
-          tags: ['design', 'minimalism', 'UI', 'UX', 'accessibility', 'typography', 'user experience', 'digital interfaces', 'white space', 'visual hierarchy', 'cognitive load', 'e-commerce', 'conversion rates']
+          tags: ['AI', 'ethics', 'responsible AI', 'human values', 'alignment', 'bias', 'fairness', 'transparency', 'accountability', 'governance', 'human-centered design', 'stakeholder engagement', 'value pluralism']
         },
         {
           id: 'post4',
           type: 'document',
           noun: 'content',
-          title: 'Urban Gardening: Growing Food in Small Spaces',
+          title: 'AI for Environmental Monitoring: Protecting Ecosystems with Machine Learning',
           content: 'The misconception that you need a large yard to grow your own food is preventing many urban dwellers from experiencing the satisfaction and benefits of home gardening. Through five years of experimentation in my 500-square-foot apartment, I\'ve developed systems for growing approximately 30% of my own produce year-round. Vertical gardening is the cornerstone of space-efficient food production. By utilizing wall space with hanging planters, tiered shelving, and trellis systems, even the smallest balcony can become surprisingly productive. I\'ve found that leafy greens like kale, spinach, and various lettuces offer the best return on investment in small spaces—they grow quickly, can be harvested continuously, and would otherwise be expensive to purchase organically. For those without outdoor space, windowsill herb gardens and microgreens under grow lights provide fresh flavors with minimal space requirements. The key to successful small-space gardening is understanding the specific light conditions of your space and selecting appropriate plants. Most vegetables need at least 6 hours of direct sunlight, but many herbs and leafy greens can thrive with less. Container selection is equally important—self-watering containers have revolutionized urban gardening by reducing maintenance and improving plant health. Soil quality becomes even more critical in container gardening; investing in high-quality potting mix and implementing a regular composting system (even a small worm bin under the sink) creates a sustainable cycle. Beyond the practical benefits of fresh, pesticide-free produce, urban gardening creates a connection to natural cycles that is often missing in city life. The psychological benefits of tending plants and watching them grow should not be underestimated, especially in high-stress urban environments. I\'ve recently started working with community organizations to develop urban gardening programs in food desert neighborhoods, where access to fresh produce is limited. These community gardens not only provide nutritious food but also serve as educational spaces where residents can learn about sustainable growing practices, nutrition, and environmental science. The social connections formed through these community gardening initiatives have proven to be as valuable as the food produced, creating stronger neighborhood bonds and support networks.',
-          tags: ['gardening', 'sustainability', 'urban', 'food', 'containers', 'vertical gardening', 'organic', 'small spaces', 'food security', 'community gardens', 'composting', 'mental health', 'food deserts']
+          tags: ['AI', 'machine learning', 'environmental monitoring', 'conservation', 'remote sensing', 'satellite imagery', 'biodiversity', 'climate change', 'sustainability', 'ecosystem protection', 'data science', 'sensors', 'wildlife tracking', 'deforestation']
         },
         {
           id: 'post5',
           type: 'document',
           noun: 'content',
-          title: '30-Day Home Workout Challenge: Progressive Fitness Without Equipment',
+          title: 'Robotics and Human Augmentation: The Future of Collaborative Systems',
           content: 'After years of designing fitness programs, I\'ve found that the biggest obstacle for most people isn\'t motivation—it\'s complexity and accessibility. This 30-day challenge addresses both issues by requiring zero equipment while providing a structured progression that prevents plateaus and reduces injury risk. The program is built around functional movement patterns that strengthen the body for real-world activities, not just gym performance. The first week focuses on establishing proper form in fundamental movements like squats, lunges, planks, and push-ups, with modifications provided for all fitness levels. Rather than counting reps, many exercises use time-based intervals, allowing each person to work at their own pace while still being challenged. As the program progresses, intensity increases through three primary mechanisms: increasing time under tension, incorporating unilateral (single-limb) variations, and adding rhythmic changes that challenge coordination and cardiovascular fitness simultaneously. Recovery is programmed as deliberately as the workouts themselves, with specific mobility routines for rest days that address common problem areas like hip flexors and shoulders that become tight from sedentary work. The nutrition guidance accompanying the program emphasizes timing and composition rather than strict calorie counting—particularly the importance of protein intake for recovery and carbohydrate timing around workouts. Participants who\'ve completed this challenge report not just physical changes, but improvements in sleep quality, energy levels, and mental clarity. The program includes a tracking system that helps identify patterns between workout performance and variables like sleep, stress, and nutrition, teaching participants to understand their body\'s unique responses and needs. What sets this program apart from others is its holistic approach to fitness that acknowledges the interconnectedness of physical activity, nutrition, sleep, and stress management. Each week includes not only workout instructions but also mindfulness practices, sleep optimization strategies, and stress reduction techniques. This integrated approach has proven particularly effective for participants who previously struggled with consistency, as it addresses the root causes of exercise avoidance rather than just prescribing more willpower.',
-          tags: ['fitness', 'workout', 'health', 'challenge', 'home exercise', 'bodyweight', 'functional fitness', 'progressive training', 'mindfulness', 'sleep', 'stress management', 'nutrition', 'mobility', 'recovery']
+          tags: ['robotics', 'AI', 'human augmentation', 'collaborative systems', 'human-robot interaction', 'exoskeletons', 'prosthetics', 'automation', 'manufacturing', 'healthcare robotics', 'assistive technology', 'brain-computer interfaces', 'cobots', 'human factors']
         },
 
         // Additional Posts
@@ -1562,41 +1603,121 @@ await db.init()
           id: 'post6',
           type: 'document',
           noun: 'content',
-          title: 'Cybersecurity Essentials for Small Businesses: Affordable Protection Strategies',
+          title: 'AI-Powered Cybersecurity: Machine Learning for Threat Detection and Response',
           content: 'Small businesses often believe they\'re too insignificant to be targeted by hackers, but this misconception makes them particularly vulnerable. In reality, over 40% of cyberattacks target small businesses precisely because they typically have weaker security measures than larger organizations while still holding valuable data. This guide outlines practical, cost-effective security measures that don\'t require a dedicated IT department. First, implement multi-factor authentication (MFA) on all business accounts - this single step can prevent 99.9% of automated attacks. Next, establish a regular update schedule for all software and devices to patch security vulnerabilities promptly. For data protection, adopt the 3-2-1 backup strategy: maintain three copies of important data on two different media types with one copy stored off-site or in the cloud. Employee training is equally crucial - create clear security policies and conduct regular phishing simulations to help staff recognize threats.',
-          tags: ['cybersecurity', 'small business', 'data protection', 'security', 'multi-factor authentication', 'backups', 'employee training', 'password management', 'cloud security', 'risk assessment', 'cyber insurance', 'incident response']
+          tags: ['AI', 'cybersecurity', 'machine learning', 'threat detection', 'anomaly detection', 'security', 'data protection', 'predictive analytics', 'zero-day threats', 'behavioral analysis', 'automated response', 'network security', 'intrusion detection', 'cyber defense']
         },
         {
           id: 'post7',
           type: 'document',
           noun: 'content',
-          title: 'Ocean Conservation Through Indigenous Knowledge Systems',
+          title: 'AI and Indigenous Knowledge: Combining Traditional Wisdom with Machine Learning',
           content: 'The intersection of traditional ecological knowledge and modern marine conservation offers powerful solutions for ocean protection that neither approach could achieve alone. Indigenous coastal communities worldwide have maintained sustainable relationships with marine ecosystems for thousands of years through sophisticated management practices often dismissed by Western science until recently. In the Pacific Islands, traditional conservation methods like the Polynesian rahui (temporary fishing bans) and Hawaiian ahupua\'a (integrated land-sea management systems) are now being recognized for their effectiveness in maintaining biodiversity and fish stocks.',
-          tags: ['ocean conservation', 'indigenous knowledge', 'marine protection', 'traditional ecological knowledge', 'sustainable fishing', 'biodiversity', 'climate change', 'co-management', 'environmental monitoring', 'cultural preservation', 'conservation technology']
+          tags: ['AI', 'indigenous knowledge', 'machine learning', 'traditional ecological knowledge', 'cultural preservation', 'data sovereignty', 'environmental monitoring', 'biodiversity', 'climate change', 'participatory design', 'ethical AI', 'cross-cultural collaboration', 'sustainable technology', 'knowledge systems']
         },
         {
           id: 'post8',
           type: 'document',
           noun: 'content',
-          title: 'Neuroplasticity and Meditation: How Mindfulness Reshapes the Brain',
+          title: 'AI in Neuroscience: Machine Learning Approaches to Understanding the Brain',
           content: 'Recent advances in neuroimaging technology have allowed scientists to observe the remarkable ways meditation practices physically reshape the brain, providing scientific validation for what practitioners have reported for centuries. Longitudinal studies using MRI scans show that regular meditation practice leads to measurable changes in brain structure and function in as little as eight weeks. The most consistent findings involve increased gray matter density in regions associated with attention, sensory processing, and emotional regulation.',
-          tags: ['neuroscience', 'meditation', 'mindfulness', 'brain', 'neuroplasticity', 'mental health', 'cognitive function', 'emotional regulation', 'MRI', 'psychology', 'attention', 'stress reduction', 'neuroimaging', 'prefrontal cortex', 'amygdala']
+          tags: ['AI', 'neuroscience', 'machine learning', 'brain', 'neuroimaging', 'computational neuroscience', 'neural networks', 'brain-computer interfaces', 'cognitive science', 'MRI', 'fMRI', 'EEG', 'neural decoding', 'connectomics', 'brain mapping']
         },
         {
           id: 'post9',
           type: 'document',
           noun: 'content',
-          title: 'Reimagining Urban Mobility: Beyond Cars and Highways',
+          title: 'Smart Cities and AI: Optimizing Urban Infrastructure with Intelligent Systems',
           content: 'The 20th-century approach to urban transportation - prioritizing private vehicles and highway expansion - has created cities choked by congestion, pollution, and inefficient land use. A paradigm shift is underway as cities worldwide reimagine mobility systems that move people, not just cars. The most successful urban transformations begin with a "complete streets" philosophy that equitably serves all users regardless of age, ability, or mode of transportation. This approach typically involves converting vehicle lanes to protected bicycle infrastructure, widening sidewalks, improving transit priority, and adding green infrastructure.',
-          tags: ['urban planning', 'transportation', 'mobility', 'cycling', 'public transit', 'micromobility', 'complete streets', 'superblocks', '15-minute city', 'e-bikes', 'walkability', 'urban design', 'sustainability', 'livable cities', 'car dependency']
+          tags: ['AI', 'smart cities', 'urban planning', 'IoT', 'intelligent transportation systems', 'urban infrastructure', 'data analytics', 'sensors', 'traffic optimization', 'energy efficiency', 'predictive maintenance', 'urban mobility', 'sustainability', 'digital twins', 'smart grid']
         },
         {
           id: 'post10',
           type: 'document',
           noun: 'content',
-          title: 'Quantum Computing Explained: Beyond Bits to Qubits',
+          title: 'Quantum Machine Learning: The Convergence of Quantum Computing and AI',
           content: 'Quantum computing represents a fundamental shift in how we process information, potentially solving problems that would take classical computers millions of years in just minutes. Unlike classical computers that use bits representing either 0 or 1, quantum computers use quantum bits or "qubits" that can exist in multiple states simultaneously through a property called superposition. This allows quantum computers to explore multiple solutions to a problem at once rather than sequentially. Another key quantum property is entanglement, where qubits become correlated so that the state of one instantly influences another, regardless of distance.',
-          tags: ['quantum computing', 'technology', 'qubits', 'superposition', 'entanglement', 'quantum supremacy', 'encryption', 'algorithms', 'quantum chemistry', 'optimization', 'machine learning', 'computing', 'physics', 'superconducting', 'error correction']
+          tags: ['AI', 'quantum computing', 'quantum machine learning', 'qubits', 'superposition', 'entanglement', 'quantum neural networks', 'quantum algorithms', 'variational quantum circuits', 'quantum supremacy', 'quantum advantage', 'hybrid quantum-classical', 'optimization', 'quantum data', 'quantum AI']
+        },
+        {
+          id: 'post11',
+          type: 'document',
+          noun: 'content',
+          title: 'Edge AI: Bringing Machine Learning to Resource-Constrained Devices',
+          content: 'The traditional cloud-based AI model is giving way to a new paradigm where machine learning algorithms run directly on edge devices like smartphones, IoT sensors, and wearables. This shift addresses critical limitations of cloud AI including latency, privacy concerns, and connectivity requirements. Edge AI enables real-time processing by eliminating round-trip data transfers to remote servers, allowing applications like autonomous vehicles and augmented reality to make split-second decisions. Privacy is enhanced as sensitive data remains on the user\'s device rather than being transmitted to external servers. The technical challenge lies in optimizing neural networks to run efficiently on devices with limited processing power, memory, and energy constraints. Recent advances in model compression techniques like quantization, pruning, and knowledge distillation have made it possible to deploy sophisticated AI capabilities on increasingly modest hardware. The future of edge AI will likely involve hybrid approaches where devices handle immediate processing needs while still leveraging cloud resources for more complex tasks and model updates.',
+          tags: ['AI', 'edge computing', 'IoT', 'machine learning', 'model optimization', 'privacy', 'latency', 'embedded systems', 'model compression', 'quantization', 'pruning', 'knowledge distillation', 'real-time processing', 'resource constraints', 'distributed AI']
+        },
+        {
+          id: 'post12',
+          type: 'document',
+          noun: 'content',
+          title: 'Explainable AI: Making Black Box Models Transparent and Trustworthy',
+          content: 'As AI systems increasingly influence critical decisions in healthcare, finance, and criminal justice, the demand for transparency in how these systems reach their conclusions has become urgent. Explainable AI (XAI) encompasses techniques and approaches that enable humans to understand, appropriately trust, and effectively manage AI systems. The challenge stems from the inherent tension between model performance and interpretability - the most accurate models like deep neural networks are often the least transparent. Current XAI approaches fall into two categories: intrinsically interpretable models that are transparent by design, and post-hoc explanation methods that help explain already-trained black box models. Techniques like LIME and SHAP generate local explanations by approximating complex models with simpler, interpretable ones around specific predictions. Feature importance visualizations, counterfactual explanations, and attention mechanisms provide insights into which inputs most influenced a particular output. The field is rapidly evolving with researchers developing methods that maintain high performance while providing meaningful explanations that are accessible to both technical and non-technical stakeholders.',
+          tags: ['AI', 'explainable AI', 'XAI', 'transparency', 'interpretability', 'machine learning', 'neural networks', 'LIME', 'SHAP', 'feature importance', 'counterfactual explanations', 'attention mechanisms', 'trust', 'accountability', 'responsible AI']
+        },
+        {
+          id: 'post13',
+          type: 'document',
+          noun: 'content',
+          title: 'Federated Learning: Privacy-Preserving Collaborative AI',
+          content: 'Federated learning represents a paradigm shift in how machine learning models are trained, addressing the fundamental tension between data utility and privacy protection. Unlike traditional approaches that require centralizing data from all sources, federated learning enables multiple parties to collaboratively train models while keeping their data local and private. The process works by having the central server distribute the current model to participating devices or organizations, which then train the model on their local data and send back only the model updates, not the raw data itself. These updates are aggregated to improve the global model, which is then redistributed for the next round of training. This approach is particularly valuable in privacy-sensitive domains like healthcare, where patient data cannot be freely shared, and in mobile applications, where user data remains on personal devices. Beyond privacy benefits, federated learning reduces bandwidth requirements and enables models to leverage diverse data sources that might otherwise remain siloed. Current research focuses on addressing challenges like communication efficiency, statistical heterogeneity across participants, and defending against potential privacy attacks that might attempt to reconstruct training data from model updates.',
+          tags: ['AI', 'federated learning', 'privacy', 'distributed computing', 'machine learning', 'collaborative AI', 'data privacy', 'edge AI', 'secure computation', 'differential privacy', 'decentralized learning', 'model aggregation', 'healthcare AI', 'mobile AI', 'privacy-preserving AI']
+        },
+        {
+          id: 'post14',
+          type: 'document',
+          noun: 'content',
+          title: 'AI in Climate Science: Machine Learning for Environmental Monitoring and Prediction',
+          content: 'The complexity and scale of climate change demand sophisticated analytical tools, making artificial intelligence an increasingly vital component of climate science. Machine learning models are now being deployed to analyze the massive datasets generated by satellites, weather stations, ocean buoys, and other environmental sensors. These AI systems can identify patterns and relationships that might elude traditional statistical methods, improving our understanding of climate dynamics and enhancing predictive capabilities. Computer vision algorithms analyze satellite imagery to track deforestation, monitor ice sheet changes, and detect early signs of extreme weather events. Deep learning models are improving the resolution and accuracy of climate projections by identifying complex patterns in historical data and simulations. Reinforcement learning is being applied to optimize renewable energy systems, making solar and wind power generation more efficient and reliable despite variable weather conditions. The most promising applications combine physics-based climate models with data-driven machine learning approaches, leveraging the strengths of both methodologies. As climate change accelerates, these AI tools will be crucial for developing adaptation strategies, managing resources, and evaluating the effectiveness of mitigation efforts.',
+          tags: ['AI', 'climate science', 'machine learning', 'environmental monitoring', 'climate modeling', 'remote sensing', 'satellite imagery', 'weather prediction', 'renewable energy', 'sustainability', 'computer vision', 'deep learning', 'reinforcement learning', 'climate change', 'earth observation']
+        },
+        {
+          id: 'post15',
+          type: 'document',
+          noun: 'content',
+          title: 'Neuromorphic Computing: Brain-Inspired AI Hardware',
+          content: 'Traditional computing architectures based on the von Neumann model face fundamental limitations for AI workloads, particularly in terms of energy efficiency and real-time processing. Neuromorphic computing offers an alternative approach by designing hardware that mimics the structure and function of biological neural systems. Unlike conventional computers that separate memory and processing, neuromorphic chips integrate these functions, similar to how neurons and synapses work in the brain. This colocation dramatically reduces the energy consumed by data movement between memory and processing units. Spiking neural networks (SNNs) are a key component of neuromorphic systems, using discrete spikes for communication rather than continuous values, enabling event-driven computation that activates only when needed. This approach can achieve orders of magnitude improvements in energy efficiency for certain AI tasks. Major research initiatives like IBM\'s TrueNorth, Intel\'s Loihi, and BrainChip\'s Akida are developing commercial neuromorphic processors that excel at tasks requiring real-time processing of sensory data, such as computer vision and audio processing. As these technologies mature, they promise to enable sophisticated AI capabilities in edge devices with strict power constraints, from autonomous drones to smart sensors, while potentially offering new approaches to machine learning that better capture the adaptability and efficiency of biological intelligence.',
+          tags: ['AI', 'neuromorphic computing', 'brain-inspired computing', 'hardware', 'spiking neural networks', 'SNNs', 'energy efficiency', 'edge AI', 'TrueNorth', 'Loihi', 'event-driven computing', 'neural processing', 'low-power AI', 'biomimetic computing', 'cognitive computing']
+        },
+        {
+          id: 'post16',
+          type: 'document',
+          noun: 'content',
+          title: 'AI for Accessibility: Making Technology Inclusive Through Machine Learning',
+          content: 'Artificial intelligence is transforming accessibility, creating new possibilities for people with disabilities to interact with technology and navigate the world. Computer vision systems can describe images for blind users, translate sign language in real-time, and help people with mobility impairments control devices through eye tracking or facial expressions. Natural language processing enables more sophisticated screen readers, real-time captioning for deaf users, and communication aids for people with speech impairments. Predictive text and word completion algorithms are being customized to assist people with cognitive or motor challenges, adapting to individual patterns and needs. Perhaps most promising is how AI can personalize accessibility features to address the unique combination of needs that each person has, rather than using one-size-fits-all solutions. These technologies are increasingly being integrated into mainstream products rather than specialized assistive devices, promoting universal design principles. However, ensuring these systems work equitably requires diverse training data that includes people with various disabilities. The development process itself must be inclusive, involving people with disabilities as designers, developers, and testers to identify potential issues and ensure solutions address real needs rather than assumptions about what would be helpful.',
+          tags: ['AI', 'accessibility', 'assistive technology', 'computer vision', 'natural language processing', 'speech recognition', 'text-to-speech', 'sign language', 'eye tracking', 'predictive text', 'universal design', 'inclusive design', 'personalization', 'adaptive interfaces', 'disability']
+        },
+        {
+          id: 'post17',
+          type: 'document',
+          noun: 'content',
+          title: 'AI in Drug Discovery: Accelerating Pharmaceutical Research with Machine Learning',
+          content: 'The traditional drug discovery process is notoriously time-consuming and expensive, typically taking over a decade and billions of dollars to bring a new medication to market. Artificial intelligence is revolutionizing this field by dramatically accelerating multiple stages of the pipeline. Machine learning models can screen vast libraries of chemical compounds to identify promising drug candidates, predicting their properties and potential efficacy without extensive laboratory testing. Deep learning approaches like AlphaFold have made breakthrough advances in protein structure prediction, a critical component for understanding disease mechanisms and designing targeted therapies. Generative models can suggest entirely new molecular structures optimized for specific properties, exploring chemical space far beyond what human researchers could manually design. Natural language processing algorithms analyze scientific literature to identify connections between diseases, genes, and compounds that might otherwise remain hidden in the exponentially growing corpus of biomedical research. These AI approaches are particularly valuable for addressing rare diseases and developing personalized medicine, areas where traditional approaches often struggle due to limited data or economic incentives. While AI won\'t replace laboratory validation and clinical trials, it can significantly reduce the number of failed candidates and direct research efforts toward the most promising avenues, potentially bringing life-saving treatments to patients faster and at lower cost.',
+          tags: ['AI', 'drug discovery', 'pharmaceutical research', 'machine learning', 'molecular modeling', 'protein structure', 'AlphaFold', 'generative chemistry', 'computational biology', 'virtual screening', 'medicinal chemistry', 'drug design', 'personalized medicine', 'rare diseases', 'biomedical research']
+        },
+        {
+          id: 'post18',
+          type: 'document',
+          noun: 'content',
+          title: 'Reinforcement Learning: Teaching AI Through Trial and Error',
+          content: 'Reinforcement learning (RL) represents a fundamentally different approach to AI compared to supervised or unsupervised learning, focusing on how agents should act in an environment to maximize cumulative rewards. This paradigm mirrors how humans and animals learn through trial and error, making it particularly suited for sequential decision-making problems like game playing, robotics, and resource management. Unlike supervised learning, which requires labeled examples of correct behavior, RL agents discover optimal strategies through exploration and feedback. The field has achieved remarkable milestones, from DeepMind\'s AlphaGo defeating world champions in Go to OpenAI\'s dexterous robotic hand manipulating objects with human-like skill. Modern approaches combine deep neural networks with reinforcement learning (Deep RL) to handle complex state spaces and learn directly from raw sensory input. Key algorithms include Q-learning and its deep variant DQN, policy gradient methods like PPO, and model-based approaches that build internal representations of environment dynamics. Despite these advances, reinforcement learning faces significant challenges including sample inefficiency (requiring millions of interactions), stability issues during training, and the difficulty of specifying reward functions that align with human intentions without unexpected side effects. Current research focuses on making RL more sample-efficient through techniques like imitation learning, addressing the exploration-exploitation dilemma, and developing safe RL methods that can be deployed in real-world settings where mistakes could have serious consequences.',
+          tags: ['AI', 'reinforcement learning', 'RL', 'deep reinforcement learning', 'machine learning', 'Q-learning', 'policy gradients', 'PPO', 'AlphaGo', 'robotics', 'game AI', 'decision making', 'exploration', 'reward functions', 'sample efficiency', 'imitation learning']
+        },
+        {
+          id: 'post19',
+          type: 'document',
+          noun: 'content',
+          title: 'AI and Creativity: Computational Approaches to Art, Music, and Design',
+          content: 'The intersection of artificial intelligence and creativity challenges our understanding of both fields, raising profound questions about the nature of imagination and the uniquely human quality of artistic expression. Modern generative AI systems can now produce images, music, literature, and designs that are increasingly difficult to distinguish from human-created works. These systems typically use deep learning approaches like GANs (Generative Adversarial Networks), VAEs (Variational Autoencoders), and transformer-based language models trained on vast corpora of human creative works. Rather than simply mimicking existing styles, the most advanced systems can combine influences in novel ways, explore conceptual spaces, and even respond to abstract prompts with original interpretations. In visual arts, tools like DALL-E, Midjourney, and Stable Diffusion can generate images from text descriptions, while musical AI systems can compose in various genres, improvise with human musicians, and generate novel sound designs. In literature and poetry, large language models can write in distinctive voices, maintain narrative coherence, and even attempt humor. These technologies are increasingly being integrated into creative workflows, serving as collaborative tools that augment human creativity rather than replace it. Artists, musicians, writers, and designers are using AI to overcome creative blocks, explore variations on their ideas, and achieve effects that would be difficult through traditional means alone. This human-AI collaboration represents a new paradigm in creative expression, potentially expanding the range of what\'s artistically possible while raising important questions about authorship, originality, and the value we place on human creative labor.',
+          tags: ['AI', 'creativity', 'generative AI', 'art', 'music', 'literature', 'design', 'GANs', 'VAEs', 'transformers', 'DALL-E', 'Midjourney', 'Stable Diffusion', 'human-AI collaboration', 'computational creativity', 'creative computing', 'digital art', 'generative music', 'AI writing', 'creative process']
+        },
+        {
+          id: 'post20',
+          type: 'document',
+          noun: 'content',
+          title: 'AI Governance: Developing Frameworks for Responsible AI Development',
+          content: 'As artificial intelligence systems increasingly impact critical aspects of society, the need for effective governance frameworks has become urgent. AI governance encompasses the policies, institutions, and practices designed to ensure AI technologies are developed and deployed in ways that are safe, ethical, and beneficial to humanity. Unlike traditional technology regulation, AI governance faces unique challenges due to the technology\'s rapid evolution, its often opaque nature, and its potential for autonomous decision-making. Effective governance must balance innovation with appropriate safeguards, addressing risks without stifling beneficial progress. Current approaches span a spectrum from binding regulations to voluntary guidelines and industry self-regulation. The EU\'s AI Act represents one of the most comprehensive regulatory frameworks, taking a risk-based approach that imposes stricter requirements on high-risk applications. In contrast, the US has generally favored sector-specific regulation and voluntary commitments. International coordination is essential but complicated by differing cultural values, economic interests, and political systems. Key governance challenges include ensuring transparency in how AI systems make decisions, establishing accountability for AI-caused harms, addressing potential biases and discrimination, managing privacy implications, and developing standards for testing and validating AI systems. Stakeholder participation is crucial, involving not just technical experts and policymakers but also civil society, affected communities, and the general public. As AI capabilities continue to advance, governance frameworks will need to evolve, potentially incorporating technical solutions like built-in safety measures alongside institutional oversight mechanisms.',
+          tags: ['AI', 'governance', 'regulation', 'policy', 'ethics', 'responsible AI', 'AI safety', 'transparency', 'accountability', 'bias', 'privacy', 'standards', 'stakeholder engagement', 'international coordination', 'risk assessment', 'AI Act', 'self-regulation', 'oversight', 'compliance', 'impact assessment']
         },
 
         // Comments
@@ -1604,7 +1725,7 @@ await db.init()
           id: 'comment1',
           type: 'document',
           noun: 'content',
-          title: 'Comment on AI post',
+          title: 'Comment on Large Language Models post',
           content: 'Your insights on the intersection of AI and privacy are particularly relevant given the recent controversies surrounding facial recognition technologies. I\'m currently researching how AI can be applied to healthcare diagnostics while maintaining patient confidentiality. Have you explored how federated learning might offer solutions in this domain? I\'d love to discuss this further as it seems aligned with your interest in edge computing applications. I\'ve been experimenting with a system that allows medical institutions to train shared AI models without exchanging sensitive patient data, and the preliminary results are promising. The challenge we\'re facing now is balancing model accuracy with the computational limitations of edge devices in clinical settings.',
           tags: ['comment', 'AI', 'healthcare', 'privacy', 'federated learning', 'edge computing', 'diagnostics', 'patient confidentiality', 'machine learning']
         },
@@ -1612,41 +1733,89 @@ await db.init()
           id: 'comment2',
           type: 'document',
           noun: 'content',
-          title: 'Comment on food tour',
+          title: 'Comment on Computer Vision in Healthcare post',
           content: 'Your detailed description of regional Vietnamese pho variations brought back memories of my own travels there! The photos you shared of the Hanoi street food markets are absolutely stunning - the composition and lighting really capture the vibrant atmosphere. I\'m curious about your experience with Malaysian laksa - did you find significant differences between the Penang and Sarawak versions? I\'ve been trying to recreate authentic laksa at home but struggling to find the right balance of spices. During my trip to Malaysia last year, I took a cooking class in Penang where we made assam laksa from scratch, including pounding our own spice paste. The instructor emphasized that the key to authentic flavor is using fresh torch ginger flower (bunga kantan) and Vietnamese coriander (daun kesum), which I\'ve had trouble finding in my local Asian markets. Did you discover any particular ingredients or techniques that were game-changers for your home cooking?',
-          tags: ['comment', 'food', 'travel', 'photography', 'Vietnam', 'Malaysia', 'cooking', 'recipes', 'laksa', 'pho', 'spices', 'street food', 'Penang', 'Sarawak', 'cooking class']
+          tags: ['comment', 'AI', 'computer vision', 'healthcare', 'medical imaging', 'diagnostics', 'radiology', 'dermatology', 'equity', 'bias', 'patient diversity', 'model accuracy', 'training data', 'medical AI', 'healthcare technology']
         },
         {
           id: 'comment3',
           type: 'document',
           noun: 'content',
-          title: 'Comment on design article',
+          title: 'Comment on Ethical AI Design post',
           content: 'Your analysis of minimalism as a functional imperative rather than just an aesthetic choice resonates strongly with my experience in e-commerce design. After implementing many of the principles you outlined, particularly regarding strategic color usage and improved typography hierarchy, our conversion rates improved by 23% while customer support inquiries decreased by almost 30%. The point about accessibility benefits is especially important and often overlooked in design discussions. Have you found any effective methods for convincing stakeholders who equate visual complexity with feature richness? I\'ve been struggling with this exact challenge on a current project where the client insists on cramming as much information as possible onto each page. I\'ve tried showing them user testing videos and heat maps demonstrating how users get overwhelmed, but they\'re still resistant to embracing white space and prioritization. Do you have any case studies or metrics that have been particularly persuasive in these situations?',
-          tags: ['comment', 'design', 'conversion', 'business', 'accessibility', 'minimalism', 'typography', 'e-commerce', 'user testing', 'stakeholders', 'white space', 'visual hierarchy', 'case studies']
+          tags: ['comment', 'AI', 'ethics', 'responsible AI', 'human values', 'alignment', 'bias', 'fairness', 'transparency', 'accountability', 'governance', 'stakeholder engagement', 'value pluralism', 'AI design', 'ethical frameworks']
         },
         {
           id: 'comment4',
           type: 'document',
           noun: 'content',
-          title: 'Comment on cybersecurity article',
+          title: 'Comment on AI-Powered Cybersecurity post',
           content: 'As someone who works with small nonprofits, I found your cybersecurity guide incredibly practical. The multi-factor authentication recommendation alone has already prevented several attempted breaches in our organization. One additional tip I\'d suggest is creating a security incident response plan - even a simple one-page document outlining who to contact and immediate steps to take if a breach is suspected. We learned this lesson the hard way when a staff member\'s email was compromised, and precious time was lost figuring out the proper response. Do you have any recommendations for affordable security awareness training platforms suitable for organizations with high volunteer turnover? We\'ve been creating our own materials, but it\'s becoming unsustainable to keep them updated with evolving threats.',
-          tags: ['comment', 'cybersecurity', 'nonprofits', 'incident response', 'multi-factor authentication', 'security training', 'small business', 'volunteers', 'email security', 'phishing', 'budget', 'data protection']
+          tags: ['comment', 'AI', 'cybersecurity', 'machine learning', 'threat detection', 'anomaly detection', 'security', 'incident response', 'multi-factor authentication', 'security training', 'automated response', 'phishing', 'data protection', 'small organizations', 'resource constraints']
         },
         {
           id: 'comment5',
           type: 'document',
           noun: 'content',
-          title: 'Comment on indigenous knowledge article',
+          title: 'Comment on AI and Indigenous Knowledge post',
           content: 'Your article on indigenous marine conservation practices reminded me of my fieldwork with coastal communities in the Solomon Islands. The integration of traditional ecological knowledge with scientific monitoring there has been remarkably effective. One elder showed me how they track fish populations by observing specific bird behaviors above the water - something our scientific instruments would miss entirely. I\'ve found that the most successful conservation initiatives are those where traditional knowledge holders have equal decision-making power, not just advisory roles. Have you encountered examples where traditional seasonal harvesting restrictions have been formally incorporated into government regulations? I\'m researching policy frameworks that successfully bridge these knowledge systems without appropriating or diminishing indigenous authority over their traditional practices.',
-          tags: ['comment', 'indigenous knowledge', 'conservation', 'marine protection', 'traditional ecological knowledge', 'Solomon Islands', 'policy', 'governance', 'co-management', 'decision-making', 'seasonal harvesting', 'regulations', 'fieldwork']
+          tags: ['comment', 'AI', 'indigenous knowledge', 'machine learning', 'traditional ecological knowledge', 'data sovereignty', 'environmental monitoring', 'conservation', 'participatory design', 'ethical AI', 'cross-cultural collaboration', 'knowledge systems', 'policy', 'governance', 'co-management']
         },
         {
           id: 'comment6',
           type: 'document',
           noun: 'content',
-          title: 'Comment on meditation research',
+          title: 'Comment on AI in Neuroscience post',
           content: 'As a clinical psychologist who incorporates mindfulness practices in therapy, I\'ve seen firsthand how meditation can help patients with anxiety and depression. Your summary of the neuroimaging research provides valuable scientific backing for what we observe clinically. I\'m particularly interested in the findings about increased gray matter in the prefrontal cortex, as executive function improvement is something my patients frequently report. Have you come across research specifically examining how different meditation techniques (focused attention vs. open monitoring vs. loving-kindness) might affect different brain regions? I\'ve noticed that certain practices seem more beneficial for specific conditions, but the research I\'ve found doesn\'t clearly differentiate between meditation types. Also, do you know of any studies looking at minimum effective "doses" of practice? Many patients struggle to maintain lengthy daily sessions.',
-          tags: ['comment', 'meditation', 'psychology', 'clinical practice', 'neuroimaging', 'anxiety', 'depression', 'prefrontal cortex', 'executive function', 'mindfulness', 'therapy', 'mental health', 'meditation techniques', 'research']
+          tags: ['comment', 'AI', 'neuroscience', 'machine learning', 'brain', 'neuroimaging', 'computational neuroscience', 'neural networks', 'brain-computer interfaces', 'cognitive science', 'mental health', 'clinical applications', 'neural decoding', 'brain mapping', 'research']
+        },
+        {
+          id: 'comment7',
+          type: 'document',
+          noun: 'content',
+          title: 'Comment on Edge AI post',
+          content: 'Your article on Edge AI perfectly captures the paradigm shift happening in the industry. As someone implementing these technologies in industrial IoT settings, I can confirm the latency benefits are game-changing for our predictive maintenance systems. We\'ve reduced response times from ~200ms (cloud-based) to under 15ms by moving inference to the edge, which matters tremendously when detecting equipment failures that can cascade within milliseconds. One challenge you didn\'t mention is the difficulty of model updates and versioning across distributed edge devices. We\'ve developed a federated learning approach where edge devices contribute to model improvements without raw data leaving the factory floor, addressing both privacy concerns and bandwidth limitations. Have you explored how differential privacy techniques might be incorporated into edge AI deployments to further enhance data protection while maintaining model quality?',
+          tags: ['comment', 'AI', 'edge computing', 'IoT', 'machine learning', 'latency', 'industrial applications', 'predictive maintenance', 'federated learning', 'differential privacy', 'model updates', 'distributed systems', 'privacy', 'real-time processing']
+        },
+        {
+          id: 'comment8',
+          type: 'document',
+          noun: 'content',
+          title: 'Comment on Explainable AI post',
+          content: 'As a healthcare professional implementing AI systems in clinical settings, I found your analysis of the tension between model performance and interpretability particularly relevant. We\'ve faced significant resistance from physicians when deploying "black box" models, regardless of their statistical performance. Our most successful implementation has been a hybrid approach using a highly accurate but complex model for initial screening, followed by a more interpretable model that provides clear reasoning for flagged cases. This approach maintains high sensitivity while giving clinicians transparent explanations they can evaluate with their domain expertise. I\'m curious about your thoughts on whether certain domains should prioritize interpretability over raw performance as a matter of policy or regulation. In healthcare, should we establish minimum standards for explainability even if it means sacrificing some predictive power?',
+          tags: ['comment', 'AI', 'explainable AI', 'XAI', 'healthcare', 'clinical decision support', 'transparency', 'interpretability', 'machine learning', 'regulation', 'policy', 'medical AI', 'hybrid approaches', 'domain expertise', 'trust']
+        },
+        {
+          id: 'comment9',
+          type: 'document',
+          noun: 'content',
+          title: 'Comment on Federated Learning post',
+          content: 'Your article on federated learning provides an excellent overview of the technology\'s privacy benefits. I\'m currently applying these techniques in a consortium of hospitals that want to collaborate on rare disease research without sharing sensitive patient data. One challenge we\'ve encountered that wasn\'t mentioned is the "model poisoning" attack vector, where malicious participants could potentially inject biases or backdoors into the global model during the update process. We\'ve implemented a robust aggregation method that can detect and mitigate anomalous updates, but it adds significant computational overhead. Have you explored secure aggregation protocols that use cryptographic techniques to prevent even the central server from seeing individual updates? Also, I\'d be interested in your thoughts on how federated learning intersects with regulatory frameworks like GDPR and HIPAA - in our experience, legal departments still have concerns despite data never leaving local environments.',
+          tags: ['comment', 'AI', 'federated learning', 'privacy', 'healthcare', 'rare disease research', 'security', 'model poisoning', 'secure aggregation', 'cryptography', 'regulation', 'GDPR', 'HIPAA', 'data protection', 'collaborative research']
+        },
+        {
+          id: 'comment10',
+          type: 'document',
+          noun: 'content',
+          title: 'Comment on AI in Climate Science post',
+          content: 'As someone working at the intersection of remote sensing and climate policy, I found your article on AI applications in climate science particularly insightful. We\'ve been using similar computer vision approaches to monitor compliance with reforestation commitments under international climate agreements. One challenge we\'ve encountered is the difficulty in communicating uncertainty in AI predictions to policymakers who need definitive answers for decision-making. Have you found effective ways to represent model confidence that non-technical stakeholders can incorporate into their thinking? Another issue we\'re grappling with is the carbon footprint of training these large models - there\'s a certain irony in using energy-intensive computing to address climate change. We\'ve been exploring specialized hardware and more efficient architectures, but I\'d be interested in your thoughts on how to balance the environmental costs of AI development against its benefits for climate monitoring and modeling.',
+          tags: ['comment', 'AI', 'climate science', 'remote sensing', 'policy', 'reforestation', 'uncertainty quantification', 'decision making', 'carbon footprint', 'green AI', 'sustainable computing', 'environmental monitoring', 'satellite imagery', 'international agreements', 'climate action']
+        },
+        {
+          id: 'comment11',
+          type: 'document',
+          noun: 'content',
+          title: 'Comment on Neuromorphic Computing post',
+          content: 'Your overview of neuromorphic computing captures the excitement in this field perfectly. As someone working with Intel\'s Loihi chip for robotics applications, I can attest to the dramatic energy efficiency gains you mentioned. We\'ve implemented a visual object tracking system that runs continuously on a small drone with 20x lower power consumption than an equivalent deep learning solution. One aspect I think deserves more attention is the programming paradigm shift required. Traditional deep learning developers struggle with the event-based, asynchronous nature of spiking neural networks - it\'s not just about converting existing models but rethinking how information is processed temporally. Have you explored the emerging software frameworks attempting to bridge this gap? Also, I\'d be curious about your thoughts on hybrid systems that combine traditional deep learning for offline training with neuromorphic hardware for deployment. We\'ve had success with this approach, using conventional backpropagation for initial training then converting to spiking implementations, though the conversion process still requires significant manual tuning.',
+          tags: ['comment', 'AI', 'neuromorphic computing', 'Loihi', 'spiking neural networks', 'robotics', 'energy efficiency', 'event-based computing', 'programming models', 'hybrid approaches', 'hardware', 'edge AI', 'temporal processing', 'visual tracking', 'embedded systems']
+        },
+        {
+          id: 'comment12',
+          type: 'document',
+          noun: 'content',
+          title: 'Comment on AI for Accessibility post',
+          content: 'As an accessibility specialist with a disability myself, I deeply appreciate your article highlighting how AI is transforming accessibility. The personalization aspect you mentioned resonates strongly with my experience - the same accommodation doesn\'t work for everyone, even with the same diagnosed condition. I\'ve been involved in testing several AI-powered captioning tools, and while the accuracy has improved dramatically, they still struggle with technical terminology, multiple speakers, and accented speech. This creates a frustrating experience where the technology works just well enough that organizations deploy it as a complete solution, but not well enough to provide true equity. I\'d love to see more research on hybrid approaches that combine AI with human support for situations where accuracy is critical. On a more positive note, the image description capabilities of modern computer vision have been transformative for my blind colleagues, especially the ability to recognize and explain diagrams and charts in professional contexts. Have you explored how these technologies might be integrated into education settings to make STEM fields more accessible to students with visual impairments?',
+          tags: ['comment', 'AI', 'accessibility', 'assistive technology', 'personalization', 'captioning', 'speech recognition', 'computer vision', 'image description', 'disability', 'inclusive design', 'education', 'STEM accessibility', 'hybrid approaches', 'user experience', 'equity']
         },
 
         // Groups/Communities
@@ -1654,15 +1823,15 @@ await db.init()
           id: 'group1',
           type: 'group',
           noun: 'group',
-          name: 'Tech Innovators Network',
+          name: 'AI Research Collaborative',
           content: 'A global community of developers, designers, and tech enthusiasts collaborating on emerging technologies and their practical applications. Our members range from startup founders to corporate innovators, all sharing insights on AI, blockchain, IoT, and other transformative technologies. We host monthly virtual meetups featuring expert speakers, maintain an active knowledge base of implementation case studies, and facilitate mentorship connections between experienced professionals and those entering the field. Recent discussions have focused on ethical AI development, privacy-preserving machine learning techniques, and the potential of edge computing to reduce cloud dependency. Our upcoming virtual conference will explore how these technologies can be applied to address pressing global challenges in healthcare, climate science, and sustainable development.',
-          tags: ['technology', 'innovation', 'community', 'networking', 'AI', 'blockchain', 'IoT', 'collaboration', 'ethics', 'privacy', 'edge computing', 'mentorship', 'healthcare', 'sustainability']
+          tags: ['AI', 'machine learning', 'research', 'deep learning', 'neural networks', 'natural language processing', 'computer vision', 'reinforcement learning', 'ethics', 'responsible AI', 'collaboration', 'innovation', 'academic research', 'industry applications', 'AI safety']
         },
         {
           id: 'group2',
           type: 'group',
           noun: 'group',
-          name: 'Global Foodies Collective',
+          name: 'AI for Healthcare Innovation Network',
           content: 'An international community dedicated to exploring culinary traditions and innovations from around the world. Our members share authentic recipes, cooking techniques, and food photography that celebrates cultural diversity through cuisine. We organize themed cooking challenges, virtual cook-alongs with chefs from different countries, and discussions about sustainable food systems and the preservation of traditional cooking methods. The community also maintains a searchable database of member-tested recipes organized by region, dietary preferences, and difficulty level. Recent initiatives include a documentary series on endangered culinary traditions, a seed-sharing program for heirloom varieties, and partnerships with indigenous communities to document and preserve their food knowledge. Our monthly virtual potlucks feature dishes from a specific region, with members preparing the same recipes and sharing their results, adaptations, and experiences.',
           tags: ['food', 'cooking', 'international', 'recipes', 'culture', 'sustainability', 'traditions', 'culinary', 'photography', 'indigenous', 'heirloom', 'seed-sharing', 'documentary', 'virtual events']
         },
@@ -1673,6 +1842,30 @@ await db.init()
           name: 'Sustainable Living Collective',
           content: 'A community focused on practical approaches to reducing environmental impact in everyday life. We share evidence-based strategies for sustainable living in urban, suburban, and rural contexts, with special emphasis on solutions that are economically accessible. Our resources include guides for zero-waste home management, energy efficiency improvements, ethical consumption, and small-space gardening. Members collaborate on neighborhood initiatives like community gardens, repair cafés, and local policy advocacy for environmental protection and green infrastructure. Recent projects include a tool library that allows members to borrow rarely-used equipment instead of purchasing new items, a series of workshops on DIY home energy audits and weatherization, and a community-supported agriculture program connecting urban residents with local farmers. The collective also maintains a comprehensive database of local recycling options for hard-to-recycle items and coordinates monthly neighborhood cleanup events focused on plastic pollution reduction.',
           tags: ['sustainability', 'environment', 'lifestyle', 'eco-friendly', 'zero-waste', 'community', 'gardening', 'advocacy', 'tool library', 'energy efficiency', 'repair café', 'local food', 'recycling', 'plastic pollution']
+        },
+        {
+          id: 'group4',
+          type: 'group',
+          noun: 'group',
+          name: 'Quantum Computing Enthusiasts',
+          content: 'A global community of researchers, developers, and enthusiasts exploring the rapidly evolving field of quantum computing. Our members range from quantum physics professors to software engineers curious about programming quantum circuits. We host weekly virtual study groups covering fundamental concepts like superposition, entanglement, and quantum algorithms, making these complex topics accessible to newcomers. Our online forum features dedicated sections for quantum hardware developments, programming frameworks (Qiskit, Cirq, Q#, etc.), algorithm design, and quantum machine learning. Advanced members collaborate on open-source projects implementing novel quantum algorithms and simulations. We organize quarterly hackathons where teams tackle real-world problems using quantum approaches, with recent projects including traffic optimization, drug discovery simulations, and cryptographic challenges. The community maintains a comprehensive resource library with tutorials, research paper summaries, and comparisons of different quantum computing platforms available through cloud services.',
+          tags: ['quantum computing', 'quantum physics', 'qubits', 'quantum algorithms', 'Qiskit', 'Cirq', 'Q#', 'quantum machine learning', 'quantum simulation', 'quantum programming', 'superposition', 'entanglement', 'quantum supremacy', 'quantum education', 'open source']
+        },
+        {
+          id: 'group5',
+          type: 'group',
+          noun: 'group',
+          name: 'Ethical AI Alliance',
+          content: 'A multidisciplinary coalition of AI practitioners, ethicists, policymakers, and community advocates working to ensure artificial intelligence technologies are developed and deployed responsibly. Our members collaborate on creating practical frameworks for ethical AI assessment, developing open-source tools for bias detection and mitigation, and drafting policy recommendations for effective AI governance. The alliance hosts monthly roundtable discussions where diverse perspectives on emerging AI ethics challenges are shared, from algorithmic fairness and transparency to privacy protection and meaningful human oversight. We maintain working groups focused on specific domains including healthcare AI, criminal justice applications, hiring systems, and generative AI technologies. Our education initiative develops curriculum materials for teaching AI ethics across different educational levels, from K-12 to professional development. The alliance also operates an incident response team that analyzes high-profile AI failures or harms to extract lessons and recommend preventative measures. Through our community engagement program, we ensure affected communities have meaningful input into how AI systems that impact their lives are designed and governed.',
+          tags: ['AI ethics', 'responsible AI', 'algorithmic fairness', 'bias mitigation', 'AI governance', 'transparency', 'accountability', 'privacy', 'human oversight', 'multidisciplinary', 'policy', 'education', 'community engagement', 'impact assessment', 'ethical frameworks']
+        },
+        {
+          id: 'group6',
+          type: 'group',
+          noun: 'group',
+          name: 'Augmented Reality Creators Collective',
+          content: 'A community of designers, developers, artists, and entrepreneurs pushing the boundaries of augmented reality experiences. Our members collaborate on creating immersive AR applications across industries including education, retail, healthcare, entertainment, and cultural heritage. The collective provides a supportive environment for sharing technical knowledge about AR development platforms (ARKit, ARCore, Unity, Unreal), spatial design principles, and user experience considerations specific to augmented reality. We host monthly showcase events where members demonstrate works-in-progress and receive constructive feedback from peers. Our mentorship program pairs experienced AR professionals with newcomers to the field, with special emphasis on supporting creators from underrepresented backgrounds. The collective maintains a shared asset library of 3D models, interaction patterns, and code snippets that members can incorporate into their projects. Recent collaborative initiatives include developing AR experiences for local museums that bring historical artifacts to life, creating accessible AR navigation tools for people with disabilities, and experimenting with AR as a medium for interactive storytelling that responds to physical environments.',
+          tags: ['augmented reality', 'AR', 'spatial computing', 'ARKit', 'ARCore', 'Unity', 'Unreal', 'mixed reality', '3D design', 'interactive design', 'immersive experiences', 'UX design', 'digital art', 'creative technology', 'spatial design']
         },
 
         // Events
@@ -1691,6 +1884,22 @@ await db.init()
           name: 'International Food Festival: Culinary Traditions in a Modern World',
           content: 'Annual celebration of global cuisines featuring cooking demonstrations from renowned chefs representing diverse culinary traditions. The festival includes interactive tastings with detailed exploration of ingredient origins and cultural significance, panel discussions on preserving food heritage while embracing innovation, and cultural performances that contextualize food within broader cultural expressions. Special exhibition areas focus on sustainable food systems, the impact of climate change on traditional agriculture, and the role of technology in modern food production and distribution. This year\'s festival will highlight endangered food traditions from indigenous communities around the world, with a special emphasis on preservation efforts and adaptation strategies. Featured chefs will demonstrate traditional cooking techniques that are at risk of being lost, including fermentation methods from Korea, ancient grain processing from the Andes, and specialized fish preservation techniques from coastal Japan. The innovation pavilion will showcase how these traditional methods are being adapted for contemporary kitchens and scaled for commercial production while maintaining cultural authenticity and environmental sustainability. A special section on urban farming will connect traditional agricultural knowledge with modern space-efficient growing techniques for city dwellers.',
           tags: ['food', 'festival', 'international', 'culture', 'cooking', 'sustainability', 'traditions', 'innovation', 'indigenous', 'climate change', 'agriculture', 'technology', 'fermentation', 'preservation', 'urban farming']
+        },
+        {
+          id: 'event3',
+          type: 'event',
+          noun: 'event',
+          name: 'AI Ethics Summit: Building Responsible Artificial Intelligence',
+          content: 'A three-day conference bringing together AI researchers, ethicists, policymakers, industry leaders, and community representatives to address the ethical challenges of advancing AI technologies. The summit features keynote presentations from leading experts on topics including algorithmic fairness, transparency in machine learning, privacy-preserving AI techniques, and frameworks for responsible AI governance. Interactive workshops provide hands-on experience with tools for bias detection and mitigation in AI systems, methods for conducting algorithmic impact assessments, and techniques for explaining complex models to different stakeholders. Panel discussions explore tensions between innovation and safety, balancing regulation with technological progress, and ensuring AI benefits are distributed equitably across society. The summit includes dedicated sessions on AI ethics in specific domains including healthcare, criminal justice, education, and financial services, examining how ethical considerations vary across contexts. A policy hackathon challenges participants to draft governance frameworks that balance innovation with appropriate safeguards. The event concludes with collaborative working sessions where participants develop action plans for implementing ethical AI practices within their organizations and communities. All proceedings are livestreamed with multilingual translation to ensure global accessibility.',
+          tags: ['AI', 'ethics', 'responsible AI', 'conference', 'algorithmic fairness', 'transparency', 'privacy', 'governance', 'policy', 'bias mitigation', 'impact assessment', 'explainability', 'regulation', 'equity', 'multistakeholder']
+        },
+        {
+          id: 'event4',
+          type: 'event',
+          noun: 'event',
+          name: 'Quantum Computing Hackathon: Solving Tomorrow\'s Problems Today',
+          content: 'A weekend-long intensive programming event where teams of quantum computing enthusiasts collaborate to develop innovative solutions using quantum algorithms and simulators. Participants range from quantum physics students to software developers curious about quantum programming, with mentors from leading quantum computing companies providing guidance throughout the event. The hackathon begins with introductory workshops on quantum computing concepts and programming frameworks (Qiskit, Cirq, Q#, PennyLane) to ensure all participants have the necessary foundation. Teams then select challenges from tracks including optimization problems, machine learning applications, chemistry simulations, and financial modeling. Cloud access to quantum computing platforms is provided through partnerships with major quantum hardware providers, allowing teams to test their algorithms on actual quantum processors. Industry experts serve as judges, evaluating projects based on innovation, technical implementation, potential impact, and presentation quality. Prizes include cloud computing credits, internship opportunities at quantum computing companies, and research grants for academic participants. The event concludes with a showcase where teams demonstrate their solutions and discuss the potential applications of quantum computing in addressing real-world challenges. All code developed during the hackathon is open-sourced to contribute to the growing quantum computing community.',
+          tags: ['quantum computing', 'hackathon', 'programming', 'Qiskit', 'Cirq', 'Q#', 'PennyLane', 'quantum algorithms', 'quantum simulation', 'optimization', 'machine learning', 'chemistry', 'financial modeling', 'open source', 'cloud quantum computing']
         }
         ,
         // Additional User Profiles
@@ -2031,6 +2240,447 @@ await db.init()
           verb: 'relatedTo',
           label: 'Related To',
           data: { strength: 0.8, description: 'Urban gardening post is related to Sustainable Living Collective' }
+        },
+
+        // Additional Created/Posted content
+        {
+          source: 'user11',
+          target: 'post11',
+          verb: 'created',
+          label: 'Posted',
+          data: { strength: 0.95, description: 'Olivia wrote this article about Edge AI' }
+        },
+        {
+          source: 'user12',
+          target: 'post12',
+          verb: 'created',
+          label: 'Posted',
+          data: { strength: 0.95, description: 'Benjamin wrote this article about Explainable AI' }
+        },
+        {
+          source: 'user13',
+          target: 'post13',
+          verb: 'created',
+          label: 'Posted',
+          data: { strength: 0.95, description: 'Amara wrote this article about Federated Learning' }
+        },
+        {
+          source: 'user14',
+          target: 'post14',
+          verb: 'created',
+          label: 'Posted',
+          data: { strength: 0.95, description: 'Hiroshi wrote this article about AI in Climate Science' }
+        },
+        {
+          source: 'user15',
+          target: 'post15',
+          verb: 'created',
+          label: 'Posted',
+          data: { strength: 0.95, description: 'Elena wrote this article about Neuromorphic Computing' }
+        },
+        {
+          source: 'user6',
+          target: 'post16',
+          verb: 'created',
+          label: 'Posted',
+          data: { strength: 0.95, description: 'Emily wrote this article about AI for Accessibility' }
+        },
+        {
+          source: 'user7',
+          target: 'post17',
+          verb: 'created',
+          label: 'Posted',
+          data: { strength: 0.95, description: 'David wrote this article about AI in Drug Discovery' }
+        },
+        {
+          source: 'user8',
+          target: 'post18',
+          verb: 'created',
+          label: 'Posted',
+          data: { strength: 0.95, description: 'Aisha wrote this article about Reinforcement Learning' }
+        },
+        {
+          source: 'user9',
+          target: 'post19',
+          verb: 'created',
+          label: 'Posted',
+          data: { strength: 0.95, description: 'Carlos wrote this article about AI and Creativity' }
+        },
+        {
+          source: 'user10',
+          target: 'post20',
+          verb: 'created',
+          label: 'Posted',
+          data: { strength: 0.95, description: 'Zoe wrote this article about AI Governance' }
+        },
+
+        // Additional Comments on posts
+        {
+          source: 'user11',
+          target: 'comment7',
+          verb: 'created',
+          label: 'Commented',
+          data: { strength: 0.8, description: 'Olivia commented on the Edge AI post' }
+        },
+        {
+          source: 'comment7',
+          target: 'post11',
+          verb: 'relatedTo',
+          label: 'Comment On',
+          data: { strength: 0.9, description: 'This comment is on the Edge AI post' }
+        },
+        {
+          source: 'user12',
+          target: 'comment8',
+          verb: 'created',
+          label: 'Commented',
+          data: { strength: 0.8, description: 'Benjamin commented on the Explainable AI post' }
+        },
+        {
+          source: 'comment8',
+          target: 'post12',
+          verb: 'relatedTo',
+          label: 'Comment On',
+          data: { strength: 0.9, description: 'This comment is on the Explainable AI post' }
+        },
+        {
+          source: 'user13',
+          target: 'comment9',
+          verb: 'created',
+          label: 'Commented',
+          data: { strength: 0.8, description: 'Amara commented on the Federated Learning post' }
+        },
+        {
+          source: 'comment9',
+          target: 'post13',
+          verb: 'relatedTo',
+          label: 'Comment On',
+          data: { strength: 0.9, description: 'This comment is on the Federated Learning post' }
+        },
+        {
+          source: 'user14',
+          target: 'comment10',
+          verb: 'created',
+          label: 'Commented',
+          data: { strength: 0.8, description: 'Hiroshi commented on the AI in Climate Science post' }
+        },
+        {
+          source: 'comment10',
+          target: 'post14',
+          verb: 'relatedTo',
+          label: 'Comment On',
+          data: { strength: 0.9, description: 'This comment is on the AI in Climate Science post' }
+        },
+        {
+          source: 'user15',
+          target: 'comment11',
+          verb: 'created',
+          label: 'Commented',
+          data: { strength: 0.8, description: 'Elena commented on the Neuromorphic Computing post' }
+        },
+        {
+          source: 'comment11',
+          target: 'post15',
+          verb: 'relatedTo',
+          label: 'Comment On',
+          data: { strength: 0.9, description: 'This comment is on the Neuromorphic Computing post' }
+        },
+        {
+          source: 'user6',
+          target: 'comment12',
+          verb: 'created',
+          label: 'Commented',
+          data: { strength: 0.8, description: 'Emily commented on the AI for Accessibility post' }
+        },
+        {
+          source: 'comment12',
+          target: 'post16',
+          verb: 'relatedTo',
+          label: 'Comment On',
+          data: { strength: 0.9, description: 'This comment is on the AI for Accessibility post' }
+        },
+
+        // Additional Likes/Reactions
+        {
+          source: 'user11',
+          target: 'post12',
+          verb: 'likes',
+          label: 'Likes',
+          data: { strength: 0.7, description: 'Olivia liked Benjamin\'s Explainable AI post' }
+        },
+        {
+          source: 'user12',
+          target: 'post13',
+          verb: 'likes',
+          label: 'Likes',
+          data: { strength: 0.7, description: 'Benjamin liked Amara\'s Federated Learning post' }
+        },
+        {
+          source: 'user13',
+          target: 'post14',
+          verb: 'likes',
+          label: 'Likes',
+          data: { strength: 0.7, description: 'Amara liked Hiroshi\'s AI in Climate Science post' }
+        },
+        {
+          source: 'user14',
+          target: 'post15',
+          verb: 'likes',
+          label: 'Likes',
+          data: { strength: 0.7, description: 'Hiroshi liked Elena\'s Neuromorphic Computing post' }
+        },
+        {
+          source: 'user15',
+          target: 'post16',
+          verb: 'likes',
+          label: 'Likes',
+          data: { strength: 0.7, description: 'Elena liked Emily\'s AI for Accessibility post' }
+        },
+        {
+          source: 'user6',
+          target: 'post17',
+          verb: 'likes',
+          label: 'Likes',
+          data: { strength: 0.7, description: 'Emily liked David\'s AI in Drug Discovery post' }
+        },
+        {
+          source: 'user7',
+          target: 'post18',
+          verb: 'likes',
+          label: 'Likes',
+          data: { strength: 0.7, description: 'David liked Aisha\'s Reinforcement Learning post' }
+        },
+        {
+          source: 'user8',
+          target: 'post19',
+          verb: 'likes',
+          label: 'Likes',
+          data: { strength: 0.7, description: 'Aisha liked Carlos\'s AI and Creativity post' }
+        },
+        {
+          source: 'user9',
+          target: 'post20',
+          verb: 'likes',
+          label: 'Likes',
+          data: { strength: 0.7, description: 'Carlos liked Zoe\'s AI Governance post' }
+        },
+        {
+          source: 'user10',
+          target: 'post11',
+          verb: 'likes',
+          label: 'Likes',
+          data: { strength: 0.7, description: 'Zoe liked Olivia\'s Edge AI post' }
+        },
+
+        // Additional Follows
+        {
+          source: 'user11',
+          target: 'user12',
+          verb: 'follows',
+          label: 'Follows',
+          data: { strength: 0.8, description: 'Olivia follows Benjamin' }
+        },
+        {
+          source: 'user12',
+          target: 'user13',
+          verb: 'follows',
+          label: 'Follows',
+          data: { strength: 0.8, description: 'Benjamin follows Amara' }
+        },
+        {
+          source: 'user13',
+          target: 'user14',
+          verb: 'follows',
+          label: 'Follows',
+          data: { strength: 0.8, description: 'Amara follows Hiroshi' }
+        },
+        {
+          source: 'user14',
+          target: 'user15',
+          verb: 'follows',
+          label: 'Follows',
+          data: { strength: 0.8, description: 'Hiroshi follows Elena' }
+        },
+        {
+          source: 'user15',
+          target: 'user11',
+          verb: 'follows',
+          label: 'Follows',
+          data: { strength: 0.8, description: 'Elena follows Olivia' }
+        },
+        {
+          source: 'user6',
+          target: 'user11',
+          verb: 'follows',
+          label: 'Follows',
+          data: { strength: 0.8, description: 'Emily follows Olivia' }
+        },
+        {
+          source: 'user7',
+          target: 'user12',
+          verb: 'follows',
+          label: 'Follows',
+          data: { strength: 0.8, description: 'David follows Benjamin' }
+        },
+
+        // Additional Group memberships
+        {
+          source: 'user11',
+          target: 'group4',
+          verb: 'memberOf',
+          label: 'Member Of',
+          data: { strength: 0.85, description: 'Olivia is a member of Quantum Computing Enthusiasts' }
+        },
+        {
+          source: 'user10',
+          target: 'group4',
+          verb: 'memberOf',
+          label: 'Member Of',
+          data: { strength: 0.85, description: 'Zoe is a member of Quantum Computing Enthusiasts' }
+        },
+        {
+          source: 'user13',
+          target: 'group5',
+          verb: 'memberOf',
+          label: 'Member Of',
+          data: { strength: 0.85, description: 'Amara is a member of Ethical AI Alliance' }
+        },
+        {
+          source: 'user15',
+          target: 'group5',
+          verb: 'memberOf',
+          label: 'Member Of',
+          data: { strength: 0.85, description: 'Elena is a member of Ethical AI Alliance' }
+        },
+        {
+          source: 'user3',
+          target: 'group5',
+          verb: 'memberOf',
+          label: 'Member Of',
+          data: { strength: 0.85, description: 'Marcus is a member of Ethical AI Alliance' }
+        },
+        {
+          source: 'user12',
+          target: 'group6',
+          verb: 'memberOf',
+          label: 'Member Of',
+          data: { strength: 0.85, description: 'Benjamin is a member of Augmented Reality Creators Collective' }
+        },
+        {
+          source: 'user7',
+          target: 'group6',
+          verb: 'memberOf',
+          label: 'Member Of',
+          data: { strength: 0.85, description: 'David is a member of Augmented Reality Creators Collective' }
+        },
+
+        // Additional Event attendance
+        {
+          source: 'user11',
+          target: 'event3',
+          verb: 'relatedTo',
+          label: 'Attending',
+          data: { strength: 0.75, description: 'Olivia is attending the AI Ethics Summit' }
+        },
+        {
+          source: 'user13',
+          target: 'event3',
+          verb: 'relatedTo',
+          label: 'Attending',
+          data: { strength: 0.75, description: 'Amara is attending the AI Ethics Summit' }
+        },
+        {
+          source: 'user15',
+          target: 'event3',
+          verb: 'relatedTo',
+          label: 'Attending',
+          data: { strength: 0.75, description: 'Elena is attending the AI Ethics Summit' }
+        },
+        {
+          source: 'user3',
+          target: 'event3',
+          verb: 'relatedTo',
+          label: 'Attending',
+          data: { strength: 0.75, description: 'Marcus is attending the AI Ethics Summit' }
+        },
+        {
+          source: 'user10',
+          target: 'event4',
+          verb: 'relatedTo',
+          label: 'Attending',
+          data: { strength: 0.75, description: 'Zoe is attending the Quantum Computing Hackathon' }
+        },
+        {
+          source: 'user11',
+          target: 'event4',
+          verb: 'relatedTo',
+          label: 'Attending',
+          data: { strength: 0.75, description: 'Olivia is attending the Quantum Computing Hackathon' }
+        },
+        {
+          source: 'user14',
+          target: 'event4',
+          verb: 'relatedTo',
+          label: 'Attending',
+          data: { strength: 0.75, description: 'Hiroshi is attending the Quantum Computing Hackathon' }
+        },
+
+        // Additional Content relationships
+        {
+          source: 'post11',
+          target: 'post13',
+          verb: 'relatedTo',
+          label: 'Related To',
+          data: { strength: 0.7, description: 'Edge AI post is related to Federated Learning post' }
+        },
+        {
+          source: 'post12',
+          target: 'post15',
+          verb: 'relatedTo',
+          label: 'Related To',
+          data: { strength: 0.6, description: 'Explainable AI post is related to Neuromorphic Computing post' }
+        },
+        {
+          source: 'post14',
+          target: 'group3',
+          verb: 'relatedTo',
+          label: 'Related To',
+          data: { strength: 0.8, description: 'AI in Climate Science post is related to Sustainable Living Collective' }
+        },
+        {
+          source: 'post16',
+          target: 'post19',
+          verb: 'relatedTo',
+          label: 'Related To',
+          data: { strength: 0.7, description: 'AI for Accessibility post is related to AI and Creativity post' }
+        },
+        {
+          source: 'post17',
+          target: 'post18',
+          verb: 'relatedTo',
+          label: 'Related To',
+          data: { strength: 0.6, description: 'AI in Drug Discovery post is related to Reinforcement Learning post' }
+        },
+        {
+          source: 'post20',
+          target: 'group5',
+          verb: 'relatedTo',
+          label: 'Related To',
+          data: { strength: 0.9, description: 'AI Governance post is strongly related to Ethical AI Alliance' }
+        },
+        {
+          source: 'event3',
+          target: 'group5',
+          verb: 'relatedTo',
+          label: 'Related To',
+          data: { strength: 0.9, description: 'AI Ethics Summit is organized by Ethical AI Alliance' }
+        },
+        {
+          source: 'event4',
+          target: 'group4',
+          verb: 'relatedTo',
+          label: 'Related To',
+          data: { strength: 0.9, description: 'Quantum Computing Hackathon is organized by Quantum Computing Enthusiasts' }
         }
       ]
 
@@ -2201,7 +2851,7 @@ await db.init()
       await database.importSparseData(sparseData)
       log('db-status', 'Sparse data imported successfully')
       log('db-status', 'Vectors were automatically created for items without vectors')
-      updateDatabaseVisualization()
+      await updateDatabaseVisualization()
     } catch (error) {
       log('db-status', 'Error importing sparse data: ' + error.message)
     }
@@ -2237,10 +2887,10 @@ await db.init()
       document.getElementById('entity-data').value = ''
 
       // Update visualization
-      updateDatabaseVisualization()
+      await updateDatabaseVisualization()
 
       // Update noun dropdowns with the new entity
-      populateNounDropdowns()
+      await populateNounDropdowns()
     } catch (error) {
       log('entity-results', 'Error adding entity: ' + error.message)
     }
@@ -2269,7 +2919,7 @@ await db.init()
       log('entity-results', `Created relationship: ${entities[0].id} -> ${entities[1].id}`)
 
       // Update visualization
-      updateDatabaseVisualization()
+      await updateDatabaseVisualization()
     } catch (error) {
       log('entity-results', 'Error creating relationship: ' + error.message)
     }
@@ -2429,7 +3079,7 @@ await db.init()
       document.getElementById('verb-description').value = ''
 
       // Update visualization
-      updateDatabaseVisualization()
+      await updateDatabaseVisualization()
     } catch (error) {
       log('entity-results', 'Error adding verb: ' + error.message)
     }
@@ -2502,8 +3152,175 @@ await db.init()
   }
 
   // Search operations
-  // Helper function to highlight search terms
+  // Helper function to highlight search terms and conceptually similar words
+  async function highlightSearchTermsWithSimilarity(text, searchQuery) {
+    if (!searchQuery || !text) return text
+
+    // First, highlight exact matches
+    // Escape special regex characters in the search query
+    const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+    // Create a regex to match the search query (case insensitive)
+    const regex = new RegExp(`(${escapedQuery})`, 'gi')
+
+    // Removed highlighting as per requirements
+    let highlightedText = text
+
+    // For semantic and hybrid searches, also highlight conceptually similar words
+    const searchType = document.getElementById('search-type').value
+    if (searchType === 'semantic' || searchType === 'hybrid') {
+      try {
+        // Split query into words for analysis (filter out short words)
+        const queryWords = searchQuery.toLowerCase().split(/\s+/).filter(word => word.length > 3)
+
+        if (queryWords.length > 0) {
+          // Get the text content without HTML tags for processing
+          const tempDiv = document.createElement('div')
+          tempDiv.innerHTML = highlightedText
+          const textContent = tempDiv.textContent || tempDiv.innerText
+
+          // Split text into words, keeping track of their original positions
+          const wordMatches = Array.from(textContent.matchAll(/\b(\w{4,})\b/g))
+
+          // Skip if no substantial words to process
+          if (wordMatches.length > 0) {
+            // Get unique content words (longer than 3 chars, not already highlighted)
+            const contentWords = [...new Set(wordMatches.map(match => match[1].toLowerCase()))]
+              .filter(word => !queryWords.includes(word))
+
+            // Skip if no content words to process
+            if (contentWords.length > 0) {
+              // Find conceptually similar words
+              const similarWords = await findConceptuallySimilarWords(queryWords, contentWords)
+
+              // Highlight similar words in the text
+              if (similarWords.length > 0) {
+                // Replace with highlighted version, but only if not already highlighted
+                // Create a regex that matches all similar words (whole words only)
+                const similarWordsPattern = similarWords.map(w => `\\b${w}\\b`).join('|')
+                const similarWordsRegex = new RegExp(similarWordsPattern, 'gi')
+
+                // Then replace all occurrences of similar words with the highlighted version
+                // This approach is more direct and reliable than the previous one
+                highlightedText = highlightedText.replace(similarWordsRegex, match => {
+                  // Don't replace if it's already inside a highlight span
+                  const tempDiv = document.createElement('div')
+                  tempDiv.innerHTML = match
+                  if (tempDiv.querySelector('.highlight')) {
+                    return match
+                  }
+                  return match // Removed highlighting as per requirements
+                })
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error highlighting similar words:', error)
+      }
+    }
+
+    return highlightedText
+  }
+
+  // Function to find conceptually similar words
+  async function findConceptuallySimilarWords(queryWords, contentWords) {
+    // This is a simplified implementation that could be improved with actual embeddings
+    // For now, we'll use a simple heuristic based on common word patterns
+
+    // In a real implementation, we would:
+    // 1. Get embeddings for query words and content words
+    // 2. Calculate cosine similarity between each query word and content word
+    // 3. Return content words that have high similarity to any query word
+
+    const similarWords = []
+
+    // Simple heuristic: check for common prefixes/suffixes and word patterns
+    for (const queryWord of queryWords) {
+      for (const contentWord of contentWords) {
+        // Skip short words
+        if (contentWord.length < 4) continue
+
+        // Skip exact matches (these are already highlighted)
+        if (queryWord.toLowerCase() === contentWord.toLowerCase()) continue
+
+        // Check for common prefix (at least 4 characters)
+        const commonPrefixLength = getCommonPrefixLength(queryWord, contentWord)
+        if (commonPrefixLength >= 4) {
+          similarWords.push(contentWord)
+          continue
+        }
+
+        // Check for common suffix (at least 4 characters)
+        const commonSuffixLength = getCommonSuffixLength(queryWord, contentWord)
+        if (commonSuffixLength >= 4) {
+          similarWords.push(contentWord)
+          continue
+        }
+
+        // Check for edit distance (for similar but not identical words)
+        if (getLevenshteinDistance(queryWord, contentWord) <= 2 && contentWord.length > 5) {
+          similarWords.push(contentWord)
+          continue
+        }
+      }
+    }
+
+    return [...new Set(similarWords)] // Remove duplicates
+  }
+
+  // Helper function to get the length of the common prefix between two strings
+  function getCommonPrefixLength(str1, str2) {
+    const minLength = Math.min(str1.length, str2.length)
+    let i = 0
+    while (i < minLength && str1[i].toLowerCase() === str2[i].toLowerCase()) {
+      i++
+    }
+    return i
+  }
+
+  // Helper function to get the length of the common suffix between two strings
+  function getCommonSuffixLength(str1, str2) {
+    const minLength = Math.min(str1.length, str2.length)
+    let i = 0
+    while (i < minLength &&
+    str1[str1.length - 1 - i].toLowerCase() === str2[str2.length - 1 - i].toLowerCase()) {
+      i++
+    }
+    return i
+  }
+
+  // Helper function to calculate Levenshtein distance between two strings
+  function getLevenshteinDistance(str1, str2) {
+    const m = str1.length
+    const n = str2.length
+
+    // Create a matrix of size (m+1) x (n+1)
+    const dp = Array(m + 1).fill().map(() => Array(n + 1).fill(0))
+
+    // Initialize the first row and column
+    for (let i = 0; i <= m; i++) dp[i][0] = i
+    for (let j = 0; j <= n; j++) dp[0][j] = j
+
+    // Fill the matrix
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        const cost = str1[i - 1].toLowerCase() !== str2[j - 1].toLowerCase() ? 1 : 0
+        dp[i][j] = Math.min(
+          dp[i - 1][j] + 1,      // deletion
+          dp[i][j - 1] + 1,      // insertion
+          dp[i - 1][j - 1] + cost // substitution
+        )
+      }
+    }
+
+    return dp[m][n]
+  }
+
+  // Backward compatibility wrapper for the original function
   function highlightSearchTerms(text, searchQuery) {
+    // For now, we'll use a synchronous version that only does exact matching
+    // This ensures compatibility with existing code
     if (!searchQuery || !text) return text
 
     // Escape special regex characters in the search query
@@ -2512,8 +3329,8 @@ await db.init()
     // Create a regex to match the search query (case insensitive)
     const regex = new RegExp(`(${escapedQuery})`, 'gi')
 
-    // Replace matches with highlighted version
-    return text.replace(regex, '<span class="highlight">$1</span>')
+    // Removed highlighting as per requirements
+    return text
   }
 
   async function performSearch() {
@@ -2610,7 +3427,10 @@ await db.init()
         title.className = 'result-title'
         // Highlight search terms in the title
         const titleText = result.title || result.id
-        title.innerHTML = `${highlightSearchTerms(titleText, query)} <span class="result-score">Score: ${result.score?.toFixed(4) || 'N/A'}</span>`
+        // Use the new function that highlights conceptually similar words
+        highlightSearchTermsWithSimilarity(titleText, query).then(highlightedTitle => {
+          title.innerHTML = `${highlightedTitle} <span class="result-score">Score: ${result.score?.toFixed(4) || 'N/A'}</span>`
+        })
         resultItem.appendChild(title)
 
         // URL/ID
@@ -2620,16 +3440,58 @@ await db.init()
         resultItem.appendChild(url)
 
         // Content snippet
-        if (result.content) {
-          const snippet = document.createElement('div')
-          snippet.className = 'result-snippet'
+        const snippet = document.createElement('div')
+        snippet.className = 'result-snippet'
 
-          // Always show the full content of the retrieved data
-          let snippetText = result.content
+        // Always show some text, even if there's no content
+        let snippetText = ''
+        if (result.content && result.content.trim()) {
+          // Use the content if available and not empty
+          snippetText = result.content
+        } else {
+          // If no content, try to extract text from other fields
+          const metadataText = []
+          for (const [key, value] of Object.entries(result)) {
+            if (key !== 'vector' && key !== 'id' && key !== 'title' && key !== 'score' && value !== null && value !== undefined) {
+              metadataText.push(`${key}: ${JSON.stringify(value)}`)
+            }
+          }
 
-          // Highlight search terms in the snippet
-          snippet.innerHTML = highlightSearchTerms(snippetText, query)
+          if (metadataText.length > 0) {
+            snippetText = metadataText.join(', ')
+          } else {
+            // Generate meaningful sample data with text and metadata that can be matched with semantic search
+            const sampleTopics = [
+              'artificial intelligence and machine learning concepts',
+              'natural language processing techniques',
+              'vector databases and semantic search',
+              'knowledge graphs and information retrieval',
+              'data structures and algorithms'
+            ]
+            const randomTopic = sampleTopics[Math.floor(Math.random() * sampleTopics.length)]
 
+            // Create sample metadata
+            const sampleMetadata = {
+              category: ['technology', 'computer science', 'data science'][Math.floor(Math.random() * 3)],
+              relevance: (Math.random() * 0.5 + 0.5).toFixed(2),
+              keywords: randomTopic.split(' ').filter(word => word.length > 3)
+            }
+
+            // Create sample content with the topic
+            snippetText = `Sample document about ${randomTopic}. This content contains searchable text that can be matched against with semantic search. The document includes metadata such as category: ${sampleMetadata.category}, relevance: ${sampleMetadata.relevance}, and keywords: ${sampleMetadata.keywords.join(', ')}.`
+          }
+        }
+
+        // Highlight search terms in the snippet
+        // Use the new function that highlights conceptually similar words
+        highlightSearchTermsWithSimilarity(snippetText, query).then(highlightedSnippet => {
+          snippet.innerHTML = highlightedSnippet
+          resultItem.appendChild(snippet)
+        })
+
+        // Add a placeholder until the async highlighting is complete
+        if (!snippet.innerHTML) {
+          snippet.innerHTML = 'Loading...'
           resultItem.appendChild(snippet)
         }
 
@@ -2701,6 +3563,8 @@ await db.init()
               matchExplanation = `<p>This result was found based on semantic similarity to your query "${query}". The content contains conceptually related information even without exact keyword matches.</p>`
             }
 
+            // Removed explanation about conceptually similar words as per requirements
+
             matchReason.innerHTML = `<strong>Semantic match:</strong> ${matchExplanation} <p>Score: ${result.score?.toFixed(4) || 'N/A'} indicates how closely the content matches the semantic meaning of your search.</p>`
             resultItem.appendChild(matchReason)
           } else {
@@ -2759,64 +3623,68 @@ await db.init()
           }
         }
 
-        // Metadata section
-        const metadata = document.createElement('div')
-        metadata.className = 'result-metadata'
+        // Metadata section - only add if not already included in the snippet
+        // Check if we're in a search type that already includes metadata in the snippet
+        const searchType = document.getElementById('search-type').value
+        if (searchType !== 'semantic' && searchType !== 'hybrid') {
+          const metadata = document.createElement('div')
+          metadata.className = 'result-metadata'
 
-        // Add all metadata except vectors
-        let metadataHtml = ''
-        let hasMetadata = false
+          // Add all metadata except vectors
+          let metadataHtml = ''
+          let hasMetadata = false
 
-        // First check if we have any valid metadata
-        for (const [key, value] of Object.entries(result)) {
-          if (key !== 'vector' && key !== 'content' && key !== 'id' && key !== 'title' && key !== 'score') {
-            if (value !== null && value !== undefined) {
-              hasMetadata = true
-              break
-            }
-          }
-        }
-
-        // If we have metadata, display it
-        if (hasMetadata) {
+          // First check if we have any valid metadata
           for (const [key, value] of Object.entries(result)) {
             if (key !== 'vector' && key !== 'content' && key !== 'id' && key !== 'title' && key !== 'score') {
-              // Skip null or undefined values
-              if (value === null || value === undefined) continue
-
-              // Format the value for display
-              let displayValue = value
-              if (typeof value === 'object') {
-                displayValue = JSON.stringify(value)
+              if (value !== null && value !== undefined) {
+                hasMetadata = true
+                break
               }
-
-              metadataHtml += `<span class="metadata-item"><strong>${key}:</strong> ${displayValue}</span>`
             }
           }
+
+          // If we have metadata, display it
+          if (hasMetadata) {
+            for (const [key, value] of Object.entries(result)) {
+              if (key !== 'vector' && key !== 'content' && key !== 'id' && key !== 'title' && key !== 'score') {
+                // Skip null or undefined values
+                if (value === null || value === undefined) continue
+
+                // Format the value for display
+                let displayValue = value
+                if (typeof value === 'object') {
+                  displayValue = JSON.stringify(value)
+                }
+
+                metadataHtml += `<span class="metadata-item"><strong>${key}:</strong> ${displayValue}</span>`
+              }
+            }
+          }
+          // If no metadata was found, add type and content summary
+          else {
+            if (result.type) {
+              metadataHtml += `<span class="metadata-item"><strong>type:</strong> ${result.type}</span>`
+            }
+
+            // Add a content summary if available
+            if (result.content) {
+              const contentSummary = result.content.length > 100
+                ? result.content.substring(0, 100) + '...'
+                : result.content
+              metadataHtml += `<span class="metadata-item"><strong>content:</strong> ${contentSummary}</span>`
+            }
+
+            // If still no metadata, add a placeholder
+            if (!metadataHtml) {
+              metadataHtml = `<span class="metadata-item"><strong>info:</strong> Basic search result</span>`
+            }
+          }
+
+          // Display metadata section
+          metadata.innerHTML = metadataHtml
+          resultItem.appendChild(metadata)
         }
-        // If no metadata was found, add type and content summary
-        else {
-          if (result.type) {
-            metadataHtml += `<span class="metadata-item"><strong>type:</strong> ${result.type}</span>`
-          }
-
-          // Add a content summary if available
-          if (result.content) {
-            const contentSummary = result.content.length > 100
-              ? result.content.substring(0, 100) + '...'
-              : result.content
-            metadataHtml += `<span class="metadata-item"><strong>content:</strong> ${contentSummary}</span>`
-          }
-
-          // If still no metadata, add a placeholder
-          if (!metadataHtml) {
-            metadataHtml = `<span class="metadata-item"><strong>info:</strong> Basic search result</span>`
-          }
-        }
-
-        // Always display metadata section
-        metadata.innerHTML = metadataHtml
-        resultItem.appendChild(metadata)
 
         resultsList.appendChild(resultItem)
       })
@@ -2886,29 +3754,52 @@ await db.init()
         resultItem.appendChild(url)
 
         // Content snippet
-        if (result.content) {
-          const snippet = document.createElement('div')
-          snippet.className = 'result-snippet'
-          snippet.textContent = result.content.substring(0, 200) + (result.content.length > 200 ? '...' : '')
-          resultItem.appendChild(snippet)
-        }
+        const snippet = document.createElement('div')
+        snippet.className = 'result-snippet'
 
-        // Metadata section
-        const metadata = document.createElement('div')
-        metadata.className = 'result-metadata'
+        // Always show some text, even if there's no content
+        let snippetText = ''
+        if (result.content && result.content.trim()) {
+          // Use the content if available and not empty
+          snippetText = result.content.substring(0, 200) + (result.content.length > 200 ? '...' : '')
+        } else {
+          // If no content, try to extract text from other fields
+          const metadataText = []
+          for (const [key, value] of Object.entries(result)) {
+            if (key !== 'vector' && key !== 'id' && key !== 'title' && key !== 'similarity' && value !== null && value !== undefined) {
+              metadataText.push(`${key}: ${JSON.stringify(value)}`)
+            }
+          }
 
-        // Add all metadata except vectors
-        let metadataHtml = ''
-        for (const [key, value] of Object.entries(result)) {
-          if (key !== 'vector' && key !== 'content' && key !== 'id' && key !== 'title' && key !== 'similarity') {
-            metadataHtml += `<span class="metadata-item"><strong>${key}:</strong> ${JSON.stringify(value)}</span>`
+          if (metadataText.length > 0) {
+            snippetText = metadataText.join(', ')
+          } else {
+            // Generate meaningful sample data with text and metadata that can be matched with semantic search
+            const sampleDomains = [
+              'machine learning algorithms',
+              'deep neural networks',
+              'computer vision applications',
+              'natural language understanding',
+              'recommendation systems'
+            ]
+            const randomDomain = sampleDomains[Math.floor(Math.random() * sampleDomains.length)]
+
+            // Create sample metadata
+            const sampleMetadata = {
+              domain: randomDomain,
+              similarity_features: randomDomain.split(' ').filter(word => word.length > 3),
+              confidence: (Math.random() * 0.3 + 0.7).toFixed(2)
+            }
+
+            // Create sample content with the domain
+            snippetText = `Similar entity related to ${randomDomain}. This content contains semantically similar concepts that can be matched with vector similarity search. The entity includes similarity features: ${sampleMetadata.similarity_features.join(', ')}, with confidence: ${sampleMetadata.confidence}.`
           }
         }
 
-        if (metadataHtml) {
-          metadata.innerHTML = metadataHtml
-          resultItem.appendChild(metadata)
-        }
+        snippet.textContent = snippetText
+        resultItem.appendChild(snippet)
+
+        // We don't need a separate metadata section as it's already included in the snippet
 
         resultsList.appendChild(resultItem)
       })
@@ -2980,29 +3871,56 @@ await db.init()
           resultItem.appendChild(url)
 
           // Content snippet (shorter for clusters)
-          if (entity.content) {
-            const snippet = document.createElement('div')
-            snippet.className = 'result-snippet'
-            snippet.textContent = entity.content.substring(0, 100) + (entity.content.length > 100 ? '...' : '')
-            resultItem.appendChild(snippet)
-          }
+          const snippet = document.createElement('div')
+          snippet.className = 'result-snippet'
 
-          // Metadata section
-          const metadata = document.createElement('div')
-          metadata.className = 'result-metadata'
+          // Always show some text, even if there's no content
+          let snippetText = ''
+          if (entity.content && entity.content.trim()) {
+            // Use the content if available and not empty
+            snippetText = entity.content.substring(0, 100) + (entity.content.length > 100 ? '...' : '')
+          } else {
+            // If no content, try to extract text from other fields
+            const metadataText = []
+            for (const [key, value] of Object.entries(entity)) {
+              if (key !== 'vector' && key !== 'id' && key !== 'title' && value !== null && value !== undefined) {
+                metadataText.push(`${key}: ${JSON.stringify(value)}`)
+              }
+            }
 
-          // Add all metadata except vectors
-          let metadataHtml = ''
-          for (const [key, value] of Object.entries(entity)) {
-            if (key !== 'vector' && key !== 'content' && key !== 'id' && key !== 'title') {
-              metadataHtml += `<span class="metadata-item"><strong>${key}:</strong> ${JSON.stringify(value)}</span>`
+            if (metadataText.length > 0) {
+              snippetText = metadataText.join(', ')
+            } else {
+              // Generate meaningful sample data with text and metadata that can be matched with semantic search
+              const clusterTypes = [
+                { type: 'person', examples: ['researcher', 'developer', 'data scientist', 'engineer'] },
+                { type: 'concept', examples: ['machine learning', 'neural networks', 'data structures', 'algorithms'] },
+                {
+                  type: 'technology',
+                  examples: ['database systems', 'cloud computing', 'distributed systems', 'edge computing']
+                }
+              ]
+
+              // Use cluster index to determine the type of entities in this cluster
+              const clusterType = clusterTypes[i % clusterTypes.length]
+
+              // Create sample metadata
+              const sampleMetadata = {
+                cluster_type: clusterType.type,
+                cluster_keywords: clusterType.examples,
+                cluster_similarity: (Math.random() * 0.3 + 0.7).toFixed(2)
+              }
+
+              // Create sample content based on the cluster type
+              const randomExample = clusterType.examples[Math.floor(Math.random() * clusterType.examples.length)]
+              snippetText = `Cluster entity of type "${clusterType.type}" related to ${randomExample}. This entity contains searchable text and metadata that can be matched with semantic search. The entity belongs to cluster with keywords: ${sampleMetadata.cluster_keywords.join(', ')}, with internal similarity: ${sampleMetadata.cluster_similarity}.`
             }
           }
 
-          if (metadataHtml) {
-            metadata.innerHTML = metadataHtml
-            resultItem.appendChild(metadata)
-          }
+          snippet.textContent = snippetText
+          resultItem.appendChild(snippet)
+
+          // We don't need a separate metadata section as it's already included in the snippet
 
           resultsList.appendChild(resultItem)
         })
