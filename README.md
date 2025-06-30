@@ -1060,8 +1060,9 @@ The repository includes a comprehensive demo that showcases Brainy's main featur
       which automatically deploys when pushing to the main branch or can be manually triggered
     - To use a custom domain (like www.soulcraft.com):
         1. A CNAME file is already included in the demo directory
-        2. In your GitHub repository settings, go to Pages > Custom domain and enter your domain
-        3. Configure your domain's DNS settings to point to GitHub Pages:
+            2. In your GitHub repository settings, go to Pages > Custom domain and enter your domain
+            3. Configure your domain's DNS settings to point to GitHub Pages:
+
             - Add a CNAME record for www pointing to `<username>.github.io` (e.g., `soulcraft-research.github.io`)
             - Or for an apex domain (soulcraft.com), add A records pointing to GitHub Pages IP addresses
 
