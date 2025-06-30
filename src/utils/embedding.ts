@@ -260,7 +260,7 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
  * @param sentenceEncoderModule The imported module
  * @returns The load function or null if not found
  */
-function findUSELoadFunction(sentenceEncoderModule: any): Function | null {
+function findUSELoadFunction(sentenceEncoderModule: any): (() => Promise<EmbeddingModel>) | null {
   // Log the module structure for debugging
   console.log(
     'Universal Sentence Encoder module structure:',
@@ -326,31 +326,37 @@ function findUSELoadFunction(sentenceEncoderModule: any): Function | null {
     for (const key in sentenceEncoderModule) {
       if (typeof sentenceEncoderModule[key] === 'function') {
         // Check if the function name or key contains 'load'
-        const fnName = sentenceEncoderModule[key].name || key;
+        const fnName = sentenceEncoderModule[key].name || key
         if (fnName.toLowerCase().includes('load')) {
-          loadFunction = sentenceEncoderModule[key];
-          console.log(`Using sentenceEncoderModule.${key} as load function`);
-          break;
+          loadFunction = sentenceEncoderModule[key]
+          console.log(`Using sentenceEncoderModule.${key} as load function`)
+          break
         }
       }
       // Also check nested objects
-      else if (typeof sentenceEncoderModule[key] === 'object' && sentenceEncoderModule[key] !== null) {
+      else if (
+        typeof sentenceEncoderModule[key] === 'object' &&
+        sentenceEncoderModule[key] !== null
+      ) {
         for (const nestedKey in sentenceEncoderModule[key]) {
           if (typeof sentenceEncoderModule[key][nestedKey] === 'function') {
-            const fnName = sentenceEncoderModule[key][nestedKey].name || nestedKey;
+            const fnName =
+              sentenceEncoderModule[key][nestedKey].name || nestedKey
             if (fnName.toLowerCase().includes('load')) {
-              loadFunction = sentenceEncoderModule[key][nestedKey];
-              console.log(`Using sentenceEncoderModule.${key}.${nestedKey} as load function`);
-              break;
+              loadFunction = sentenceEncoderModule[key][nestedKey]
+              console.log(
+                `Using sentenceEncoderModule.${key}.${nestedKey} as load function`
+              )
+              break
             }
           }
         }
-        if (loadFunction) break;
+        if (loadFunction) break
       }
     }
   }
 
-  return loadFunction;
+  return loadFunction
 }
 
 /**
