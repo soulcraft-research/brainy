@@ -1272,9 +1272,10 @@ await db.init()
   const { BrainyData, NounType, VerbType } = await import(importPath)
 
   // Make BrainyData and types available globally
-  window.BrainyData = BrainyData
-  window.NounType = NounType
-  window.VerbType = VerbType
+  // Use Object.defineProperty to avoid conflicts with existing properties
+  Object.defineProperty(window, 'BrainyData', { value: BrainyData, writable: true, configurable: true })
+  Object.defineProperty(window, 'NounType', { value: NounType, writable: true, configurable: true })
+  Object.defineProperty(window, 'VerbType', { value: VerbType, writable: true, configurable: true })
 
   // Initialize demo immediately since modules already run after DOM is loaded
   // Check if we're running over HTTP
