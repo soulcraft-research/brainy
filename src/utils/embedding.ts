@@ -260,7 +260,9 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
  * @param sentenceEncoderModule The imported module
  * @returns The load function or null if not found
  */
-function findUSELoadFunction(sentenceEncoderModule: any): (() => Promise<EmbeddingModel>) | null {
+function findUSELoadFunction(
+  sentenceEncoderModule: any
+): (() => Promise<EmbeddingModel>) | null {
   // Log the module structure for debugging
   console.log(
     'Universal Sentence Encoder module structure:',
