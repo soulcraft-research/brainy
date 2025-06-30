@@ -692,7 +692,7 @@ export class AugmentationPipeline {
     if (enabledAugmentations.length === 0) {
       return []
     }
-
+  
     // Create a function to execute the method on an augmentation
     const executeMethod = async (
       augmentation: T
