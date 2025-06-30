@@ -223,27 +223,37 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         await this.embeddingFunction('')
         console.log('Universal Sentence Encoder model loaded successfully')
       } catch (embedError) {
-        console.warn('Failed to pre-load Universal Sentence Encoder:', embedError)
+        console.warn(
+          'Failed to pre-load Universal Sentence Encoder:',
+          embedError
+        )
 
         // Try again with a retry mechanism
         console.log('Retrying Universal Sentence Encoder initialization...')
         try {
           // Wait a moment before retrying
-          await new Promise(resolve => setTimeout(resolve, 1000))
+          await new Promise((resolve) => setTimeout(resolve, 1000))
 
           // Try again with a different approach - use the non-threaded version
           // This is a fallback in case the threaded version fails
-          const { createTensorFlowEmbeddingFunction } = await import('./utils/embedding.js')
+          const { createTensorFlowEmbeddingFunction } = await import(
+            './utils/embedding.js'
+          )
           const fallbackEmbeddingFunction = createTensorFlowEmbeddingFunction()
 
           // Test the fallback embedding function
           await fallbackEmbeddingFunction('')
 
           // If successful, replace the embedding function
-          console.log('Successfully loaded Universal Sentence Encoder with fallback method')
+          console.log(
+            'Successfully loaded Universal Sentence Encoder with fallback method'
+          )
           this.embeddingFunction = fallbackEmbeddingFunction
         } catch (retryError) {
-          console.error('All attempts to load Universal Sentence Encoder failed:', retryError)
+          console.error(
+            'All attempts to load Universal Sentence Encoder failed:',
+            retryError
+          )
           // Continue initialization even if embedding model fails to load
           // The application will need to handle missing embedding functionality
         }
@@ -593,7 +603,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         })
 
         // Process vector items (already embedded)
-        const vectorPromises = vectorItems.map(item => 
+        const vectorPromises = vectorItems.map((item) =>
           this.add(item.vectorOrData, item.metadata, options)
         )
 
@@ -601,19 +611,25 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         let textPromises: Promise<string>[] = []
         if (textItems.length > 0) {
           // Extract just the text for batch embedding
-          const texts = textItems.map(item => item.text)
+          const texts = textItems.map((item) => item.text)
 
           // Perform batch embedding
           const embeddings = await defaultBatchEmbeddingFunction(texts)
 
           // Add each item with its embedding
-          textPromises = textItems.map((item, i) => 
-            this.add(embeddings[i], item.metadata, { ...options, forceEmbed: false })
+          textPromises = textItems.map((item, i) =>
+            this.add(embeddings[i], item.metadata, {
+              ...options,
+              forceEmbed: false
+            })
           )
         }
 
         // Combine all promises
-        const batchResults = await Promise.all([...vectorPromises, ...textPromises])
+        const batchResults = await Promise.all([
+          ...vectorPromises,
+          ...textPromises
+        ])
 
         // Add the results to our ids array
         ids.push(...batchResults)
@@ -1851,8 +1867,12 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       const maxAttempts = 100 // Prevent infinite loop
       const delay = 50 // ms
 
-      while (this.isInitializing && !this.isInitialized && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, delay))
+      while (
+        this.isInitializing &&
+        !this.isInitialized &&
+        attempts < maxAttempts
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, delay))
         attempts++
       }
 
