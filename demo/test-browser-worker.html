@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brainy Browser Worker Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+    }
+    button {
+      padding: 10px 15px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+  <h1>Brainy Browser Worker Test</h1>
+  <p>This page tests the Brainy worker thread implementation in a browser environment.</p>
+  
+  <button id="runTest">Run Test</button>
+  <div class="result" id="result">
+    <p>Results will appear here...</p>
+  </div>
+
+  <script type="module">
+    import { executeInThread, environment, isThreadingAvailable } from '../dist/unified.js';
+
+    document.getElementById('runTest').addEventListener('click', async () => {
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '<p>Running test...</p>';
+
+      try {
+        // Log environment information
+        resultDiv.innerHTML += `<p>Environment: ${JSON.stringify(environment)}</p>`;
+        
+        // Check if threading is available
+        const threadingAvailable = typeof isThreadingAvailable === 'function' 
+          ? isThreadingAvailable() 
+          : 'isThreadingAvailable function not found';
+        resultDiv.innerHTML += `<p>Threading available: ${threadingAvailable}</p>`;
+
+        // Define a compute-intensive function
+        const computeIntensiveFunction = `
+          function(data) {
+            console.log('Worker: Starting computation...');
+
+            // Simulate a compute-intensive task
+            const start = Date.now();
+            let result = 0;
+            for (let i = 0; i < data.iterations; i++) {
+              result += Math.sqrt(i) * Math.sin(i);
+            }
+
+            const duration = Date.now() - start;
+            console.log('Worker: Computation completed in ' + duration + 'ms');
+
+            return {
+              result,
+              duration,
+              iterations: data.iterations
+            };
+          }
+        `;
+
+        // Execute the function in a worker thread
+        resultDiv.innerHTML += '<p>Starting worker thread execution...</p>';
+        const startTime = Date.now();
+        
+        const result = await executeInThread(computeIntensiveFunction, { iterations: 5000000 });
+        
+        const mainDuration = Date.now() - startTime;
+        resultDiv.innerHTML += `<p>Worker thread execution completed in ${mainDuration}ms</p>`;
+        resultDiv.innerHTML += `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+        
+      } catch (error) {
+        resultDiv.innerHTML += `<p>Error: ${error.message}</p>`;
+        console.error('Error during test:', error);
+      }
+    });
+  </script>
+</body>
+</html>
