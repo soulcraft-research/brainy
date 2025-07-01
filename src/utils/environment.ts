@@ -51,8 +51,8 @@ export function areWorkerThreadsAvailable(): boolean {
 
 /**
  * Determine if threading is available in the current environment
- * Always returns false since multithreading has been removed
+ * Returns true if either Web Workers (browser) or Worker Threads (Node.js) are available
  */
 export function isThreadingAvailable(): boolean {
-  return false;
+  return areWebWorkersAvailable() || areWorkerThreadsAvailable();
 }

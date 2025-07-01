@@ -33,12 +33,22 @@ import {
   defaultEmbeddingFunction
 } from './utils/embedding.js'
 
+// Export worker utilities
+import {
+  executeInThread,
+  cleanupWorkerPools
+} from './utils/workerUtils.js'
+
 export {
   UniversalSentenceEncoder,
   createEmbeddingFunction,
   createTensorFlowEmbeddingFunction,
   createThreadedEmbeddingFunction,
-  defaultEmbeddingFunction
+  defaultEmbeddingFunction,
+
+  // Worker utilities
+  executeInThread,
+  cleanupWorkerPools
 }
 
 // Export storage adapters

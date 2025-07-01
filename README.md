@@ -3,7 +3,7 @@
 <br/><br/>
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D23.11.0-brightgreen.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.1.6-blue.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![npm](https://img.shields.io/badge/npm-v0.9.12-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
@@ -1264,7 +1264,27 @@ comprehensive [Scaling Strategy](scalingStrategy.md) document.
 
 ## Requirements
 
-- Node.js >= 23.11.0
+- Node.js >= 24.0.0
+
+### Node.js 24 Optimizations
+
+Brainy takes advantage of several optimizations available in Node.js 24:
+
+1. **Improved Worker Threads Performance**: The multithreading system has been completely rewritten to leverage Node.js 24's enhanced Worker Threads API, resulting in better performance for compute-intensive operations like embedding generation and vector similarity calculations.
+
+2. **Worker Pool Management**: A sophisticated worker pool system reuses worker threads to minimize the overhead of creating and destroying threads, leading to more efficient resource utilization.
+
+3. **Dynamic Module Imports**: Uses the new `node:` protocol prefix for importing core modules, which provides better performance and more reliable module resolution.
+
+4. **ES Modules Optimizations**: Takes advantage of Node.js 24's improved ESM implementation for faster module loading and execution.
+
+5. **Enhanced Error Handling**: Implements more robust error handling patterns available in Node.js 24 for better stability and debugging.
+
+These optimizations are particularly beneficial for:
+- Large-scale vector operations
+- Batch processing of embeddings
+- Real-time data processing pipelines
+- High-throughput search operations
 
 ## Contributing
 

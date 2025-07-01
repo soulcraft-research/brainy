@@ -112,6 +112,14 @@ const config = {
 var global = typeof window !== "undefined" ? window : this;
 // Buffer polyfill is now included via the buffer-polyfill plugin
 `
+  },
+  cli: {
+    input: 'src/cli.ts',
+    outputPrefix: 'cli',
+    tsconfig: './tsconfig.unified.json',
+    declaration: false,
+    declarationMap: false,
+    intro: ''
   }
 }
 
@@ -119,7 +127,7 @@ var global = typeof window !== "undefined" ? window : this;
 const buildConfig = config[buildType]
 
 // Create the rollup configuration
-export default {
+const mainConfig = {
   input: buildConfig.input,
   output: [
     {
@@ -174,6 +182,51 @@ export default {
     '@smithy/util-stream',
     '@smithy/node-http-handler',
     '@aws-crypto/crc32c',
-    'node:stream/web'
+    'node:stream/web',
+    'node:worker_threads'
   ]
 }
+
+// CLI configuration
+const cliConfig = {
+  input: 'src/cli.ts',
+  output: {
+    dir: 'dist',
+    entryFileNames: 'cli.js',
+    format: 'es',
+    sourcemap: true,
+    inlineDynamicImports: true
+  },
+  plugins: [
+    replace({
+      preventAssignment: true,
+      'process.env.NODE_ENV': JSON.stringify('production')
+    }),
+    fixThisReferences(),
+    resolve({
+      browser: false,
+      preferBuiltins: true
+    }),
+    commonjs({
+      transformMixedEsModules: true
+    }),
+    json(),
+    typescript({
+      tsconfig: './tsconfig.unified.json',
+      declaration: false,
+      declarationMap: false
+    })
+  ],
+  external: [
+    // Add any dependencies you want to exclude from the bundle
+    '@aws-sdk/client-s3',
+    '@smithy/util-stream',
+    '@smithy/node-http-handler',
+    '@aws-crypto/crc32c',
+    'node:stream/web',
+    'node:worker_threads'
+  ]
+}
+
+// Export both configurations
+export default [mainConfig, cliConfig]
