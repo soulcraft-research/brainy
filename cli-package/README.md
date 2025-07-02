@@ -49,6 +49,11 @@ brainy generate-random-graph --noun-count 20 --verb-count 30 --clear
 
 - Node.js >= 24.0.0
 
+## Changelog
+
+### 0.9.23
+- Fixed compatibility with Node.js v24 by adding support for the new TextEncoder global object
+
 ## License
 
 MIT
