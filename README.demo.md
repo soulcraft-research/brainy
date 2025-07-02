@@ -4,8 +4,8 @@ The Brainy interactive demo showcases the library's features in a web browser. F
 
 ## Prerequisites
 
-- Make sure you have Node.js installed (version 23.11.0 or higher)
-- Ensure the project is built (`npm run build:all`)
+- Make sure you have Node.js installed (version 24.0.0 or higher)
+- Ensure the project is built (run both `npm run build` and `npm run build:browser`)
 
 ## Running the Demo
 
@@ -51,7 +51,13 @@ The Brainy library uses a two-step build process:
 You can run both steps together with:
 
 ```bash
-npm run build:all
+npm run build && npm run build:browser
+```
+
+Or simply use the demo script which does this for you:
+
+```bash
+npm run demo
 ```
 
 The browser bundle is created from `src/unified.ts`, which provides environment detection and adapts to browser,

@@ -6,7 +6,7 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.1.6-blue.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![npm](https://img.shields.io/badge/npm-v0.9.13-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
+[![npm](https://img.shields.io/badge/npm-v0.9.14-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
 
 [//]: # ([![Cartographer]&#40;https://img.shields.io/badge/Cartographer-Official%20Standard-brightgreen&#41;]&#40;https://github.com/sodal-project/cartographer&#41;)
 
@@ -300,8 +300,8 @@ Brainy uses a modern build system that optimizes for both Node.js and browser en
 5. **Build Scripts**
     - `npm run build`: Builds the Node.js version
     - `npm run build:browser`: Builds the browser-optimized version
-    - `npm run build:all`: Builds both versions
-    - `npm run demo`: Builds all versions and starts a demo server
+    - `npm run build:cli`: Builds the CLI version
+    - `npm run demo`: Builds both Node.js and browser versions and starts a demo server
     - GitHub Actions workflow: Automatically deploys the demo directory to GitHub Pages when pushing to the main branch
 
 ### Running the Pipeline
