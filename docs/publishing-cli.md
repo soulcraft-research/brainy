@@ -26,10 +26,14 @@ cd /path/to/brainy
 git pull
 ```
 
-### 3. Build and publish both packages
+### 3. Build and publish packages
+
+You have three options for publishing:
+
+#### Option A: Publish both packages together
 
 ```bash
-npm run deploy:both
+npm run publish:both
 ```
 
 This command will:
@@ -38,6 +42,27 @@ This command will:
 - Build the CLI
 - Verify the CLI was built successfully
 - Publish the main package to npm
+- Publish the CLI package to npm
+
+#### Option B: Publish only the main package
+
+```bash
+npm run publish
+```
+
+This command will:
+- Build the main package
+- Publish the main package to npm
+
+#### Option C: Publish only the CLI package
+
+```bash
+npm run publish:cli
+```
+
+This command will:
+- Ensure versions are in sync
+- Build the CLI package
 - Publish the CLI package to npm
 
 ### 4. Verify the packages were published successfully
@@ -51,14 +76,32 @@ npm view @soulcraft/brainy-cli
 
 ## How It Works
 
-The publishing process uses the `scripts/publish-cli.js` script, which:
+### Publishing Both Packages
+
+The `publish:both` command uses the `scripts/publish-cli.js` script, which:
 
 1. Ensures versions are in sync by running `scripts/generate-version.js`
 2. Builds the main package with `npm run build`
-3. Builds the CLI with `npm run build:cli`
-4. Verifies the CLI was built successfully
-5. Publishes the main package with `npm publish` from the root directory
+3. Publishes the main package with `npm publish` from the root directory
+4. Builds the CLI package with `npm run build` in the cli-package directory
+5. Verifies the CLI was built successfully
 6. Publishes the CLI package with `npm publish` from the cli-package directory
+
+### Publishing Only the Main Package
+
+The `publish` command:
+
+1. Builds the main package with `npm run build`
+2. Publishes the main package with `npm publish` from the root directory
+
+### Publishing Only the CLI Package
+
+The `publish:cli` command:
+
+1. Ensures versions are in sync by running `scripts/generate-version.js`
+2. Changes to the cli-package directory
+3. Builds the CLI package with `npm run build`
+4. Publishes the CLI package with `npm publish`
 
 The version synchronization ensures that:
 - Both packages always have the same version number
