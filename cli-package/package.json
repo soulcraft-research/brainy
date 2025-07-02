@@ -21,7 +21,8 @@
     "vector-database",
     "hnsw",
     "cli",
-    "command-line",
+    "browser",
+    "container",
     "graph-database"
   ],
   "author": "David Snelling (david@soulcraft.com)",

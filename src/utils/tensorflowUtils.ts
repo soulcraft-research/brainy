@@ -33,13 +33,40 @@ if (
           isFloat32Array,
           isTypedArray,
           // Use the global TextEncoder/TextDecoder directly
-          TextEncoder: typeof TextEncoder !== 'undefined' ? TextEncoder : null,
-          TextDecoder: typeof TextDecoder !== 'undefined' ? TextDecoder : null
+          TextEncoder:
+            typeof TextEncoder !== 'undefined'
+              ? TextEncoder
+              : function () {
+                  console.warn(
+                    'TextEncoder constructor called but not available'
+                  )
+                  return { encode: (str: string) => new Uint8Array([]) }
+                },
+          TextDecoder:
+            typeof TextDecoder !== 'undefined'
+              ? TextDecoder
+              : function () {
+                  console.warn(
+                    'TextDecoder constructor called but not available'
+                  )
+                  return { decode: (bytes: Uint8Array) => '' }
+                }
         }
 
         // Initialize TextEncoder/TextDecoder directly from globals
-        this.textEncoder = new TextEncoder()
-        this.textDecoder = new TextDecoder()
+        if (typeof TextEncoder !== 'undefined') {
+          this.textEncoder = new TextEncoder()
+        } else {
+          console.warn('TextEncoder is not available in this environment')
+          this.textEncoder = { encode: (str: string) => new Uint8Array([]) }
+        }
+
+        if (typeof TextDecoder !== 'undefined') {
+          this.textDecoder = new TextDecoder()
+        } else {
+          console.warn('TextDecoder is not available in this environment')
+          this.textDecoder = { decode: (bytes: Uint8Array) => '' }
+        }
       }
     }
 

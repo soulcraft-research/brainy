@@ -54,6 +54,6 @@ Thumbs.db
 /cli-package/node_modules/
 /npm
 /rollup
-/soulcraft-brainy-0.9.23.tgz
-/cli-package/soulcraft-brainy-cli-0.9.23.tgz
+/soulcraft-brainy-*.tgz
 /data/
+/cli-package/soulcraft-brainy-cli-*.tgz

@@ -6,47 +6,62 @@
  * Check if code is running in a browser environment
  */
 export function isBrowser(): boolean {
-  return typeof window !== 'undefined' && typeof document !== 'undefined';
+  return typeof window !== 'undefined' && typeof document !== 'undefined'
 }
 
 /**
  * Check if code is running in a Node.js environment
  */
 export function isNode(): boolean {
-  return typeof process !== 'undefined' && 
-    process.versions != null && 
-    process.versions.node != null;
+  return (
+    typeof process !== 'undefined' &&
+    process.versions != null &&
+    process.versions.node != null
+  )
 }
 
 /**
  * Check if code is running in a Web Worker environment
  */
 export function isWebWorker(): boolean {
-  return typeof self === 'object' && 
-    self.constructor && 
-    self.constructor.name === 'DedicatedWorkerGlobalScope';
+  return (
+    typeof self === 'object' &&
+    self.constructor &&
+    self.constructor.name === 'DedicatedWorkerGlobalScope'
+  )
 }
 
 /**
  * Check if Web Workers are available in the current environment
  */
 export function areWebWorkersAvailable(): boolean {
-  return isBrowser() && typeof Worker !== 'undefined';
+  return isBrowser() && typeof Worker !== 'undefined'
 }
 
 /**
  * Check if Worker Threads are available in the current environment (Node.js)
  */
-export function areWorkerThreadsAvailable(): boolean {
-  if (!isNode()) return false;
+export async function areWorkerThreadsAvailable(): Promise<boolean> {
+  if (!isNode()) return false
 
   try {
-    // Dynamic import to avoid errors in browser environments
-    require('worker_threads');
-    return true;
+    // Use dynamic import to avoid errors in browser environments
+    await import('worker_threads')
+    return true
   } catch (e) {
-    return false;
+    return false
   }
+}
+
+/**
+ * Synchronous version that doesn't actually try to load the module
+ * This is safer in ES module environments
+ */
+export function areWorkerThreadsAvailableSync(): boolean {
+  if (!isNode()) return false
+
+  // In Node.js 12+, worker_threads is available without requiring a flag
+  return parseInt(process.versions.node.split('.')[0]) >= 12
 }
 
 /**
@@ -54,5 +69,12 @@ export function areWorkerThreadsAvailable(): boolean {
  * Returns true if either Web Workers (browser) or Worker Threads (Node.js) are available
  */
 export function isThreadingAvailable(): boolean {
-  return areWebWorkersAvailable() || areWorkerThreadsAvailable();
+  return areWebWorkersAvailable() || areWorkerThreadsAvailableSync()
+}
+
+/**
+ * Async version of isThreadingAvailable
+ */
+export async function isThreadingAvailableAsync(): Promise<boolean> {
+  return areWebWorkersAvailable() || (await areWorkerThreadsAvailable())
 }
