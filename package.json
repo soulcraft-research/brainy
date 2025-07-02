@@ -44,6 +44,7 @@
     "format": "prettier --write \"src/**/*.{ts,js}\"",
     "check-format": "prettier --check \"src/**/*.{ts,js}\"",
     "check-style": "node scripts/check-code-style.js",
+    "prepare": "npm run build && npm run build:cli",
     "deploy": "npm run build && npm publish",
     "deploy:cloud:aws": "cd cloud-wrapper && npm run build && npm run deploy:aws",
     "deploy:cloud:gcp": "cd cloud-wrapper && npm run build && npm run deploy:gcp",
