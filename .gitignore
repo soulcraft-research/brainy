@@ -50,3 +50,4 @@ Thumbs.db
 # Generated files
 /encoded-image.html
 /encoded-image.txt
+/cli-package/dist/
