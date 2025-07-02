@@ -76,9 +76,18 @@
     "url": "https://github.com/soulcraft-research/brainy.git"
   },
   "files": [
-    "dist/**/*.js",
+    "dist/unified.js",
+    "dist/unified.min.js",
+    "dist/brainy.js",
+    "dist/brainy.min.js",
     "dist/**/*.d.ts",
     "dist/types/",
+    "dist/augmentations/",
+    "dist/examples/",
+    "dist/hnsw/",
+    "dist/mcp/",
+    "dist/storage/",
+    "dist/utils/",
     "LICENSE",
     "README.md",
     "brainy.png"
