@@ -85,9 +85,7 @@
     "LICENSE",
     "README.md",
     "cli-wrapper.js",
-    "brainy.png",
-    "!dist/cli.js",
-    "!dist/cli.js.map"
+    "brainy.png"
   ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",
