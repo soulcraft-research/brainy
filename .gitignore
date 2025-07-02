@@ -51,3 +51,4 @@ Thumbs.db
 /encoded-image.html
 /encoded-image.txt
 /cli-package/dist/
+/cli-package/node_modules/
