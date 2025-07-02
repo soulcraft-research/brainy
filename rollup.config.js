@@ -228,5 +228,6 @@ const cliConfig = {
   ]
 }
 
-// Export both configurations
-export default [mainConfig, cliConfig]
+// Export configurations based on build type
+// Only include CLI config when specifically building CLI
+export default buildType === 'cli' ? cliConfig : mainConfig
