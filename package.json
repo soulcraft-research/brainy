@@ -31,9 +31,10 @@
     "prebuild": "node scripts/generate-version.js",
     "build": "BUILD_TYPE=unified rollup -c rollup.config.js",
     "build:browser": "BUILD_TYPE=browser rollup -c rollup.config.js",
+    "build:cli": "BUILD_TYPE=cli rollup -c rollup.config.js",
     "start": "node dist/unified.js",
     "demo": "npm run build && npm run build:browser && npx http-server -o /index.html",
-    "cli": "node ./cli-wrapper.js",
+    "cli": "npm run build:cli && node ./cli-wrapper.js",
     "version": "node scripts/generate-version.js",
     "version:patch": "npm version patch",
     "version:minor": "npm version minor",
@@ -84,7 +85,9 @@
     "LICENSE",
     "README.md",
     "cli-wrapper.js",
-    "brainy.png"
+    "brainy.png",
+    "!dist/cli.js",
+    "!dist/cli.js.map"
   ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",
