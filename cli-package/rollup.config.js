@@ -37,6 +37,7 @@ export default {
     'fs',
     'path',
     'url',
-    'child_process'
+    'child_process',
+    'worker_threads'
   ]
 }

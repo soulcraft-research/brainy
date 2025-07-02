@@ -1,51 +1,12 @@
 import { GraphVerb, HNSWNoun, StorageAdapter } from '../coreTypes.js'
 
 // Import Node.js built-in modules
-// Using require for compatibility with Node.js
+// Using dynamic imports for compatibility with ES modules
 let fs: any
 let path: any
 
-// Initialize these modules immediately if in Node.js environment
-if (
-  typeof process !== 'undefined' &&
-  process.versions &&
-  process.versions.node
-) {
-  try {
-    // Use require for Node.js built-in modules
-    fs = require('fs')
-    path = require('path')
-
-    // Verify that path has the required methods
-    if (!path || typeof path.resolve !== 'function') {
-      throw new Error('path module is missing required methods')
-    }
-  } catch (e) {
-    console.warn('Failed to load Node.js modules with require:', e)
-
-    // Try using dynamic import as a fallback
-    try {
-      // Use a synchronous approach to ensure modules are loaded before continuing
-      const pathModule = require('node:path')
-      const fsModule = require('node:fs')
-
-      path = pathModule
-      fs = fsModule
-
-      // Verify that path has the required methods
-      if (!path || typeof path.resolve !== 'function') {
-        throw new Error(
-          'path module from node:path is missing required methods'
-        )
-      }
-    } catch (nodeImportError) {
-      console.warn(
-        'Failed to load Node.js modules with node: prefix:',
-        nodeImportError
-      )
-    }
-  }
-}
+// We'll initialize these modules in the init() method
+// No synchronous loading here to avoid issues with ES modules
 
 // Constants for directory and file names
 const ROOT_DIR = 'brainy-data'
@@ -111,37 +72,7 @@ export class FileSystemStorage implements StorageAdapter {
 
         // Try multiple approaches to load the modules
         const loadAttempts = [
-          // Attempt 1: Use require
-          async () => {
-            console.log('Attempting to load Node.js modules with require()')
-            const fsModule = require('fs')
-            const pathModule = require('path')
-
-            if (!pathModule || typeof pathModule.resolve !== 'function') {
-              throw new Error('path.resolve is not a function after require()')
-            }
-
-            return { fs: fsModule, path: pathModule }
-          },
-
-          // Attempt 2: Use require with node: prefix
-          async () => {
-            console.log(
-              'Attempting to load Node.js modules with require("node:...")'
-            )
-            const fsModule = require('node:fs')
-            const pathModule = require('node:path')
-
-            if (!pathModule || typeof pathModule.resolve !== 'function') {
-              throw new Error(
-                'path.resolve is not a function after require("node:path")'
-              )
-            }
-
-            return { fs: fsModule, path: pathModule }
-          },
-
-          // Attempt 3: Use dynamic import
+          // Attempt 1: Use dynamic import
           async () => {
             console.log(
               'Attempting to load Node.js modules with dynamic import'
@@ -161,7 +92,7 @@ export class FileSystemStorage implements StorageAdapter {
             return { fs: fsResolved, path: pathResolved }
           },
 
-          // Attempt 4: Use dynamic import with node: prefix
+          // Attempt 2: Use dynamic import with node: prefix
           async () => {
             console.log(
               'Attempting to load Node.js modules with dynamic import("node:...")'

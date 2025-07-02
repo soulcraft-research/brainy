@@ -176,8 +176,11 @@ const mainConfig = {
     '@aws-crypto/crc32c',
     'node:stream/web',
     'node:worker_threads',
+    'worker_threads',
     'node:fs',
-    'node:path'
+    'node:path',
+    'fs',
+    'path'
   ]
 }
 
