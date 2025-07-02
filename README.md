@@ -6,7 +6,7 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.1.6-blue.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![npm](https://img.shields.io/badge/npm-v0.9.15-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
+[![npm](https://img.shields.io/badge/npm-v0.9.16-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
 
 [//]: # ([![Cartographer]&#40;https://img.shields.io/badge/Cartographer-Official%20Standard-brightgreen&#41;]&#40;https://github.com/sodal-project/cartographer&#41;)
 
@@ -110,7 +110,12 @@ import { BrainyData } from '@soulcraft/brainy'
 
 // Minified version for production
 import { BrainyData } from '@soulcraft/brainy/min'
+
+// CLI functionality (only imported when needed)
+import '@soulcraft/brainy/cli'
 ```
+
+> **Note**: The CLI functionality (4MB) is not included in the standard import, reducing the bundle size for browser and Node.js applications. The CLI is only built and loaded when explicitly imported or when using the command-line interface.
 
 ### Browser Usage
 
@@ -285,23 +290,30 @@ Brainy uses a modern build system that optimizes for both Node.js and browser en
 2. **Environment-Specific Builds**
     - **Node.js Build**: Optimized for server environments with full functionality
     - **Browser Build**: Optimized for browser environments with reduced bundle size
+    - **CLI Build**: Separate build for command-line interface functionality
     - Conditional exports in package.json for automatic environment detection
 
-3. **Environment Detection**
+3. **Modular Architecture**
+    - Core functionality and CLI are built separately
+    - CLI (4MB) is only included when explicitly imported or used from command line
+    - Reduced bundle size for browser and Node.js applications
+
+4. **Environment Detection**
     - Automatically detects whether it's running in a browser or Node.js
     - Loads appropriate dependencies and functionality based on the environment
     - Provides consistent API across all environments
 
-4. **TypeScript**
+5. **TypeScript**
     - Written in TypeScript for type safety and better developer experience
     - Generates type definitions for TypeScript users
     - Compiled to ES2020 for modern JavaScript environments
 
-5. **Build Scripts**
-    - `npm run build`: Builds the Node.js version
+6. **Build Scripts**
+    - `npm run build`: Builds the core library without CLI
     - `npm run build:browser`: Builds the browser-optimized version
-    - `npm run build:cli`: Builds the CLI version
-    - `npm run demo`: Builds both Node.js and browser versions and starts a demo server
+    - `npm run build:cli`: Builds the CLI version (only needed for CLI usage)
+    - `npm run prepare:cli`: Builds the CLI for command-line usage
+    - `npm run demo`: Builds both core library and browser versions and starts a demo server
     - GitHub Actions workflow: Automatically deploys the demo directory to GitHub Pages when pushing to the main branch
 
 ### Running the Pipeline
@@ -412,11 +424,13 @@ Connections between nouns (edges in the graph):
 
 ## Command Line Interface
 
-Brainy includes a powerful CLI for managing your data:
+Brainy includes a powerful CLI for managing your data. The CLI is available as a separate package `@soulcraft/brainy-cli` to reduce the bundle size of the main package.
+
+### Installing and Using the CLI
 
 ```bash
-# Install globally
-npm install -g @soulcraft/brainy --legacy-peer-deps
+# Install the CLI globally
+npm install -g @soulcraft/brainy-cli
 
 # Initialize a database
 brainy init
@@ -435,6 +449,24 @@ brainy addVerb <sourceId> <targetId> RelatedTo '{"description":"Both are pets"}'
 brainy visualize
 brainy visualize --root <id> --depth 3
 ```
+
+### Publishing the CLI Package
+
+If you need to publish the CLI package to npm, please refer to the [CLI Publishing Guide](docs/publishing-cli.md) for detailed instructions.
+
+### Using the CLI in Your Code
+
+If you need to use the CLI functionality in your code, you can import it explicitly:
+
+```typescript
+// Import the CLI functionality
+import '@soulcraft/brainy/cli'
+
+// Now you can use the CLI programmatically
+// ...
+```
+
+This will only build and load the CLI when you explicitly import it, keeping your bundle size small when you don't need the CLI.
 
 ### Development Usage
 
