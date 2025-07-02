@@ -6,7 +6,7 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D23.0.0-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.1.6-blue.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![npm](https://img.shields.io/badge/npm-v0.9.31-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
+[![npm](https://img.shields.io/badge/npm-v0.9.32-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
 
 [//]: # ([![Cartographer]&#40;https://img.shields.io/badge/Cartographer-Official%20Standard-brightgreen&#41;]&#40;https://github.com/sodal-project/cartographer&#41;)
 
