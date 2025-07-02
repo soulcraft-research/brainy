@@ -5,7 +5,16 @@
  * A command-line interface for interacting with the Brainy vector database
  */
 
-import { BrainyData, NounType, VerbType, FileSystemStorage, sequentialPipeline, augmentationPipeline, ExecutionMode, AugmentationType } from '@soulcraft/brainy'
+import {
+  BrainyData,
+  NounType,
+  VerbType,
+  FileSystemStorage,
+  sequentialPipeline,
+  augmentationPipeline,
+  ExecutionMode,
+  AugmentationType
+} from '@soulcraft/brainy'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import fs from 'fs'
@@ -145,18 +154,28 @@ program
       const results = await db.searchText(query, limit)
 
       console.log(`Search results for "${query}":`)
-      results.forEach((result, index) => {
-        console.log(`${index + 1}. ID: ${result.id}`)
-        console.log(`   Score: ${result.score.toFixed(4)}`)
-        console.log(`   Metadata: ${JSON.stringify(result.metadata)}`)
-        console.log(
-          `   Vector: [${result.vector
-            .slice(0, 3)
-            .map((v) => v.toFixed(2))
-            .join(', ')}...]`
-        )
-        console.log()
-      })
+      results.forEach(
+        (
+          result: {
+            id: string
+            score: number
+            metadata: any
+            vector: number[]
+          },
+          index: number
+        ) => {
+          console.log(`${index + 1}. ID: ${result.id}`)
+          console.log(`   Score: ${result.score.toFixed(4)}`)
+          console.log(`   Metadata: ${JSON.stringify(result.metadata)}`)
+          console.log(
+            `   Vector: [${result.vector
+              .slice(0, 3)
+              .map((v: number) => v.toFixed(2))
+              .join(', ')}...]`
+          )
+          console.log()
+        }
+      )
     } catch (error) {
       console.error('Error:', (error as Error).message)
       process.exit(1)
@@ -179,7 +198,7 @@ program
         console.log(
           `Vector: [${noun.vector
             .slice(0, 5)
-            .map((v) => v.toFixed(2))
+            .map((v: number) => v.toFixed(2))
             .join(', ')}...]`
         )
       } else {
@@ -252,15 +271,24 @@ program
       if (verbs.length === 0) {
         console.log('No relationships found')
       } else {
-        verbs.forEach((verb, index) => {
-          console.log(`${index + 1}. ID: ${verb.id}`)
-          console.log(
-            `   Type: ${Object.keys(VerbType).find((key) => VerbType[key as keyof typeof VerbType] === verb.metadata.verb) || verb.metadata.verb}`
-          )
-          console.log(`   Target: ${verb.targetId}`)
-          console.log(`   Metadata: ${JSON.stringify(verb.metadata)}`)
-          console.log()
-        })
+        verbs.forEach(
+          (
+            verb: {
+              id: string
+              targetId: string
+              metadata: { verb: VerbType; [key: string]: any }
+            },
+            index: number
+          ) => {
+            console.log(`${index + 1}. ID: ${verb.id}`)
+            console.log(
+              `   Type: ${Object.keys(VerbType).find((key) => VerbType[key as keyof typeof VerbType] === verb.metadata.verb) || verb.metadata.verb}`
+            )
+            console.log(`   Target: ${verb.targetId}`)
+            console.log(`   Metadata: ${JSON.stringify(verb.metadata)}`)
+            console.log()
+          }
+        )
       }
     } catch (error) {
       console.error('Error:', (error as Error).message)
@@ -734,7 +762,9 @@ program
       // Print some sample IDs
       if (result.nounIds.length > 0) {
         console.log('\nSample noun IDs:')
-        result.nounIds.slice(0, 3).forEach((id) => console.log(`- ${id}`))
+        result.nounIds
+          .slice(0, 3)
+          .forEach((id: string) => console.log(`- ${id}`))
         if (result.nounIds.length > 3) {
           console.log(`... and ${result.nounIds.length - 3} more`)
         }
@@ -742,7 +772,9 @@ program
 
       if (result.verbIds.length > 0) {
         console.log('\nSample verb IDs:')
-        result.verbIds.slice(0, 3).forEach((id) => console.log(`- ${id}`))
+        result.verbIds
+          .slice(0, 3)
+          .forEach((id: string) => console.log(`- ${id}`))
         if (result.verbIds.length > 3) {
           console.log(`... and ${result.verbIds.length - 3} more`)
         }
@@ -928,7 +960,7 @@ augmentCommand
       if (availableTypes.length === 0) {
         console.log('  No augmentation types available')
       } else {
-        availableTypes.forEach((type) => {
+        availableTypes.forEach((type: string) => {
           const augmentations =
             augmentationPipeline.getAugmentationsByType(type)
           console.log(
@@ -938,10 +970,18 @@ augmentCommand
           if (augmentations.length === 0) {
             console.log('  No augmentations registered for this type')
           } else {
-            augmentations.forEach((aug) => {
-              console.log(`  - ${aug.name}: ${aug.description}`)
-              console.log(`    Status: ${aug.enabled ? 'Enabled' : 'Disabled'}`)
-            })
+            augmentations.forEach(
+              (aug: {
+                name: string
+                description: string
+                enabled: boolean
+              }) => {
+                console.log(`  - ${aug.name}: ${aug.description}`)
+                console.log(
+                  `    Status: ${aug.enabled ? 'Enabled' : 'Disabled'}`
+                )
+              }
+            )
           }
         })
       }
@@ -952,10 +992,12 @@ augmentCommand
       if (webSocketAugs.length === 0) {
         console.log('  No WebSocket-enabled augmentations available')
       } else {
-        webSocketAugs.forEach((aug) => {
-          console.log(`  - ${aug.name}: ${aug.description}`)
-          console.log(`    Status: ${aug.enabled ? 'Enabled' : 'Disabled'}`)
-        })
+        webSocketAugs.forEach(
+          (aug: { name: string; description: string; enabled: boolean }) => {
+            console.log(`  - ${aug.name}: ${aug.description}`)
+            console.log(`    Status: ${aug.enabled ? 'Enabled' : 'Disabled'}`)
+          }
+        )
       }
     } catch (error) {
       console.error('Error:', (error as Error).message)
@@ -1023,7 +1065,14 @@ augmentCommand
       console.log('\nStage Results:')
 
       // Display stage results
-      Object.entries(result.stageResults).forEach(([stage, stageResult]) => {
+      Object.entries(result.stageResults).forEach((entry) => {
+        const stage = entry[0]
+        const stageResult = entry[1] as {
+          success?: boolean
+          error?: string
+          data?: any
+        }
+
         console.log(`\n${stage.toUpperCase()}:`)
         console.log(`  Success: ${stageResult?.success}`)
 
@@ -1036,7 +1085,7 @@ augmentCommand
           console.log(
             JSON.stringify(stageResult.data, null, 2)
               .split('\n')
-              .map((line) => `    ${line}`)
+              .map((line: string) => `    ${line}`)
               .join('\n')
           )
         }
@@ -1085,36 +1134,49 @@ augmentCommand
         // Process the data asynchronously without blocking
         sequentialPipeline
           .processData(data, options.dataType, { stopOnError: false })
-          .then((result) => {
-            console.log(`\nProcessed: "${data}"`)
-            console.log(`Success: ${result.success}`)
+          .then(
+            (result: {
+              success: boolean
+              error?: string
+              data?: any
+              stageResults: Record<
+                string,
+                { success?: boolean; error?: string; data?: any }
+              >
+            }) => {
+              console.log(`\nProcessed: "${data}"`)
+              console.log(`Success: ${result.success}`)
 
-            if (options.verbose) {
-              console.log('Stage Results:')
-              Object.entries(result.stageResults).forEach(
-                ([stage, stageResult]) => {
-                  if (stageResult?.success) {
-                    console.log(`  ${stage}: Success`)
-                  } else {
-                    console.log(
-                      `  ${stage}: Failed - ${stageResult?.error || 'Unknown error'}`
-                    )
+              if (options.verbose) {
+                console.log('Stage Results:')
+                Object.entries(result.stageResults).forEach(
+                  ([stage, stageResult]: [
+                    string,
+                    { success?: boolean; error?: string; data?: any }
+                  ]) => {
+                    if (stageResult?.success) {
+                      console.log(`  ${stage}: Success`)
+                    } else {
+                      console.log(
+                        `  ${stage}: Failed - ${stageResult?.error || 'Unknown error'}`
+                      )
+                    }
                   }
-                }
-              )
-            }
+                )
+              }
 
-            if (result.data) {
-              console.log('Result Data:')
-              console.log(
-                JSON.stringify(result.data, null, 2)
-                  .split('\n')
-                  .map((line) => `  ${line}`)
-                  .join('\n')
-              )
+              if (result.data) {
+                console.log('Result Data:')
+                console.log(
+                  JSON.stringify(result.data, null, 2)
+                    .split('\n')
+                    .map((line: string) => `  ${line}`)
+                    .join('\n')
+                )
+              }
             }
-          })
-          .catch((error) => {
+          )
+          .catch((error: Error) => {
             console.error(`Error processing "${data}":`, error.message)
           })
       }
@@ -1170,7 +1232,7 @@ augmentCommand
     '<type>',
     'Augmentation type (sense, memory, cognition, conduit, activation, perception, dialog, websocket)'
   )
-  .action(async (typeArg) => {
+  .action(async (typeArg: string) => {
     try {
       // Initialize the pipeline
       await augmentationPipeline.initialize()
@@ -1222,32 +1284,37 @@ augmentCommand
         console.log('  No augmentations registered for this type')
       } else {
         // Display information about each augmentation
-        augmentations.forEach((aug, index) => {
-          console.log(`\n${index + 1}. ${aug.name}`)
-          console.log(`   Description: ${aug.description}`)
-          console.log(`   Status: ${aug.enabled ? 'Enabled' : 'Disabled'}`)
+        augmentations.forEach(
+          (
+            aug: { name: string; description: string; enabled: boolean },
+            index: number
+          ) => {
+            console.log(`\n${index + 1}. ${aug.name}`)
+            console.log(`   Description: ${aug.description}`)
+            console.log(`   Status: ${aug.enabled ? 'Enabled' : 'Disabled'}`)
 
-          // List available methods
-          console.log('   Available Methods:')
+            // List available methods
+            console.log('   Available Methods:')
 
-          // Get all methods that aren't from Object.prototype
-          const methods = Object.getOwnPropertyNames(
-            Object.getPrototypeOf(aug)
-          ).filter(
-            (method) =>
-              method !== 'constructor' &&
-              typeof (aug as any)[method] === 'function' &&
-              !['initialize', 'shutDown', 'getStatus'].includes(method)
-          )
+            // Get all methods that aren't from Object.prototype
+            const methods = Object.getOwnPropertyNames(
+              Object.getPrototypeOf(aug)
+            ).filter(
+              (method) =>
+                method !== 'constructor' &&
+                typeof (aug as any)[method] === 'function' &&
+                !['initialize', 'shutDown', 'getStatus'].includes(method)
+            )
 
-          if (methods.length === 0) {
-            console.log('     No custom methods available')
-          } else {
-            methods.forEach((method) => {
-              console.log(`     - ${method}`)
-            })
+            if (methods.length === 0) {
+              console.log('     No custom methods available')
+            } else {
+              methods.forEach((method: string) => {
+                console.log(`     - ${method}`)
+              })
+            }
           }
-        })
+        )
       }
 
       // Show pipeline order information

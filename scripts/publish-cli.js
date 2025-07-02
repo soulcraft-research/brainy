@@ -39,22 +39,26 @@ try {
   console.log('Building main package...')
   execSync('npm run build', { stdio: 'inherit', cwd: rootDir })
 
-  // Step 3: Build the CLI package
+  // Step 3: Publish the main package
+  console.log('Publishing main package...')
+  execSync('npm publish', { stdio: 'inherit', cwd: rootDir })
+
+  // Step 4: Wait a moment to ensure the package is available
+  console.log('Waiting for package to be available...')
+  await new Promise(resolve => setTimeout(resolve, 5000))
+
+  // Step 5: Build the CLI package
   console.log('Building CLI package...')
   execSync('npm run build', { stdio: 'inherit', cwd: cliPackageDir })
 
-  // Step 4: Verify the CLI was built successfully
+  // Step 6: Verify the CLI was built successfully
   const cliPath = path.join(cliPackageDir, 'dist', 'cli.js')
   if (!fs.existsSync(cliPath)) {
     console.error(`Error: CLI build failed. File not found at ${cliPath}`)
     process.exit(1)
   }
 
-  // Step 5: Publish the main package
-  console.log('Publishing main package...')
-  execSync('npm publish', { stdio: 'inherit', cwd: rootDir })
-
-  // Step 6: Publish the CLI package
+  // Step 7: Publish the CLI package
   console.log('Publishing CLI package...')
   execSync('npm publish', { stdio: 'inherit', cwd: cliPackageDir })
 
