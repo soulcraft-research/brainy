@@ -6,7 +6,7 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.1.6-blue.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![npm](https://img.shields.io/badge/npm-v0.9.21-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
+[![npm](https://img.shields.io/badge/npm-v0.9.22-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
 
 [//]: # ([![Cartographer]&#40;https://img.shields.io/badge/Cartographer-Official%20Standard-brightgreen&#41;]&#40;https://github.com/sodal-project/cartographer&#41;)
 
@@ -280,43 +280,6 @@ Brainy's pipeline is designed to handle streaming data efficiently:
     - Automatic thread management based on environment capabilities
     - Example: `executeTypedPipeline(augmentations, method, args, { mode: ExecutionMode.THREADED })`
 
-### Build System
-
-Brainy uses a modern build system that optimizes for both Node.js and browser environments:
-
-1. **ES Modules**
-    - Built as ES modules for maximum compatibility
-    - Works in modern browsers and Node.js environments
-    - Separate optimized builds for browser and Node.js
-
-2. **Environment-Specific Builds**
-    - **Node.js Build**: Optimized for server environments with full functionality
-    - **Browser Build**: Optimized for browser environments with reduced bundle size
-    - **CLI Build**: Separate build for command-line interface functionality
-    - Conditional exports in package.json for automatic environment detection
-
-3. **Modular Architecture**
-    - Core functionality and CLI are built separately
-    - CLI (4MB) is only included when explicitly imported or used from command line
-    - Reduced bundle size for browser and Node.js applications
-
-4. **Environment Detection**
-    - Automatically detects whether it's running in a browser or Node.js
-    - Loads appropriate dependencies and functionality based on the environment
-    - Provides consistent API across all environments
-
-5. **TypeScript**
-    - Written in TypeScript for type safety and better developer experience
-    - Generates type definitions for TypeScript users
-    - Compiled to ES2020 for modern JavaScript environments
-
-6. **Build Scripts**
-    - `npm run build`: Builds the core library without CLI
-    - `npm run build:browser`: Builds the browser-optimized version
-    - `npm run build:cli`: Builds the CLI version (only needed for CLI usage)
-    - `npm run prepare:cli`: Builds the CLI for command-line usage
-    - `npm run demo`: Builds both core library and browser versions and starts a demo server
-    - GitHub Actions workflow: Automatically deploys the demo directory to GitHub Pages when pushing to the main branch
 
 ### Running the Pipeline
 
@@ -453,10 +416,6 @@ brainy visualize
 brainy visualize --root <id> --depth 3
 ```
 
-### Publishing the CLI Package
-
-If you need to publish the CLI package to npm, please refer to the [CLI Publishing Guide](docs/publishing-cli.md) for
-detailed instructions.
 
 ### Using the CLI in Your Code
 
@@ -473,15 +432,6 @@ import '@soulcraft/brainy/cli'
 This will only build and load the CLI when you explicitly import it, keeping your bundle size small when you don't need
 the CLI.
 
-### Development Usage
-
-```bash
-# Run the CLI directly from the source
-npm run cli help
-
-# Generate a random graph for testing
-npm run cli generate-random-graph --noun-count 20 --verb-count 40
-```
 
 ### Available Commands
 
@@ -1303,74 +1253,14 @@ comprehensive [Scaling Strategy](scalingStrategy.md) document.
 
 - Node.js >= 24.0.0
 
-### Node.js 24 Optimizations
-
-Brainy takes advantage of several optimizations available in Node.js 24:
-
-1. **Improved Worker Threads Performance**: The multithreading system has been completely rewritten to leverage Node.js
-   24's enhanced Worker Threads API, resulting in better performance for compute-intensive operations like embedding
-   generation and vector similarity calculations.
-
-2. **Worker Pool Management**: A sophisticated worker pool system reuses worker threads to minimize the overhead of
-   creating and destroying threads, leading to more efficient resource utilization.
-
-3. **Dynamic Module Imports**: Uses the new `node:` protocol prefix for importing core modules, which provides better
-   performance and more reliable module resolution.
-
-4. **ES Modules Optimizations**: Takes advantage of Node.js 24's improved ESM implementation for faster module loading
-   and execution.
-
-5. **Enhanced Error Handling**: Implements more robust error handling patterns available in Node.js 24 for better
-   stability and debugging.
-
-These optimizations are particularly beneficial for:
-
-- Large-scale vector operations
-- Batch processing of embeddings
-- Real-time data processing pipelines
-- High-throughput search operations
 
 ## Contributing
 
 For detailed contribution guidelines, please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
+For developer documentation, including building, testing, and publishing instructions, please see [DEVELOPERS.md](DEVELOPERS.md).
+
 We have a [Code of Conduct](CODE_OF_CONDUCT.md) that all contributors are expected to follow.
-
-### Reporting Issues
-
-We use GitHub issues to track bugs and feature requests. Please use the provided issue templates when creating a new
-issue:
-
-- [Bug Report Template](.github/ISSUE_TEMPLATE/bug_report.md)
-- [Feature Request Template](.github/ISSUE_TEMPLATE/feature_request.md)
-
-### Code Style Guidelines
-
-Brainy follows a specific code style to maintain consistency throughout the codebase:
-
-1. **No Semicolons**: All code in the project should avoid using semicolons wherever possible
-2. **Formatting**: The project uses Prettier for code formatting
-3. **Linting**: ESLint is configured with specific rules for the project
-4. **TypeScript Configuration**: Strict type checking enabled with ES2020 target
-5. **Commit Messages**: Use the imperative mood and keep the first line concise
-
-### Development Workflow
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-### Badge Maintenance
-
-The README badges are automatically updated during the build process:
-
-1. **npm Version Badge**: The npm version badge is automatically updated to match the version in package.json when:
-    - Running `npm run build` (via the prebuild script)
-    - Running `npm version` commands (patch, minor, major)
-    - Manually running `node scripts/generate-version.js`
-
-This ensures that the badge always reflects the current version in package.json, even before publishing to npm.
 
 ## License
 
