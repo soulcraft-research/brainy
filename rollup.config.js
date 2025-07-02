@@ -112,14 +112,6 @@ const config = {
 var global = typeof window !== "undefined" ? window : this;
 // Buffer polyfill is now included via the buffer-polyfill plugin
 `
-  },
-  cli: {
-    input: 'src/cli.ts',
-    outputPrefix: 'cli',
-    tsconfig: './tsconfig.unified.json',
-    declaration: false,
-    declarationMap: false,
-    intro: ''
   }
 }
 
@@ -187,47 +179,5 @@ const mainConfig = {
   ]
 }
 
-// CLI configuration
-const cliConfig = {
-  input: 'src/cli.ts',
-  output: {
-    dir: 'dist',
-    entryFileNames: 'cli.js',
-    format: 'es',
-    sourcemap: true,
-    inlineDynamicImports: true
-  },
-  plugins: [
-    replace({
-      preventAssignment: true,
-      'process.env.NODE_ENV': JSON.stringify('production')
-    }),
-    fixThisReferences(),
-    resolve({
-      browser: false,
-      preferBuiltins: true
-    }),
-    commonjs({
-      transformMixedEsModules: true
-    }),
-    json(),
-    typescript({
-      tsconfig: './tsconfig.unified.json',
-      declaration: false,
-      declarationMap: false
-    })
-  ],
-  external: [
-    // Add any dependencies you want to exclude from the bundle
-    '@aws-sdk/client-s3',
-    '@smithy/util-stream',
-    '@smithy/node-http-handler',
-    '@aws-crypto/crc32c',
-    'node:stream/web',
-    'node:worker_threads'
-  ]
-}
-
-// Export configurations based on build type
-// Only include CLI config when specifically building CLI
-export default buildType === 'cli' ? cliConfig : mainConfig
+// Export the main configuration
+export default mainConfig

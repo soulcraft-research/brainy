@@ -19,16 +19,16 @@ const __dirname = dirname(__filename)
 // Find the main package
 const mainPackagePath = join(__dirname, 'node_modules', '@soulcraft', 'brainy')
 
-// Path to the actual CLI script in the main package
-const cliPath = join(mainPackagePath, 'dist', 'cli.js')
+// Path to the actual CLI script in this package
+const cliPath = join(__dirname, 'dist', 'cli.js')
 
 // Check if the CLI script exists
 if (!fs.existsSync(cliPath)) {
   console.error(`Error: CLI script not found at ${cliPath}`)
-  console.error('This is likely because the main package is not installed correctly.')
+  console.error('This is likely because the CLI was not built during package installation.')
   console.error('Please reinstall the package with:')
   console.error('npm uninstall -g @soulcraft/brainy-cli')
-  console.error('npm install -g @soulcraft/brainy-cli --legacy-peer-deps')
+  console.error('npm install -g @soulcraft/brainy-cli')
   process.exit(1)
 }
 

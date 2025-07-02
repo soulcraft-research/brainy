@@ -22,9 +22,6 @@
     "./types/augmentations": {
       "import": "./dist/types/augmentations.js",
       "types": "./dist/types/augmentations.d.ts"
-    },
-    "./cli": {
-      "import": "./dist/cli.js"
     }
   },
   "engines": {
@@ -34,7 +31,6 @@
     "prebuild": "node scripts/generate-version.js",
     "build": "BUILD_TYPE=unified rollup -c rollup.config.js",
     "build:browser": "BUILD_TYPE=browser rollup -c rollup.config.js",
-    "build:cli": "BUILD_TYPE=cli rollup -c rollup.config.js",
     "start": "node dist/unified.js",
     "demo": "npm run build && npm run build:browser && npx http-server -o /index.html",
     "version": "node scripts/generate-version.js",
@@ -47,8 +43,7 @@
     "check-format": "prettier --check \"src/**/*.{ts,js}\"",
     "check-style": "node scripts/check-code-style.js",
     "prepare": "npm run build",
-    "deploy": "npm run build && npm publish",
-    "deploy:both": "node scripts/publish-cli.js",
+    "deploy": "node scripts/publish-cli.js",
     "deploy:cloud:aws": "cd cloud-wrapper && npm run build && npm run deploy:aws",
     "deploy:cloud:gcp": "cd cloud-wrapper && npm run build && npm run deploy:gcp",
     "deploy:cloud:cloudflare": "cd cloud-wrapper && npm run build && npm run deploy:cloudflare",
@@ -94,7 +89,6 @@
     "@rollup/plugin-replace": "^5.0.5",
     "@rollup/plugin-typescript": "^11.1.6",
     "@types/node": "^20.4.5",
-    "@types/omelette": "^0.4.5",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
@@ -113,8 +107,6 @@
     "@tensorflow/tfjs-converter": "^4.22.0",
     "@tensorflow/tfjs-core": "^4.22.0",
     "buffer": "^6.0.3",
-    "commander": "^14.0.0",
-    "omelette": "^0.4.17",
     "uuid": "^9.0.0"
   },
   "prettier": {

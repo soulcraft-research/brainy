@@ -5,20 +5,21 @@
  * A command-line interface for interacting with the Brainy vector database
  */
 
-import { BrainyData, NounType, VerbType, FileSystemStorage } from './index.js'
+import { BrainyData, NounType, VerbType, FileSystemStorage, sequentialPipeline, augmentationPipeline, ExecutionMode, AugmentationType } from '@soulcraft/brainy'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import fs from 'fs'
 import { Command } from 'commander'
 import omelette from 'omelette'
-import { VERSION } from './utils/version.js'
-import { sequentialPipeline } from './sequentialPipeline.js'
-import { augmentationPipeline, ExecutionMode } from './augmentationPipeline.js'
-import { AugmentationType } from './types/augmentations.js'
 
 // Get the directory of the current module
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
+
+// Get version from package.json
+const packageJsonPath = join(__dirname, '..', 'package.json')
+const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
+const VERSION = packageJson.version
 
 // Helper function to parse JSON safely
 function parseJSON(str: string): any {
@@ -71,14 +72,14 @@ const program = new Command()
 
 // Configure the program
 program
-  .name('@soulcraft/brainy')
+  .name('@soulcraft/brainy-cli')
   .description(
     'A vector database using HNSW indexing with Origin Private File System storage'
   )
   .version(VERSION, '-V, --version', 'Output the current version')
 
 // Create data directory if it doesn't exist
-const dataDir = join(__dirname, '..', 'data')
+const dataDir = join(process.cwd(), 'data')
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true })
 }
@@ -1282,5 +1283,4 @@ program
   })
 
 // Parse command line arguments
-
 program.parse()

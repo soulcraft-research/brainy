@@ -6,7 +6,7 @@
  * This script:
  * 1. Ensures versions are in sync by running generate-version.js
  * 2. Builds the main package
- * 3. Builds the CLI
+ * 3. Builds the CLI package
  * 4. Publishes the main package
  * 5. Publishes the CLI package
  * 
@@ -39,12 +39,12 @@ try {
   console.log('Building main package...')
   execSync('npm run build', { stdio: 'inherit', cwd: rootDir })
 
-  // Step 3: Build the CLI
-  console.log('Building CLI...')
-  execSync('npm run build:cli', { stdio: 'inherit', cwd: rootDir })
+  // Step 3: Build the CLI package
+  console.log('Building CLI package...')
+  execSync('npm run build', { stdio: 'inherit', cwd: cliPackageDir })
 
   // Step 4: Verify the CLI was built successfully
-  const cliPath = path.join(rootDir, 'dist', 'cli.js')
+  const cliPath = path.join(cliPackageDir, 'dist', 'cli.js')
   if (!fs.existsSync(cliPath)) {
     console.error(`Error: CLI build failed. File not found at ${cliPath}`)
     process.exit(1)
