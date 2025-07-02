@@ -1,6 +1,6 @@
 {
   "name": "@soulcraft/brainy-cli",
-  "version": "0.9.16",
+  "version": "0.9.17",
   "description": "Command-line interface for the Brainy vector graph database",
   "type": "module",
   "bin": {
@@ -8,9 +8,13 @@
   },
   "files": [
     "cli-wrapper.js",
-    "README.md"
+    "README.md",
+    "dist/cli.js",
+    "dist/cli.js.map"
   ],
   "scripts": {
+    "build": "rollup -c rollup.config.js",
+    "prepare": "npm run build",
     "postinstall": "node cli-wrapper.js --version"
   },
   "keywords": [
@@ -35,7 +39,20 @@
     "url": "https://github.com/soulcraft-research/brainy.git"
   },
   "dependencies": {
-    "@soulcraft/brainy": "0.9.16"
+    "@soulcraft/brainy": "0.9.17",
+    "commander": "^14.0.0",
+    "omelette": "^0.4.17"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@types/node": "^20.4.5",
+    "@types/omelette": "^0.4.5",
+    "rollup": "^4.12.0",
+    "rollup-plugin-terser": "^7.0.2",
+    "typescript": "^5.1.6"
   },
   "engines": {
     "node": ">=24.0.0"

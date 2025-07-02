@@ -6,7 +6,7 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.1.6-blue.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![npm](https://img.shields.io/badge/npm-v0.9.16-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
+[![npm](https://img.shields.io/badge/npm-v0.9.17-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
 
 [//]: # ([![Cartographer]&#40;https://img.shields.io/badge/Cartographer-Official%20Standard-brightgreen&#41;]&#40;https://github.com/sodal-project/cartographer&#41;)
 
@@ -115,7 +115,9 @@ import { BrainyData } from '@soulcraft/brainy/min'
 import '@soulcraft/brainy/cli'
 ```
 
-> **Note**: The CLI functionality (4MB) is not included in the standard import, reducing the bundle size for browser and Node.js applications. The CLI is only built and loaded when explicitly imported or when using the command-line interface.
+> **Note**: The CLI functionality (4MB) is not included in the standard import, reducing the bundle size for browser and
+> Node.js applications. The CLI is only built and loaded when explicitly imported or when using the command-line
+> interface.
 
 ### Browser Usage
 
@@ -424,7 +426,8 @@ Connections between nouns (edges in the graph):
 
 ## Command Line Interface
 
-Brainy includes a powerful CLI for managing your data. The CLI is available as a separate package `@soulcraft/brainy-cli` to reduce the bundle size of the main package.
+Brainy includes a powerful CLI for managing your data. The CLI is available as a separate package
+`@soulcraft/brainy-cli` to reduce the bundle size of the main package.
 
 ### Installing and Using the CLI
 
@@ -452,7 +455,8 @@ brainy visualize --root <id> --depth 3
 
 ### Publishing the CLI Package
 
-If you need to publish the CLI package to npm, please refer to the [CLI Publishing Guide](docs/publishing-cli.md) for detailed instructions.
+If you need to publish the CLI package to npm, please refer to the [CLI Publishing Guide](docs/publishing-cli.md) for
+detailed instructions.
 
 ### Using the CLI in Your Code
 
@@ -466,7 +470,8 @@ import '@soulcraft/brainy/cli'
 // ...
 ```
 
-This will only build and load the CLI when you explicitly import it, keeping your bundle size small when you don't need the CLI.
+This will only build and load the CLI when you explicitly import it, keeping your bundle size small when you don't need
+the CLI.
 
 ### Development Usage
 
@@ -1302,17 +1307,24 @@ comprehensive [Scaling Strategy](scalingStrategy.md) document.
 
 Brainy takes advantage of several optimizations available in Node.js 24:
 
-1. **Improved Worker Threads Performance**: The multithreading system has been completely rewritten to leverage Node.js 24's enhanced Worker Threads API, resulting in better performance for compute-intensive operations like embedding generation and vector similarity calculations.
+1. **Improved Worker Threads Performance**: The multithreading system has been completely rewritten to leverage Node.js
+   24's enhanced Worker Threads API, resulting in better performance for compute-intensive operations like embedding
+   generation and vector similarity calculations.
 
-2. **Worker Pool Management**: A sophisticated worker pool system reuses worker threads to minimize the overhead of creating and destroying threads, leading to more efficient resource utilization.
+2. **Worker Pool Management**: A sophisticated worker pool system reuses worker threads to minimize the overhead of
+   creating and destroying threads, leading to more efficient resource utilization.
 
-3. **Dynamic Module Imports**: Uses the new `node:` protocol prefix for importing core modules, which provides better performance and more reliable module resolution.
+3. **Dynamic Module Imports**: Uses the new `node:` protocol prefix for importing core modules, which provides better
+   performance and more reliable module resolution.
 
-4. **ES Modules Optimizations**: Takes advantage of Node.js 24's improved ESM implementation for faster module loading and execution.
+4. **ES Modules Optimizations**: Takes advantage of Node.js 24's improved ESM implementation for faster module loading
+   and execution.
 
-5. **Enhanced Error Handling**: Implements more robust error handling patterns available in Node.js 24 for better stability and debugging.
+5. **Enhanced Error Handling**: Implements more robust error handling patterns available in Node.js 24 for better
+   stability and debugging.
 
 These optimizations are particularly beneficial for:
+
 - Large-scale vector operations
 - Batch processing of embeddings
 - Real-time data processing pipelines
