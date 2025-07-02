@@ -22,6 +22,9 @@
     "./types/augmentations": {
       "import": "./dist/types/augmentations.js",
       "types": "./dist/types/augmentations.d.ts"
+    },
+    "./cli": {
+      "import": "./dist/cli.js"
     }
   },
   "engines": {
@@ -34,7 +37,6 @@
     "build:cli": "BUILD_TYPE=cli rollup -c rollup.config.js",
     "start": "node dist/unified.js",
     "demo": "npm run build && npm run build:browser && npx http-server -o /index.html",
-    "cli": "npm run build:cli && node ./cli-wrapper.js",
     "version": "node scripts/generate-version.js",
     "version:patch": "npm version patch",
     "version:minor": "npm version minor",
@@ -44,17 +46,15 @@
     "format": "prettier --write \"src/**/*.{ts,js}\"",
     "check-format": "prettier --check \"src/**/*.{ts,js}\"",
     "check-style": "node scripts/check-code-style.js",
-    "prepare": "npm run build && npm run build:cli",
+    "prepare": "npm run build",
     "deploy": "npm run build && npm publish",
+    "deploy:both": "node scripts/publish-cli.js",
     "deploy:cloud:aws": "cd cloud-wrapper && npm run build && npm run deploy:aws",
     "deploy:cloud:gcp": "cd cloud-wrapper && npm run build && npm run deploy:gcp",
     "deploy:cloud:cloudflare": "cd cloud-wrapper && npm run build && npm run deploy:cloudflare",
     "deploy:cloud": "echo 'Please use one of the following commands to deploy to a specific cloud provider:' && echo '  npm run deploy:cloud:aws' && echo '  npm run deploy:cloud:gcp' && echo '  npm run deploy:cloud:cloudflare'",
     "postinstall": "echo 'Note: If you encounter dependency conflicts with TensorFlow.js packages, please use: npm install --legacy-peer-deps'",
     "dry-run": "npm pack --dry-run"
-  },
-  "bin": {
-    "brainy": "cli-wrapper.js"
   },
   "keywords": [
     "vector-database",
@@ -85,7 +85,6 @@
     "dist/types/",
     "LICENSE",
     "README.md",
-    "cli-wrapper.js",
     "brainy.png"
   ],
   "devDependencies": {

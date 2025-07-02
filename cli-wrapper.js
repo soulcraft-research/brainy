@@ -7,7 +7,7 @@
  * are properly passed to the CLI when invoked through npm scripts.
  */
 
-import { spawn } from 'child_process'
+import { spawn, execSync } from 'child_process'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import fs from 'fs'
@@ -21,9 +21,37 @@ const cliPath = join(__dirname, 'dist', 'cli.js')
 
 // Check if the CLI script exists
 if (!fs.existsSync(cliPath)) {
-  console.error(`Error: CLI script not found at ${cliPath}`)
-  console.error('Make sure you have built the project with "npm run build"')
-  process.exit(1)
+  // Check if we're running in a global installation context
+  const isGlobalInstall = __dirname.includes('node_modules') && !__dirname.includes('node_modules/.')
+
+  if (isGlobalInstall) {
+    console.error(`Error: CLI script not found at ${cliPath}`)
+    console.error('This is likely because the CLI was not built during package installation.')
+    console.error('Please reinstall the package with:')
+    console.error('npm uninstall -g @soulcraft/brainy')
+    console.error('npm install -g @soulcraft/brainy --legacy-peer-deps')
+    process.exit(1)
+  } else {
+    // In a local development context, try to build the CLI
+    console.log(`CLI script not found at ${cliPath}. Building CLI...`)
+
+    try {
+      // Run the build:cli script
+      execSync('npm run build:cli', { stdio: 'inherit' })
+
+      // Check again if the CLI script exists after building
+      if (!fs.existsSync(cliPath)) {
+        console.error(`Error: Failed to build CLI script at ${cliPath}`)
+        process.exit(1)
+      }
+
+      console.log('CLI built successfully.')
+    } catch (error) {
+      console.error(`Error building CLI: ${error.message}`)
+      console.error('Make sure you have the necessary dependencies installed.')
+      process.exit(1)
+    }
+  }
 }
 
 // Special handling for version flags

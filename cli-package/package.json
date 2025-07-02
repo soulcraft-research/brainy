@@ -1,0 +1,43 @@
+{
+  "name": "@soulcraft/brainy-cli",
+  "version": "0.9.16",
+  "description": "Command-line interface for the Brainy vector graph database",
+  "type": "module",
+  "bin": {
+    "brainy": "cli-wrapper.js"
+  },
+  "files": [
+    "cli-wrapper.js",
+    "README.md"
+  ],
+  "scripts": {
+    "postinstall": "node cli-wrapper.js --version"
+  },
+  "keywords": [
+    "vector-database",
+    "hnsw",
+    "cli",
+    "command-line",
+    "graph-database"
+  ],
+  "author": "David Snelling (david@soulcraft.com)",
+  "license": "MIT",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://github.com/soulcraft-research/brainy",
+  "bugs": {
+    "url": "https://github.com/soulcraft-research/brainy/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soulcraft-research/brainy.git"
+  },
+  "dependencies": {
+    "@soulcraft/brainy": "0.9.16"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

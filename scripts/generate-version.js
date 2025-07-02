@@ -7,7 +7,8 @@
  * This allows the CLI to access the version without having to read package.json directly,
  * which can be problematic when the package is installed globally.
  *
- * It also updates the version in the README.md file to ensure it stays in sync with package.json.
+ * It also updates the version in the README.md file and CLI package.json to ensure they
+ * stay in sync with the main package.json.
  */
 
 import fs from 'fs'
@@ -32,6 +33,9 @@ const outputFile = path.join(outputDir, 'version.ts')
 
 // Path to README.md
 const readmePath = path.join(rootDir, 'README.md')
+
+// Path to CLI package.json
+const cliPackageJsonPath = path.join(rootDir, 'cli-package', 'package.json')
 
 // Read package.json
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
@@ -104,4 +108,24 @@ try {
   console.log(`Updated README.md with npm version ${version}, Node.js version ${nodeVersion}, and TypeScript version ${typescriptVersion}`)
 } catch (error) {
   console.error('Error updating README.md:', error)
+}
+
+// Update CLI package.json with the same version
+try {
+  // Read CLI package.json
+  const cliPackageJson = JSON.parse(fs.readFileSync(cliPackageJsonPath, 'utf8'))
+
+  // Update version
+  cliPackageJson.version = version
+
+  // Update dependency on main package to be exact
+  if (cliPackageJson.dependencies && cliPackageJson.dependencies['@soulcraft/brainy']) {
+    cliPackageJson.dependencies['@soulcraft/brainy'] = version
+  }
+
+  // Write the updated CLI package.json back to disk
+  fs.writeFileSync(cliPackageJsonPath, JSON.stringify(cliPackageJson, null, 2))
+  console.log(`Updated CLI package.json with version ${version} and exact dependency on main package`)
+} catch (error) {
+  console.error('Error updating CLI package.json:', error)
 }
