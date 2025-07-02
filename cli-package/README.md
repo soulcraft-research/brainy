@@ -47,12 +47,12 @@ brainy generate-random-graph --noun-count 20 --verb-count 30 --clear
 
 ## Requirements
 
-- Node.js >= 24.0.0
+- Node.js >= 23.0.0
 
 ## Changelog
 
-### 0.9.23
-- Fixed compatibility with Node.js v24 by adding support for the new TextEncoder global object
+### 0.9.25
+- Completely removed unnecessary compatibility patches for Node.js v24 as they are no longer needed with current TensorFlow.js versions
 
 ## License
 

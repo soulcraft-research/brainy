@@ -21,6 +21,23 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
   private backend: string = 'cpu' // Default to CPU
 
   /**
+   * Add polyfills and patches for TensorFlow.js compatibility
+   * This addresses issues with TensorFlow.js in Node.js environments
+   */
+  private addNodeCompatibilityPolyfills(): void {
+    // Only apply in Node.js environment
+    if (
+      typeof process === 'undefined' ||
+      !process.versions ||
+      !process.versions.node
+    ) {
+      return
+    }
+
+    // No compatibility patches needed - TensorFlow.js now works correctly with Node.js 24+
+  }
+
+  /**
    * Initialize the embedding model
    */
   public async init(): Promise<void> {
@@ -41,6 +58,9 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
         }
         originalWarn(message, ...optionalParams)
       }
+
+      // Add polyfills for TensorFlow.js compatibility
+      this.addNodeCompatibilityPolyfills()
 
       // TensorFlow.js will use its default EPSILON value
 

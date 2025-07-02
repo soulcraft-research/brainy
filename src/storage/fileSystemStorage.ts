@@ -1,8 +1,51 @@
 import { GraphVerb, HNSWNoun, StorageAdapter } from '../coreTypes.js'
 
-// We'll dynamically import Node.js built-in modules
+// Import Node.js built-in modules
+// Using require for compatibility with Node.js
 let fs: any
 let path: any
+
+// Initialize these modules immediately if in Node.js environment
+if (
+  typeof process !== 'undefined' &&
+  process.versions &&
+  process.versions.node
+) {
+  try {
+    // Use require for Node.js built-in modules
+    fs = require('fs')
+    path = require('path')
+
+    // Verify that path has the required methods
+    if (!path || typeof path.resolve !== 'function') {
+      throw new Error('path module is missing required methods')
+    }
+  } catch (e) {
+    console.warn('Failed to load Node.js modules with require:', e)
+
+    // Try using dynamic import as a fallback
+    try {
+      // Use a synchronous approach to ensure modules are loaded before continuing
+      const pathModule = require('node:path')
+      const fsModule = require('node:fs')
+
+      path = pathModule
+      fs = fsModule
+
+      // Verify that path has the required methods
+      if (!path || typeof path.resolve !== 'function') {
+        throw new Error(
+          'path module from node:path is missing required methods'
+        )
+      }
+    } catch (nodeImportError) {
+      console.warn(
+        'Failed to load Node.js modules with node: prefix:',
+        nodeImportError
+      )
+    }
+  }
+}
 
 // Constants for directory and file names
 const ROOT_DIR = 'brainy-data'
@@ -60,36 +103,124 @@ export class FileSystemStorage implements StorageAdapter {
     }
 
     try {
-      // Dynamically import Node.js built-in modules
-      try {
-        // Import the modules
-        const fsModule = await import('fs')
-        const pathModule = await import('path')
-
-        // Assign to our module-level variables
-        fs = fsModule.default || fsModule
-        path = pathModule.default || pathModule
-
-        // Now set up the directory paths
-        const rootDir = this.rootDir || process.cwd()
-        this.rootDir = path.resolve(rootDir, ROOT_DIR)
-        this.nounsDir = path.join(this.rootDir, NOUNS_DIR)
-        this.verbsDir = path.join(this.rootDir, VERBS_DIR)
-        this.metadataDir = path.join(this.rootDir, METADATA_DIR)
-
-        // Set up noun type directory paths
-        this.personDir = path.join(this.nounsDir, PERSON_DIR)
-        this.placeDir = path.join(this.nounsDir, PLACE_DIR)
-        this.thingDir = path.join(this.nounsDir, THING_DIR)
-        this.eventDir = path.join(this.nounsDir, EVENT_DIR)
-        this.conceptDir = path.join(this.nounsDir, CONCEPT_DIR)
-        this.contentDir = path.join(this.nounsDir, CONTENT_DIR)
-        this.defaultDir = path.join(this.nounsDir, DEFAULT_DIR)
-      } catch (importError) {
-        throw new Error(
-          `Failed to import Node.js modules: ${importError}. This adapter requires a Node.js environment.`
+      // Check if fs and path modules are available and have required methods
+      if (!fs || !path || typeof path.resolve !== 'function') {
+        console.log(
+          'Node.js modules not properly loaded, attempting to load them now'
         )
+
+        // Try multiple approaches to load the modules
+        const loadAttempts = [
+          // Attempt 1: Use require
+          async () => {
+            console.log('Attempting to load Node.js modules with require()')
+            const fsModule = require('fs')
+            const pathModule = require('path')
+
+            if (!pathModule || typeof pathModule.resolve !== 'function') {
+              throw new Error('path.resolve is not a function after require()')
+            }
+
+            return { fs: fsModule, path: pathModule }
+          },
+
+          // Attempt 2: Use require with node: prefix
+          async () => {
+            console.log(
+              'Attempting to load Node.js modules with require("node:...")'
+            )
+            const fsModule = require('node:fs')
+            const pathModule = require('node:path')
+
+            if (!pathModule || typeof pathModule.resolve !== 'function') {
+              throw new Error(
+                'path.resolve is not a function after require("node:path")'
+              )
+            }
+
+            return { fs: fsModule, path: pathModule }
+          },
+
+          // Attempt 3: Use dynamic import
+          async () => {
+            console.log(
+              'Attempting to load Node.js modules with dynamic import'
+            )
+            const fsModule = await import('fs')
+            const pathModule = await import('path')
+
+            const fsResolved = fsModule.default || fsModule
+            const pathResolved = pathModule.default || pathModule
+
+            if (!pathResolved || typeof pathResolved.resolve !== 'function') {
+              throw new Error(
+                'path.resolve is not a function after dynamic import'
+              )
+            }
+
+            return { fs: fsResolved, path: pathResolved }
+          },
+
+          // Attempt 4: Use dynamic import with node: prefix
+          async () => {
+            console.log(
+              'Attempting to load Node.js modules with dynamic import("node:...")'
+            )
+            const fsModule = await import('node:fs')
+            const pathModule = await import('node:path')
+
+            const fsResolved = fsModule.default || fsModule
+            const pathResolved = pathModule.default || pathModule
+
+            if (!pathResolved || typeof pathResolved.resolve !== 'function') {
+              throw new Error(
+                'path.resolve is not a function after dynamic import("node:path")'
+              )
+            }
+
+            return { fs: fsResolved, path: pathResolved }
+          }
+        ]
+
+        // Try each loading method until one succeeds
+        let lastError = null
+        for (const loadAttempt of loadAttempts) {
+          try {
+            const modules = await loadAttempt()
+            fs = modules.fs
+            path = modules.path
+            console.log('Successfully loaded Node.js modules')
+            break
+          } catch (error) {
+            lastError = error
+            console.warn(`Module loading attempt failed:`, error)
+            // Continue to the next attempt
+          }
+        }
+
+        // If all attempts failed, throw an error
+        if (!fs || !path || typeof path.resolve !== 'function') {
+          throw new Error(
+            `Failed to import Node.js modules after multiple attempts: ${lastError}. This adapter requires a Node.js environment.`
+          )
+        }
       }
+
+      // Now set up the directory paths
+      const rootDir = this.rootDir || process.cwd()
+      this.rootDir = path.resolve(rootDir, ROOT_DIR)
+      this.nounsDir = path.join(this.rootDir, NOUNS_DIR)
+      this.verbsDir = path.join(this.rootDir, VERBS_DIR)
+      this.metadataDir = path.join(this.rootDir, METADATA_DIR)
+
+      // Set up noun type directory paths
+      this.personDir = path.join(this.nounsDir, PERSON_DIR)
+      this.placeDir = path.join(this.nounsDir, PLACE_DIR)
+      this.thingDir = path.join(this.nounsDir, THING_DIR)
+      this.eventDir = path.join(this.nounsDir, EVENT_DIR)
+      this.conceptDir = path.join(this.nounsDir, CONCEPT_DIR)
+      this.contentDir = path.join(this.nounsDir, CONTENT_DIR)
+      this.defaultDir = path.join(this.nounsDir, DEFAULT_DIR)
 
       // Create directories if they don't exist
       await this.ensureDirectoryExists(this.rootDir)

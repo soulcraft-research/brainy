@@ -1,6 +1,6 @@
 {
   "name": "@soulcraft/brainy-cli",
-  "version": "0.9.23",
+  "version": "0.9.25",
   "description": "Command-line interface for the Brainy vector graph database",
   "type": "module",
   "bin": {
@@ -39,7 +39,7 @@
     "url": "https://github.com/soulcraft-research/brainy.git"
   },
   "dependencies": {
-    "@soulcraft/brainy": "0.9.22",
+    "@soulcraft/brainy": "0.9.25",
     "commander": "^14.0.0",
     "omelette": "^0.4.17"
   },
@@ -55,6 +55,6 @@
     "typescript": "^5.1.6"
   },
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=23.0.0"
   }
 }

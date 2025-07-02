@@ -1,14 +1,35 @@
-// Type declarations for TensorFlow.js models
+/**
+ * Type definitions for TensorFlow.js compatibility
+ * This file exports type definitions for TensorFlow.js utilities
+ */
 
-// This file is a placeholder for TensorFlow.js model types
-// We're using type assertions in the code instead of module declarations
-
-// Define some basic types that might be useful
-export interface TensorflowModel {
-  load(): Promise<any>;
-  embed(data: string[]): any;
-  dispose(): void;
+// Define the shape of the util object used for TensorFlow.js compatibility
+export interface TensorFlowUtilObject {
+  isFloat32Array: (arr: unknown) => boolean
+  isTypedArray: (arr: unknown) => boolean
+  [key: string]: unknown
 }
 
-// Export a dummy constant to make this a proper module
-export const tensorflowModelsLoaded = true;
+// Define the shape of the PlatformNode object that might exist in global
+export interface PlatformNodeObject {
+  isFloat32Array?: (arr: unknown) => boolean
+  isTypedArray?: (arr: unknown) => boolean
+  [key: string]: unknown
+}
+
+// Define the shape of the tf object that might exist in global
+export interface TensorFlowObject {
+  util?: TensorFlowUtilObject
+  [key: string]: unknown
+}
+
+// Extend the Window and WorkerGlobalScope interfaces to include the importTensorFlow function
+declare global {
+  interface Window {
+    importTensorFlow?: () => Promise<any>
+  }
+
+  interface WorkerGlobalScope {
+    importTensorFlow?: () => Promise<any>
+  }
+}
