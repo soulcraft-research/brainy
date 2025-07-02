@@ -11,7 +11,7 @@ const nodeModuleShims = () => {
     name: 'node-module-shims',
     resolveId(source) {
       // List of Node.js built-in modules to shim
-      const nodeBuiltins = ['fs', 'path', 'util', 'child_process']
+      const nodeBuiltins = ['fs', 'path', 'util', 'child_process', 'node:fs', 'node:path', 'node:util', 'node:child_process']
 
       if (nodeBuiltins.includes(source)) {
         // Return a virtual module ID for the shim
@@ -175,7 +175,9 @@ const mainConfig = {
     '@smithy/node-http-handler',
     '@aws-crypto/crc32c',
     'node:stream/web',
-    'node:worker_threads'
+    'node:worker_threads',
+    'node:fs',
+    'node:path'
   ]
 }
 

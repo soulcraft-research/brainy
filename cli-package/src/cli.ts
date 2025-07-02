@@ -39,7 +39,7 @@ function parseJSON(str: string): any {
     return {}
   }
 }
-
+ 
 // Helper function to resolve noun type
 function resolveNounType(type: string | number | undefined): NounType {
   if (!type) return NounType.Thing

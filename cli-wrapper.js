@@ -12,20 +12,6 @@ import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import fs from 'fs'
 
-// Fix for TextEncoder in Node.js v24
-// In Node.js v24, TextEncoder is a global object and not part of the util module
-// This patch ensures that the util module has TextEncoder available for TensorFlow.js
-if (process.versions.node.startsWith('24')) {
-  try {
-    const util = await import('util')
-    if (!util.TextEncoder && typeof TextEncoder !== 'undefined') {
-      util.TextEncoder = TextEncoder
-      util.TextDecoder = TextDecoder
-    }
-  } catch (error) {
-    console.warn('Warning: Failed to patch TextEncoder for Node.js v24:', error.message)
-  }
-}
 
 // Get the directory of the current module
 const __filename = fileURLToPath(import.meta.url)

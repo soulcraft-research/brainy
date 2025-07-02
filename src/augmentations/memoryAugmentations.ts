@@ -306,7 +306,7 @@ export async function createMemoryAugmentation(
 
   // Otherwise, select based on environment
   // Use the global isNode variable from the environment detection
-  const isNodeEnv = globalThis.__ENV__?.isNode || (
+  const isNodeEnv = (globalThis as any).__ENV__?.isNode || (
     typeof process !== 'undefined' &&
     process.versions != null &&
     process.versions.node != null

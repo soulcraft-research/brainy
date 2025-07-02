@@ -12,20 +12,9 @@ import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import fs from 'fs'
 
-// Fix for TextEncoder in Node.js v24
-// In Node.js v24, TextEncoder is a global object and not part of the util module
-// This patch ensures that the util module has TextEncoder available for TensorFlow.js
-if (process.versions.node.startsWith('24')) {
-  try {
-    const util = await import('util')
-    if (!util.TextEncoder && typeof TextEncoder !== 'undefined') {
-      util.TextEncoder = TextEncoder
-      util.TextDecoder = TextDecoder
-    }
-  } catch (error) {
-    console.warn('Warning: Failed to patch TextEncoder for Node.js v24:', error.message)
-  }
-}
+// Node.js v23+ compatibility patches were previously applied here,
+// but these patches are no longer necessary with current TensorFlow.js versions.
+// TensorFlow.js now works correctly with Node.js 24+ without any special handling.
 
 // Get the directory of the current module
 const __filename = fileURLToPath(import.meta.url)
@@ -40,7 +29,9 @@ const cliPath = join(__dirname, 'dist', 'cli.js')
 // Check if the CLI script exists
 if (!fs.existsSync(cliPath)) {
   console.error(`Error: CLI script not found at ${cliPath}`)
-  console.error('This is likely because the CLI was not built during package installation.')
+  console.error(
+    'This is likely because the CLI was not built during package installation.'
+  )
   console.error('Please reinstall the package with:')
   console.error('npm uninstall -g @soulcraft/brainy-cli')
   console.error('npm install -g @soulcraft/brainy-cli')
@@ -66,7 +57,12 @@ const args = process.argv.slice(2)
 
 // Check if npm is passing --force flag
 // When npm runs with --force, it sets the npm_config_force environment variable
-if (process.env.npm_config_force === 'true' && args.includes('clear') && !args.includes('--force') && !args.includes('-f')) {
+if (
+  process.env.npm_config_force === 'true' &&
+  args.includes('clear') &&
+  !args.includes('--force') &&
+  !args.includes('-f')
+) {
   args.push('--force')
 }
 

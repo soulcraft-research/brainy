@@ -18,7 +18,7 @@ export const environment = {
 
 // Make environment information available globally
 if (typeof globalThis !== 'undefined') {
-  globalThis.__ENV__ = environment
+  ;(globalThis as any).__ENV__ = environment
 }
 
 // Log the detected environment

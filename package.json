@@ -1,6 +1,6 @@
 {
   "name": "@soulcraft/brainy",
-  "version": "0.9.23",
+  "version": "0.9.25",
   "description": "A vector graph database using HNSW indexing with Origin Private File System storage",
   "main": "dist/unified.js",
   "module": "dist/unified.js",
@@ -25,7 +25,7 @@
     }
   },
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=23.0.0"
   },
   "scripts": {
     "prebuild": "node scripts/generate-version.js",
@@ -43,8 +43,8 @@
     "check-format": "prettier --check \"src/**/*.{ts,js}\"",
     "check-style": "node scripts/check-code-style.js",
     "prepare": "npm run build",
-    "deploy": "npm run build && npm publish",
-    "deploy:both": "node scripts/publish-cli.js",
+    "publish": "npm run build && npm publish",
+    "publish:both": "node scripts/publish-cli.js",
     "deploy:cloud:aws": "cd cloud-wrapper && npm run build && npm run deploy:aws",
     "deploy:cloud:gcp": "cd cloud-wrapper && npm run build && npm run deploy:gcp",
     "deploy:cloud:cloudflare": "cd cloud-wrapper && npm run build && npm run deploy:cloudflare",
