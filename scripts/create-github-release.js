@@ -45,6 +45,29 @@ try {
   process.exit(1)
 }
 
+// Check if the tag exists locally
+let tagExistsLocally = false
+try {
+  execSync(`git tag -l v${version}`, { stdio: 'pipe', cwd: rootDir }).toString().trim() === `v${version}` ? tagExistsLocally = true : tagExistsLocally = false
+} catch (error) {
+  console.log(`Error checking if tag exists: ${error.message}`)
+  tagExistsLocally = false
+}
+
+// Push the tag to remote if it exists locally
+if (tagExistsLocally) {
+  try {
+    console.log(`Pushing tag v${version} to remote...`)
+    execSync(`git push origin v${version}`, { stdio: 'inherit', cwd: rootDir })
+    console.log(`Successfully pushed tag v${version} to remote`)
+  } catch (error) {
+    console.error(`Error pushing tag to remote: ${error.message}`)
+    // Continue with release creation even if tag push fails
+  }
+} else {
+  console.log(`Tag v${version} does not exist locally, skipping tag push`)
+}
+
 // Create the GitHub release
 try {
   console.log(`Creating GitHub release for v${version}...`)
