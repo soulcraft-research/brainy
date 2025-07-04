@@ -3,8 +3,8 @@
 <br/><br/>
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D23.0.0-brightgreen.svg)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.1.6-blue.svg)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D24.3.0-brightgreen.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.4.5-blue.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![npm](https://img.shields.io/badge/npm-v0.9.34-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
 

@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "nodemon --exec node --experimental-specifier-resolution=node --loader ts-node/esm src/index.ts",
+    "dev": "nodemon --exec node --loader ts-node/esm src/index.ts",
     "deploy:aws": "node scripts/deploy-aws.js",
     "deploy:gcp": "node scripts/deploy-gcp.js",
     "deploy:cloudflare": "node scripts/deploy-cloudflare.js"
@@ -23,10 +23,10 @@
   "author": "David Snelling (david@soulcraft.com)",
   "license": "MIT",
   "dependencies": {
-    "@soulcraft/brainy": "^0.9.2",
+    "@soulcraft/brainy": "^0.9.34",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
     "helmet": "^7.1.0",
     "morgan": "^1.10.0",
     "uuid": "^9.0.1",
@@ -36,15 +36,15 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/morgan": "^1.9.9",
-    "@types/node": "^20.10.5",
-    "@types/uuid": "^9.0.7",
+    "@types/node": "^20.11.30",
+    "@types/uuid": "^9.0.8",
     "@types/ws": "^8.5.10",
-    "nodemon": "^3.0.2",
+    "nodemon": "^3.1.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.4.5"
   },
   "engines": {
-    "node": ">=23.11.0"
+    "node": ">=24.3.0"
   },
   "prettier": {
     "arrowParens": "always",

@@ -60,8 +60,8 @@ export async function areWorkerThreadsAvailable(): Promise<boolean> {
 export function areWorkerThreadsAvailableSync(): boolean {
   if (!isNode()) return false
 
-  // In Node.js 12+, worker_threads is available without requiring a flag
-  return parseInt(process.versions.node.split('.')[0]) >= 12
+  // In Node.js 24.3.0+, worker_threads is always available
+  return parseInt(process.versions.node.split('.')[0]) >= 24
 }
 
 /**
