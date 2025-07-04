@@ -63,6 +63,12 @@ try {
   execSync('npm publish', { stdio: 'inherit', cwd: cliPackageDir })
 
   console.log('Both packages published successfully!')
+
+  // Step 8: Create GitHub release
+  console.log('Creating GitHub release...')
+  execSync('node scripts/create-github-release.js', { stdio: 'inherit', cwd: rootDir })
+
+  console.log('Deployment complete!')
 } catch (error) {
   console.error('Error:', error.message)
   process.exit(1)
