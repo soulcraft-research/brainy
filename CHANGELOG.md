@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.36] - 2025-07-04
+
+**Full Changelog**: https://github.com/soulcraft-research/brainy/commits/v0.9.36
+
 ## [0.9.34] - 2024-07-01
 
 This is the initial changelog entry. Future releases will automatically update this file with release notes from GitHub.
