@@ -4,6 +4,8 @@ import commonjs from '@rollup/plugin-commonjs'
 import json from '@rollup/plugin-json'
 import { terser } from 'rollup-plugin-terser'
 import replace from '@rollup/plugin-replace'
+import fs from 'fs'
+import path from 'path'
 
 // Custom plugin to provide empty shims for Node.js built-in modules in browser environments
 const nodeModuleShims = () => {
@@ -11,7 +13,16 @@ const nodeModuleShims = () => {
     name: 'node-module-shims',
     resolveId(source) {
       // List of Node.js built-in modules to shim
-      const nodeBuiltins = ['fs', 'path', 'util', 'child_process', 'node:fs', 'node:path', 'node:util', 'node:child_process']
+      const nodeBuiltins = [
+        'fs',
+        'path',
+        'util',
+        'child_process',
+        'node:fs',
+        'node:path',
+        'node:util',
+        'node:child_process'
+      ]
 
       if (nodeBuiltins.includes(source)) {
         // Return a virtual module ID for the shim
@@ -53,13 +64,13 @@ import { Buffer as BufferPolyfill } from 'buffer';
 if (typeof window !== 'undefined' && typeof globalThis.Buffer === 'undefined') {
   globalThis.Buffer = BufferPolyfill;
 }
-`;
+`
         return {
           code: bufferImport + code,
           map: { mappings: '' } // Provide an empty sourcemap to avoid warnings
-        };
+        }
       }
-      return null; // Return null to let Rollup handle other files normally
+      return null // Return null to let Rollup handle other files normally
     }
   }
 }
@@ -85,6 +96,8 @@ const fixThisReferences = () => {
     }
   }
 }
+
+// We no longer need to copy the worker file as we'll bundle it separately
 
 // Get build type from environment variable or default to 'unified'
 const buildType = process.env.BUILD_TYPE || 'unified'
@@ -184,5 +197,51 @@ const mainConfig = {
   ]
 }
 
-// Export the main configuration
-export default mainConfig
+// Create a separate configuration for the worker.ts file
+const workerConfig = {
+  input: 'src/worker.ts',
+  output: {
+    file: 'dist/worker.js',
+    format: 'es',
+    sourcemap: true
+  },
+  plugins: [
+    // Add environment replacement
+    replace({
+      preventAssignment: true,
+      'process.env.NODE_ENV': JSON.stringify('production')
+    }),
+    // Add our custom plugins
+    fixThisReferences(),
+    nodeModuleShims(),
+    bufferPolyfill(), // Add Buffer polyfill
+    resolve({
+      browser: true,
+      preferBuiltins: false
+    }),
+    commonjs({
+      transformMixedEsModules: true
+    }),
+    json(),
+    typescript({
+      tsconfig: './tsconfig.unified.json'
+    })
+  ],
+  external: [
+    // Add any dependencies you want to exclude from the bundle
+    '@aws-sdk/client-s3',
+    '@smithy/util-stream',
+    '@smithy/node-http-handler',
+    '@aws-crypto/crc32c',
+    'node:stream/web',
+    'node:worker_threads',
+    'worker_threads',
+    'node:fs',
+    'node:path',
+    'fs',
+    'path'
+  ]
+};
+
+// Export both configurations
+export default [mainConfig, workerConfig];

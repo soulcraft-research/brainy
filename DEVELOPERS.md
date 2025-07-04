@@ -10,6 +10,7 @@ This document contains detailed information for developers working with Brainy, 
 
 - [Build System](#build-system)
 - [Testing](#testing)
+  - [Testing All Environments](#testing-all-environments)
   - [Testing the CLI Package Locally](#testing-the-cli-package-locally)
 - [Publishing](#publishing)
   - [Publishing the CLI Package](#publishing-the-cli-package)
@@ -59,6 +60,23 @@ Brainy uses a modern build system that optimizes for both Node.js and browser en
     - GitHub Actions workflow: Automatically deploys the demo directory to GitHub Pages when pushing to the main branch
 
 ## Testing
+
+### Testing All Environments
+
+Brainy provides a comprehensive test script that verifies the library works correctly in all supported environments (browser, Node.js, and CLI):
+
+```bash
+# Test the library in all environments
+npm run test-all
+```
+
+This script:
+1. Builds all packages (main, browser, CLI)
+2. Runs Node.js tests (worker tests and unified text encoding test)
+3. Starts a local HTTP server and runs browser tests using Puppeteer (headless browser)
+4. Runs CLI tests by installing the CLI package locally and testing basic commands
+
+The test results are displayed with color-coded output for better readability.
 
 ### Testing the CLI Package Locally
 

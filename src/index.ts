@@ -3,6 +3,11 @@
  * A vector database using HNSW indexing with Origin Private File System storage
  */
 
+// Import unified text encoding utilities first to ensure they're available
+import { applyTensorFlowPatch } from './utils/textEncoding.js'
+// Apply the TensorFlow.js platform patch if needed
+applyTensorFlowPatch()
+
 // Export main BrainyData class and related types
 import { BrainyData, BrainyDataConfig } from './brainyData.js'
 
@@ -39,6 +44,18 @@ import {
   cleanupWorkerPools
 } from './utils/workerUtils.js'
 
+// Export environment utilities
+import {
+  isBrowser,
+  isNode,
+  isWebWorker,
+  areWebWorkersAvailable,
+  areWorkerThreadsAvailable,
+  areWorkerThreadsAvailableSync,
+  isThreadingAvailable,
+  isThreadingAvailableAsync
+} from './utils/environment.js'
+
 export {
   UniversalSentenceEncoder,
   createEmbeddingFunction,
@@ -48,7 +65,17 @@ export {
 
   // Worker utilities
   executeInThread,
-  cleanupWorkerPools
+  cleanupWorkerPools,
+
+  // Environment utilities
+  isBrowser,
+  isNode,
+  isWebWorker,
+  areWebWorkersAvailable,
+  areWorkerThreadsAvailable,
+  areWorkerThreadsAvailableSync,
+  isThreadingAvailable,
+  isThreadingAvailableAsync
 }
 
 // Export storage adapters
