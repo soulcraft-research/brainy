@@ -6,13 +6,14 @@ This document explains how to publish both the @soulcraft/brainy and @soulcraft/
 
 Before publishing, ensure you have:
 
-1. Node.js >= 24.0.0 installed
+1. Node.js >= 23.0.0 installed
 2. An npm account with access to the @soulcraft organization
 3. Logged in to npm using `npm login`
 
 ## Publishing Process
 
-The repository is set up to publish both packages together with synchronized versions. To publish the packages, follow these steps:
+The repository is set up to publish both packages together with synchronized versions. To publish the packages, follow
+these steps:
 
 ### 1. Ensure you're in the root directory of the project
 
@@ -37,6 +38,7 @@ npm run publish:both
 ```
 
 This command will:
+
 - Ensure versions are in sync between both packages
 - Build the main package
 - Build the CLI
@@ -51,6 +53,7 @@ npm run publish
 ```
 
 This command will:
+
 - Build the main package
 - Publish the main package to npm
 
@@ -61,6 +64,7 @@ npm run publish:cli
 ```
 
 This command will:
+
 - Ensure versions are in sync
 - Build the CLI package
 - Publish the CLI package to npm
@@ -104,11 +108,13 @@ The `publish:cli` command:
 4. Publishes the CLI package with `npm publish`
 
 The version synchronization ensures that:
+
 - Both packages always have the same version number
 - The CLI package's dependency on the main package is exact (not using the ^ prefix)
 - The README.md file is updated with the current version
 
 The CLI package is configured in `cli-package/package.json` with:
+
 - The correct package name: `@soulcraft/brainy-cli`
 - `"private": false` to allow publishing
 - `"publishConfig": { "access": "public" }` to ensure the scoped package is public
@@ -121,7 +127,8 @@ If you encounter any issues during the publishing process:
 
 1. Make sure you're logged in to npm with an account that has access to the @soulcraft organization
 2. Ensure that the `dist/cli.js` file exists and has been built correctly
-3. If you get an error about the package already existing, you may need to update the version in both package.json files:
+3. If you get an error about the package already existing, you may need to update the version in both package.json
+   files:
    ```bash
    npm version patch  # This will update both package.json files via the version script
    ```

@@ -280,7 +280,6 @@ Brainy's pipeline is designed to handle streaming data efficiently:
     - Automatic thread management based on environment capabilities
     - Example: `executeTypedPipeline(augmentations, method, args, { mode: ExecutionMode.THREADED })`
 
-
 ### Running the Pipeline
 
 The pipeline runs automatically when you:
@@ -416,7 +415,6 @@ brainy visualize
 brainy visualize --root <id> --depth 3
 ```
 
-
 ### Using the CLI in Your Code
 
 If you need to use the CLI functionality in your code, you can import it explicitly:
@@ -431,7 +429,6 @@ import '@soulcraft/brainy/cli'
 
 This will only build and load the CLI when you explicitly import it, keeping your bundle size small when you don't need
 the CLI.
-
 
 ### Available Commands
 
@@ -1251,14 +1248,14 @@ comprehensive [Scaling Strategy](scalingStrategy.md) document.
 
 ## Requirements
 
-- Node.js >= 24.0.0
-
+- Node.js >= 23.0.0
 
 ## Contributing
 
 For detailed contribution guidelines, please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-For developer documentation, including building, testing, and publishing instructions, please see [DEVELOPERS.md](DEVELOPERS.md).
+For developer documentation, including building, testing, and publishing instructions, please
+see [DEVELOPERS.md](DEVELOPERS.md).
 
 We have a [Code of Conduct](CODE_OF_CONDUCT.md) that all contributors are expected to follow.
 
