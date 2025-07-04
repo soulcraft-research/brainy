@@ -9,6 +9,7 @@
   "files": [
     "cli-wrapper.js",
     "README.md",
+    "CHANGELOG.md",
     "dist/cli.js",
     "dist/cli.js.map"
   ],
