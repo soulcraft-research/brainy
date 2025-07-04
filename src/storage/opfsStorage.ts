@@ -18,6 +18,7 @@ type Edge = GraphVerb
 
 // Directory and file names
 const ROOT_DIR = 'opfs-vector-db'
+
 const NOUNS_DIR = 'nouns'
 const VERBS_DIR = 'verbs'
 const METADATA_DIR = 'metadata'

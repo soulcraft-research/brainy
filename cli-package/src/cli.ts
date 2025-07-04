@@ -5,6 +5,14 @@
  * A command-line interface for interacting with the Brainy vector database
  */
 
+// Import the unified text encoding utilities
+// This needs to be done before importing @soulcraft/brainy
+import { applyTensorFlowPatch } from './utils/textEncoding.js'
+
+// Apply the TensorFlow.js platform patch if needed
+console.log('Brainy running in Node.js environment')
+applyTensorFlowPatch()
+
 import {
   BrainyData,
   NounType,
@@ -39,7 +47,7 @@ function parseJSON(str: string): any {
     return {}
   }
 }
- 
+
 // Helper function to resolve noun type
 function resolveNounType(type: string | number | undefined): NounType {
   if (!type) return NounType.Thing
@@ -809,6 +817,7 @@ Examples:
   # Augmentation commands
   $ brainy augment list
   $ brainy augment info cognition
+  $ brainy test-pipeline "Test data" --data-type text --mode sequential
   $ brainy augment test-pipeline "Test data" --data-type text --mode sequential
   $ brainy augment stream-test --count 3 --interval 500
 
@@ -844,7 +853,8 @@ completion.tree({
     'completion-setup',
     'init',
     'help',
-    'augment'
+    'augment',
+    'test-pipeline'
   ],
   // Command-specific completions
   add: {
@@ -924,7 +934,17 @@ completion.tree({
   },
   'completion-setup': {},
   init: {},
-  help: {}
+  help: {},
+  'test-pipeline': {
+    _: () => [
+      '--data-type text',
+      '--mode sequential',
+      '--mode parallel',
+      '--mode threaded',
+      '--stop-on-error',
+      '--verbose'
+    ]
+  }
 })
 
 // Initialize autocomplete
@@ -1339,6 +1359,106 @@ augmentCommand
 
 // Add the augment command to the program
 program.addCommand(augmentCommand)
+
+// Add a top-level test-pipeline command that redirects to augment test-pipeline
+program
+  .command('test-pipeline')
+  .description('Test the sequential pipeline with sample data')
+  .argument(
+    '[text]',
+    'Sample text to process through the pipeline',
+    'This is a test of the Brainy pipeline'
+  )
+  .option('-t, --data-type <type>', 'Type of data to process', 'text')
+  .option(
+    '-m, --mode <mode>',
+    'Execution mode (sequential, parallel, threaded)',
+    'sequential'
+  )
+  .option('-s, --stop-on-error', 'Stop execution if an error occurs', false)
+  .option('-v, --verbose', 'Show detailed output', false)
+  .action(async (text, options) => {
+    try {
+      // Initialize the pipeline
+      await sequentialPipeline.initialize()
+
+      console.log(`Processing data: "${text}"`)
+      console.log(`Data type: ${options.dataType}`)
+      console.log(`Execution mode: ${options.mode}`)
+      console.log(`Stop on error: ${options.stopOnError}`)
+      console.log()
+
+      // Set execution mode
+      let executionMode = ExecutionMode.SEQUENTIAL
+      switch (options.mode.toLowerCase()) {
+        case 'parallel':
+          executionMode = ExecutionMode.PARALLEL
+          break
+        case 'threaded':
+          executionMode = ExecutionMode.THREADED
+          break
+        default:
+          executionMode = ExecutionMode.SEQUENTIAL
+      }
+
+      // Process the data
+      const result = await sequentialPipeline.processData(
+        text,
+        options.dataType,
+        {
+          stopOnError: options.stopOnError,
+          timeout: 30000
+        }
+      )
+
+      console.log('Pipeline Execution Result:')
+      console.log(`Success: ${result.success}`)
+
+      if (result.error) {
+        console.log(`Error: ${result.error}`)
+      }
+
+      console.log('\nStage Results:')
+
+      // Display stage results
+      Object.entries(result.stageResults).forEach((entry) => {
+        const stage = entry[0]
+        const stageResult = entry[1] as {
+          success?: boolean
+          error?: string
+          data?: any
+        }
+
+        console.log(`\n${stage.toUpperCase()}:`)
+        console.log(`  Success: ${stageResult?.success}`)
+
+        if (stageResult?.error) {
+          console.log(`  Error: ${stageResult.error}`)
+        }
+
+        if (stageResult?.data && options.verbose) {
+          console.log('  Data:')
+          console.log(
+            JSON.stringify(stageResult.data, null, 2)
+              .split('\n')
+              .map((line: string) => `    ${line}`)
+              .join('\n')
+          )
+        }
+      })
+
+      console.log('\nFinal Result Data:')
+      console.log(
+        JSON.stringify(result.data, null, 2)
+          .split('\n')
+          .map((line) => `  ${line}`)
+          .join('\n')
+      )
+    } catch (error) {
+      console.error('Error:', (error as Error).message)
+      process.exit(1)
+    }
+  })
 
 // Add a command for setting up autocomplete
 program

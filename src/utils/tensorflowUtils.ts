@@ -10,52 +10,12 @@ import type {
   PlatformNodeObject
 } from '../types/tensorflowTypes.js'
 
-// Define a global PlatformNode class for TensorFlow.js compatibility
-// This is needed because TensorFlow.js creates its own PlatformNode instance
-// and we need to ensure it uses the correct TextEncoder/TextDecoder
-if (
-  typeof global !== 'undefined' &&
-  typeof process !== 'undefined' &&
-  process.versions &&
-  process.versions.node
-) {
-  try {
-    // In Node.js v24.3.0+, TextEncoder and TextDecoder are globally available
-    // Define the PlatformNode class that TensorFlow.js will use
-    class PlatformNode {
-      util: any
-      textEncoder: any
-      textDecoder: any
+// Import the unified text encoding utilities
+import { applyTensorFlowPatch } from './textEncoding.js'
 
-      constructor() {
-        // Create a util object with the necessary methods
-        this.util = {
-          isFloat32Array,
-          isTypedArray,
-          TextEncoder,
-          TextDecoder
-        }
-
-        // Initialize TextEncoder/TextDecoder instances
-        this.textEncoder = new TextEncoder()
-        this.textDecoder = new TextDecoder()
-      }
-    }
-
-    // Assign the PlatformNode class to the global object
-    ;(global as any).PlatformNode = PlatformNode
-
-    // Also create an instance and assign it to global.platformNode (lowercase p)
-    // Some TensorFlow.js code might look for this
-    ;(global as any).platformNode = new PlatformNode()
-
-    console.log(
-      'Defined global PlatformNode class for TensorFlow.js compatibility'
-    )
-  } catch (error) {
-    console.warn('Failed to define global PlatformNode class:', error)
-  }
-}
+// Apply the TensorFlow.js platform patch if needed
+// This will define a global PlatformNode class that uses our text encoding utilities
+applyTensorFlowPatch()
 
 /**
  * Check if an array is a Float32Array
