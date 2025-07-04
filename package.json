@@ -44,8 +44,8 @@
     "check-format": "prettier --check \"src/**/*.{ts,js}\"",
     "check-style": "node scripts/check-code-style.js",
     "prepare": "npm run build",
-    "deploy": "npm run build && npm publish",
-    "deploy:cli": "node scripts/generate-version.js && cd cli-package && npm run build && npm publish",
+    "deploy": "npm run build && npm publish && node scripts/create-github-release.js",
+    "deploy:cli": "node scripts/generate-version.js && cd cli-package && npm run build && npm publish && node ../scripts/create-github-release.js",
     "deploy:both": "node scripts/publish-cli.js",
     "deploy:cloud:aws": "cd cloud-wrapper && npm run build && npm run deploy:aws",
     "deploy:cloud:gcp": "cd cloud-wrapper && npm run build && npm run deploy:gcp",
@@ -93,6 +93,7 @@
     "dist/utils/",
     "LICENSE",
     "README.md",
+    "CHANGELOG.md",
     "brainy.png"
   ],
   "devDependencies": {
