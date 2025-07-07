@@ -224,7 +224,7 @@ async function runAllTests() {
     // Run CLI tests
     log('Testing CLI package locally...', colors.yellow)
     try {
-      runCommand('npm run test-cli')
+      runCommand('npm run test:cli')
       log('CLI test completed!', colors.green)
 
       // Run some basic CLI commands to verify functionality
@@ -245,7 +245,7 @@ async function runAllTests() {
         colors.yellow
       )
       log(
-        'You can run the CLI tests separately with: npm run test-cli',
+        'You can run the CLI tests separately with: npm run test:cli',
         colors.yellow
       )
     }

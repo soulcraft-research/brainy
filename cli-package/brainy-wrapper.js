@@ -18,21 +18,26 @@ if (
     // Define a PlatformNode class that uses the global TextEncoder/TextDecoder directly
     class PlatformNode {
       constructor() {
-        // Create a util object with only the necessary methods
-        this.util = {
-          isFloat32Array: (arr) =>
-            !!(
-              arr instanceof Float32Array ||
-              (arr &&
-                Object.prototype.toString.call(arr) === '[object Float32Array]')
-            ),
-          isTypedArray: (arr) =>
-            !!(ArrayBuffer.isView(arr) && !(arr instanceof DataView))
-        }
+        // Create a util object (empty but kept for compatibility)
+        this.util = {}
 
         // Initialize TextEncoder/TextDecoder instances directly from global
         this.textEncoder = new TextEncoder()
         this.textDecoder = new TextDecoder()
+      }
+
+      // Define isFloat32Array directly on the instance
+      isFloat32Array(arr) {
+        return !!(
+          arr instanceof Float32Array ||
+          (arr &&
+            Object.prototype.toString.call(arr) === '[object Float32Array]')
+        )
+      }
+
+      // Define isTypedArray directly on the instance
+      isTypedArray(arr) {
+        return !!(ArrayBuffer.isView(arr) && !(arr instanceof DataView))
       }
     }
 

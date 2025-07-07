@@ -6,7 +6,7 @@ This document explains how to publish both the @soulcraft/brainy and @soulcraft/
 
 Before publishing, ensure you have:
 
-1. Node.js >= 23.0.0 installed
+1. Node.js >= 24.3.0 installed
 2. An npm account with access to the @soulcraft organization
 3. Logged in to npm using `npm login`
 
