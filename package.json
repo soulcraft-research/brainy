@@ -41,8 +41,8 @@
     "lint": "eslint --ext .ts,.js src/",
     "lint:fix": "eslint --ext .ts,.js src/ --fix",
     "format": "prettier --write \"src/**/*.{ts,js}\"",
-    "check-format": "prettier --check \"src/**/*.{ts,js}\"",
-    "check-style": "node scripts/check-code-style.js",
+    "check:format": "prettier --check \"src/**/*.{ts,js}\"",
+    "check:style": "node scripts/check-code-style.js",
     "prepare": "npm run build",
     "deploy": "npm run build && npm publish && node scripts/create-github-release.js",
     "deploy:cli": "node scripts/generate-version.js && cd cli-package && npm run build && npm publish",
@@ -52,8 +52,8 @@
     "deploy:cloud": "echo 'Please use one of the following commands to deploy to a specific cloud provider:' && echo '  npm run deploy:cloud:aws' && echo '  npm run deploy:cloud:gcp' && echo '  npm run deploy:cloud:cloudflare'",
     "postinstall": "echo 'Note: If you encounter dependency conflicts with TensorFlow.js packages, please use: npm install --legacy-peer-deps'",
     "dry-run": "npm pack --dry-run",
-    "test-cli": "node scripts/test-cli-locally.js",
-    "test-all": "node scripts/test-all-environments.js"
+    "test:cli": "node scripts/test-cli-locally.js",
+    "test:all": "node scripts/test-all-environments.js"
   },
   "keywords": [
     "vector-database",
@@ -93,7 +93,6 @@
     "dist/utils/",
     "LICENSE",
     "README.md",
-    "CHANGELOG.md",
     "brainy.png"
   ],
   "devDependencies": {

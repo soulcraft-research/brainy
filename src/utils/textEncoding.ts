@@ -114,54 +114,69 @@ export function getTextDecoder(): IUniversalTextDecoder {
  * that uses our text encoding utilities instead of relying on TextEncoder/TextDecoder
  */
 export function applyTensorFlowPatch(): void {
-  // Only apply in Node.js environment
-  if (
-    typeof global !== 'undefined' &&
-    typeof process !== 'undefined' &&
-    process.versions &&
-    process.versions.node
-  ) {
-    try {
-      // Get encoders/decoders
-      const encoder = getTextEncoder()
-      const decoder = getTextDecoder()
+  try {
+    // Get encoders/decoders
+    const encoder = getTextEncoder()
+    const decoder = getTextDecoder()
 
-      // Define a custom PlatformNode class
-      class PlatformNode {
-        util: any
-        textEncoder: any
-        textDecoder: any
+    // Define a custom Platform class that works in both Node.js and browser environments
+    class Platform {
+      util: any
+      textEncoder: any
+      textDecoder: any
 
-        constructor() {
-          // Create a util object with necessary methods and constructors
-          this.util = {
-            isFloat32Array: (arr: any) =>
-              !!(
-                arr instanceof Float32Array ||
-                (arr &&
-                  Object.prototype.toString.call(arr) ===
-                    '[object Float32Array]')
-              ),
-            isTypedArray: (arr: any) =>
-              !!(ArrayBuffer.isView(arr) && !(arr instanceof DataView)),
-            // Add TextEncoder and TextDecoder as constructors
-            TextEncoder: UniversalTextEncoder,
-            TextDecoder: UniversalTextDecoder
-          }
-
-          // Initialize using the constructors from util
-          this.textEncoder = new this.util.TextEncoder()
-          this.textDecoder = new this.util.TextDecoder()
+      constructor() {
+        // Create a util object with necessary methods and constructors
+        this.util = {
+          // Add TextEncoder and TextDecoder as constructors
+          TextEncoder: UniversalTextEncoder,
+          TextDecoder: UniversalTextDecoder
         }
+
+        // Initialize using the constructors from util
+        this.textEncoder = new this.util.TextEncoder()
+        this.textDecoder = new this.util.TextDecoder()
       }
 
-      // Assign the PlatformNode class to the global object
-      ;(global as any).PlatformNode = PlatformNode
+      // Define isFloat32Array directly on the instance
+      isFloat32Array(arr: any) {
+        return !!(
+          arr instanceof Float32Array ||
+          (arr &&
+            Object.prototype.toString.call(arr) ===
+              '[object Float32Array]')
+        )
+      }
 
-      // Also create an instance and assign it to global.platformNode (lowercase p)
-      ;(global as any).platformNode = new PlatformNode()
-    } catch (error) {
-      console.warn('Failed to apply TensorFlow.js platform patch:', error)
+      // Define isTypedArray directly on the instance
+      isTypedArray(arr: any) {
+        return !!(ArrayBuffer.isView(arr) && !(arr instanceof DataView))
+      }
     }
+
+    // Get the global object in a way that works in both Node.js and browser
+    const globalObj = typeof global !== 'undefined' ? global : 
+                     typeof window !== 'undefined' ? window : 
+                     typeof self !== 'undefined' ? self : 
+                     {};
+
+    // Only apply in Node.js environment
+    if (
+      typeof process !== 'undefined' &&
+      process.versions &&
+      process.versions.node
+    ) {
+      // Assign the Platform class to the global object as PlatformNode for Node.js
+      (globalObj as any).PlatformNode = Platform;
+      // Also create an instance and assign it to global.platformNode (lowercase p)
+      (globalObj as any).platformNode = new Platform();
+    } else if (typeof window !== 'undefined' || typeof self !== 'undefined') {
+      // In browser environments, we might need to provide similar functionality
+      // but we'll use a different name to avoid conflicts
+      (globalObj as any).PlatformBrowser = Platform;
+      (globalObj as any).platformBrowser = new Platform();
+    }
+  } catch (error) {
+    console.warn('Failed to apply TensorFlow.js platform patch:', error)
   }
 }

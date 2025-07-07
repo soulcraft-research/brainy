@@ -63,6 +63,28 @@ if (fs.existsSync(minifiedJsPath)) {
   }
 }
 
+// Also patch the worker.js file if it exists
+const workerJsPath = path.join(__dirname, '..', 'dist', 'worker.js')
+if (fs.existsSync(workerJsPath)) {
+  console.log(`Reading ${workerJsPath}...`)
+  const workerContent = fs.readFileSync(workerJsPath, 'utf8')
+
+  // Apply the same replacement to the worker file
+  const patchedWorkerContent = workerContent.replace(pattern, replacement)
+
+  // Check if the patch was applied
+  if (patchedWorkerContent === workerContent) {
+    console.warn(
+      'No instances of "new this.util.TextEncoder()" found in the worker file.'
+    )
+  } else {
+    // Write the patched file
+    console.log('Writing patched worker file...')
+    fs.writeFileSync(workerJsPath, patchedWorkerContent, 'utf8')
+    console.log('Worker file patched successfully!')
+  }
+}
+
 // Also patch TextDecoder
 console.log('Patching TextDecoder references...')
 content = fs.readFileSync(unifiedJsPath, 'utf8')
@@ -97,5 +119,23 @@ if (fs.existsSync(minifiedJsPath)) {
   } else {
     fs.writeFileSync(minifiedJsPath, patchedMinDecoderContent, 'utf8')
     console.log('TextDecoder patch applied to minified file successfully!')
+  }
+}
+
+// Patch the worker.js file for TextDecoder as well
+if (fs.existsSync(workerJsPath)) {
+  const workerContent = fs.readFileSync(workerJsPath, 'utf8')
+  const patchedWorkerDecoderContent = workerContent.replace(
+    decoderPattern,
+    decoderReplacement
+  )
+
+  if (patchedWorkerDecoderContent === workerContent) {
+    console.warn(
+      'No instances of "new this.util.TextDecoder()" found in the worker file.'
+    )
+  } else {
+    fs.writeFileSync(workerJsPath, patchedWorkerDecoderContent, 'utf8')
+    console.log('TextDecoder patch applied to worker file successfully!')
   }
 }

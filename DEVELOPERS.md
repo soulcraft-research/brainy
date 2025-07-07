@@ -4,16 +4,17 @@
 <img src="./brainy.png" alt="Brainy Logo" width="200"/>
 </div>
 
-This document contains detailed information for developers working with Brainy, including building, testing, and publishing instructions.
+This document contains detailed information for developers working with Brainy, including building, testing, and
+publishing instructions.
 
 ## Table of Contents
 
 - [Build System](#build-system)
 - [Testing](#testing)
-  - [Testing All Environments](#testing-all-environments)
-  - [Testing the CLI Package Locally](#testing-the-cli-package-locally)
+    - [Testing All Environments](#testing-all-environments)
+    - [Testing the CLI Package Locally](#testing-the-cli-package-locally)
 - [Publishing](#publishing)
-  - [Publishing the CLI Package](#publishing-the-cli-package)
+    - [Publishing the CLI Package](#publishing-the-cli-package)
 - [Development Usage](#development-usage)
 - [Node.js 24 Optimizations](#nodejs-24-optimizations)
 - [Development Workflow](#development-workflow)
@@ -63,14 +64,16 @@ Brainy uses a modern build system that optimizes for both Node.js and browser en
 
 ### Testing All Environments
 
-Brainy provides a comprehensive test script that verifies the library works correctly in all supported environments (browser, Node.js, and CLI):
+Brainy provides a comprehensive test script that verifies the library works correctly in all supported environments (
+browser, Node.js, and CLI):
 
 ```bash
 # Test the library in all environments
-npm run test-all
+npm run test:all
 ```
 
 This script:
+
 1. Builds all packages (main, browser, CLI)
 2. Runs Node.js tests (worker tests and unified text encoding test)
 3. Starts a local HTTP server and runs browser tests using Puppeteer (headless browser)
@@ -84,10 +87,11 @@ Before publishing the CLI package to npm, you can test it locally to ensure it w
 
 ```bash
 # Test the CLI package locally
-npm run test-cli
+npm run test:cli
 ```
 
 This script:
+
 1. Builds the main package
 2. Creates a local tarball of the main package
 3. Builds the CLI package
@@ -115,7 +119,8 @@ npm uninstall -g @soulcraft/brainy-cli
 
 ### Publishing the CLI Package
 
-If you need to publish the CLI package to npm, please refer to the [CLI Publishing Guide](docs/publishing-cli.md) for detailed instructions.
+If you need to publish the CLI package to npm, please refer to the [CLI Publishing Guide](docs/publishing-cli.md) for
+detailed instructions.
 
 ## Development Usage
 
@@ -131,15 +136,21 @@ npm run cli generate-random-graph --noun-count 20 --verb-count 40
 
 Brainy takes advantage of several optimizations available in Node.js 24:
 
-1. **Improved Worker Threads Performance**: The multithreading system has been completely rewritten to leverage Node.js 24's enhanced Worker Threads API, resulting in better performance for compute-intensive operations like embedding generation and vector similarity calculations.
+1. **Improved Worker Threads Performance**: The multithreading system has been completely rewritten to leverage Node.js
+   24's enhanced Worker Threads API, resulting in better performance for compute-intensive operations like embedding
+   generation and vector similarity calculations.
 
-2. **Worker Pool Management**: A sophisticated worker pool system reuses worker threads to minimize the overhead of creating and destroying threads, leading to more efficient resource utilization.
+2. **Worker Pool Management**: A sophisticated worker pool system reuses worker threads to minimize the overhead of
+   creating and destroying threads, leading to more efficient resource utilization.
 
-3. **Dynamic Module Imports**: Uses the new `node:` protocol prefix for importing core modules, which provides better performance and more reliable module resolution.
+3. **Dynamic Module Imports**: Uses the new `node:` protocol prefix for importing core modules, which provides better
+   performance and more reliable module resolution.
 
-4. **ES Modules Optimizations**: Takes advantage of Node.js 24's improved ESM implementation for faster module loading and execution.
+4. **ES Modules Optimizations**: Takes advantage of Node.js 24's improved ESM implementation for faster module loading
+   and execution.
 
-5. **Enhanced Error Handling**: Implements more robust error handling patterns available in Node.js 24 for better stability and debugging.
+5. **Enhanced Error Handling**: Implements more robust error handling patterns available in Node.js 24 for better
+   stability and debugging.
 
 These optimizations are particularly beneficial for:
 
@@ -157,7 +168,8 @@ These optimizations are particularly beneficial for:
 
 ## Reporting Issues
 
-We use GitHub issues to track bugs and feature requests. Please use the provided issue templates when creating a new issue:
+We use GitHub issues to track bugs and feature requests. Please use the provided issue templates when creating a new
+issue:
 
 - [Bug Report Template](.github/ISSUE_TEMPLATE/bug_report.md)
 - [Feature Request Template](.github/ISSUE_TEMPLATE/feature_request.md)
