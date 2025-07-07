@@ -28,15 +28,6 @@ export function applyTensorFlowPatch(): void {
         constructor() {
           // Create a util object with necessary methods and constructors
           this.util = {
-            isFloat32Array: (arr: any) =>
-              !!(
-                arr instanceof Float32Array ||
-                (arr &&
-                  Object.prototype.toString.call(arr) ===
-                    '[object Float32Array]')
-              ),
-            isTypedArray: (arr: any) =>
-              !!(ArrayBuffer.isView(arr) && !(arr instanceof DataView)),
             // Use native TextEncoder and TextDecoder
             TextEncoder: TextEncoder,
             TextDecoder: TextDecoder
@@ -45,6 +36,21 @@ export function applyTensorFlowPatch(): void {
           // Initialize using the constructors from util
           this.textEncoder = new this.util.TextEncoder()
           this.textDecoder = new this.util.TextDecoder()
+        }
+
+        // Define isFloat32Array directly on the instance
+        isFloat32Array(arr: any) {
+          return !!(
+            arr instanceof Float32Array ||
+            (arr &&
+              Object.prototype.toString.call(arr) ===
+                '[object Float32Array]')
+          )
+        }
+
+        // Define isTypedArray directly on the instance
+        isTypedArray(arr: any) {
+          return !!(ArrayBuffer.isView(arr) && !(arr instanceof DataView))
         }
       }
 

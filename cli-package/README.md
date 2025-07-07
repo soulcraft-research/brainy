@@ -47,12 +47,7 @@ brainy generate-random-graph --noun-count 20 --verb-count 30 --clear
 
 ## Requirements
 
-- Node.js >= 23.0.0
-
-## Changelog
-
-### 0.9.25
-- Completely removed unnecessary compatibility patches for Node.js v24 as they are no longer needed with current TensorFlow.js versions
+- Node.js >= 24.3.0
 
 ## License
 

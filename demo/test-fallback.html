@@ -99,9 +99,10 @@
   })
 
   async function runWorkerTest(resultDiv) {
-    // Define a compute-intensive function
+    // Define a compute-intensive function using a function expression
+    // This is more compatible with how the worker evaluates the function string
     const computeIntensiveFunction = `
-        function(data) {
+        function computeTask(data) {
           console.log('Worker/Fallback: Starting computation...');
 
           // Simulate a compute-intensive task
@@ -114,13 +115,20 @@
           const duration = Date.now() - start;
           console.log('Worker/Fallback: Computation completed in ' + duration + 'ms');
 
+          const globalObj = typeof self !== 'undefined' ? self : 
+                           typeof window !== 'undefined' ? window : 
+                           {};
+
           return {
             result,
             duration,
             iterations: data.iterations,
-            webWorkersAvailable: typeof window.Worker !== 'undefined'
+            webWorkersAvailable: typeof globalObj.Worker !== 'undefined'
           };
         }
+
+        // Return the function itself
+        computeTask;
       `
 
     // Execute the function

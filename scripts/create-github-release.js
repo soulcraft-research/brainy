@@ -81,17 +81,15 @@ try {
 
   console.log(`GitHub release v${version} created successfully!`)
 
-  // Update CHANGELOG.md with the release notes
-  console.log('Updating CHANGELOG.md with release notes...')
-  execSync('node scripts/update-changelog.js', { stdio: 'inherit', cwd: rootDir })
+  // GitHub will automatically handle the changelog
+  console.log('GitHub release created with auto-generated notes')
 } catch (error) {
   // If the release already exists, this is not a fatal error
   if (error.message.includes('already exists')) {
     console.log(`GitHub release v${version} already exists, skipping creation.`)
 
-    // Still update CHANGELOG.md with the release notes
-    console.log('Updating CHANGELOG.md with release notes...')
-    execSync('node scripts/update-changelog.js', { stdio: 'inherit', cwd: rootDir })
+    // GitHub will automatically handle the changelog
+    console.log('GitHub release already exists with auto-generated notes')
   } else {
     console.error('Error creating GitHub release:', error.message)
     // Don't exit with error to allow the npm publish to continue
