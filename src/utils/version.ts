@@ -3,4 +3,4 @@
  * Do not modify this file directly.
  */
 
-export const VERSION = '0.9.36';
+export const VERSION = '0.9.37';
