@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.37] - 2025-07-04
+
+**Full Changelog**: https://github.com/soulcraft-research/brainy/compare/v0.9.36...v0.9.37
+
 ## [0.9.36] - 2025-07-04
 
 **Full Changelog**: https://github.com/soulcraft-research/brainy/commits/v0.9.36
