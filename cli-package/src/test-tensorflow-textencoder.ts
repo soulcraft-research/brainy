@@ -7,7 +7,7 @@
 import {
   getTextEncoder,
   getTextDecoder
-} from '@soulcraft/brainy/dist/utils/textEncoding.js'
+} from './utils/textEncoding.js'
 import * as tf from '@tensorflow/tfjs'
 import '@tensorflow/tfjs-backend-cpu'
 
