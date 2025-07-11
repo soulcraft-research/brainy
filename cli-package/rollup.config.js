@@ -7,6 +7,7 @@ import { terser } from 'rollup-plugin-terser'
 // CLI configuration
 export default {
   input: 'src/cli.ts',
+  context: 'this', // Preserve 'this' context to fix TensorFlow.js issue
   output: {
     dir: 'dist',
     entryFileNames: 'cli.js',

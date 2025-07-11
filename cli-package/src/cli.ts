@@ -5,6 +5,11 @@
  * A command-line interface for interacting with the Brainy vector database
  */
 
+// Import the setup file for its side-effects.
+// This MUST be the very first import to ensure patches are applied
+// before any other module (like TensorFlow.js) is loaded.
+import './setup.js'
+
 // Log environment information
 console.log('Brainy running in Node.js environment')
 
