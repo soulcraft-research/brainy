@@ -10,12 +10,8 @@ import type {
   PlatformNodeObject
 } from '../types/tensorflowTypes.js'
 
-// Import the unified text encoding utilities
-import { applyTensorFlowPatch } from './textEncoding.js'
-
-// Apply the TensorFlow.js platform patch if needed
-// This will define a global PlatformNode class that uses our text encoding utilities
-applyTensorFlowPatch()
+// Note: TensorFlow.js platform patch is applied in setup.ts
+// This ensures the global PlatformNode class uses our text encoding utilities
 
 /**
  * Check if an array is a Float32Array

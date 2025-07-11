@@ -66,6 +66,11 @@ async function runAllTests() {
     runCommand('npm run build')
     log('Main package built successfully!', colors.green)
 
+    // Apply TextEncoder patch
+    log('Applying TextEncoder patch...', colors.yellow)
+    runCommand('node scripts/patch-textencoder.js')
+    log('TextEncoder patch applied successfully!', colors.green)
+
     // Build the browser package
     log('Building browser package...', colors.yellow)
     runCommand('npm run build:browser')
@@ -88,6 +93,11 @@ async function runAllTests() {
     const textEncodingResult = runCommand('node test-unified-encoding.js')
     log(textEncodingResult)
     log('Unified text encoding test completed!', colors.green)
+
+    log('Running TensorFlow and TextEncoder test...', colors.yellow)
+    const tensorflowTextEncoderResult = runCommand('node test-tensorflow-textencoder.js')
+    log(tensorflowTextEncoderResult)
+    log('TensorFlow and TextEncoder test completed!', colors.green)
 
     logSection('RUNNING BROWSER TESTS')
 
@@ -214,6 +224,25 @@ async function runAllTests() {
     log('Fallback test result:', colors.green)
     log(fallbackResult.replace(/<[^>]*>/g, '').trim())
 
+    // Test TensorFlow and TextEncoder in browser
+    log('Running TensorFlow and TextEncoder browser test...', colors.yellow)
+    await page.goto(`http://localhost:${PORT}/demo/test-tensorflow-textencoder.html`)
+    await page.waitForSelector('#runTest')
+    await page.click('#runTest')
+    await page.waitForFunction(
+      () => {
+        const resultText = document.getElementById('result').textContent
+        return resultText.includes('Test completed')
+      },
+      { timeout: 30000 }
+    )
+
+    const browserTensorflowTextEncoderResult = await page.evaluate(() => {
+      return document.getElementById('result').innerHTML
+    })
+    log('TensorFlow and TextEncoder browser test result:', colors.green)
+    log(browserTensorflowTextEncoderResult.replace(/<[^>]*>/g, '').trim())
+
     // Close the browser and server
     await browser.close()
     server.close()
@@ -239,6 +268,11 @@ async function runAllTests() {
       log('Testing pipeline command...', colors.yellow)
       const pipelineResult = runCommand('brainy test-pipeline "This is a test"')
       log('Pipeline test completed!', colors.green)
+
+      // Test TensorFlow and TextEncoder in CLI
+      log('Testing TensorFlow and TextEncoder in CLI...', colors.yellow)
+      const cliTensorflowResult = runCommand('brainy test-tensorflow-textencoder')
+      log('TensorFlow and TextEncoder CLI test completed!', colors.green)
     } catch (error) {
       log(
         "CLI tests failed. This might be expected if you don't have the CLI installed globally.",

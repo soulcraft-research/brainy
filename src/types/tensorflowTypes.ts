@@ -5,8 +5,9 @@
 
 // Define the shape of the util object used for TensorFlow.js compatibility
 export interface TensorFlowUtilObject {
-  isFloat32Array: (arr: unknown) => boolean
-  isTypedArray: (arr: unknown) => boolean
+  isFloat32Array?: (arr: unknown) => boolean
+  isTypedArray?: (arr: unknown) => boolean
+
   [key: string]: unknown
 }
 
@@ -14,12 +15,14 @@ export interface TensorFlowUtilObject {
 export interface PlatformNodeObject {
   isFloat32Array?: (arr: unknown) => boolean
   isTypedArray?: (arr: unknown) => boolean
+
   [key: string]: unknown
 }
 
 // Define the shape of the tf object that might exist in global
 export interface TensorFlowObject {
   util?: TensorFlowUtilObject
+
   [key: string]: unknown
 }
 
@@ -31,5 +34,16 @@ declare global {
 
   interface WorkerGlobalScope {
     importTensorFlow?: () => Promise<any>
+  }
+
+  // Declare types for the global object and globalThis
+  var global: {
+    util?: TensorFlowUtilObject
+    [key: string]: any
+  }
+
+  var globalThis: {
+    util?: TensorFlowUtilObject
+    [key: string]: any
   }
 }

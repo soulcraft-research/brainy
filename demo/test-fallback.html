@@ -99,36 +99,32 @@
   })
 
   async function runWorkerTest(resultDiv) {
-    // Define a compute-intensive function using a function expression
-    // This is more compatible with how the worker evaluates the function string
-    const computeIntensiveFunction = `
-        function computeTask(data) {
-          console.log('Worker/Fallback: Starting computation...');
+    // Define a compute-intensive function using a simple anonymous function expression
+    // This format works with both worker and fallback mechanisms
+    const computeIntensiveFunction = `function(data) {
+            console.log('Worker/Fallback: Starting computation...');
 
-          // Simulate a compute-intensive task
-          const start = Date.now();
-          let result = 0;
-          for (let i = 0; i < data.iterations; i++) {
-            result += Math.sqrt(i) * Math.sin(i);
+            // Simulate a compute-intensive task
+            const start = Date.now();
+            let result = 0;
+            for (let i = 0; i < data.iterations; i++) {
+              result += Math.sqrt(i) * Math.sin(i);
+            }
+
+            const duration = Date.now() - start;
+            console.log('Worker/Fallback: Computation completed in ' + duration + 'ms');
+
+            const globalObj = typeof self !== 'undefined' ? self : 
+                             typeof window !== 'undefined' ? window : 
+                             {};
+
+            return {
+              result,
+              duration,
+              iterations: data.iterations,
+              webWorkersAvailable: typeof globalObj.Worker !== 'undefined'
+            };
           }
-
-          const duration = Date.now() - start;
-          console.log('Worker/Fallback: Computation completed in ' + duration + 'ms');
-
-          const globalObj = typeof self !== 'undefined' ? self : 
-                           typeof window !== 'undefined' ? window : 
-                           {};
-
-          return {
-            result,
-            duration,
-            iterations: data.iterations,
-            webWorkersAvailable: typeof globalObj.Worker !== 'undefined'
-          };
-        }
-
-        // Return the function itself
-        computeTask;
       `
 
     // Execute the function

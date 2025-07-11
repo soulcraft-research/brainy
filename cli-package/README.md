@@ -47,7 +47,7 @@ brainy generate-random-graph --noun-count 20 --verb-count 30 --clear
 
 ## Requirements
 
-- Node.js >= 24.3.0
+- Node.js >= 24.4.0
 
 ## License
 
