@@ -1,11 +1,8 @@
 // Brainy Worker Script
 // This script is used by the workerUtils.js file to execute functions in a separate thread
 
-// Import text encoding utilities
-import { applyTensorFlowPatch } from './utils/textEncoding.js'
-
-// Apply the TensorFlow.js platform patch if needed
-applyTensorFlowPatch()
+// Note: TensorFlow.js platform patch is applied in setup.ts
+// Worker scripts should import setup.ts if they need TensorFlow.js functionality
 
 // Log that the worker has started
 console.log('Brainy Worker: Started')

@@ -5,13 +5,8 @@
  * A command-line interface for interacting with the Brainy vector database
  */
 
-// Import the unified text encoding utilities
-// This needs to be done before importing @soulcraft/brainy
-import { applyTensorFlowPatch } from './utils/textEncoding.js'
-
-// Apply the TensorFlow.js platform patch if needed
+// Log environment information
 console.log('Brainy running in Node.js environment')
-applyTensorFlowPatch()
 
 import {
   BrainyData,
@@ -1359,6 +1354,21 @@ augmentCommand
 
 // Add the augment command to the program
 program.addCommand(augmentCommand)
+
+// Add a top-level test-tensorflow-textencoder command
+program
+  .command('test-tensorflow-textencoder')
+  .description('Test TensorFlow.js and TextEncoder functionality')
+  .action(async () => {
+    try {
+      // Import the test function from the test file
+      const { runTest } = await import('./test-tensorflow-textencoder.js')
+      await runTest()
+    } catch (error) {
+      console.error('Error:', (error as Error).message)
+      process.exit(1)
+    }
+  })
 
 // Add a top-level test-pipeline command that redirects to augment test-pipeline
 program

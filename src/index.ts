@@ -1,12 +1,12 @@
 /**
- * OPFS BrainyData
- * A vector database using HNSW indexing with Origin Private File System storage
+ * Brainy
+ * A vector and graph database using HNSW
  */
 
-// Import unified text encoding utilities first to ensure they're available
-import { applyTensorFlowPatch } from './utils/textEncoding.js'
-// Apply the TensorFlow.js platform patch if needed
-applyTensorFlowPatch()
+// Import the setup file for its side-effects.
+// This MUST be the very first import to ensure patches are applied
+// before any other module (like TensorFlow.js) is loaded.
+import './setup.js'
 
 // Export main BrainyData class and related types
 import { BrainyData, BrainyDataConfig } from './brainyData.js'
@@ -39,10 +39,7 @@ import {
 } from './utils/embedding.js'
 
 // Export worker utilities
-import {
-  executeInThread,
-  cleanupWorkerPools
-} from './utils/workerUtils.js'
+import { executeInThread, cleanupWorkerPools } from './utils/workerUtils.js'
 
 // Export environment utilities
 import {

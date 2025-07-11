@@ -4,7 +4,7 @@ The Brainy interactive demo showcases the library's features in a web browser. F
 
 ## Prerequisites
 
-- Make sure you have Node.js installed (version 24.3.0 or higher)
+- Make sure you have Node.js installed (version 24.4.0 or higher)
 - Ensure the project is built (run both `npm run build` and `npm run build:browser`)
 
 ## Running the Demo

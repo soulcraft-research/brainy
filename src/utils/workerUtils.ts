@@ -48,14 +48,26 @@ export function executeInThread<T>(fnString: string, args: any): Promise<T> {
             // Try direct approach for named functions
             fn = new Function(fnString)()
           } catch (directError) {
-            console.error(
-              'Fallback: All approaches to create function failed',
+            console.warn(
+              'Fallback: Direct approach failed, trying with function wrapper',
               directError
             )
-            throw new Error(
-              'Failed to create function from string: ' +
-                (functionError as Error).message
-            )
+
+            try {
+              // Try wrapping in a function that returns the function expression
+              fn = new Function(
+                'return function(args) { return (' + fnString + ')(args); }'
+              )()
+            } catch (wrapperError) {
+              console.error(
+                'Fallback: All approaches to create function failed',
+                wrapperError
+              )
+              throw new Error(
+                'Failed to create function from string: ' +
+                  (functionError as Error).message
+              )
+            }
           }
         }
       }
@@ -94,6 +106,82 @@ function executeInNodeWorker<T>(fnString: string, args: any): Promise<T> {
             worker = new Worker(
               `
             import { parentPort, workerData } from 'node:worker_threads';
+
+            // Add TensorFlow.js platform patch for Node.js
+            if (typeof global !== 'undefined') {
+              try {
+                // Define a custom PlatformNode class
+                class PlatformNode {
+                  constructor() {
+                    // Create a util object with necessary methods
+                    this.util = {
+                      // Add isFloat32Array and isTypedArray directly to util
+                      isFloat32Array: (arr) => {
+                        return !!(
+                          arr instanceof Float32Array ||
+                          (arr &&
+                            Object.prototype.toString.call(arr) === '[object Float32Array]')
+                        );
+                      },
+                      isTypedArray: (arr) => {
+                        return !!(ArrayBuffer.isView(arr) && !(arr instanceof DataView));
+                      },
+                      // Use native TextEncoder and TextDecoder
+                      TextEncoder: TextEncoder,
+                      TextDecoder: TextDecoder
+                    };
+
+                    // Initialize encoders using native constructors
+                    this.textEncoder = new TextEncoder();
+                    this.textDecoder = new TextDecoder();
+                  }
+
+                  // Define isFloat32Array directly on the instance
+                  isFloat32Array(arr) {
+                    return !!(
+                      arr instanceof Float32Array ||
+                      (arr && Object.prototype.toString.call(arr) === '[object Float32Array]')
+                    );
+                  }
+
+                  // Define isTypedArray directly on the instance
+                  isTypedArray(arr) {
+                    return !!(ArrayBuffer.isView(arr) && !(arr instanceof DataView));
+                  }
+                }
+
+                // Assign the PlatformNode class to the global object
+                global.PlatformNode = PlatformNode;
+
+                // Also create an instance and assign it to global.platformNode
+                global.platformNode = new PlatformNode();
+
+                // Ensure global.util exists and has the necessary methods
+                if (!global.util) {
+                  global.util = {};
+                }
+
+                // Add isFloat32Array method if it doesn't exist
+                if (!global.util.isFloat32Array) {
+                  global.util.isFloat32Array = (arr) => {
+                    return !!(
+                      arr instanceof Float32Array ||
+                      (arr && Object.prototype.toString.call(arr) === '[object Float32Array]')
+                    );
+                  };
+                }
+
+                // Add isTypedArray method if it doesn't exist
+                if (!global.util.isTypedArray) {
+                  global.util.isTypedArray = (arr) => {
+                    return !!(ArrayBuffer.isView(arr) && !(arr instanceof DataView));
+                  };
+                }
+              } catch (error) {
+                console.warn('Failed to apply TensorFlow.js platform patch:', error);
+              }
+            }
+
             const fn = new Function('return ' + workerData.fnString)();
             const result = fn(workerData.args);
             parentPort.postMessage({ result });
@@ -118,6 +206,71 @@ function executeInNodeWorker<T>(fnString: string, args: any): Promise<T> {
               worker = new Worker(
                 `
               import { parentPort, workerData } from 'node:worker_threads';
+
+              // Add TensorFlow.js platform patch for Node.js
+              if (typeof global !== 'undefined') {
+                try {
+                  // Define a custom PlatformNode class
+                  class PlatformNode {
+                    constructor() {
+                      // Create a util object with necessary methods
+                      this.util = {
+                        // Use native TextEncoder and TextDecoder
+                        TextEncoder: TextEncoder,
+                        TextDecoder: TextDecoder
+                      };
+
+                      // Initialize encoders using native constructors
+                      this.textEncoder = new TextEncoder();
+                      this.textDecoder = new TextDecoder();
+                    }
+
+                    // Define isFloat32Array directly on the instance
+                    isFloat32Array(arr) {
+                      return !!(
+                        arr instanceof Float32Array ||
+                        (arr && Object.prototype.toString.call(arr) === '[object Float32Array]')
+                      );
+                    }
+
+                    // Define isTypedArray directly on the instance
+                    isTypedArray(arr) {
+                      return !!(ArrayBuffer.isView(arr) && !(arr instanceof DataView));
+                    }
+                  }
+
+                  // Assign the PlatformNode class to the global object
+                  global.PlatformNode = PlatformNode;
+
+                  // Also create an instance and assign it to global.platformNode
+                  global.platformNode = new PlatformNode();
+
+                  // Ensure global.util exists and has the necessary methods
+                  if (!global.util) {
+                    global.util = {};
+                  }
+
+                  // Add isFloat32Array method if it doesn't exist
+                  if (!global.util.isFloat32Array) {
+                    global.util.isFloat32Array = (arr) => {
+                      return !!(
+                        arr instanceof Float32Array ||
+                        (arr && Object.prototype.toString.call(arr) === '[object Float32Array]')
+                      );
+                    };
+                  }
+
+                  // Add isTypedArray method if it doesn't exist
+                  if (!global.util.isTypedArray) {
+                    global.util.isTypedArray = (arr) => {
+                      return !!(ArrayBuffer.isView(arr) && !(arr instanceof DataView));
+                    };
+                  }
+                } catch (error) {
+                  console.warn('Failed to apply TensorFlow.js platform patch:', error);
+                }
+              }
+
               const fn = new Function('return ' + workerData.fnString)();
               const result = fn(workerData.args);
               parentPort.postMessage({ result });

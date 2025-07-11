@@ -4,13 +4,6 @@
  * Environment detection is handled here and made available to all components
  */
 
-// Import unified text encoding utilities
-// This needs to be imported first to ensure it's loaded before TensorFlow.js
-import { applyTensorFlowPatch } from './utils/textEncoding.js'
-
-// Apply the TensorFlow.js platform patch if needed
-applyTensorFlowPatch()
-
 // Export environment information
 export const environment = {
   isBrowser: typeof window !== 'undefined',
