@@ -34,7 +34,88 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
       return
     }
 
-    // No compatibility patches needed - TensorFlow.js now works correctly with Node.js 24+
+    // Add polyfill for isFloat32Array in Node.js 24.4.0
+    // This fixes the "Cannot read properties of undefined (reading 'isFloat32Array')" error
+    if (typeof global !== 'undefined') {
+      try {
+        // Define a custom PlatformNode class
+        class PlatformNode {
+          util: any
+          textEncoder: TextEncoder
+          textDecoder: TextDecoder
+
+          constructor() {
+            // Create a util object with necessary methods
+            this.util = {
+              // Add isFloat32Array and isTypedArray directly to util
+              isFloat32Array: (arr: any) => {
+                return !!(
+                  arr instanceof Float32Array ||
+                  (arr &&
+                    Object.prototype.toString.call(arr) ===
+                      '[object Float32Array]')
+                )
+              },
+              isTypedArray: (arr: any) => {
+                return !!(ArrayBuffer.isView(arr) && !(arr instanceof DataView))
+              },
+              // Use native TextEncoder and TextDecoder
+              TextEncoder: TextEncoder,
+              TextDecoder: TextDecoder
+            }
+
+            // Initialize encoders using native constructors
+            this.textEncoder = new TextEncoder()
+            this.textDecoder = new TextDecoder()
+          }
+
+          // Define isFloat32Array directly on the instance
+          isFloat32Array(arr: any) {
+            return !!(
+              arr instanceof Float32Array ||
+              (arr &&
+                Object.prototype.toString.call(arr) === '[object Float32Array]')
+            )
+          }
+
+          // Define isTypedArray directly on the instance
+          isTypedArray(arr: any) {
+            return !!(ArrayBuffer.isView(arr) && !(arr instanceof DataView))
+          }
+        }
+
+        // Assign the PlatformNode class to the global object
+        ;(global as any).PlatformNode = PlatformNode
+
+        // Also create an instance and assign it to global.platformNode
+        ;(global as any).platformNode = new PlatformNode()
+      } catch (error) {
+        console.warn('Failed to define global PlatformNode class:', error)
+      }
+
+      // Ensure the util object exists
+      if (!global.util) {
+        global.util = {}
+      }
+
+      // Add isFloat32Array method if it doesn't exist
+      if (!global.util.isFloat32Array) {
+        global.util.isFloat32Array = (obj: any) => {
+          return !!(
+            obj instanceof Float32Array ||
+            (obj &&
+              Object.prototype.toString.call(obj) === '[object Float32Array]')
+          )
+        }
+      }
+
+      // Add isTypedArray method if it doesn't exist
+      if (!global.util.isTypedArray) {
+        global.util.isTypedArray = (obj: any) => {
+          return !!(ArrayBuffer.isView(obj) && !(obj instanceof DataView))
+        }
+      }
+    }
   }
 
   /**

@@ -1,12 +1,47 @@
 import { GraphVerb, HNSWNoun, StorageAdapter } from '../coreTypes.js'
 
-// Import Node.js built-in modules
-// Using dynamic imports for compatibility with ES modules
+// Dynamically and asynchronously load Node.js modules at the top level.
+// This ensures they are available as soon as this module is imported,
+// preventing race conditions with dependencies like TensorFlow.js.
 let fs: any
 let path: any
 
-// We'll initialize these modules in the init() method
-// No synchronous loading here to avoid issues with ES modules
+const nodeModulesPromise = (async () => {
+  // A reliable check for a Node.js environment.
+  const isNode =
+    typeof process !== 'undefined' &&
+    process.versions != null &&
+    process.versions.node != null
+
+  if (!isNode) {
+    return { fs: null, path: null }
+  }
+
+  try {
+    // Use the 'node:' prefix for unambiguous importing of built-in modules.
+    const fsModule = await import('node:fs')
+    const pathModule = await import('node:path')
+    // Return the modules, preferring the default export if it exists.
+    return {
+      fs: fsModule.default || fsModule,
+      path: pathModule.default || pathModule
+    }
+  } catch (error) {
+    console.error(
+      'FileSystemStorage: Failed to load Node.js modules. This adapter is not supported in this environment.',
+      error
+    )
+    return { fs: null, path: null }
+  }
+})()
+
+// Immediately assign the modules once the promise resolves.
+nodeModulesPromise.then((modules) => {
+  fs = modules.fs
+  path = modules.path
+})
+
+// --- End of Refactored Code ---
 
 // Constants for directory and file names
 const ROOT_DIR = 'brainy-data'
@@ -63,80 +98,17 @@ export class FileSystemStorage implements StorageAdapter {
       return
     }
 
+    // Wait for the top-level module loading to complete.
+    await nodeModulesPromise
+
+    // Check if the modules were loaded successfully.
+    if (!fs || !path) {
+      throw new Error(
+        'FileSystemStorage requires a Node.js environment, but `fs` and `path` modules could not be loaded.'
+      )
+    }
+
     try {
-      // Check if fs and path modules are available and have required methods
-      if (!fs || !path || typeof path.resolve !== 'function') {
-        console.log(
-          'Node.js modules not properly loaded, attempting to load them now'
-        )
-
-        // Try multiple approaches to load the modules
-        const loadAttempts = [
-          // Attempt 1: Use dynamic import
-          async () => {
-            console.log(
-              'Attempting to load Node.js modules with dynamic import'
-            )
-            const fsModule = await import('fs')
-            const pathModule = await import('path')
-
-            const fsResolved = fsModule.default || fsModule
-            const pathResolved = pathModule.default || pathModule
-
-            if (!pathResolved || typeof pathResolved.resolve !== 'function') {
-              throw new Error(
-                'path.resolve is not a function after dynamic import'
-              )
-            }
-
-            return { fs: fsResolved, path: pathResolved }
-          },
-
-          // Attempt 2: Use dynamic import with node: prefix
-          async () => {
-            console.log(
-              'Attempting to load Node.js modules with dynamic import("node:...")'
-            )
-            const fsModule = await import('node:fs')
-            const pathModule = await import('node:path')
-
-            const fsResolved = fsModule.default || fsModule
-            const pathResolved = pathModule.default || pathModule
-
-            if (!pathResolved || typeof pathResolved.resolve !== 'function') {
-              throw new Error(
-                'path.resolve is not a function after dynamic import("node:path")'
-              )
-            }
-
-            return { fs: fsResolved, path: pathResolved }
-          }
-        ]
-
-        // Try each loading method until one succeeds
-        let lastError = null
-        for (const loadAttempt of loadAttempts) {
-          try {
-            const modules = await loadAttempt()
-            fs = modules.fs
-            path = modules.path
-            console.log('Successfully loaded Node.js modules')
-            break
-          } catch (error) {
-            lastError = error
-            console.warn(`Module loading attempt failed:`, error)
-            // Continue to the next attempt
-          }
-        }
-
-        // If all attempts failed, throw an error
-        if (!fs || !path || typeof path.resolve !== 'function') {
-          throw new Error(
-            `Failed to import Node.js modules after multiple attempts: ${lastError}. This adapter requires a Node.js environment.`
-          )
-        }
-      }
-
       // Now set up the directory paths
       const rootDir = this.rootDir || process.cwd()
       this.rootDir = path.resolve(rootDir, ROOT_DIR)
@@ -158,8 +130,6 @@ export class FileSystemStorage implements StorageAdapter {
       await this.ensureDirectoryExists(this.nounsDir)
       await this.ensureDirectoryExists(this.verbsDir)
       await this.ensureDirectoryExists(this.metadataDir)
-
-      // Create noun type directories
       await this.ensureDirectoryExists(this.personDir)
       await this.ensureDirectoryExists(this.placeDir)
       await this.ensureDirectoryExists(this.thingDir)
@@ -169,841 +139,352 @@ export class FileSystemStorage implements StorageAdapter {
       await this.ensureDirectoryExists(this.defaultDir)
 
       this.isInitialized = true
-    } catch (error) {
-      console.error('Failed to initialize file system storage:', error)
-      throw new Error(`Failed to initialize file system storage: ${error}`)
+    } catch (error: any) {
+      console.error('Error initializing FileSystemStorage:', error)
+      throw error
     }
   }
 
-  /**
-   * Save a node to storage
-   */
-  public async saveNoun(noun: HNSWNoun): Promise<void> {
-    await this.ensureInitialized()
-
-    try {
-      // Convert connections Map to a serializable format
-      const serializableNode = {
-        ...noun,
-        connections: this.mapToObject(noun.connections, (set) =>
-          Array.from(set as Set<string>)
-        )
-      }
-
-      // Get the appropriate directory based on the node's metadata
-      const nodeDir = await this.getNodeDirectory(noun.id)
-
-      const filePath = path.join(nodeDir, `${noun.id}.json`)
-      await fs.promises.writeFile(
-        filePath,
-        JSON.stringify(serializableNode, null, 2),
-        'utf8'
-      )
-    } catch (error) {
-      console.error(`Failed to save node ${noun.id}:`, error)
-      throw new Error(`Failed to save node ${noun.id}: ${error}`)
-    }
-  }
-
-  /**
-   * Get a node from storage
-   */
-  public async getNoun(id: string): Promise<HNSWNoun | null> {
-    await this.ensureInitialized()
-
-    try {
-      // Get the appropriate directory based on the node's metadata
-      const nodeDir = await this.getNodeDirectory(id)
-
-      const filePath = path.join(nodeDir, `${id}.json`)
-
-      // Check if a file exists
-      try {
-        await fs.promises.access(filePath)
-      } catch {
-        // If the file doesn't exist in the expected directory, try the default directory
-        if (nodeDir !== this.defaultDir) {
-          const defaultFilePath = path.join(this.defaultDir, `${id}.json`)
-          try {
-            await fs.promises.access(defaultFilePath)
-            // If found in default directory, use that path
-            const data = await fs.promises.readFile(defaultFilePath, 'utf8')
-            const parsedNode = JSON.parse(data)
-
-            // Convert serialized connections back to Map<number, Set<string>>
-            const connections = new Map<number, Set<string>>()
-            for (const [level, nodeIds] of Object.entries(
-              parsedNode.connections
-            )) {
-              connections.set(Number(level), new Set(nodeIds as string[]))
-            }
-
-            return {
-              id: parsedNode.id,
-              vector: parsedNode.vector,
-              connections
-            }
-          } catch {
-            // If not found in default directory either, try all noun type directories
-            const directories = [
-              this.personDir,
-              this.placeDir,
-              this.thingDir,
-              this.eventDir,
-              this.conceptDir,
-              this.contentDir
-            ]
-
-            for (const dir of directories) {
-              if (dir === nodeDir) continue // Skip the already checked directory
-
-              const dirFilePath = path.join(dir, `${id}.json`)
-              try {
-                await fs.promises.access(dirFilePath)
-                // If found in this directory, use that path
-                const data = await fs.promises.readFile(dirFilePath, 'utf8')
-                const parsedNode = JSON.parse(data)
-
-                // Convert serialized connections back to Map<number, Set<string>>
-                const connections = new Map<number, Set<string>>()
-                for (const [level, nodeIds] of Object.entries(
-                  parsedNode.connections
-                )) {
-                  connections.set(Number(level), new Set(nodeIds as string[]))
-                }
-
-                return {
-                  id: parsedNode.id,
-                  vector: parsedNode.vector,
-                  connections
-                }
-              } catch {
-                // Continue to the next directory
-              }
-            }
-
-            return null // File doesn't exist in any directory
-          }
-        }
-        return null // File doesn't exist
-      }
-
-      const data = await fs.promises.readFile(filePath, 'utf8')
-      const parsedNode = JSON.parse(data)
-
-      // Convert serialized connections back to Map<number, Set<string>>
-      const connections = new Map<number, Set<string>>()
-      for (const [level, nodeIds] of Object.entries(parsedNode.connections)) {
-        connections.set(Number(level), new Set(nodeIds as string[]))
-      }
-
-      return {
-        id: parsedNode.id,
-        vector: parsedNode.vector,
-        connections
-      }
-    } catch (error) {
-      console.error(`Failed to get node ${id}:`, error)
-      return null
-    }
-  }
-
-  /**
-   * Get nodes by noun type
-   * @param nounType The noun type to filter by
-   * @returns Promise that resolves to an array of nodes of the specified noun type
-   */
-  public async getNounsByNounType(nounType: string): Promise<HNSWNoun[]> {
-    await this.ensureInitialized()
-
-    try {
-      // Determine the directory based on the noun type
-      let dir: string
-      switch (nounType) {
-        case 'person':
-          dir = this.personDir
-          break
-        case 'place':
-          dir = this.placeDir
-          break
-        case 'thing':
-          dir = this.thingDir
-          break
-        case 'event':
-          dir = this.eventDir
-          break
-        case 'concept':
-          dir = this.conceptDir
-          break
-        case 'content':
-          dir = this.contentDir
-          break
-        default:
-          dir = this.defaultDir
-      }
-
-      const nodes: HNSWNoun[] = []
-
-      try {
-        const files = await fs.promises.readdir(dir)
-        const nodePromises = files
-          .filter((file: string) => file.endsWith('.json'))
-          .map((file: string) => {
-            // Use the file path directly instead of getNode to avoid redundant searches
-            return this.readNodeFromFile(path.join(dir, file))
-          })
-
-        const dirNodes = await Promise.all(nodePromises)
-        nodes.push(
-          ...dirNodes.filter((node): node is HNSWNoun => node !== null)
-        )
-      } catch (dirError) {
-        // If directory doesn't exist or can't be read, log a warning
-        console.warn(
-          `Could not read directory for noun type ${nounType}:`,
-          dirError
-        )
-      }
-
-      return nodes
-    } catch (error) {
-      console.error(`Failed to get nodes for noun type ${nounType}:`, error)
-      throw new Error(`Failed to get nodes for noun type ${nounType}: ${error}`)
-    }
-  }
-
-  /**
-   * Get all nodes from storage
-   */
-  public async getAllNouns(): Promise<HNSWNoun[]> {
-    await this.ensureInitialized()
-
-    try {
-      // Get all noun types
-      const nounTypes = [
-        'person',
-        'place',
-        'thing',
-        'event',
-        'concept',
-        'content',
-        'default'
-      ]
-
-      // Run searches in parallel for all noun types
-      const nodePromises = nounTypes.map((nounType) =>
-        this.getNounsByNounType(nounType)
-      )
-      const nodeArrays = await Promise.all(nodePromises)
-
-      // Combine all results
-      const allNodes: HNSWNoun[] = []
-      for (const nodes of nodeArrays) {
-        allNodes.push(...nodes)
-      }
-
-      return allNodes
-    } catch (error) {
-      console.error('Failed to get all nodes:', error)
-      throw new Error(`Failed to get all nodes: ${error}`)
-    }
-  }
-
-  /**
-   * Read a node from a file
-   */
-  private async readNodeFromFile(filePath: string): Promise<HNSWNoun | null> {
-    try {
-      const data = await fs.promises.readFile(filePath, 'utf8')
-      const parsedNode = JSON.parse(data)
-
-      // Convert serialized connections back to Map<number, Set<string>>
-      const connections = new Map<number, Set<string>>()
-      for (const [level, nodeIds] of Object.entries(parsedNode.connections)) {
-        connections.set(Number(level), new Set(nodeIds as string[]))
-      }
-
-      return {
-        id: parsedNode.id,
-        vector: parsedNode.vector,
-        connections
-      }
-    } catch (error) {
-      console.error(`Failed to read node from file ${filePath}:`, error)
-      return null
-    }
-  }
-
-  /**
-   * Delete a node from storage
-   */
-  public async deleteNoun(id: string): Promise<void> {
-    await this.ensureInitialized()
-
-    try {
-      // Get the appropriate directory based on the node's metadata
-      const nodeDir = await this.getNodeDirectory(id)
-
-      const filePath = path.join(nodeDir, `${id}.json`)
-
-      // Check if a file exists before attempting to delete
-      try {
-        await fs.promises.access(filePath)
-        await fs.promises.unlink(filePath)
-        return // File found and deleted
-      } catch {
-        // If the file doesn't exist in the expected directory, try the default directory
-        if (nodeDir !== this.defaultDir) {
-          const defaultFilePath = path.join(this.defaultDir, `${id}.json`)
-          try {
-            await fs.promises.access(defaultFilePath)
-            await fs.promises.unlink(defaultFilePath)
-            return // File found and deleted
-          } catch {
-            // If not found in default directory either, try all noun type directories
-            const directories = [
-              this.personDir,
-              this.placeDir,
-              this.thingDir,
-              this.eventDir,
-              this.conceptDir,
-              this.contentDir
-            ]
-
-            for (const dir of directories) {
-              if (dir === nodeDir) continue // Skip the already checked directory
-
-              const dirFilePath = path.join(dir, `${id}.json`)
-              try {
-                await fs.promises.access(dirFilePath)
-                await fs.promises.unlink(dirFilePath)
-                return // File found and deleted
-              } catch {
-                // Continue to the next directory
-              }
-            }
-
-            return // File doesn't exist in any directory, nothing to delete
-          }
-        }
-        return // File doesn't exist, nothing to delete
-      }
-    } catch (error) {
-      console.error(`Failed to delete node ${id}:`, error)
-      throw new Error(`Failed to delete node ${id}: ${error}`)
-    }
-  }
-
-  /**
-   * Save an edge to storage
-   */
-  public async saveVerb(verb: GraphVerb): Promise<void> {
-    await this.ensureInitialized()
-
-    try {
-      // Convert connections Map to a serializable format
-      const serializableEdge = {
-        ...verb,
-        connections: this.mapToObject(verb.connections, (set) =>
-          Array.from(set as Set<string>)
-        )
-      }
-
-      const filePath = path.join(this.verbsDir, `${verb.id}.json`)
-      await fs.promises.writeFile(
-        filePath,
-        JSON.stringify(serializableEdge, null, 2),
-        'utf8'
-      )
-    } catch (error) {
-      console.error(`Failed to save edge ${verb.id}:`, error)
-      throw new Error(`Failed to save edge ${verb.id}: ${error}`)
-    }
-  }
-
-  /**
-   * Get an edge from storage
-   */
-  public async getVerb(id: string): Promise<GraphVerb | null> {
-    await this.ensureInitialized()
-
-    try {
-      const filePath = path.join(this.verbsDir, `${id}.json`)
-
-      // Check if a file exists
-      try {
-        await fs.promises.access(filePath)
-      } catch {
-        return null // File doesn't exist
-      }
-
-      const data = await fs.promises.readFile(filePath, 'utf8')
-      const parsedEdge = JSON.parse(data)
-
-      // Convert serialized connections back to Map<number, Set<string>>
-      const connections = new Map<number, Set<string>>()
-      for (const [level, nodeIds] of Object.entries(parsedEdge.connections)) {
-        connections.set(Number(level), new Set(nodeIds as string[]))
-      }
-
-      return {
-        id: parsedEdge.id,
-        vector: parsedEdge.vector,
-        connections,
-        sourceId: parsedEdge.sourceId,
-        targetId: parsedEdge.targetId,
-        type: parsedEdge.type,
-        weight: parsedEdge.weight,
-        metadata: parsedEdge.metadata
-      }
-    } catch (error) {
-      console.error(`Failed to get edge ${id}:`, error)
-      return null
-    }
-  }
-
-  /**
-   * Get all edges from storage
-   */
-  public async getAllVerbs(): Promise<GraphVerb[]> {
-    await this.ensureInitialized()
-
-    try {
-      const files = await fs.promises.readdir(this.verbsDir)
-      const edgePromises = files
-        .filter((file: string) => file.endsWith('.json'))
-        .map((file: string) => {
-          const id = path.basename(file, '.json')
-          return this.getVerb(id)
-        })
-
-      const edges = await Promise.all(edgePromises)
-      return edges.filter((edge): edge is GraphVerb => edge !== null)
-    } catch (error) {
-      console.error('Failed to get all edges:', error)
-      throw new Error(`Failed to get all edges: ${error}`)
-    }
-  }
-
-  /**
-   * Get edges by source node ID
-   */
-  public async getVerbsBySource(sourceId: string): Promise<GraphVerb[]> {
-    await this.ensureInitialized()
-
-    try {
-      const allEdges = await this.getAllVerbs()
-      return allEdges.filter((edge) => edge.sourceId === sourceId)
-    } catch (error) {
-      console.error(`Failed to get edges by source ${sourceId}:`, error)
-      throw new Error(`Failed to get edges by source ${sourceId}: ${error}`)
-    }
-  }
-
-  /**
-   * Get edges by target node ID
-   */
-  public async getVerbsByTarget(targetId: string): Promise<GraphVerb[]> {
-    await this.ensureInitialized()
-
-    try {
-      const allEdges = await this.getAllVerbs()
-      return allEdges.filter((edge) => edge.targetId === targetId)
-    } catch (error) {
-      console.error(`Failed to get edges by target ${targetId}:`, error)
-      throw new Error(`Failed to get edges by target ${targetId}: ${error}`)
-    }
-  }
-
-  /**
-   * Get edges by type
-   */
-  public async getVerbsByType(type: string): Promise<GraphVerb[]> {
-    await this.ensureInitialized()
-
-    try {
-      const allEdges = await this.getAllVerbs()
-      return allEdges.filter((edge) => edge.type === type)
-    } catch (error) {
-      console.error(`Failed to get edges by type ${type}:`, error)
-      throw new Error(`Failed to get edges by type ${type}: ${error}`)
-    }
-  }
-
-  /**
-   * Delete an edge from storage
-   */
-  public async deleteVerb(id: string): Promise<void> {
-    await this.ensureInitialized()
-
-    try {
-      const filePath = path.join(this.verbsDir, `${id}.json`)
-
-      // Check if a file exists before attempting to delete
-      try {
-        await fs.promises.access(filePath)
-      } catch {
-        return // File doesn't exist, nothing to delete
-      }
-
-      await fs.promises.unlink(filePath)
-    } catch (error) {
-      console.error(`Failed to delete edge ${id}:`, error)
-      throw new Error(`Failed to delete edge ${id}: ${error}`)
-    }
-  }
-
-  /**
-   * Save metadata to storage
-   */
-  public async saveMetadata(id: string, metadata: any): Promise<void> {
-    await this.ensureInitialized()
-
-    try {
-      const filePath = path.join(this.metadataDir, `${id}.json`)
-      await fs.promises.writeFile(
-        filePath,
-        JSON.stringify(metadata, null, 2),
-        'utf8'
-      )
-    } catch (error) {
-      console.error(`Failed to save metadata for ${id}:`, error)
-      throw new Error(`Failed to save metadata for ${id}: ${error}`)
-    }
-  }
-
-  /**
-   * Get metadata from storage
-   */
-  public async getMetadata(id: string): Promise<any | null> {
-    await this.ensureInitialized()
-
-    try {
-      const filePath = path.join(this.metadataDir, `${id}.json`)
-
-      // Check if a file exists
-      try {
-        await fs.promises.access(filePath)
-      } catch {
-        return null // File doesn't exist
-      }
-
-      const data = await fs.promises.readFile(filePath, 'utf8')
-      return JSON.parse(data)
-    } catch (error) {
-      console.error(`Failed to get metadata for ${id}:`, error)
-      return null
-    }
-  }
-
-  /**
-   * Clear all data from storage
-   */
-  public async clear(): Promise<void> {
-    await this.ensureInitialized()
-
-    try {
-      // Delete and recreate the nodes, edges, and metadata directories
-      await this.deleteDirectory(this.nounsDir)
-      await this.deleteDirectory(this.verbsDir)
-      await this.deleteDirectory(this.metadataDir)
-
-      await this.ensureDirectoryExists(this.nounsDir)
-      await this.ensureDirectoryExists(this.verbsDir)
-      await this.ensureDirectoryExists(this.metadataDir)
-
-      // Create noun type directories
-      await this.ensureDirectoryExists(this.personDir)
-      await this.ensureDirectoryExists(this.placeDir)
-      await this.ensureDirectoryExists(this.thingDir)
-      await this.ensureDirectoryExists(this.eventDir)
-      await this.ensureDirectoryExists(this.conceptDir)
-      await this.ensureDirectoryExists(this.contentDir)
-      await this.ensureDirectoryExists(this.defaultDir)
-    } catch (error) {
-      console.error('Failed to clear storage:', error)
-      throw new Error(`Failed to clear storage: ${error}`)
-    }
-  }
-
-  /**
-   * Ensure the storage adapter is initialized
-   */
-  private async ensureInitialized(): Promise<void> {
-    if (!this.isInitialized) {
-      await this.init()
-    }
-  }
-
-  /**
-   * Ensure a directory exists, creating it if necessary
-   */
   private async ensureDirectoryExists(dirPath: string): Promise<void> {
     try {
-      await fs.promises.access(dirPath)
-    } catch {
-      // Directory doesn't exist, create it
       await fs.promises.mkdir(dirPath, { recursive: true })
+    } catch (error: any) {
+      // Ignore EEXIST error, which means the directory already exists
+      if (error.code !== 'EEXIST') {
+        throw error
+      }
     }
   }
 
-  /**
-   * Delete a directory and all its contents recursively
-   */
-  private async deleteDirectory(dirPath: string): Promise<void> {
-    try {
-      const files = await fs.promises.readdir(dirPath)
+  private getNounPath(id: string, nounType?: string): string {
+    let typeDir = this.defaultDir
+    if (nounType) {
+      switch (nounType.toLowerCase()) {
+        case 'person':
+          typeDir = this.personDir
+          break
+        case 'place':
+          typeDir = this.placeDir
+          break
+        case 'thing':
+          typeDir = this.thingDir
+          break
+        case 'event':
+          typeDir = this.eventDir
+          break
+        case 'concept':
+          typeDir = this.conceptDir
+          break
+        case 'content':
+          typeDir = this.contentDir
+          break
+        default:
+          typeDir = this.defaultDir
+      }
+    }
+    return path.join(typeDir, `${id}.json`)
+  }
 
-      for (const file of files) {
-        const filePath = path.join(dirPath, file)
-        const stats = await fs.promises.stat(filePath)
+  public async saveNoun(
+    noun: HNSWNoun & { metadata?: { noun?: string } }
+  ): Promise<void> {
+    if (!this.isInitialized) await this.init()
+    const nounType = (noun as any).metadata?.noun
+    const filePath = this.getNounPath(noun.id, nounType)
+    await this.ensureDirectoryExists(path.dirname(filePath))
+    await fs.promises.writeFile(filePath, JSON.stringify(noun, null, 2))
+  }
 
-        if (stats.isDirectory()) {
-          // Recursively delete subdirectories
-          await this.deleteDirectory(filePath)
-        } else {
-          // Delete files
-          await fs.promises.unlink(filePath)
+  public async getNoun(id: string): Promise<HNSWNoun | null> {
+    if (!this.isInitialized) await this.init()
+    const nounDirs = [
+      this.personDir,
+      this.placeDir,
+      this.thingDir,
+      this.eventDir,
+      this.conceptDir,
+      this.contentDir,
+      this.defaultDir
+    ]
+    for (const dir of nounDirs) {
+      const filePath = path.join(dir, `${id}.json`)
+      try {
+        const data = await fs.promises.readFile(filePath, 'utf-8')
+        return JSON.parse(data)
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') {
+          console.error(`Error reading noun ${id}:`, error)
         }
       }
+    }
+    return null
+  }
 
-      // After all contents are deleted, remove the directory itself
-      await fs.promises.rmdir(dirPath)
-    } catch (error) {
-      // If the directory doesn't exist, that's fine
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+  public async deleteNoun(id: string): Promise<void> {
+    if (!this.isInitialized) await this.init()
+    const noun = await this.getNoun(id)
+    if (noun) {
+      const nounType = (noun as any).metadata?.noun
+      const filePath = this.getNounPath(id, nounType)
+      try {
+        await fs.promises.unlink(filePath)
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') {
+          console.error(`Error deleting noun file ${filePath}:`, error)
+          throw error
+        }
+      }
+    }
+  }
+
+  public async getAllNouns(): Promise<HNSWNoun[]> {
+    if (!this.isInitialized) await this.init()
+    const allNouns: HNSWNoun[] = []
+    const nounDirs = [
+      this.personDir,
+      this.placeDir,
+      this.thingDir,
+      this.eventDir,
+      this.conceptDir,
+      this.contentDir,
+      this.defaultDir
+    ]
+    for (const dir of nounDirs) {
+      try {
+        const files = await fs.promises.readdir(dir)
+        for (const file of files) {
+          if (file.endsWith('.json')) {
+            const filePath = path.join(dir, file)
+            const data = await fs.promises.readFile(filePath, 'utf-8')
+            allNouns.push(JSON.parse(data))
+          }
+        }
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') {
+          console.error(`Error reading directory ${dir}:`, error)
+        }
+      }
+    }
+    return allNouns
+  }
+
+  /**
+   * Get nouns by noun type
+   * @param nounType The noun type to filter by
+   * @returns Promise that resolves to an array of nouns of the specified noun type
+   */
+  public async getNounsByNounType(nounType: string): Promise<HNSWNoun[]> {
+    if (!this.isInitialized) await this.init()
+
+    let typeDir: string
+    switch (nounType.toLowerCase()) {
+      case 'person':
+        typeDir = this.personDir
+        break
+      case 'place':
+        typeDir = this.placeDir
+        break
+      case 'thing':
+        typeDir = this.thingDir
+        break
+      case 'event':
+        typeDir = this.eventDir
+        break
+      case 'concept':
+        typeDir = this.conceptDir
+        break
+      case 'content':
+        typeDir = this.contentDir
+        break
+      default:
+        typeDir = this.defaultDir
+    }
+
+    const nouns: HNSWNoun[] = []
+    try {
+      const files = await fs.promises.readdir(typeDir)
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          const filePath = path.join(typeDir, file)
+          const data = await fs.promises.readFile(filePath, 'utf-8')
+          nouns.push(JSON.parse(data))
+        }
+      }
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') {
+        console.error(`Error reading directory ${typeDir}:`, error)
+      }
+    }
+
+    return nouns
+  }
+
+  public async saveVerb(verb: GraphVerb): Promise<void> {
+    if (!this.isInitialized) await this.init()
+    const filePath = path.join(this.verbsDir, `${verb.id}.json`)
+    await fs.promises.writeFile(filePath, JSON.stringify(verb, null, 2))
+  }
+
+  /**
+   * Get a verb by its ID
+   * @param id The ID of the verb to retrieve
+   * @returns Promise that resolves to the verb or null if not found
+   */
+  public async getVerb(id: string): Promise<GraphVerb | null> {
+    if (!this.isInitialized) await this.init()
+    const filePath = path.join(this.verbsDir, `${id}.json`)
+    try {
+      const data = await fs.promises.readFile(filePath, 'utf-8')
+      return JSON.parse(data)
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') {
+        console.error(`Error reading verb ${id}:`, error)
+      }
+      return null
+    }
+  }
+
+  public async getVerbsBySource(sourceId: string): Promise<GraphVerb[]> {
+    if (!this.isInitialized) await this.init()
+    const allVerbs = await this.getAllVerbs()
+    return allVerbs.filter((verb) => verb.sourceId === sourceId)
+  }
+
+  /**
+   * Get verbs by target ID
+   * @param targetId The target ID to filter by
+   * @returns Promise that resolves to an array of verbs with the specified target ID
+   */
+  public async getVerbsByTarget(targetId: string): Promise<GraphVerb[]> {
+    if (!this.isInitialized) await this.init()
+    const allVerbs = await this.getAllVerbs()
+    return allVerbs.filter((verb) => verb.targetId === targetId)
+  }
+
+  /**
+   * Get verbs by type
+   * @param type The verb type to filter by
+   * @returns Promise that resolves to an array of verbs of the specified type
+   */
+  public async getVerbsByType(type: string): Promise<GraphVerb[]> {
+    if (!this.isInitialized) await this.init()
+    const allVerbs = await this.getAllVerbs()
+    return allVerbs.filter((verb) => verb.type === type)
+  }
+
+  public async getAllVerbs(): Promise<GraphVerb[]> {
+    if (!this.isInitialized) await this.init()
+    const allVerbs: GraphVerb[] = []
+    try {
+      const files = await fs.promises.readdir(this.verbsDir)
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          const filePath = path.join(this.verbsDir, file)
+          const data = await fs.promises.readFile(filePath, 'utf-8')
+          allVerbs.push(JSON.parse(data))
+        }
+      }
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') {
+        console.error(`Error reading verbs directory ${this.verbsDir}:`, error)
+      }
+    }
+    return allVerbs
+  }
+
+  public async deleteVerb(id: string): Promise<void> {
+    if (!this.isInitialized) await this.init()
+    const filePath = path.join(this.verbsDir, `${id}.json`)
+    try {
+      await fs.promises.unlink(filePath)
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') {
+        console.error(`Error deleting verb file ${filePath}:`, error)
         throw error
       }
     }
   }
 
   /**
-   * Count the number of JSON files in a directory
+   * Save metadata for an entity
+   * @param id The ID of the entity
+   * @param metadata The metadata to save
    */
-  private async countFilesInDirectory(dirPath: string): Promise<number> {
+  public async saveMetadata(id: string, metadata: any): Promise<void> {
+    if (!this.isInitialized) await this.init()
+    const filePath = path.join(this.metadataDir, `${id}.json`)
+    await fs.promises.writeFile(filePath, JSON.stringify(metadata, null, 2))
+  }
+
+  /**
+   * Get metadata for an entity
+   * @param id The ID of the entity
+   * @returns Promise that resolves to the metadata or null if not found
+   */
+  public async getMetadata(id: string): Promise<any | null> {
+    if (!this.isInitialized) await this.init()
+    const filePath = path.join(this.metadataDir, `${id}.json`)
     try {
-      const files = await fs.promises.readdir(dirPath)
-      return files.filter((file: string) => file.endsWith('.json')).length
-    } catch (error) {
-      // If the directory doesn't exist, return 0
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return 0
+      const data = await fs.promises.readFile(filePath, 'utf-8')
+      return JSON.parse(data)
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') {
+        console.error(`Error reading metadata for ${id}:`, error)
       }
-      throw error
+      return null
     }
   }
 
-  /**
-   * Convert a Map to a plain object for serialization
-   */
-  private mapToObject<K extends string | number, V>(
-    map: Map<K, V>,
-    valueTransformer: (value: V) => any = (v) => v
-  ): Record<string, any> {
-    const obj: Record<string, any> = {}
-    for (const [key, value] of map.entries()) {
-      obj[key.toString()] = valueTransformer(value)
-    }
-    return obj
+  public async clear(): Promise<void> {
+    if (!this.isInitialized) await this.init()
+    await fs.promises.rm(this.rootDir, { recursive: true, force: true })
+    this.isInitialized = false // Reset state
+    await this.init() // Re-create directories
   }
 
-  /**
-   * Get the appropriate directory for a node based on its metadata
-   */
-  private async getNodeDirectory(id: string): Promise<string> {
-    try {
-      // Try to get the metadata for the node
-      const metadata = await this.getMetadata(id)
-
-      // If metadata exists and has a noun field, use the corresponding directory
-      if (metadata && metadata.noun) {
-        switch (metadata.noun) {
-          case 'person':
-            return this.personDir
-          case 'place':
-            return this.placeDir
-          case 'thing':
-            return this.thingDir
-          case 'event':
-            return this.eventDir
-          case 'concept':
-            return this.conceptDir
-          case 'content':
-            return this.contentDir
-          default:
-            return this.defaultDir
-        }
-      }
-
-      // If no metadata or no noun field, use the default directory
-      return this.defaultDir
-    } catch (error) {
-      // If there's an error getting the metadata, use the default directory
-      return this.defaultDir
-    }
-  }
-
-  /**
-   * Get information about storage usage and capacity
-   */
   public async getStorageStatus(): Promise<{
     type: string
     used: number
     quota: number | null
     details?: Record<string, any>
   }> {
-    await this.ensureInitialized()
+    if (!this.isInitialized) await this.init()
 
-    try {
-      // Calculate the total size of all files in the storage directories
-      let totalSize = 0
-
-      // Helper function to calculate directory size
-      const calculateDirSize = async (dirPath: string): Promise<number> => {
-        let size = 0
-        try {
-          const files = await fs.promises.readdir(dirPath)
-
-          for (const file of files) {
-            const filePath = path.join(dirPath, file)
-            const stats = await fs.promises.stat(filePath)
-
-            if (stats.isDirectory()) {
-              size += await calculateDirSize(filePath)
-            } else {
-              size += stats.size
-            }
-          }
-        } catch (error) {
-          console.warn(`Error calculating size for ${dirPath}:`, error)
-        }
-        return size
-      }
-
-      // Calculate size for each directory
-      const nodesDirSize = await calculateDirSize(this.nounsDir)
-      const edgesDirSize = await calculateDirSize(this.verbsDir)
-      const metadataDirSize = await calculateDirSize(this.metadataDir)
-
-      // Calculate sizes of noun type directories
-      const personDirSize = await calculateDirSize(this.personDir)
-      const placeDirSize = await calculateDirSize(this.placeDir)
-      const thingDirSize = await calculateDirSize(this.thingDir)
-      const eventDirSize = await calculateDirSize(this.eventDir)
-      const conceptDirSize = await calculateDirSize(this.conceptDir)
-      const contentDirSize = await calculateDirSize(this.contentDir)
-      const defaultDirSize = await calculateDirSize(this.defaultDir)
-
-      // Note: The noun type directories are subdirectories of the nodes directory,
-      // so their sizes are already included in nodesDirSize.
-      // We don't need to add them again to avoid double counting.
-      totalSize = nodesDirSize + edgesDirSize + metadataDirSize
-
-      // Get filesystem information
-      let quota = null
-      let details: {
-        nounTypes?: {
-          person: { size: number; count: number }
-          place: { size: number; count: number }
-          thing: { size: number; count: number }
-          event: { size: number; count: number }
-          concept: { size: number; count: number }
-          content: { size: number; count: number }
-          default: { size: number; count: number }
-        }
-        availableSpace?: number
-        totalSpace?: number
-        freePercentage?: number
-      } = {
-        nounTypes: {
-          person: {
-            size: personDirSize,
-            count: await this.countFilesInDirectory(this.personDir)
-          },
-          place: {
-            size: placeDirSize,
-            count: await this.countFilesInDirectory(this.placeDir)
-          },
-          thing: {
-            size: thingDirSize,
-            count: await this.countFilesInDirectory(this.thingDir)
-          },
-          event: {
-            size: eventDirSize,
-            count: await this.countFilesInDirectory(this.eventDir)
-          },
-          concept: {
-            size: conceptDirSize,
-            count: await this.countFilesInDirectory(this.conceptDir)
-          },
-          content: {
-            size: contentDirSize,
-            count: await this.countFilesInDirectory(this.contentDir)
-          },
-          default: {
-            size: defaultDirSize,
-            count: await this.countFilesInDirectory(this.defaultDir)
-          }
-        }
-      }
-
+    const calculateSize = async (dirPath: string): Promise<number> => {
+      let size = 0
       try {
-        // Try to get disk space information
-        const stats = await fs.promises.statfs(this.rootDir)
-        if (stats) {
-          const availableSpace = stats.bavail * stats.bsize
-          const totalSpace = stats.blocks * stats.bsize
-
-          quota = totalSpace
-          details = {
-            availableSpace,
-            totalSpace,
-            freePercentage: (availableSpace / totalSpace) * 100
+        const files = await fs.promises.readdir(dirPath, {
+          withFileTypes: true
+        })
+        for (const file of files) {
+          const fullPath = path.join(dirPath, file.name)
+          if (file.isDirectory()) {
+            size += await calculateSize(fullPath)
+          } else {
+            const stats = await fs.promises.stat(fullPath)
+            size += stats.size
           }
         }
-      } catch (error) {
-        console.warn('Unable to get filesystem stats:', error)
-        // If statfs is not available, try to use df command on Unix-like systems
-        try {
-          const { exec } = await import('child_process')
-          const util = await import('util')
-          const execPromise = util.promisify(exec)
-
-          const { stdout } = await execPromise(`df -k "${this.rootDir}"`)
-          const lines = stdout.trim().split('\n')
-          if (lines.length > 1) {
-            const parts = lines[1].split(/\s+/)
-            if (parts.length >= 4) {
-              const totalKB = parseInt(parts[1], 10)
-              const usedKB = parseInt(parts[2], 10)
-              const availableKB = parseInt(parts[3], 10)
-
-              quota = totalKB * 1024
-              details = {
-                availableSpace: availableKB * 1024,
-                totalSpace: totalKB * 1024,
-                freePercentage: (availableKB / totalKB) * 100
-              }
-            }
-          }
-        } catch (dfError) {
-          console.warn('Unable to get disk space using df command:', dfError)
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') {
+          console.error(`Could not calculate size for ${dirPath}:`, error)
         }
       }
+      return size
+    }
 
-      return {
-        type: 'filesystem',
-        used: totalSize,
-        quota,
-        details
-      }
-    } catch (error) {
-      console.error('Failed to get storage status:', error)
-      return {
-        type: 'filesystem',
-        used: 0,
-        quota: null,
-        details: { error: String(error) }
+    const totalSize = await calculateSize(this.rootDir)
+    const nouns = await this.getAllNouns()
+    const verbs = await this.getAllVerbs()
+
+    return {
+      type: 'FileSystem',
+      used: totalSize,
+      quota: null, // File system quota is not easily available from Node.js
+      details: {
+        rootDir: this.rootDir,
+        nounCount: nouns.length,
+        verbCount: verbs.length
       }
     }
   }
