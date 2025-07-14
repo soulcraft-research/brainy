@@ -23,6 +23,10 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
   /**
    * Add polyfills and patches for TensorFlow.js compatibility
    * This addresses issues with TensorFlow.js in Node.js environments
+   * 
+   * Note: The main TensorFlow.js patching is now centralized in textEncoding.ts
+   * and applied through setup.ts. This method only adds additional utility functions
+   * that might be needed by TensorFlow.js.
    */
   private addNodeCompatibilityPolyfills(): void {
     // Only apply in Node.js environment
@@ -38,82 +42,30 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
     // This fixes the "Cannot read properties of undefined (reading 'isFloat32Array')" error
     if (typeof global !== 'undefined') {
       try {
-        // Define a custom PlatformNode class
-        class PlatformNode {
-          util: any
-          textEncoder: TextEncoder
-          textDecoder: TextDecoder
+        // Ensure the util object exists
+        if (!global.util) {
+          global.util = {}
+        }
 
-          constructor() {
-            // Create a util object with necessary methods
-            this.util = {
-              // Add isFloat32Array and isTypedArray directly to util
-              isFloat32Array: (arr: any) => {
-                return !!(
-                  arr instanceof Float32Array ||
-                  (arr &&
-                    Object.prototype.toString.call(arr) ===
-                      '[object Float32Array]')
-                )
-              },
-              isTypedArray: (arr: any) => {
-                return !!(ArrayBuffer.isView(arr) && !(arr instanceof DataView))
-              },
-              // Use native TextEncoder and TextDecoder
-              TextEncoder: TextEncoder,
-              TextDecoder: TextDecoder
-            }
-
-            // Initialize encoders using native constructors
-            this.textEncoder = new TextEncoder()
-            this.textDecoder = new TextDecoder()
-          }
-
-          // Define isFloat32Array directly on the instance
-          isFloat32Array(arr: any) {
+        // Add isFloat32Array method if it doesn't exist
+        if (!global.util.isFloat32Array) {
+          global.util.isFloat32Array = (obj: any) => {
             return !!(
-              arr instanceof Float32Array ||
-              (arr &&
-                Object.prototype.toString.call(arr) === '[object Float32Array]')
+              obj instanceof Float32Array ||
+              (obj &&
+                Object.prototype.toString.call(obj) === '[object Float32Array]')
             )
           }
+        }
 
-          // Define isTypedArray directly on the instance
-          isTypedArray(arr: any) {
-            return !!(ArrayBuffer.isView(arr) && !(arr instanceof DataView))
+        // Add isTypedArray method if it doesn't exist
+        if (!global.util.isTypedArray) {
+          global.util.isTypedArray = (obj: any) => {
+            return !!(ArrayBuffer.isView(obj) && !(obj instanceof DataView))
           }
         }
-
-        // Assign the PlatformNode class to the global object
-        ;(global as any).PlatformNode = PlatformNode
-
-        // Also create an instance and assign it to global.platformNode
-        ;(global as any).platformNode = new PlatformNode()
       } catch (error) {
-        console.warn('Failed to define global PlatformNode class:', error)
-      }
-
-      // Ensure the util object exists
-      if (!global.util) {
-        global.util = {}
-      }
-
-      // Add isFloat32Array method if it doesn't exist
-      if (!global.util.isFloat32Array) {
-        global.util.isFloat32Array = (obj: any) => {
-          return !!(
-            obj instanceof Float32Array ||
-            (obj &&
-              Object.prototype.toString.call(obj) === '[object Float32Array]')
-          )
-        }
-      }
-
-      // Add isTypedArray method if it doesn't exist
-      if (!global.util.isTypedArray) {
-        global.util.isTypedArray = (obj: any) => {
-          return !!(ArrayBuffer.isView(obj) && !(obj instanceof DataView))
-        }
+        console.warn('Failed to add utility polyfills:', error)
       }
     }
   }
@@ -145,44 +97,101 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
 
       // TensorFlow.js will use its default EPSILON value
 
-      // Dynamically import TensorFlow.js core module and backends
-      // Use type assertions to tell TypeScript these modules exist
-      this.tf = await import('@tensorflow/tfjs-core')
-
-      // Import CPU backend (always needed as fallback)
-      await import('@tensorflow/tfjs-backend-cpu')
-
-      // Try to import WebGL backend for GPU acceleration in browser environments
+      // CRITICAL: First, directly import the setup module to ensure the TensorFlow.js patch is applied
+      // This is the most reliable way to ensure the patch is applied before TensorFlow.js is loaded
       try {
-        if (typeof window !== 'undefined') {
-          await import('@tensorflow/tfjs-backend-webgl')
-          // Check if WebGL is available using setBackend instead of findBackend
-          try {
-            if (this.tf.setBackend) {
-              await this.tf.setBackend('webgl')
-              this.backend = 'webgl'
-              console.log('Using WebGL backend for TensorFlow.js')
-            } else {
+        // In Node.js environment, use require() which is synchronous
+        if (typeof require !== 'undefined') {
+          // First, require the setup module to apply the patch
+          require('../setup.js')
+
+          // Now load TensorFlow.js core module
+          this.tf = require('@tensorflow/tfjs-core')
+
+          // Load CPU backend (always needed as fallback)
+          require('@tensorflow/tfjs-backend-cpu')
+
+          // Try to load WebGL backend for GPU acceleration in browser environments
+          if (typeof window !== 'undefined') {
+            try {
+              require('@tensorflow/tfjs-backend-webgl')
+              // Check if WebGL is available
+              if (this.tf.setBackend) {
+                this.tf.setBackend('webgl')
+                this.backend = 'webgl'
+                console.log('Using WebGL backend for TensorFlow.js')
+              } else {
+                console.warn(
+                  'tf.setBackend is not available, falling back to CPU'
+                )
+              }
+            } catch (e) {
               console.warn(
-                'tf.setBackend is not available, falling back to CPU'
+                'WebGL backend not available, falling back to CPU:',
+                e
               )
+              this.backend = 'cpu'
             }
-          } catch (e) {
-            console.warn('WebGL backend not available, falling back to CPU:', e)
+          }
+
+          // Load Universal Sentence Encoder
+          this.use = require('@tensorflow-models/universal-sentence-encoder')
+        } else {
+          // In browser or other environments without require(), use dynamic imports
+          // First, dynamically import the setup module to apply the patch
+          await import('../setup.js')
+
+          // Now load TensorFlow.js core module
+          this.tf = await import('@tensorflow/tfjs-core')
+
+          // Import CPU backend (always needed as fallback)
+          await import('@tensorflow/tfjs-backend-cpu')
+
+          // Try to import WebGL backend for GPU acceleration in browser environments
+          try {
+            if (typeof window !== 'undefined') {
+              await import('@tensorflow/tfjs-backend-webgl')
+              // Check if WebGL is available
+              try {
+                if (this.tf.setBackend) {
+                  await this.tf.setBackend('webgl')
+                  this.backend = 'webgl'
+                  console.log('Using WebGL backend for TensorFlow.js')
+                } else {
+                  console.warn(
+                    'tf.setBackend is not available, falling back to CPU'
+                  )
+                }
+              } catch (e) {
+                console.warn(
+                  'WebGL backend not available, falling back to CPU:',
+                  e
+                )
+                this.backend = 'cpu'
+              }
+            }
+          } catch (error) {
+            console.warn(
+              'WebGL backend not available, falling back to CPU:',
+              error
+            )
             this.backend = 'cpu'
           }
+
+          // Load Universal Sentence Encoder
+          this.use = await import(
+            '@tensorflow-models/universal-sentence-encoder'
+          )
         }
       } catch (error) {
-        console.warn('WebGL backend not available, falling back to CPU:', error)
-        this.backend = 'cpu'
+        console.error('Failed to initialize TensorFlow.js:', error)
+        throw error
       }
 
       // Set the backend
       if (this.tf.setBackend) {
         await this.tf.setBackend(this.backend)
       }
-
-      this.use = await import('@tensorflow-models/universal-sentence-encoder')
 
       // Log the module structure to help with debugging
       console.log(

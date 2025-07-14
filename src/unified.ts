@@ -4,6 +4,18 @@
  * Environment detection is handled here and made available to all components
  */
 
+// CRITICAL: The TensorFlow.js environment patch is now centralized in setup.ts
+// We import setup.ts below which applies the necessary patches
+
+// CRITICAL: Import setup.js first to ensure TensorFlow.js environment patching
+// This MUST be the first import to prevent race conditions with TensorFlow.js initialization
+// Moving or removing this import will cause errors like "TextEncoder is not a constructor"
+// when the package is used in Node.js environments
+//
+// The setup.js file applies a patch that ensures TextEncoder/TextDecoder are properly
+// available to TensorFlow.js before it initializes its platform detection
+import './setup.js'
+
 // Export environment information
 export const environment = {
   isBrowser: typeof window !== 'undefined',

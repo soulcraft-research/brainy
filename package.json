@@ -6,7 +6,12 @@
   "module": "dist/unified.js",
   "types": "dist/unified.d.ts",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "./dist/setup.js", 
+    "./dist/utils/textEncoding.js",
+    "./src/setup.ts",
+    "./src/utils/textEncoding.ts"
+  ],
   "exports": {
     ".": {
       "import": "./dist/unified.js",
@@ -14,6 +19,10 @@
     },
     "./min": {
       "import": "./dist/unified.min.js"
+    },
+    "./setup": {
+      "import": "./dist/setup.js",
+      "types": "./dist/setup.d.ts"
     },
     "./types/graphTypes": {
       "import": "./dist/types/graphTypes.js",
@@ -30,6 +39,10 @@
     "./dist/utils/textEncoding.js": {
       "import": "./dist/utils/textEncoding.js",
       "types": "./dist/utils/textEncoding.d.ts"
+    },
+    "./dist/setup.js": {
+      "import": "./dist/setup.js",
+      "types": "./dist/setup.d.ts"
     }
   },
   "engines": {
@@ -61,9 +74,7 @@
     "postinstall": "echo 'Note: If you encounter dependency conflicts with TensorFlow.js packages, please use: npm install --legacy-peer-deps'",
     "dry-run": "npm pack --dry-run",
     "test:cli": "node scripts/test-cli-locally.js",
-    "test:tensorflow": "node test-tensorflow-textencoder.js",
-    "test:all": "node scripts/test-all-environments.js",
-    "test": "npm run test:all"
+    "test": "node scripts/comprehensive-test.js"
   },
   "keywords": [
     "vector-database",
