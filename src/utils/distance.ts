@@ -145,14 +145,36 @@ export async function calculateDistancesBatch(
           // In worker context, use the importTensorFlow function
           tf = await self.importTensorFlow()
         } else {
-          // Dynamically import TensorFlow.js core module and backends
-          tf = await import('@tensorflow/tfjs-core')
+          // CRITICAL: First, directly import the setup module to ensure the TensorFlow.js patch is applied
+          // This is the most reliable way to ensure the patch is applied before TensorFlow.js is loaded
+          try {
+            // In Node.js environment, use require() which is synchronous
+            if (typeof require !== 'undefined') {
+              // First, require the setup module to apply the patch
+              require('../setup.js')
 
-          // Import CPU backend
-          await import('@tensorflow/tfjs-backend-cpu')
+              // Now load TensorFlow.js core module
+              tf = require('@tensorflow/tfjs-core')
 
-          // Set CPU as the backend
-          await tf.setBackend('cpu')
+              // Load CPU backend
+              require('@tensorflow/tfjs-backend-cpu')
+
+              // Set CPU as the backend
+              tf.setBackend('cpu')
+            } else {
+              // In browser or other environments without require(), use dynamic imports
+              // First, dynamically import the setup module to apply the patch
+              await import('../setup.js')
+
+              // Now load TensorFlow.js core module
+              tf = await import('@tensorflow/tfjs-core')
+              await import('@tensorflow/tfjs-backend-cpu')
+              await tf.setBackend('cpu')
+            }
+          } catch (error) {
+            console.error('Failed to initialize TensorFlow.js:', error)
+            throw error
+          }
         }
 
         // Convert vectors to tensors

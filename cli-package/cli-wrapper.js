@@ -7,14 +7,54 @@
  * are properly passed to the CLI when invoked through the globally installed package.
  */
 
+// CRITICAL: Apply TensorFlow.js environment patch before importing any other modules
+// This prevents the "TextEncoder is not a constructor" error in Node.js environments
+// by ensuring the global.PlatformNode class is defined before TensorFlow.js loads
+function applyTensorFlowPatch() {
+  try {
+    // Define a custom Platform class that works in Node.js environments
+    class Platform {
+      constructor() {
+        // Create a util object with necessary methods and constructors
+        this.util = {
+          // Use native TextEncoder and TextDecoder constructors
+          TextEncoder: global.TextEncoder || TextEncoder,
+          TextDecoder: global.TextDecoder || TextDecoder
+        }
+
+        // Initialize using native constructors directly
+        this.textEncoder = new TextEncoder()
+        this.textDecoder = new TextDecoder()
+      }
+
+      // Define isTypedArray directly on the instance
+      isTypedArray(arr) {
+        return !!(ArrayBuffer.isView(arr) && !(arr instanceof DataView))
+      }
+    }
+
+    // Assign the Platform class to the global object as PlatformNode
+    global.PlatformNode = Platform
+    // Also create an instance and assign it to global.platformNode (lowercase p)
+    global.platformNode = new Platform()
+
+    console.log('Applied TensorFlow.js platform patch in CLI wrapper')
+  } catch (error) {
+    console.warn('Failed to apply TensorFlow.js platform patch:', error)
+  }
+}
+
+// Apply the patch immediately
+applyTensorFlowPatch()
+
 import { spawn } from 'child_process'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import fs from 'fs'
 
-// Node.js v23+ compatibility patches were previously applied here,
-// but these patches are no longer necessary with current TensorFlow.js versions.
-// TensorFlow.js now works correctly with Node.js 24+ without any special handling.
+// Node.js v24+ compatibility patches are now applied above,
+// before any imports, to ensure TensorFlow.js can correctly
+// detect and use the TextEncoder/TextDecoder in the environment.
 
 // Get the directory of the current module
 const __filename = fileURLToPath(import.meta.url)

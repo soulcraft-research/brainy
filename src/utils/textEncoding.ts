@@ -1,94 +1,224 @@
+// In: @soulcraft/brainy/src/utils/textEncoding.ts
+
 /**
- * Unified Text Encoding Utilities
+ * Checks if the code is running in a Node.js environment.
+ */
+function isNode(): boolean {
+  return (
+    typeof process !== 'undefined' &&
+    process.versions != null &&
+    process.versions.node != null
+  )
+}
+
+/**
+ * Global flag to track if TensorFlow.js has been initialized
+ * This helps prevent multiple registrations of the same kernels
+ */
+const TENSORFLOW_INITIALIZED = Symbol('TENSORFLOW_INITIALIZED')
+
+/**
+ * Flag to track if the patch has been applied
+ * This prevents multiple applications of the patch
+ */
+let patchApplied = false
+
+/**
+ * CRITICAL: Applies a compatibility patch for TensorFlow.js when running in a modern
+ * Node.js ES Module environment. This must be called before any TensorFlow.js
+ * modules are imported.
  *
- * This module provides a consistent way to handle text encoding/decoding across all environments
- * using the native TextEncoder/TextDecoder APIs.
- */
-
-/**
- * Get a text encoder that works in the current environment
- * @returns A TextEncoder instance
- */
-export function getTextEncoder(): TextEncoder {
-  return new TextEncoder()
-}
-
-/**
- * Get a text decoder that works in the current environment
- * @returns A TextDecoder instance
- */
-export function getTextDecoder(): TextDecoder {
-  return new TextDecoder()
-}
-
-/**
- * Apply the TensorFlow.js platform patch if needed
- * This function patches the global object to provide a PlatformNode class
- * that uses native TextEncoder/TextDecoder
+ * This function prevents the "TextEncoder is not a constructor" error by preemptively
+ * creating a compliant PlatformNode class with proper TextEncoder/TextDecoder support
+ * and placing it on the global object where TensorFlow.js expects to find it.
+ *
+ * The race condition occurs because TensorFlow.js's platform detection might run
+ * before the necessary global objects are properly initialized in certain Node.js
+ * environments, particularly when the package is being used by other applications.
+ *
+ * This function is called from setup.ts, which must be the first import in unified.ts
+ * to ensure the patch is applied before any TensorFlow.js code is executed.
+ *
+ * It also applies a patch to prevent duplicate kernel registrations when TensorFlow.js
+ * is imported multiple times.
  */
 export function applyTensorFlowPatch(): void {
-  try {
-    // Define a custom Platform class that works in both Node.js and browser environments
-    class Platform {
-      util: any
-      textEncoder: TextEncoder
-      textDecoder: TextDecoder
+  // Prevent multiple applications of the patch
+  if (patchApplied) {
+    return
+  }
 
-      constructor() {
-        // Create a util object with necessary methods and constructors
-        this.util = {
-          // Use native TextEncoder and TextDecoder
-          TextEncoder: globalThis.TextEncoder || TextEncoder,
-          TextDecoder: globalThis.TextDecoder || TextDecoder
+  if (!isNode()) {
+    return // Patch is only for Node.js
+  }
+
+  // In modern Node.js with ES Modules, TensorFlow.js can fail during its
+  // initial platform detection. This patch preempts that logic by creating
+  // a compliant "Platform" class that uses the standard global TextEncoder
+  // and placing it on the global object where TensorFlow.js expects to find it.
+  try {
+    // Ensure TextEncoder and TextDecoder are available
+    const nodeUtil = require('util')
+    const TextEncoderPolyfill = nodeUtil.TextEncoder || global.TextEncoder
+    const TextDecoderPolyfill = nodeUtil.TextDecoder || global.TextDecoder
+
+    if (!TextEncoderPolyfill || !TextDecoderPolyfill) {
+      console.warn(
+        'Brainy: TextEncoder or TextDecoder not available, attempting to polyfill'
+      )
+
+      // If still not available, try to use a simple polyfill
+      if (!TextEncoderPolyfill) {
+        class SimpleTextEncoder {
+          encode(input: string): Uint8Array {
+            const buf = Buffer.from(input, 'utf8')
+            return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength)
+          }
         }
 
-        // Initialize using native constructors directly
-        this.textEncoder = new (globalThis.TextEncoder || TextEncoder)()
-        this.textDecoder = new (globalThis.TextDecoder || TextDecoder)()
+        global.TextEncoder = SimpleTextEncoder
       }
 
-      // Define isFloat32Array directly on the instance
-      isFloat32Array(arr: any) {
-        return !!(
+      if (!TextDecoderPolyfill) {
+        class SimpleTextDecoder {
+          decode(input?: Uint8Array): string {
+            if (!input) return ''
+            return Buffer.from(
+              input.buffer,
+              input.byteOffset,
+              input.byteLength
+            ).toString('utf8')
+          }
+        }
+
+        global.TextDecoder = SimpleTextDecoder
+      }
+    } else {
+      // Ensure they're available globally
+      global.TextEncoder = TextEncoderPolyfill
+      global.TextDecoder = TextDecoderPolyfill
+    }
+
+    // Create a PlatformNode implementation that uses the polyfilled TextEncoder/TextDecoder
+    class BrainyPlatformNode {
+      // Use the polyfilled TextEncoder/TextDecoder
+      readonly util = {
+        TextEncoder: global.TextEncoder,
+        TextDecoder: global.TextDecoder,
+
+        // Add utility functions that TensorFlow.js might need
+        isTypedArray: (arr: any): boolean => {
+          return ArrayBuffer.isView(arr) && !(arr instanceof DataView)
+        },
+
+        isFloat32Array: (arr: any): boolean => {
+          return (
+            arr instanceof Float32Array ||
+            (arr &&
+              Object.prototype.toString.call(arr) === '[object Float32Array]')
+          )
+        }
+      }
+
+      // Create instances of the encoder/decoder
+      readonly textEncoder: any
+      readonly textDecoder: any
+
+      constructor() {
+        try {
+          // Initialize encoders using constructors
+          this.textEncoder = new global.TextEncoder()
+          this.textDecoder = new global.TextDecoder()
+        } catch (e) {
+          console.warn(
+            'Brainy: Error creating TextEncoder/TextDecoder instances:',
+            e
+          )
+          // Provide fallback implementations if instantiation fails
+          this.textEncoder = {
+            encode: (input: string): Uint8Array => {
+              const buf = Buffer.from(input, 'utf8')
+              return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength)
+            }
+          }
+          this.textDecoder = {
+            decode: (input?: Uint8Array): string => {
+              if (!input) return ''
+              return Buffer.from(
+                input.buffer,
+                input.byteOffset,
+                input.byteLength
+              ).toString('utf8')
+            }
+          }
+        }
+      }
+
+      isTypedArray(arr: any): arr is Float32Array | Int32Array | Uint8Array {
+        return ArrayBuffer.isView(arr) && !(arr instanceof DataView)
+      }
+
+      isFloat32Array(arr: any): arr is Float32Array {
+        return (
           arr instanceof Float32Array ||
           (arr &&
             Object.prototype.toString.call(arr) === '[object Float32Array]')
         )
       }
-
-      // Define isTypedArray directly on the instance
-      isTypedArray(arr: any) {
-        return !!(ArrayBuffer.isView(arr) && !(arr instanceof DataView))
-      }
     }
 
-    // Get the global object in a way that works in both Node.js and browser
-    const globalObj =
-      typeof global !== 'undefined'
-        ? global
-        : typeof window !== 'undefined'
-          ? window
-          : typeof self !== 'undefined'
-            ? self
-            : {}
+    // Assign the custom platform class to the global scope.
+    // TensorFlow.js specifically looks for `PlatformNode`.
+    global.PlatformNode = BrainyPlatformNode
 
-    // Only apply in Node.js environment
-    if (
-      typeof process !== 'undefined' &&
-      process.versions &&
-      process.versions.node
-    ) {
-      // Assign the Platform class to the global object as PlatformNode for Node.js
-      ;(globalObj as any).PlatformNode = Platform
-      // Also create an instance and assign it to global.platformNode (lowercase p)
-      ;(globalObj as any).platformNode = new Platform()
-    } else if (typeof window !== 'undefined' || typeof self !== 'undefined') {
-      // In browser environments, we might need to provide similar functionality
-      // but we'll use a different name to avoid conflicts
-      ;(globalObj as any).PlatformBrowser = Platform
-      ;(globalObj as any).platformBrowser = new Platform()
+    // Also create an instance and assign it to global.platformNode (lowercase p)
+    // This is needed for some TensorFlow.js versions
+    global.platformNode = new BrainyPlatformNode()
+
+    // Set up a global flag to track TensorFlow.js initialization
+    global[TENSORFLOW_INITIALIZED] = false
+
+    // Monkey patch the registerKernel function to prevent duplicate registrations
+    // This will be applied when TensorFlow.js is imported
+    const originalRegisterKernel = global.registerKernel
+    if (!originalRegisterKernel) {
+      // Set up a handler to intercept the registerKernel function when it's defined
+      Object.defineProperty(global, 'registerKernel', {
+        set: function (newRegisterKernel) {
+          // Replace the setter with our patched version
+          Object.defineProperty(global, 'registerKernel', {
+            value: function (kernel: any) {
+              // Check if this kernel is already registered
+              const kernelName = kernel.kernelName
+              const backendName = kernel.backendName
+              const key = `${kernelName}_${backendName}`
+
+              // Use a global registry to track registered kernels
+              if (!global.__REGISTERED_KERNELS__) {
+                global.__REGISTERED_KERNELS__ = new Set()
+              }
+
+              // If this kernel is already registered, skip it
+              if (global.__REGISTERED_KERNELS__.has(key)) {
+                return
+              }
+
+              // Otherwise, register it and add it to our registry
+              global.__REGISTERED_KERNELS__.add(key)
+              return newRegisterKernel(kernel)
+            },
+            configurable: true,
+            writable: true
+          })
+        },
+        configurable: true
+      })
     }
+
+    // Mark the patch as applied
+    patchApplied = true
+    console.log('Brainy: Successfully applied TensorFlow.js platform patch')
   } catch (error) {
-    console.warn('Failed to apply TensorFlow.js platform patch:', error)
+    console.warn('Brainy: Failed to apply TensorFlow.js platform patch:', error)
   }
 }

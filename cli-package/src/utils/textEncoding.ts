@@ -36,15 +36,19 @@ export function applyTensorFlowPatch(): void {
 
       constructor() {
         // Create a util object with necessary methods and constructors
+        // Store the actual constructor functions, not just references
+        const TextEncoderConstructor = globalThis.TextEncoder || TextEncoder
+        const TextDecoderConstructor = globalThis.TextDecoder || TextDecoder
+
         this.util = {
-          // Use native TextEncoder and TextDecoder
-          TextEncoder: globalThis.TextEncoder || TextEncoder,
-          TextDecoder: globalThis.TextDecoder || TextDecoder
+          // Use native TextEncoder and TextDecoder constructors
+          TextEncoder: TextEncoderConstructor,
+          TextDecoder: TextDecoderConstructor
         }
 
         // Initialize using native constructors directly
-        this.textEncoder = new (globalThis.TextEncoder || TextEncoder)()
-        this.textDecoder = new (globalThis.TextDecoder || TextDecoder)()
+        this.textEncoder = new TextEncoderConstructor()
+        this.textDecoder = new TextDecoderConstructor()
       }
 
       // Define isFloat32Array directly on the instance
