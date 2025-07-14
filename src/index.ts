@@ -3,6 +3,10 @@
  * A vector and graph database using HNSW
  */
 
+// CRITICAL: The TensorFlow.js environment patch is now centralized in setup.ts
+// We import setup.js below which applies the necessary patches through textEncoding.js
+// This ensures a consistent patching approach and avoids conflicts
+
 // Import the setup file for its side-effects.
 // This MUST be the very first import to ensure patches are applied
 // before any other module (like TensorFlow.js) is loaded.
