@@ -7,7 +7,7 @@
   "types": "dist/unified.d.ts",
   "type": "module",
   "sideEffects": [
-    "./dist/setup.js", 
+    "./dist/setup.js",
     "./dist/utils/textEncoding.js",
     "./src/setup.ts",
     "./src/utils/textEncoding.ts"
@@ -67,14 +67,16 @@
     "prepare": "npm run build",
     "deploy": "npm run build && npm publish && node scripts/create-github-release.js",
     "deploy:cli": "node scripts/generate-version.js && cd cli-package && npm run build && npm publish",
-    "deploy:cloud:aws": "cd cloud-wrapper && npm run build && npm run deploy:aws",
-    "deploy:cloud:gcp": "cd cloud-wrapper && npm run build && npm run deploy:gcp",
-    "deploy:cloud:cloudflare": "cd cloud-wrapper && npm run build && npm run deploy:cloudflare",
-    "deploy:cloud": "echo 'Please use one of the following commands to deploy to a specific cloud provider:' && echo '  npm run deploy:cloud:aws' && echo '  npm run deploy:cloud:gcp' && echo '  npm run deploy:cloud:cloudflare'",
     "postinstall": "echo 'Note: If you encounter dependency conflicts with TensorFlow.js packages, please use: npm install --legacy-peer-deps'",
     "dry-run": "npm pack --dry-run",
-    "test:cli": "node scripts/test-cli-locally.js",
-    "test": "node scripts/comprehensive-test.js"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:node": "vitest run tests/environment.node.test.ts tests/core.test.ts tests/vector-operations.test.ts tests/tensorflow-patch.test.ts",
+    "test:browser": "vitest run tests/environment.browser.test.ts",
+    "test:core": "vitest run tests/core.test.ts",
+    "test:coverage": "vitest run --coverage",
+    "test:all": "npm run build && vitest run"
   },
   "keywords": [
     "vector-database",
@@ -122,16 +124,21 @@
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-replace": "^5.0.5",
     "@rollup/plugin-typescript": "^11.1.6",
+    "@types/jsdom": "^21.1.7",
     "@types/node": "^20.11.30",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^7.4.0",
     "@typescript-eslint/parser": "^7.4.0",
+    "@vitest/ui": "^3.2.4",
     "eslint": "^8.57.0",
+    "happy-dom": "^18.0.1",
+    "jsdom": "^26.1.0",
     "puppeteer": "^22.5.0",
     "rollup": "^4.13.0",
     "rollup-plugin-terser": "^7.0.2",
     "tslib": "^2.6.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.540.0",

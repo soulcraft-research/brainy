@@ -31,11 +31,43 @@ const nodeModuleShims = () => {
       return null
     },
     load(id) {
-      // If this is one of our shims, return an empty module
+      // If this is one of our shims, return an appropriate module
       if (id.startsWith('\0') && id.endsWith('-shim')) {
+        const moduleName = id.slice(1, -5)
         console.log(
-          `Providing empty shim for Node.js module: ${id.slice(1, -5)}`
+          `Providing shim for Node.js module: ${moduleName}`
         )
+
+        // Special handling for util module to include TextEncoder/TextDecoder
+        if (moduleName === 'util' || moduleName === 'node:util') {
+          return `
+// Util shim with TextEncoder/TextDecoder support
+const TextEncoder = globalThis.TextEncoder || (typeof global !== 'undefined' && global.TextEncoder) || class TextEncoder {
+  encode(input) {
+    return new Uint8Array(Buffer.from(input, 'utf8'));
+  }
+};
+
+const TextDecoder = globalThis.TextDecoder || (typeof global !== 'undefined' && global.TextDecoder) || class TextDecoder {
+  decode(input) {
+    return Buffer.from(input).toString('utf8');
+  }
+};
+
+const types = {
+  isFloat32Array: (arr) => arr instanceof Float32Array,
+  isInt32Array: (arr) => arr instanceof Int32Array,
+  isUint8Array: (arr) => arr instanceof Uint8Array,
+  isUint8ClampedArray: (arr) => arr instanceof Uint8ClampedArray
+};
+
+export default { TextEncoder, TextDecoder, types };
+export { TextEncoder, TextDecoder, types };
+export const promises = {};
+          `
+        }
+
+        // Default empty shim for other modules
         return 'export default {}; export const promises = {};'
       }
       return null
@@ -241,7 +273,7 @@ const workerConfig = {
     'fs',
     'path'
   ]
-};
+}
 
 // Export both configurations
-export default [mainConfig, workerConfig];
+export default [mainConfig, workerConfig]
