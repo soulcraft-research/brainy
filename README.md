@@ -933,8 +933,7 @@ the augmentation pipeline as tools:
 Environment compatibility:
 
 - **BrainyMCPAdapter** and **MCPAugmentationToolset** can run in any environment (browser, Node.js, server)
-- **BrainyMCPService** core functionality works in any environment, but server functionality (WebSocket/REST) is in the
-  cloud-wrapper project
+- **BrainyMCPService** core functionality works in any environment
 
 For detailed documentation and usage examples, see the [MCP documentation](src/mcp/README.md).
 
@@ -984,46 +983,6 @@ Works in all modern browsers:
 
 For browsers without OPFS support, falls back to in-memory storage.
 
-## Cloud Deployment
-
-Brainy can be deployed as a standalone web service on various cloud platforms using the included cloud wrapper:
-
-- **AWS Lambda and API Gateway**: Deploy as a serverless function with API Gateway
-- **Google Cloud Run**: Deploy as a containerized service
-- **Cloudflare Workers**: Deploy as a serverless function on the edge
-
-The cloud wrapper provides both RESTful and WebSocket APIs for all Brainy operations, enabling both request-response and
-real-time communication patterns. It supports multiple storage backends and can be configured via environment variables.
-
-Key features of the cloud wrapper:
-
-- RESTful API for standard CRUD operations
-- WebSocket API for real-time updates and subscriptions
-- Model Control Protocol (MCP) service for external model access
-- Support for multiple storage backends (Memory, FileSystem, S3)
-- Configurable via environment variables
-- Deployment scripts for AWS, Google Cloud, and Cloudflare
-
-### Deploying to the Cloud
-
-You can deploy the cloud wrapper to various cloud platforms using the following npm scripts from the root directory:
-
-```bash
-# Deploy to AWS Lambda and API Gateway
-npm run deploy:cloud:aws
-
-# Deploy to Google Cloud Run
-npm run deploy:cloud:gcp
-
-# Deploy to Cloudflare Workers
-npm run deploy:cloud:cloudflare
-
-# Show available deployment options
-npm run deploy:cloud
-```
-
-Before deploying, make sure to configure the appropriate environment variables in the `cloud-wrapper/.env` file. See
-the [Cloud Wrapper README](cloud-wrapper/README.md) for detailed configuration instructions and API documentation.
 
 ## Related Projects
 
