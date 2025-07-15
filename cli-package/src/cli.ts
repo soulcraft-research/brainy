@@ -1360,21 +1360,6 @@ augmentCommand
 // Add the augment command to the program
 program.addCommand(augmentCommand)
 
-// Add a top-level test-tensorflow-textencoder command
-program
-  .command('test-tensorflow-textencoder')
-  .description('Test TensorFlow.js and TextEncoder functionality')
-  .action(async () => {
-    try {
-      // Import the test function from the test file
-      const { runTest } = await import('./test-tensorflow-textencoder.js')
-      await runTest()
-    } catch (error) {
-      console.error('Error:', (error as Error).message)
-      process.exit(1)
-    }
-  })
-
 // Add a top-level test-pipeline command that redirects to augment test-pipeline
 program
   .command('test-pipeline')

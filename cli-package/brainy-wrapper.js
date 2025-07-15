@@ -31,9 +31,9 @@ if (
           isTypedArray: (arr) => {
             return !!(ArrayBuffer.isView(arr) && !(arr instanceof DataView))
           },
-          // Use native TextEncoder and TextDecoder
-          TextEncoder: TextEncoder,
-          TextDecoder: TextDecoder
+          // Instead of using constructors directly, create a utility object with constructors
+          TextEncoder,
+          TextDecoder
         }
 
         // Initialize TextEncoder/TextDecoder instances
