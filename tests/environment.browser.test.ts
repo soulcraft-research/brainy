@@ -53,7 +53,10 @@ describe('Brainy in Browser Environment', () => {
     it('should create database and add vector data', async () => {
       const db = new brainy.BrainyData({
         dimensions: 3,
-        metric: 'euclidean'
+        metric: 'euclidean',
+        storage: {
+          forceMemoryStorage: true
+        }
       })
 
       await db.init()
@@ -70,29 +73,39 @@ describe('Brainy in Browser Environment', () => {
       expect(results[0].metadata.id).toBe('item1')
     })
 
-    it('should handle text data with embeddings', async () => {
-      const db = new brainy.BrainyData({
-        embeddingFunction: brainy.createEmbeddingFunction(),
-        metric: 'cosine'
-      })
+    it(
+      'should handle text data with embeddings',
+      async () => {
+        const db = new brainy.BrainyData({
+          embeddingFunction: brainy.createEmbeddingFunction(),
+          metric: 'cosine',
+          storage: {
+            forceMemoryStorage: true
+          }
+        })
 
-      await db.init()
+        await db.init()
 
-      // Add text items as a consumer would
-      await db.addItem('Hello browser world', { id: 'greeting' })
-      await db.addItem('Goodbye browser world', { id: 'farewell' })
+        // Add text items as a consumer would
+        await db.addItem('Hello browser world', { id: 'greeting' })
+        await db.addItem('Goodbye browser world', { id: 'farewell' })
 
-      // Search with text
-      const results = await db.search('Hi there', 1)
-      expect(results).toBeDefined()
-      expect(results.length).toBeGreaterThan(0)
-      expect(results[0].metadata).toHaveProperty('id')
-    }, testUtils.timeout)
+        // Search with text
+        const results = await db.search('Hi there', 1)
+        expect(results).toBeDefined()
+        expect(results.length).toBeGreaterThan(0)
+        expect(results[0].metadata).toHaveProperty('id')
+      },
+      globalThis.testUtils?.timeout || 30000
+    )
 
     it('should handle multiple data types', async () => {
       const db = new brainy.BrainyData({
         dimensions: 2,
-        metric: 'euclidean'
+        metric: 'euclidean',
+        storage: {
+          forceMemoryStorage: true
+        }
       })
 
       await db.init()
@@ -111,7 +124,11 @@ describe('Brainy in Browser Environment', () => {
       // Search should return relevant results
       const results = await db.search([1.5, 1.5], 2)
       expect(results.length).toBe(2)
-      expect(results.every(r => r.metadata.type === 'point')).toBe(true)
+      expect(
+        results.every(
+          (r: { metadata: { type: string } }) => r.metadata.type === 'point'
+        )
+      ).toBe(true)
     })
   })
 
@@ -125,7 +142,10 @@ describe('Brainy in Browser Environment', () => {
     it('should handle search on empty database', async () => {
       const db = new brainy.BrainyData({
         dimensions: 2,
-        metric: 'euclidean'
+        metric: 'euclidean',
+        storage: {
+          forceMemoryStorage: true
+        }
       })
 
       await db.init()

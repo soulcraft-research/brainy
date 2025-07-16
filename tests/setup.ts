@@ -5,6 +5,17 @@
 
 import { beforeEach } from 'vitest'
 
+// Extend global type definitions
+declare global {
+  let testUtils:
+    | {
+        createTestVector: (dimensions: number) => number[]
+        timeout: number
+      }
+    | undefined
+  let __ENV__: any
+}
+
 // Clean up between tests
 beforeEach(() => {
   // Clear any global state that might interfere with tests
@@ -13,16 +24,8 @@ beforeEach(() => {
   }
 })
 
-// Simple test utilities focused on Brainy usage patterns
-declare global {
-  let testUtils: {
-    createTestVector: (dimensions: number) => number[]
-    timeout: number
-  }
-}
-
 // Add simple test utilities
-globalThis.testUtils = {
+global.testUtils = {
   // Create a simple test vector with predictable values
   createTestVector: (dimensions: number): number[] => {
     return Array.from({ length: dimensions }, (_, i) => (i + 1) / dimensions)
