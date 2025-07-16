@@ -15,7 +15,9 @@ describe('Brainy in Node.js Environment', () => {
     } catch (error) {
       console.error('Error loading brainy library:', error)
       if (error.message.includes('TextEncoder')) {
-        console.warn('TensorFlow.js initialization issue detected, some tests may be skipped')
+        console.warn(
+          'TensorFlow.js initialization issue detected, some tests may be skipped'
+        )
         brainy = null
       } else {
         throw error
@@ -56,6 +58,7 @@ describe('Brainy in Node.js Environment', () => {
       })
 
       await db.init()
+      await db.clear() // Clear any existing data
 
       // Add some test vectors
       await db.add([1, 0, 0], { id: 'item1', label: 'x-axis' })
@@ -69,28 +72,35 @@ describe('Brainy in Node.js Environment', () => {
       expect(results[0].metadata.id).toBe('item1')
     })
 
-    it('should handle text data with embeddings', async () => {
-      if (brainy === null) {
-        console.warn('Skipping test due to TensorFlow.js initialization issue')
-        return
-      }
-      const db = new brainy.BrainyData({
-        embeddingFunction: brainy.createEmbeddingFunction(),
-        metric: 'cosine'
-      })
+    it(
+      'should handle text data with embeddings',
+      async () => {
+        if (brainy === null) {
+          console.warn(
+            'Skipping test due to TensorFlow.js initialization issue'
+          )
+          return
+        }
+        const db = new brainy.BrainyData({
+          embeddingFunction: brainy.createEmbeddingFunction(),
+          metric: 'cosine'
+        })
 
-      await db.init()
+        await db.init()
+        await db.clear() // Clear any existing data
 
-      // Add text items as a consumer would
-      await db.addItem('Hello world', { id: 'greeting' })
-      await db.addItem('Goodbye world', { id: 'farewell' })
+        // Add text items as a consumer would
+        await db.addItem('Hello world', { id: 'greeting' })
+        await db.addItem('Goodbye world', { id: 'farewell' })
 
-      // Search with text
-      const results = await db.search('Hi there', 1)
-      expect(results).toBeDefined()
-      expect(results.length).toBeGreaterThan(0)
-      expect(results[0].metadata).toHaveProperty('id')
-    }, globalThis.testUtils?.timeout || 30000)
+        // Search with text
+        const results = await db.search('Hi there', 1)
+        expect(results).toBeDefined()
+        expect(results.length).toBeGreaterThan(0)
+        expect(results[0].metadata).toHaveProperty('id')
+      },
+      globalThis.testUtils?.timeout || 30000
+    )
 
     it('should handle multiple data types', async () => {
       if (brainy === null) {
@@ -103,6 +113,7 @@ describe('Brainy in Node.js Environment', () => {
       })
 
       await db.init()
+      await db.clear() // Clear any existing data
 
       // Add different types of data
       const testData = [
@@ -118,7 +129,11 @@ describe('Brainy in Node.js Environment', () => {
       // Search should return relevant results
       const results = await db.search([1.5, 1.5], 2)
       expect(results.length).toBe(2)
-      expect(results.every(r => r.metadata.type === 'point')).toBe(true)
+      expect(
+        results.every(
+          (r: { metadata: { type: string } }) => r.metadata.type === 'point'
+        )
+      ).toBe(true)
     })
   })
 
@@ -144,6 +159,7 @@ describe('Brainy in Node.js Environment', () => {
       })
 
       await db.init()
+      await db.clear() // Clear any existing data
 
       const results = await db.search([1, 2], 5)
       expect(results).toBeDefined()
