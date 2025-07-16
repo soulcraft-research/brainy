@@ -97,6 +97,7 @@ describe('Brainy Core Functionality', () => {
       })
 
       await data.init()
+      await data.clear() // Clear any existing data
 
       // Add vectors
       await data.add([1, 0, 0], { id: 'v1', label: 'x-axis' })
@@ -118,6 +119,7 @@ describe('Brainy Core Functionality', () => {
       })
 
       await data.init()
+      await data.clear() // Clear any existing data
 
       // Add multiple vectors
       const vectors = [
@@ -148,6 +150,10 @@ describe('Brainy Core Functionality', () => {
 
       await euclideanData.init()
       await cosineData.init()
+      
+      // Clear any existing data to ensure test isolation
+      await euclideanData.clear()
+      await cosineData.clear()
 
       const vector = [1, 1]
       const metadata = { id: 'test' }
@@ -168,51 +174,61 @@ describe('Brainy Core Functionality', () => {
   })
 
   describe('Text Processing', () => {
-    it('should handle text items with embedding function', async () => {
-      const embeddingFunction = brainy.createEmbeddingFunction()
+    it(
+      'should handle text items with embedding function',
+      async () => {
+        const embeddingFunction = brainy.createEmbeddingFunction()
 
-      const data = new brainy.BrainyData({
-        embeddingFunction,
-        metric: 'cosine'
-      })
+        const data = new brainy.BrainyData({
+          embeddingFunction,
+          dimensions: 512, // Universal Sentence Encoder produces 512-dimensional vectors
+          metric: 'cosine'
+        })
 
-      await data.init()
+        await data.init()
 
-      // Add text items
-      await data.addItem('Hello world', { id: 'greeting', type: 'text' })
-      await data.addItem('Goodbye world', { id: 'farewell', type: 'text' })
+        // Add text items
+        await data.addItem('Hello world', { id: 'greeting', type: 'text' })
+        await data.addItem('Goodbye world', { id: 'farewell', type: 'text' })
 
-      // Search with text
-      const results = await data.search('Hi there', 1)
+        // Search with text
+        const results = await data.search('Hi there', 1)
 
-      expect(results).toBeDefined()
-      expect(results.length).toBeGreaterThan(0)
-      expect(results[0].metadata).toHaveProperty('id')
-    }, testUtils.timeout)
+        expect(results).toBeDefined()
+        expect(results.length).toBeGreaterThan(0)
+        expect(results[0].metadata).toHaveProperty('id')
+      },
+      globalThis.testUtils?.timeout || 30000
+    )
 
-    it('should handle mixed vector and text operations', async () => {
-      const embeddingFunction = brainy.createEmbeddingFunction()
+    it(
+      'should handle mixed vector and text operations',
+      async () => {
+        const embeddingFunction = brainy.createEmbeddingFunction()
 
-      const data = new brainy.BrainyData({
-        embeddingFunction,
-        metric: 'cosine'
-      })
+        const data = new brainy.BrainyData({
+          embeddingFunction,
+          dimensions: 512, // Universal Sentence Encoder produces 512-dimensional vectors
+          metric: 'cosine'
+        })
 
-      await data.init()
+        await data.init()
 
-      // Add text item
-      await data.addItem('Machine learning', { id: 'text1', type: 'text' })
+        // Add text item
+        await data.addItem('Machine learning', { id: 'text1', type: 'text' })
 
-      // Add vector item (using embedding of similar text)
-      const embedding = await embeddingFunction('Artificial intelligence')
-      await data.add(embedding, { id: 'vector1', type: 'vector' })
+        // Add vector item (using embedding of similar text)
+        const embedding = await embeddingFunction('Artificial intelligence')
+        await data.add(embedding, { id: 'vector1', type: 'vector' })
 
-      // Search should find both
-      const results = await data.search('AI and ML', 2)
+        // Search should find both
+        const results = await data.search('AI and ML', 2)
 
-      expect(results).toBeDefined()
-      expect(results.length).toBeGreaterThan(0)
-    }, testUtils.timeout)
+        expect(results).toBeDefined()
+        expect(results.length).toBeGreaterThan(0)
+      },
+      globalThis.testUtils?.timeout || 30000
+    )
   })
 
   describe('Error Handling', () => {
@@ -246,6 +262,7 @@ describe('Brainy Core Functionality', () => {
       })
 
       await data.init()
+      await data.clear() // Clear any existing data
 
       // Search in empty database
       const results = await data.search([1, 2], 1)
@@ -268,7 +285,9 @@ describe('Brainy Core Functionality', () => {
 
       // Add 100 test vectors
       for (let i = 0; i < 100; i++) {
-        const vector = testUtils.createTestVector(10)
+        const vector =
+          globalThis.testUtils?.createTestVector(10) ||
+          Array.from({ length: 10 }, (_, i) => (i + 1) / 10)
         await data.add(vector, { id: `item_${i}`, index: i })
       }
 
@@ -276,7 +295,11 @@ describe('Brainy Core Functionality', () => {
 
       // Search should be fast
       const searchStart = Date.now()
-      const results = await data.search(testUtils.createTestVector(10), 10)
+      const results = await data.search(
+        globalThis.testUtils?.createTestVector(10) ||
+          Array.from({ length: 10 }, (_, i) => (i + 1) / 10),
+        10
+      )
       const searchTime = Date.now() - searchStart
 
       expect(results.length).toBeLessThanOrEqual(10)
@@ -298,7 +321,9 @@ describe('Brainy Core Functionality', () => {
 
       // Add noise vectors
       for (let i = 0; i < 50; i++) {
-        const noiseVector = testUtils.createTestVector(5)
+        const noiseVector =
+          globalThis.testUtils?.createTestVector(5) ||
+          Array.from({ length: 5 }, (_, i) => (i + 1) / 5)
         await data.add(noiseVector, { id: `noise_${i}`, type: 'noise' })
       }
 
