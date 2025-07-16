@@ -1,6 +1,7 @@
 /**
  * Browser Environment Tests
  * Tests Brainy functionality in browser environment as a consumer would use it
+ * @vitest-environment jsdom
  */
 
 import { describe, it, expect, beforeAll, vi } from 'vitest'
