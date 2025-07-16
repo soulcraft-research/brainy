@@ -26,6 +26,15 @@ export default defineConfig({
         FORCE_PATCHED_PLATFORM: 'true'
       }
     },
+    // Use a cleaner reporter focused on test results
+    reporters: [
+      [
+        'default',
+        {
+          summary: false
+        }
+      ]
+    ],
     // Reduce noise in output
     silent: false,
     // Configure error display for better readability
@@ -43,7 +52,35 @@ export default defineConfig({
     // Filter out noisy console output more aggressively
     onConsoleLog: (log: string, type: 'stdout' | 'stderr'): false | void => {
       // Filter out all TensorFlow.js, model loading, and setup noise
-      const noisePatterns: string[] = []
+      const noisePatterns: string[] = [
+        'Brainy: Successfully patched TensorFlow.js PlatformNode',
+        'Applied TensorFlow.js patch via ES modules',
+        'Brainy running in Node.js environment',
+        'Pre-loading Universal Sentence Encoder model',
+        'Universal Sentence Encoder module structure',
+        'No default export',
+        'Using sentenceEncoderModule.load',
+        'Loading Universal Sentence Encoder model',
+        'Universal Sentence Encoder model loaded successfully',
+        'Using file system storage for Node.js environment',
+        'Using WebGL backend for TensorFlow.js',
+        'Platform node has already been set',
+        'Overwriting the platform with node',
+        'Brainy: Applying TensorFlow.js platform patch',
+        'The kernel',
+        'for backend',
+        'is already registered',
+        'Hi there 👋. Looks like you are running TensorFlow.js',
+        'backend registration',
+        'webgl',
+        'cpu',
+        'Could not get context for WebGL version',
+        'Retrying Universal Sentence Encoder initialization',
+        'Skipping noun',
+        'due to dimension mismatch',
+        'Retrying Universal Sentence Encoder model loading',
+        'Successfully loaded Universal Sentence Encoder with fallback method'
+      ]
 
       // Return false (don't show) if log contains any noise pattern
       if (noisePatterns.some((pattern) => log.includes(pattern))) {
