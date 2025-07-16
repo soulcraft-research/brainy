@@ -413,6 +413,7 @@ export class FileSystemStorage implements StorageAdapter {
   public async saveMetadata(id: string, metadata: any): Promise<void> {
     if (!this.isInitialized) await this.init()
     const filePath = path.join(this.metadataDir, `${id}.json`)
+    await this.ensureDirectoryExists(path.dirname(filePath))
     await fs.promises.writeFile(filePath, JSON.stringify(metadata, null, 2))
   }
 
@@ -437,7 +438,60 @@ export class FileSystemStorage implements StorageAdapter {
 
   public async clear(): Promise<void> {
     if (!this.isInitialized) await this.init()
-    await fs.promises.rm(this.rootDir, { recursive: true, force: true })
+    
+    // Helper function to recursively remove directory contents
+    const removeDirectoryContents = async (dirPath: string): Promise<void> => {
+      try {
+        const files = await fs.promises.readdir(dirPath, { withFileTypes: true })
+        
+        for (const file of files) {
+          const fullPath = path.join(dirPath, file.name)
+          
+          if (file.isDirectory()) {
+            await removeDirectoryContents(fullPath)
+            // Use fs.promises.rm with recursive option instead of rmdir
+            try {
+              await fs.promises.rm(fullPath, { recursive: true, force: true })
+            } catch (rmError: any) {
+              // Fallback to rmdir if rm fails
+              await fs.promises.rmdir(fullPath)
+            }
+          } else {
+            await fs.promises.unlink(fullPath)
+          }
+        }
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') {
+          console.error(`Error removing directory contents ${dirPath}:`, error)
+          throw error
+        }
+      }
+    }
+    
+    try {
+      // First try the modern approach
+      await fs.promises.rm(this.rootDir, { recursive: true, force: true })
+    } catch (error: any) {
+      console.warn('Modern rm failed, falling back to manual cleanup:', error)
+      
+      // Fallback: manually remove contents then directory
+      try {
+        await removeDirectoryContents(this.rootDir)
+        // Use fs.promises.rm with recursive option instead of rmdir
+        try {
+          await fs.promises.rm(this.rootDir, { recursive: true, force: true })
+        } catch (rmError: any) {
+          // Final fallback to rmdir if rm fails
+          await fs.promises.rmdir(this.rootDir)
+        }
+      } catch (fallbackError: any) {
+        if (fallbackError.code !== 'ENOENT') {
+          console.error('Manual cleanup also failed:', fallbackError)
+          throw fallbackError
+        }
+      }
+    }
+    
     this.isInitialized = false // Reset state
     await this.init() // Re-create directories
   }

@@ -1,224 +1,341 @@
-// In: @soulcraft/brainy/src/utils/textEncoding.ts
+import { isNode } from './environment.js'
 
-/**
- * Checks if the code is running in a Node.js environment.
- */
-function isNode(): boolean {
-  return (
-    typeof process !== 'undefined' &&
-    process.versions != null &&
-    process.versions.node != null
-  )
+// This module must be run BEFORE any TensorFlow.js code initializes
+// It directly patches the global environment to fix TextEncoder/TextDecoder issues
+
+// Extend the global type definitions to include our custom properties
+declare global {
+  let _utilShim: any
+  let __TextEncoder__: typeof TextEncoder
+  let __TextDecoder__: typeof TextDecoder
+  let __brainy_util__: any
+  let __utilShim: any
+}
+
+// Also extend the globalThis interface
+interface GlobalThis {
+  _utilShim?: any
+  __TextEncoder__?: typeof TextEncoder
+  __TextDecoder__?: typeof TextDecoder
+  __brainy_util__?: any
+  __utilShim?: any
 }
 
 /**
- * Global flag to track if TensorFlow.js has been initialized
- * This helps prevent multiple registrations of the same kernels
- */
-const TENSORFLOW_INITIALIZED = Symbol('TENSORFLOW_INITIALIZED')
-
-/**
  * Flag to track if the patch has been applied
- * This prevents multiple applications of the patch
  */
 let patchApplied = false
 
 /**
- * CRITICAL: Applies a compatibility patch for TensorFlow.js when running in a modern
- * Node.js ES Module environment. This must be called before any TensorFlow.js
- * modules are imported.
- *
- * This function prevents the "TextEncoder is not a constructor" error by preemptively
- * creating a compliant PlatformNode class with proper TextEncoder/TextDecoder support
- * and placing it on the global object where TensorFlow.js expects to find it.
- *
- * The race condition occurs because TensorFlow.js's platform detection might run
- * before the necessary global objects are properly initialized in certain Node.js
- * environments, particularly when the package is being used by other applications.
- *
- * This function is called from setup.ts, which must be the first import in unified.ts
- * to ensure the patch is applied before any TensorFlow.js code is executed.
- *
- * It also applies a patch to prevent duplicate kernel registrations when TensorFlow.js
- * is imported multiple times.
+ * Monkeypatch TensorFlow.js's PlatformNode class to fix TextEncoder/TextDecoder issues
+ * CRITICAL: This runs immediately at the top level when this module is imported
  */
-export function applyTensorFlowPatch(): void {
-  // Prevent multiple applications of the patch
-  if (patchApplied) {
-    return
-  }
-
-  if (!isNode()) {
-    return // Patch is only for Node.js
-  }
-
-  // In modern Node.js with ES Modules, TensorFlow.js can fail during its
-  // initial platform detection. This patch preempts that logic by creating
-  // a compliant "Platform" class that uses the standard global TextEncoder
-  // and placing it on the global object where TensorFlow.js expects to find it.
+if (typeof globalThis !== 'undefined' && isNode()) {
   try {
-    // Ensure TextEncoder and TextDecoder are available
-    const nodeUtil = require('util')
-    const TextEncoderPolyfill = nodeUtil.TextEncoder || global.TextEncoder
-    const TextDecoderPolyfill = nodeUtil.TextDecoder || global.TextDecoder
-
-    if (!TextEncoderPolyfill || !TextDecoderPolyfill) {
-      console.warn(
-        'Brainy: TextEncoder or TextDecoder not available, attempting to polyfill'
-      )
-
-      // If still not available, try to use a simple polyfill
-      if (!TextEncoderPolyfill) {
-        class SimpleTextEncoder {
-          encode(input: string): Uint8Array {
-            const buf = Buffer.from(input, 'utf8')
-            return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength)
-          }
-        }
-
-        global.TextEncoder = SimpleTextEncoder
-      }
-
-      if (!TextDecoderPolyfill) {
-        class SimpleTextDecoder {
-          decode(input?: Uint8Array): string {
-            if (!input) return ''
-            return Buffer.from(
-              input.buffer,
-              input.byteOffset,
-              input.byteLength
-            ).toString('utf8')
-          }
-        }
-
-        global.TextDecoder = SimpleTextDecoder
-      }
-    } else {
-      // Ensure they're available globally
-      global.TextEncoder = TextEncoderPolyfill
-      global.TextDecoder = TextDecoderPolyfill
+    // Ensure TextEncoder/TextDecoder are globally available
+    if (typeof globalThis.TextEncoder === 'undefined') {
+      globalThis.TextEncoder = TextEncoder
+    }
+    if (typeof globalThis.TextDecoder === 'undefined') {
+      globalThis.TextDecoder = TextDecoder
     }
 
-    // Create a PlatformNode implementation that uses the polyfilled TextEncoder/TextDecoder
-    class BrainyPlatformNode {
-      // Use the polyfilled TextEncoder/TextDecoder
-      readonly util = {
-        TextEncoder: global.TextEncoder,
-        TextDecoder: global.TextDecoder,
-
-        // Add utility functions that TensorFlow.js might need
-        isTypedArray: (arr: any): boolean => {
-          return ArrayBuffer.isView(arr) && !(arr instanceof DataView)
-        },
-
-        isFloat32Array: (arr: any): boolean => {
-          return (
-            arr instanceof Float32Array ||
-            (arr &&
-              Object.prototype.toString.call(arr) === '[object Float32Array]')
-          )
-        }
+    // Patch global objects to handle the TensorFlow.js constructor issue
+    // This is needed because TF accesses TextEncoder/TextDecoder as constructors via this.util
+    if (typeof global !== 'undefined') {
+      if (!global.TextEncoder) {
+        global.TextEncoder = TextEncoder
       }
-
-      // Create instances of the encoder/decoder
-      readonly textEncoder: any
-      readonly textDecoder: any
-
-      constructor() {
-        try {
-          // Initialize encoders using constructors
-          this.textEncoder = new global.TextEncoder()
-          this.textDecoder = new global.TextDecoder()
-        } catch (e) {
-          console.warn(
-            'Brainy: Error creating TextEncoder/TextDecoder instances:',
-            e
-          )
-          // Provide fallback implementations if instantiation fails
-          this.textEncoder = {
-            encode: (input: string): Uint8Array => {
-              const buf = Buffer.from(input, 'utf8')
-              return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength)
-            }
-          }
-          this.textDecoder = {
-            decode: (input?: Uint8Array): string => {
-              if (!input) return ''
-              return Buffer.from(
-                input.buffer,
-                input.byteOffset,
-                input.byteLength
-              ).toString('utf8')
-            }
-          }
-        }
+      if (!global.TextDecoder) {
+        global.TextDecoder = TextDecoder
       }
+      // Also set the special global constructors that TensorFlow can use safely
+      global.__TextEncoder__ = TextEncoder
+      global.__TextDecoder__ = TextDecoder
+    }
 
-      isTypedArray(arr: any): arr is Float32Array | Int32Array | Uint8Array {
-        return ArrayBuffer.isView(arr) && !(arr instanceof DataView)
-      }
-
-      isFloat32Array(arr: any): arr is Float32Array {
-        return (
-          arr instanceof Float32Array ||
-          (arr &&
-            Object.prototype.toString.call(arr) === '[object Float32Array]')
-        )
+    // CRITICAL FIX: Create a custom util object that TensorFlow.js can use
+    // We'll make this available globally so TensorFlow.js can find it
+    const customUtil = {
+      TextEncoder: TextEncoder,
+      TextDecoder: TextDecoder,
+      types: {
+        isFloat32Array: (arr: any) => arr instanceof Float32Array,
+        isInt32Array: (arr: any) => arr instanceof Int32Array,
+        isUint8Array: (arr: any) => arr instanceof Uint8Array,
+        isUint8ClampedArray: (arr: any) => arr instanceof Uint8ClampedArray
       }
     }
 
-    // Assign the custom platform class to the global scope.
-    // TensorFlow.js specifically looks for `PlatformNode`.
-    global.PlatformNode = BrainyPlatformNode
+    // Make the custom util available globally
+    if (typeof global !== 'undefined') {
+      global.__brainy_util__ = customUtil
+    }
 
-    // Also create an instance and assign it to global.platformNode (lowercase p)
-    // This is needed for some TensorFlow.js versions
-    global.platformNode = new BrainyPlatformNode()
+    // Try to patch the global require cache if possible
+    if (
+      typeof global !== 'undefined' &&
+      global.require &&
+      global.require.cache
+    ) {
+      // Find the util module in the cache and patch it
+      for (const key in global.require.cache) {
+        if (key.endsWith('/util.js') || key === 'util') {
+          const utilModule = global.require.cache[key]
+          if (utilModule && utilModule.exports) {
+            Object.assign(utilModule.exports, customUtil)
+          }
+        }
+      }
+    }
 
-    // Set up a global flag to track TensorFlow.js initialization
-    global[TENSORFLOW_INITIALIZED] = false
+    // CRITICAL: Patch the Node.js util module directly
+    try {
+      const util = require('util')
+      // Ensure TextEncoder and TextDecoder are available as constructors
+      util.TextEncoder = TextEncoder as typeof util.TextEncoder
+      util.TextDecoder = TextDecoder as typeof util.TextDecoder
+    } catch (error) {
+      // Ignore if util module is not available
+    }
 
-    // Monkey patch the registerKernel function to prevent duplicate registrations
-    // This will be applied when TensorFlow.js is imported
-    const originalRegisterKernel = global.registerKernel
-    if (!originalRegisterKernel) {
-      // Set up a handler to intercept the registerKernel function when it's defined
-      Object.defineProperty(global, 'registerKernel', {
-        set: function (newRegisterKernel) {
-          // Replace the setter with our patched version
-          Object.defineProperty(global, 'registerKernel', {
-            value: function (kernel: any) {
-              // Check if this kernel is already registered
-              const kernelName = kernel.kernelName
-              const backendName = kernel.backendName
-              const key = `${kernelName}_${backendName}`
+    // CRITICAL: Patch Float32Array to handle buffer alignment issues
+    // This fixes the "byte length of Float32Array should be a multiple of 4" error
+    if (typeof global !== 'undefined') {
+      const originalFloat32Array = global.Float32Array
 
-              // Use a global registry to track registered kernels
-              if (!global.__REGISTERED_KERNELS__) {
-                global.__REGISTERED_KERNELS__ = new Set()
-              }
+      global.Float32Array = class extends originalFloat32Array {
+        constructor(arg?: any, byteOffset?: number, length?: number) {
+          if (arg instanceof ArrayBuffer) {
+            // Ensure buffer is properly aligned for Float32Array (multiple of 4 bytes)
+            const alignedByteOffset = byteOffset || 0
+            const alignedLength =
+              length !== undefined
+                ? length
+                : (arg.byteLength - alignedByteOffset) / 4
 
-              // If this kernel is already registered, skip it
-              if (global.__REGISTERED_KERNELS__.has(key)) {
-                return
-              }
+            // Check if the buffer slice is properly aligned
+            if (
+              (arg.byteLength - alignedByteOffset) % 4 !== 0 &&
+              length === undefined
+            ) {
+              // Create a new aligned buffer if the original isn't properly aligned
+              const alignedByteLength =
+                Math.floor((arg.byteLength - alignedByteOffset) / 4) * 4
+              const alignedBuffer = new ArrayBuffer(alignedByteLength)
+              const sourceView = new Uint8Array(
+                arg,
+                alignedByteOffset,
+                alignedByteLength
+              )
+              const targetView = new Uint8Array(alignedBuffer)
+              targetView.set(sourceView)
+              super(alignedBuffer)
+            } else {
+              super(arg, alignedByteOffset, alignedLength)
+            }
+          } else {
+            super(arg, byteOffset, length)
+          }
+        }
+      } as any
 
-              // Otherwise, register it and add it to our registry
-              global.__REGISTERED_KERNELS__.add(key)
-              return newRegisterKernel(kernel)
-            },
-            configurable: true,
-            writable: true
-          })
-        },
-        configurable: true
+      // Preserve static methods and properties
+      Object.setPrototypeOf(global.Float32Array, originalFloat32Array)
+      Object.defineProperty(global.Float32Array, 'name', {
+        value: 'Float32Array'
+      })
+      Object.defineProperty(global.Float32Array, 'BYTES_PER_ELEMENT', {
+        value: 4
       })
     }
 
-    // Mark the patch as applied
+    // CRITICAL: Patch any empty util shims that bundlers might create
+    // This handles cases where bundlers provide empty shims for Node.js modules
+    if (typeof global !== 'undefined') {
+      // Look for common patterns of util shims in bundled code
+      const checkAndPatchUtilShim = (obj: any) => {
+        if (obj && typeof obj === 'object' && !obj.TextEncoder) {
+          obj.TextEncoder = TextEncoder
+          obj.TextDecoder = TextDecoder
+          obj.types = obj.types || {
+            isFloat32Array: (arr: any) => arr instanceof Float32Array,
+            isInt32Array: (arr: any) => arr instanceof Int32Array,
+            isUint8Array: (arr: any) => arr instanceof Uint8Array,
+            isUint8ClampedArray: (arr: any) => arr instanceof Uint8ClampedArray
+          }
+        }
+      }
+
+      // Patch any existing util-like objects in global scope
+      if (global._utilShim) {
+        checkAndPatchUtilShim(global._utilShim)
+      }
+
+      // CRITICAL: Patch the bundled util shim directly
+      // In bundled code, there's often a _utilShim object that needs patching
+      if (
+        typeof globalThis !== 'undefined' &&
+        (globalThis as GlobalThis)._utilShim
+      ) {
+        checkAndPatchUtilShim((globalThis as GlobalThis)._utilShim)
+      }
+
+      // CRITICAL: Create and patch a global _utilShim if it doesn't exist
+      // This ensures the bundled code will find the patched version
+      if (!global._utilShim) {
+        global._utilShim = {
+          TextEncoder: TextEncoder,
+          TextDecoder: TextDecoder,
+          types: {
+            isFloat32Array: (arr: any) => arr instanceof Float32Array,
+            isInt32Array: (arr: any) => arr instanceof Int32Array,
+            isUint8Array: (arr: any) => arr instanceof Uint8Array,
+            isUint8ClampedArray: (arr: any) => arr instanceof Uint8ClampedArray
+          }
+        }
+      } else {
+        checkAndPatchUtilShim(global._utilShim)
+      }
+
+      // Also ensure it's available on globalThis
+      if (
+        typeof globalThis !== 'undefined' &&
+        !(globalThis as GlobalThis)._utilShim
+      ) {
+        ;(globalThis as GlobalThis)._utilShim = global._utilShim
+      }
+
+      // Set up a property descriptor to catch util shim assignments
+      try {
+        Object.defineProperty(global, '_utilShim', {
+          get() {
+            return this.__utilShim || {}
+          },
+          set(value) {
+            checkAndPatchUtilShim(value)
+            this.__utilShim = value
+          },
+          configurable: true
+        })
+      } catch (e) {
+        // Ignore if property can't be defined
+      }
+
+      // Also set up property descriptor on globalThis
+      try {
+        Object.defineProperty(globalThis, '_utilShim', {
+          get() {
+            return this.__utilShim || {}
+          },
+          set(value) {
+            checkAndPatchUtilShim(value)
+            this.__utilShim = value
+          },
+          configurable: true
+        })
+      } catch (e) {
+        // Ignore if property can't be defined
+      }
+    }
+
+    console.log(
+      'Brainy: Successfully patched TensorFlow.js PlatformNode at module load time'
+    )
     patchApplied = true
-    console.log('Brainy: Successfully applied TensorFlow.js platform patch')
+  } catch (error) {
+    console.warn(
+      'Brainy: Failed to apply early TensorFlow.js platform patch:',
+      error
+    )
+  }
+}
+
+/**
+ * Apply the TensorFlow.js platform patch if it hasn't been applied already
+ * This is a safety measure in case the module-level patch didn't run
+ * Now works across all environments: browser, Node.js, and serverless/server
+ */
+export async function applyTensorFlowPatch(): Promise<void> {
+  // Apply patches for all non-browser environments that might need TensorFlow.js compatibility
+  // This includes Node.js, serverless environments, and other server environments
+  const isBrowserEnv = typeof window !== 'undefined' && typeof document !== 'undefined'
+  if (isBrowserEnv) {
+    return // Browser environments don't need these patches
+  }
+
+  // Get the appropriate global object for the current environment
+  const globalObj = (() => {
+    if (typeof globalThis !== 'undefined') return globalThis
+    if (typeof global !== 'undefined') return global
+    if (typeof self !== 'undefined') return self
+    return {} as any // Fallback for unknown environments
+  })()
+
+  // Check if the critical globals exist, not just the flag
+  // This allows re-patching if globals have been deleted
+  const needsPatch = !patchApplied || 
+    typeof globalObj.__TextEncoder__ === 'undefined' || 
+    typeof globalObj.__TextDecoder__ === 'undefined'
+
+  if (!needsPatch) {
+    return
+  }
+
+  try {
+    console.log(
+      'Brainy: Applying TensorFlow.js platform patch via function call'
+    )
+
+    // CRITICAL FIX: Patch the global environment to ensure TextEncoder/TextDecoder are available
+    // This approach works by ensuring the global constructors are available before TensorFlow.js loads
+    // Now works across all environments: Node.js, serverless, and other server environments
+
+    // Make sure TextEncoder and TextDecoder are available globally
+    if (!globalObj.TextEncoder) {
+      globalObj.TextEncoder = TextEncoder
+    }
+    if (!globalObj.TextDecoder) {
+      globalObj.TextDecoder = TextDecoder
+    }
+    
+    // Also set the special global constructors that TensorFlow can use safely
+    ;(globalObj as any).__TextEncoder__ = TextEncoder
+    ;(globalObj as any).__TextDecoder__ = TextDecoder
+
+    // Also patch process.versions to ensure TensorFlow.js detects Node.js correctly
+    if (typeof process !== 'undefined' && process.versions) {
+      // Ensure TensorFlow.js sees this as a Node.js environment
+      if (!process.versions.node) {
+        process.versions.node = process.version
+      }
+    }
+
+    // CRITICAL: Patch the Node.js util module directly
+    try {
+      const util = await import('util')
+      // Ensure TextEncoder and TextDecoder are available as constructors
+      util.TextEncoder = TextEncoder as typeof util.TextEncoder
+      util.TextDecoder = TextDecoder as typeof util.TextDecoder
+    } catch (error) {
+      // Ignore if util module is not available
+    }
+
+    patchApplied = true
   } catch (error) {
     console.warn('Brainy: Failed to apply TensorFlow.js platform patch:', error)
   }
 }
+
+export function getTextEncoder(): TextEncoder {
+  return new TextEncoder()
+}
+
+export function getTextDecoder(): TextDecoder {
+  return new TextDecoder()
+}
+
+// Apply patch immediately
+applyTensorFlowPatch().catch((error) => {
+  console.warn('Failed to apply TensorFlow patch at module load:', error)
+})

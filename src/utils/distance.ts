@@ -145,32 +145,28 @@ export async function calculateDistancesBatch(
           // In worker context, use the importTensorFlow function
           tf = await self.importTensorFlow()
         } else {
-          // CRITICAL: First, directly import the setup module to ensure the TensorFlow.js patch is applied
-          // This is the most reliable way to ensure the patch is applied before TensorFlow.js is loaded
+          // CRITICAL: Ensure TextEncoder/TextDecoder are available before TensorFlow.js loads
           try {
-            // In Node.js environment, use require() which is synchronous
-            if (typeof require !== 'undefined') {
-              // First, require the setup module to apply the patch
-              require('../setup.js')
-
-              // Now load TensorFlow.js core module
-              tf = require('@tensorflow/tfjs-core')
-
-              // Load CPU backend
-              require('@tensorflow/tfjs-backend-cpu')
-
-              // Set CPU as the backend
-              tf.setBackend('cpu')
-            } else {
-              // In browser or other environments without require(), use dynamic imports
-              // First, dynamically import the setup module to apply the patch
-              await import('../setup.js')
-
-              // Now load TensorFlow.js core module
-              tf = await import('@tensorflow/tfjs-core')
-              await import('@tensorflow/tfjs-backend-cpu')
-              await tf.setBackend('cpu')
+            // Use dynamic imports for all environments to ensure TensorFlow loads after patch
+            if (typeof process !== 'undefined' && process.versions && process.versions.node) {
+              // Ensure TextEncoder/TextDecoder are globally available in Node.js
+              const util = await import('util')
+              if (typeof global.TextEncoder === 'undefined') {
+                global.TextEncoder = util.TextEncoder
+              }
+              if (typeof global.TextDecoder === 'undefined') {
+                global.TextDecoder = util.TextDecoder
+              }
             }
+
+            // Apply the TensorFlow.js patch
+            const { applyTensorFlowPatch } = await import('./textEncoding.js')
+            await applyTensorFlowPatch()
+
+            // Now load TensorFlow.js core module using dynamic imports
+            tf = await import('@tensorflow/tfjs-core')
+            await import('@tensorflow/tfjs-backend-cpu')
+            await tf.setBackend('cpu')
           } catch (error) {
             console.error('Failed to initialize TensorFlow.js:', error)
             throw error

@@ -38,6 +38,11 @@ import { BrainyDataInterface } from './types/brainyDataInterface.js'
 
 export interface BrainyDataConfig {
   /**
+   * Vector dimensions (required if not using an embedding function that auto-detects dimensions)
+   */
+  dimensions?: number
+
+  /**
    * HNSW index configuration
    */
   hnsw?: Partial<HNSWConfig>
@@ -136,6 +141,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   private readOnly: boolean
   private storageConfig: BrainyDataConfig['storage'] = {}
   private useOptimizedIndex: boolean = false
+  private _dimensions: number
 
   // Remote server properties
   private remoteServerConfig: BrainyDataConfig['remoteServer'] | null = null
@@ -143,9 +149,40 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   private serverConnection: WebSocketConnection | null = null
 
   /**
+   * Get the vector dimensions
+   */
+  public get dimensions(): number {
+    return this._dimensions
+  }
+
+  /**
+   * Get the maximum connections parameter from HNSW configuration
+   */
+  public get maxConnections(): number {
+    const config = this.index.getConfig()
+    return config.M || 16
+  }
+
+  /**
+   * Get the efConstruction parameter from HNSW configuration
+   */
+  public get efConstruction(): number {
+    const config = this.index.getConfig()
+    return config.efConstruction || 200
+  }
+
+  /**
    * Create a new vector database
    */
   constructor(config: BrainyDataConfig = {}) {
+    // Validate dimensions
+    if (config.dimensions !== undefined && config.dimensions <= 0) {
+      throw new Error('Dimensions must be a positive number')
+    }
+
+    // Set dimensions (default to 512 for embedding functions, or require explicit config)
+    this._dimensions = config.dimensions || 512
+
     // Set distance function
     this.distanceFunction = config.distanceFunction || cosineDistance
 
@@ -284,6 +321,16 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       // Clear the index and add all nouns
       this.index.clear()
       for (const noun of nouns) {
+        // Check if the vector dimensions match the expected dimensions
+        if (noun.vector.length !== this._dimensions) {
+          console.warn(
+            `Skipping noun ${noun.id} due to dimension mismatch: expected ${this._dimensions}, got ${noun.vector.length}`
+          )
+          // Optionally, you could delete the mismatched noun from storage
+          // await this.storage!.deleteNoun(noun.id)
+          continue
+        }
+
         // Add to index
         await this.index.addItem({
           id: noun.id,
@@ -393,6 +440,11 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         throw new Error('Vector is undefined or null')
       }
 
+      // Validate vector dimensions
+      if (vector.length !== this._dimensions) {
+        throw new Error(`Vector dimension mismatch: expected ${this._dimensions}, got ${vector.length}`)
+      }
+
       // Use ID from options if it exists, otherwise from metadata, otherwise generate a new UUID
       const id =
         options.id ||
@@ -431,7 +483,13 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           }
         }
 
-        await this.storage!.saveMetadata(id, metadata)
+        // Ensure metadata has the correct id field
+        let metadataToSave = metadata
+        if (metadata && typeof metadata === 'object') {
+          metadataToSave = { ...metadata, id }
+        }
+
+        await this.storage!.saveMetadata(id, metadataToSave)
       }
 
       // If addToRemote is true and we're connected to a remote server, add to remote as well
@@ -450,6 +508,26 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       console.error('Failed to add vector:', error)
       throw new Error(`Failed to add vector: ${error}`)
     }
+  }
+
+  /**
+   * Add a text item to the database with automatic embedding
+   * This is a convenience method for adding text data with metadata
+   * @param text Text data to add
+   * @param metadata Metadata to associate with the text
+   * @param options Additional options
+   * @returns The ID of the added item
+   */
+  public async addItem(
+    text: string,
+    metadata?: T,
+    options: {
+      addToRemote?: boolean // Whether to also add to the remote server if connected
+      id?: string // Optional ID to use instead of generating a new one
+    } = {}
+  ): Promise<string> {
+    // Use the existing add method with forceEmbed to ensure text is embedded
+    return this.add(text, metadata, { ...options, forceEmbed: true })
   }
 
   /**
@@ -685,7 +763,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       forceEmbed?: boolean // Force using the embedding function even if input is a vector
     } = {}
   ): Promise<SearchResult<T>[]> {
-    await this.ensureInitialized()
+    if (!this.isInitialized) {
+      throw new Error('BrainyData must be initialized before searching. Call init() first.')
+    }
 
     try {
       let queryVector: Vector
@@ -814,6 +894,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       verbDirection?: 'outgoing' | 'incoming' | 'both' // Direction of verbs to consider when searching connected nouns
     } = {}
   ): Promise<SearchResult<T>[]> {
+    if (!this.isInitialized) {
+      throw new Error('BrainyData must be initialized before searching. Call init() first.')
+    }
     // If searching for verbs directly
     if (options.searchVerbs) {
       const verbResults = await this.searchVerbs(queryVectorOrData, k, {
@@ -873,6 +956,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       includeVerbs?: boolean // Whether to include associated GraphVerbs in the results
     } = {}
   ): Promise<SearchResult<T>[]> {
+    if (!this.isInitialized) {
+      throw new Error('BrainyData must be initialized before searching. Call init() first.')
+    }
     // If input is a string and not a vector, automatically vectorize it
     let queryToUse = queryVectorOrData
     if (typeof queryVectorOrData === 'string' && !options.forceEmbed) {

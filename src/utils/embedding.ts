@@ -22,52 +22,163 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
 
   /**
    * Add polyfills and patches for TensorFlow.js compatibility
-   * This addresses issues with TensorFlow.js in Node.js environments
-   * 
+   * This addresses issues with TensorFlow.js across all server environments
+   * (Node.js, serverless, and other server environments)
+   *
    * Note: The main TensorFlow.js patching is now centralized in textEncoding.ts
    * and applied through setup.ts. This method only adds additional utility functions
    * that might be needed by TensorFlow.js.
    */
-  private addNodeCompatibilityPolyfills(): void {
-    // Only apply in Node.js environment
-    if (
-      typeof process === 'undefined' ||
-      !process.versions ||
-      !process.versions.node
-    ) {
-      return
+  private addServerCompatibilityPolyfills(): void {
+    // Apply in all non-browser environments (Node.js, serverless, server environments)
+    const isBrowserEnv = typeof window !== 'undefined' && typeof document !== 'undefined'
+    if (isBrowserEnv) {
+      return // Browser environments don't need these polyfills
     }
 
-    // Add polyfill for isFloat32Array in Node.js 24.4.0
-    // This fixes the "Cannot read properties of undefined (reading 'isFloat32Array')" error
-    if (typeof global !== 'undefined') {
+    // Get the appropriate global object for the current environment
+    const globalObj = (() => {
+      if (typeof globalThis !== 'undefined') return globalThis
+      if (typeof global !== 'undefined') return global
+      if (typeof self !== 'undefined') return self
+      return {} as any // Fallback for unknown environments
+    })()
+
+    // Add polyfill for utility functions across all server environments
+    // This fixes issues like "Cannot read properties of undefined (reading 'isFloat32Array')"
+    try {
+      // Ensure the util object exists
+      if (!globalObj.util) {
+        globalObj.util = {}
+      }
+
+      // Add isFloat32Array method if it doesn't exist
+      if (!globalObj.util.isFloat32Array) {
+        globalObj.util.isFloat32Array = (obj: any) => {
+          return !!(
+            obj instanceof Float32Array ||
+            (obj &&
+              Object.prototype.toString.call(obj) === '[object Float32Array]')
+          )
+        }
+      }
+
+      // Add isTypedArray method if it doesn't exist
+      if (!globalObj.util.isTypedArray) {
+        globalObj.util.isTypedArray = (obj: any) => {
+          return !!(ArrayBuffer.isView(obj) && !(obj instanceof DataView))
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to add utility polyfills:', error)
+    }
+  }
+
+  /**
+   * Check if we're running in a test environment
+   */
+  private isTestEnvironment(): boolean {
+    // Safely check for Node.js environment first
+    if (typeof process === 'undefined') {
+      return false
+    }
+    
+    return (
+      process.env.NODE_ENV === 'test' ||
+      process.env.VITEST === 'true' ||
+      (typeof global !== 'undefined' && global.__vitest__) ||
+      process.argv.some((arg) => arg.includes('vitest'))
+    )
+  }
+
+  /**
+   * Log message only if not in test environment
+   */
+  private logIfNotTest(
+    level: 'log' | 'warn' | 'error',
+    message: string,
+    ...args: any[]
+  ): void {
+    if (!this.isTestEnvironment()) {
+      console[level](message, ...args)
+    }
+  }
+
+  /**
+   * Load the Universal Sentence Encoder model with retry logic
+   * This helps handle network failures and JSON parsing errors from TensorFlow Hub
+   * @param loadFunction The function to load the model
+   * @param maxRetries Maximum number of retry attempts
+   * @param baseDelay Base delay in milliseconds for exponential backoff
+   */
+  private async loadModelWithRetry(
+    loadFunction: () => Promise<EmbeddingModel>,
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+  ): Promise<EmbeddingModel> {
+    let lastError: Error | null = null
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        // Ensure the util object exists
-        if (!global.util) {
-          global.util = {}
+        this.logIfNotTest(
+          'log',
+          attempt === 0
+            ? 'Loading Universal Sentence Encoder model...'
+            : `Retrying Universal Sentence Encoder model loading (attempt ${attempt + 1}/${maxRetries + 1})...`
+        )
+
+        const model = await loadFunction()
+
+        if (attempt > 0) {
+          this.logIfNotTest(
+            'log',
+            'Universal Sentence Encoder model loaded successfully after retry'
+          )
         }
 
-        // Add isFloat32Array method if it doesn't exist
-        if (!global.util.isFloat32Array) {
-          global.util.isFloat32Array = (obj: any) => {
-            return !!(
-              obj instanceof Float32Array ||
-              (obj &&
-                Object.prototype.toString.call(obj) === '[object Float32Array]')
+        return model
+      } catch (error) {
+        lastError = error as Error
+        const errorMessage = lastError.message || String(lastError)
+
+        // Check if this is a network-related error that might benefit from retry
+        const isRetryableError =
+          errorMessage.includes('Failed to parse model JSON') ||
+          errorMessage.includes('Failed to fetch') ||
+          errorMessage.includes('Network error') ||
+          errorMessage.includes('ENOTFOUND') ||
+          errorMessage.includes('ECONNRESET') ||
+          errorMessage.includes('ETIMEDOUT') ||
+          errorMessage.includes('JSON') ||
+          errorMessage.includes('model.json')
+
+        if (attempt < maxRetries && isRetryableError) {
+          const delay = baseDelay * Math.pow(2, attempt) // Exponential backoff
+          this.logIfNotTest(
+            'warn',
+            `Universal Sentence Encoder model loading failed (attempt ${attempt + 1}): ${errorMessage}. Retrying in ${delay}ms...`
+          )
+          await new Promise((resolve) => setTimeout(resolve, delay))
+        } else {
+          // Either we've exhausted retries or this is not a retryable error
+          if (attempt >= maxRetries) {
+            this.logIfNotTest(
+              'error',
+              `Universal Sentence Encoder model loading failed after ${maxRetries + 1} attempts. Last error: ${errorMessage}`
+            )
+          } else {
+            this.logIfNotTest(
+              'error',
+              `Universal Sentence Encoder model loading failed with non-retryable error: ${errorMessage}`
             )
           }
+          throw lastError
         }
-
-        // Add isTypedArray method if it doesn't exist
-        if (!global.util.isTypedArray) {
-          global.util.isTypedArray = (obj: any) => {
-            return !!(ArrayBuffer.isView(obj) && !(obj instanceof DataView))
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to add utility polyfills:', error)
       }
     }
+
+    // This should never be reached, but just in case
+    throw lastError || new Error('Unknown error during model loading')
   }
 
   /**
@@ -93,31 +204,62 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
       }
 
       // Add polyfills for TensorFlow.js compatibility
-      this.addNodeCompatibilityPolyfills()
+      this.addServerCompatibilityPolyfills()
 
       // TensorFlow.js will use its default EPSILON value
 
-      // CRITICAL: First, directly import the setup module to ensure the TensorFlow.js patch is applied
-      // This is the most reliable way to ensure the patch is applied before TensorFlow.js is loaded
+      // CRITICAL: Ensure TextEncoder/TextDecoder are available before TensorFlow.js loads
       try {
-        // In Node.js environment, use require() which is synchronous
-        if (typeof require !== 'undefined') {
-          // First, require the setup module to apply the patch
-          require('../setup.js')
+        // Get the appropriate global object for the current environment
+        const globalObj = (() => {
+          if (typeof globalThis !== 'undefined') return globalThis
+          if (typeof global !== 'undefined') return global
+          if (typeof self !== 'undefined') return self
+          return null
+        })()
 
-          // Now load TensorFlow.js core module
-          this.tf = require('@tensorflow/tfjs-core')
+        // Ensure TextEncoder/TextDecoder are globally available in server environments
+        if (globalObj) {
+          // Try to use Node.js util module if available (Node.js environments)
+          try {
+            if (typeof process !== 'undefined' && process.versions && process.versions.node) {
+              const util = await import('util')
+              if (!globalObj.TextEncoder) {
+                globalObj.TextEncoder = util.TextEncoder
+              }
+              if (!globalObj.TextDecoder) {
+                globalObj.TextDecoder = util.TextDecoder
+              }
+            }
+          } catch (utilError) {
+            // Fallback to standard TextEncoder/TextDecoder for non-Node.js server environments
+            if (!globalObj.TextEncoder) {
+              globalObj.TextEncoder = TextEncoder
+            }
+            if (!globalObj.TextDecoder) {
+              globalObj.TextDecoder = TextDecoder
+            }
+          }
+        }
 
-          // Load CPU backend (always needed as fallback)
-          require('@tensorflow/tfjs-backend-cpu')
+        // Apply the TensorFlow.js patch
+        const { applyTensorFlowPatch } = await import('./textEncoding.js')
+        await applyTensorFlowPatch()
 
-          // Try to load WebGL backend for GPU acceleration in browser environments
+        // Now load TensorFlow.js core module using dynamic imports
+        this.tf = await import('@tensorflow/tfjs-core')
+
+        // Import CPU backend (always needed as fallback)
+        await import('@tensorflow/tfjs-backend-cpu')
+
+        // Try to import WebGL backend for GPU acceleration in browser environments
+        try {
           if (typeof window !== 'undefined') {
+            await import('@tensorflow/tfjs-backend-webgl')
+            // Check if WebGL is available
             try {
-              require('@tensorflow/tfjs-backend-webgl')
-              // Check if WebGL is available
               if (this.tf.setBackend) {
-                this.tf.setBackend('webgl')
+                await this.tf.setBackend('webgl')
                 this.backend = 'webgl'
                 console.log('Using WebGL backend for TensorFlow.js')
               } else {
@@ -133,58 +275,18 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
               this.backend = 'cpu'
             }
           }
-
-          // Load Universal Sentence Encoder
-          this.use = require('@tensorflow-models/universal-sentence-encoder')
-        } else {
-          // In browser or other environments without require(), use dynamic imports
-          // First, dynamically import the setup module to apply the patch
-          await import('../setup.js')
-
-          // Now load TensorFlow.js core module
-          this.tf = await import('@tensorflow/tfjs-core')
-
-          // Import CPU backend (always needed as fallback)
-          await import('@tensorflow/tfjs-backend-cpu')
-
-          // Try to import WebGL backend for GPU acceleration in browser environments
-          try {
-            if (typeof window !== 'undefined') {
-              await import('@tensorflow/tfjs-backend-webgl')
-              // Check if WebGL is available
-              try {
-                if (this.tf.setBackend) {
-                  await this.tf.setBackend('webgl')
-                  this.backend = 'webgl'
-                  console.log('Using WebGL backend for TensorFlow.js')
-                } else {
-                  console.warn(
-                    'tf.setBackend is not available, falling back to CPU'
-                  )
-                }
-              } catch (e) {
-                console.warn(
-                  'WebGL backend not available, falling back to CPU:',
-                  e
-                )
-                this.backend = 'cpu'
-              }
-            }
-          } catch (error) {
-            console.warn(
-              'WebGL backend not available, falling back to CPU:',
-              error
-            )
-            this.backend = 'cpu'
-          }
-
-          // Load Universal Sentence Encoder
-          this.use = await import(
-            '@tensorflow-models/universal-sentence-encoder'
+        } catch (error) {
+          console.warn(
+            'WebGL backend not available, falling back to CPU:',
+            error
           )
+          this.backend = 'cpu'
         }
+
+        // Load Universal Sentence Encoder using dynamic import
+        this.use = await import('@tensorflow-models/universal-sentence-encoder')
       } catch (error) {
-        console.error('Failed to initialize TensorFlow.js:', error)
+        this.logIfNotTest('error', 'Failed to initialize TensorFlow.js:', error)
         throw error
       }
 
@@ -209,14 +311,18 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
         )
       }
 
-      // Load the model
-      this.model = await loadFunction()
+      // Load the model with retry logic for network failures
+      this.model = await this.loadModelWithRetry(loadFunction)
       this.initialized = true
 
       // Restore original console.warn
       console.warn = originalWarn
     } catch (error) {
-      console.error('Failed to initialize Universal Sentence Encoder:', error)
+      this.logIfNotTest(
+        'error',
+        'Failed to initialize Universal Sentence Encoder:',
+        error
+      )
       throw new Error(
         `Failed to initialize Universal Sentence Encoder: ${error}`
       )
@@ -272,7 +378,8 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
 
       return embeddingArray[0]
     } catch (error) {
-      console.error(
+      this.logIfNotTest(
+        'error',
         'Failed to embed text with Universal Sentence Encoder:',
         error
       )
@@ -336,7 +443,8 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
 
       return results
     } catch (error) {
-      console.error(
+      this.logIfNotTest(
+        'error',
         'Failed to batch embed text with Universal Sentence Encoder:',
         error
       )
@@ -357,7 +465,11 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
         this.tf.disposeVariables()
         this.initialized = false
       } catch (error) {
-        console.error('Failed to dispose Universal Sentence Encoder:', error)
+        this.logIfNotTest(
+          'error',
+          'Failed to dispose Universal Sentence Encoder:',
+          error
+        )
       }
     }
     return Promise.resolve()
@@ -472,12 +584,47 @@ function findUSELoadFunction(
 }
 
 /**
+ * Check if we're running in a test environment (standalone version)
+ */
+function isTestEnvironment(): boolean {
+  // Safely check for Node.js environment first
+  if (typeof process === 'undefined') {
+    return false
+  }
+  
+  return (
+    process.env.NODE_ENV === 'test' ||
+    process.env.VITEST === 'true' ||
+    (typeof global !== 'undefined' && global.__vitest__) ||
+    process.argv.some((arg) => arg.includes('vitest'))
+  )
+}
+
+/**
+ * Log message only if not in test environment (standalone version)
+ */
+function logIfNotTest(
+  level: 'log' | 'warn' | 'error',
+  message: string,
+  ...args: any[]
+): void {
+  if (!isTestEnvironment()) {
+    console[level](message, ...args)
+  }
+}
+
+/**
  * Create an embedding function from an embedding model
- * @param model Embedding model to use
+ * @param model Embedding model to use (optional, defaults to UniversalSentenceEncoder)
  */
 export function createEmbeddingFunction(
-  model: EmbeddingModel
+  model?: EmbeddingModel
 ): EmbeddingFunction {
+  // If no model is provided, use the default TensorFlow embedding function
+  if (!model) {
+    return createTensorFlowEmbeddingFunction()
+  }
+
   return async (data: any): Promise<Vector> => {
     return await model.embed(data)
   }
@@ -497,13 +644,19 @@ export function createTensorFlowEmbeddingFunction(): EmbeddingFunction {
     try {
       // Initialize the model if it hasn't been initialized yet
       if (!sharedModelInitialized) {
-        await sharedModel.init()
-        sharedModelInitialized = true
+        try {
+          await sharedModel.init()
+          sharedModelInitialized = true
+        } catch (initError) {
+          // Reset the flag so we can retry initialization on the next call
+          sharedModelInitialized = false
+          throw initError
+        }
       }
 
       return await sharedModel.embed(data)
     } catch (error) {
-      console.error('Failed to use TensorFlow embedding:', error)
+      logIfNotTest('error', 'Failed to use TensorFlow embedding:', error)
       throw new Error(
         `Universal Sentence Encoder is required but failed: ${error}`
       )
@@ -543,7 +696,7 @@ export const defaultBatchEmbeddingFunction: (
 
     return await sharedBatchModel.embedBatch(dataArray)
   } catch (error) {
-    console.error('Failed to use TensorFlow batch embedding:', error)
+    logIfNotTest('error', 'Failed to use TensorFlow batch embedding:', error)
     throw new Error(
       `Universal Sentence Encoder batch embedding failed: ${error}`
     )
