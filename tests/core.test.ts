@@ -150,7 +150,7 @@ describe('Brainy Core Functionality', () => {
 
       await euclideanData.init()
       await cosineData.init()
-      
+
       // Clear any existing data to ensure test isolation
       await euclideanData.clear()
       await cosineData.clear()
@@ -308,30 +308,35 @@ describe('Brainy Core Functionality', () => {
     })
 
     it('should maintain search quality with more data', async () => {
-      const data = new brainy.BrainyData({
-        dimensions: 5,
-        metric: 'euclidean'
+      // Create database with proper configuration for testing
+      const db = new brainy.BrainyData({
+        embeddingFunction: brainy.createEmbeddingFunction(),
+        metric: 'cosine'
       })
 
-      await data.init()
+      await db.init()
+      await db.clear() // Clear any existing data
 
-      // Add some known vectors
-      const knownVector = [1, 2, 3, 4, 5]
-      await data.add(knownVector, { id: 'known', type: 'target' })
+      // Add known data
+      await db.add('known data', { id: 'known' })
 
-      // Add noise vectors
-      for (let i = 0; i < 50; i++) {
-        const noiseVector =
-          globalThis.testUtils?.createTestVector(5) ||
-          Array.from({ length: 5 }, (_, i) => (i + 1) / 5)
-        await data.add(noiseVector, { id: `noise_${i}`, type: 'noise' })
+      // Add noise data
+      for (let i = 0; i < 100; i++) {
+        await db.add(`noise_${i}`, { id: `noise_${i}` })
       }
 
-      // Search for the known vector should still find it first
-      const results = await data.search(knownVector, 5)
+      // Perform search using the correct method
+      const results = await db.search('known data', 10)
 
+      // Debugging output
+      console.log(
+        'Search results:',
+        results.map((r) => r.metadata?.id)
+      )
+
+      // Assertions
       expect(results.length).toBeGreaterThan(0)
-      expect(results[0].metadata.id).toBe('known')
+      expect(results[0].metadata?.id).toBe('known')
     })
   })
 })
