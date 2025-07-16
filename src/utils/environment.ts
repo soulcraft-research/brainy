@@ -13,6 +13,12 @@ export function isBrowser(): boolean {
  * Check if code is running in a Node.js environment
  */
 export function isNode(): boolean {
+  // If browser environment is detected, prioritize it over Node.js
+  // This handles cases like jsdom where both window and process exist
+  if (isBrowser()) {
+    return false
+  }
+
   return (
     typeof process !== 'undefined' &&
     process.versions != null &&

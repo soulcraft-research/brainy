@@ -16,16 +16,20 @@
 // available to TensorFlow.js before it initializes its platform detection
 import './setup.js'
 
-// Export environment information
+// Import environment detection functions
+import { isBrowser, isNode } from './utils/environment.js'
+
+// Export environment information with lazy evaluation
 export const environment = {
-  isBrowser: typeof window !== 'undefined',
-  isNode:
-    typeof process !== 'undefined' && process.versions && process.versions.node,
-  isServerless:
-    typeof window === 'undefined' &&
-    (typeof process === 'undefined' ||
-      !process.versions ||
-      !process.versions.node)
+  get isBrowser() {
+    return isBrowser()
+  },
+  get isNode() {
+    return isNode()
+  },
+  get isServerless() {
+    return !isBrowser() && !isNode()
+  }
 }
 
 // Make environment information available globally
@@ -46,3 +50,6 @@ console.log(
 
 // Re-export everything from index.ts
 export * from './index.js'
+
+// Export the TensorFlow patch function for testing and manual use
+export { applyTensorFlowPatch } from './utils/textEncoding.js'

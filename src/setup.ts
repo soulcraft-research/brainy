@@ -15,40 +15,32 @@
  * tree-shaking by bundlers, ensuring the patch is always applied.
  */
 
-// CRITICAL: Apply the TensorFlow.js patch immediately at the top level
-// This ensures it runs as early as possible in the module loading process
-// before any imports are processed
-if (
-  typeof process !== 'undefined' &&
-  process.versions &&
-  process.versions.node
-) {
-  try {
-    // For CommonJS environments, use require to ensure synchronous loading
-    if (typeof require === 'function') {
-      const textEncoding = require('./utils/textEncoding.js')
-      if (
-        textEncoding &&
-        typeof textEncoding.applyTensorFlowPatch === 'function'
-      ) {
-        textEncoding.applyTensorFlowPatch()
-        console.log(
-          'Applied TensorFlow.js patch via CommonJS require in setup.ts'
-        )
-      }
-    }
-  } catch (e) {
-    console.warn('Failed to apply TensorFlow.js patch via require:', e)
-    // Continue to the import-based approach
+// Get the appropriate global object for the current environment
+const globalObj = (() => {
+  if (typeof globalThis !== 'undefined') return globalThis
+  if (typeof global !== 'undefined') return global
+  if (typeof self !== 'undefined') return self
+  return null // No global object available
+})()
+
+// Define TextEncoder and TextDecoder globally to make sure they're available
+// Now works across all environments: Node.js, serverless, and other server environments
+if (globalObj) {
+  if (!globalObj.TextEncoder) {
+    globalObj.TextEncoder = TextEncoder
   }
+  if (!globalObj.TextDecoder) {
+    globalObj.TextDecoder = TextDecoder
+  }
+  
+  // Create a special global constructor that TensorFlow can use safely
+  ;(globalObj as any).__TextEncoder__ = TextEncoder
+  ;(globalObj as any).__TextDecoder__ = TextDecoder
 }
 
 // Also import normally for ES modules environments
 import { applyTensorFlowPatch } from './utils/textEncoding.js'
 
-// Apply the TensorFlow.js platform patch if needed
-// This will be a no-op if the patch was already applied via require above
+// Apply the TensorFlow.js platform patch
 applyTensorFlowPatch()
-console.log(
-  'Applied or verified TensorFlow.js patch via ES modules in setup.ts'
-)
+console.log('Applied TensorFlow.js patch via ES modules in setup.ts')
