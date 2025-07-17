@@ -35,7 +35,7 @@ npx http-server
 If you see the error "Could not load Brainy library. Please ensure the project is built and served over HTTP", check the
 following:
 
-1. Make sure you've built the project with `npm run build:all`
+1. Make sure you've built the project with `npm run build && npm run build:browser`
 2. Ensure you're accessing the demo through HTTP (not by opening the file directly)
 3. Check your browser's console for additional error messages
 
