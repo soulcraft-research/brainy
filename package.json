@@ -67,7 +67,6 @@
     "prepare": "npm run build",
     "deploy": "npm run build && npm publish && node scripts/create-github-release.js",
     "deploy:cli": "node scripts/generate-version.js && cd cli-package && npm run build && npm publish",
-    "postinstall": "echo 'Note: If you encounter dependency conflicts with TensorFlow.js packages, please use: npm install --legacy-peer-deps'",
     "dry-run": "npm pack --dry-run",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -76,6 +75,7 @@
     "test:browser": "vitest run tests/environment.browser.test.ts --environment jsdom",
     "test:core": "vitest run tests/core.test.ts",
     "test:coverage": "vitest run --coverage",
+    "test:size": "vitest run tests/package-size-limit.test.ts",
     "test:all": "npm run build && vitest run"
   },
   "keywords": [

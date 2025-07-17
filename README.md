@@ -62,12 +62,7 @@ GitHub Pages that showcases Brainy's main features.
 npm install @soulcraft/brainy
 ```
 
-TensorFlow.js packages are included as required dependencies and will be automatically installed. If you encounter
-dependency conflicts, you may need to use the `--legacy-peer-deps` flag:
-
-```bash
-npm install @soulcraft/brainy --legacy-peer-deps
-```
+TensorFlow.js packages are included as bundled dependencies and will be automatically installed without any additional configuration.
 
 ## 🏁 Quick Start
 

@@ -54,7 +54,10 @@ describe('Brainy in Node.js Environment', () => {
       }
       const db = new brainy.BrainyData({
         dimensions: 3,
-        metric: 'euclidean'
+        metric: 'euclidean',
+        storage: {
+          forceMemoryStorage: true
+        }
       })
 
       await db.init()
@@ -83,7 +86,10 @@ describe('Brainy in Node.js Environment', () => {
         }
         const db = new brainy.BrainyData({
           embeddingFunction: brainy.createEmbeddingFunction(),
-          metric: 'cosine'
+          metric: 'cosine',
+          storage: {
+            forceMemoryStorage: true
+          }
         })
 
         await db.init()
@@ -109,7 +115,10 @@ describe('Brainy in Node.js Environment', () => {
       }
       const db = new brainy.BrainyData({
         dimensions: 2,
-        metric: 'euclidean'
+        metric: 'euclidean',
+        storage: {
+          forceMemoryStorage: true
+        }
       })
 
       await db.init()
@@ -155,7 +164,10 @@ describe('Brainy in Node.js Environment', () => {
       }
       const db = new brainy.BrainyData({
         dimensions: 2,
-        metric: 'euclidean'
+        metric: 'euclidean',
+        storage: {
+          forceMemoryStorage: true
+        }
       })
 
       await db.init()
