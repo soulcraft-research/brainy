@@ -60,7 +60,7 @@ This project uses ESLint and Prettier for code formatting and style checking. Th
 
 You can check your code style by running:
 ```bash
-npm run check-style
+npm run check:style
 ```
 
 This will run all code style checks, including a specific check for semicolons.

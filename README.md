@@ -110,14 +110,9 @@ import { BrainyData } from '@soulcraft/brainy'
 
 // Minified version for production
 import { BrainyData } from '@soulcraft/brainy/min'
-
-// CLI functionality (only imported when needed)
-import '@soulcraft/brainy/cli'
 ```
 
-> **Note**: The CLI functionality (4MB) is not included in the standard import, reducing the bundle size for browser and
-> Node.js applications. The CLI is only built and loaded when explicitly imported or when using the command-line
-> interface.
+> **Note**: The CLI functionality is available as a separate package `@soulcraft/brainy-cli` to reduce the bundle size of the main package. Install it globally with `npm install -g @soulcraft/brainy-cli` to use the command-line interface.
 
 ### Browser Usage
 
@@ -417,18 +412,13 @@ brainy visualize --root <id> --depth 3
 
 ### Using the CLI in Your Code
 
-If you need to use the CLI functionality in your code, you can import it explicitly:
+The CLI functionality is available as a separate package `@soulcraft/brainy-cli`. If you need CLI functionality in your application, install the CLI package:
 
-```typescript
-// Import the CLI functionality
-import '@soulcraft/brainy/cli'
-
-// Now you can use the CLI programmatically
-// ...
+```bash
+npm install @soulcraft/brainy-cli
 ```
 
-This will only build and load the CLI when you explicitly import it, keeping your bundle size small when you don't need
-the CLI.
+Then you can use the CLI commands programmatically or through the command line interface.
 
 ### Available Commands
 
