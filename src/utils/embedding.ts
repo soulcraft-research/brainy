@@ -298,12 +298,7 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
         await this.tf.setBackend(this.backend)
       }
 
-      // Log the module structure to help with debugging
-      console.log(
-        'Universal Sentence Encoder module structure in main thread:',
-        Object.keys(this.use),
-        this.use.default ? Object.keys(this.use.default) : 'No default export'
-      )
+      // Module structure available for debugging if needed
 
       // Try to find the load function in different possible module structures
       const loadFunction = findUSELoadFunction(this.use)
@@ -488,14 +483,7 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
 function findUSELoadFunction(
   sentenceEncoderModule: any
 ): (() => Promise<EmbeddingModel>) | null {
-  // Log the module structure for debugging
-  console.log(
-    'Universal Sentence Encoder module structure:',
-    Object.keys(sentenceEncoderModule),
-    sentenceEncoderModule.default
-      ? Object.keys(sentenceEncoderModule.default)
-      : 'No default export'
-  )
+  // Module structure available for debugging if needed
 
   let loadFunction = null
 
@@ -505,7 +493,6 @@ function findUSELoadFunction(
     typeof sentenceEncoderModule.load === 'function'
   ) {
     loadFunction = sentenceEncoderModule.load
-    console.log('Using sentenceEncoderModule.load')
   }
   // Then try sentenceEncoderModule.default.load (default export)
   else if (
@@ -514,7 +501,6 @@ function findUSELoadFunction(
     typeof sentenceEncoderModule.default.load === 'function'
   ) {
     loadFunction = sentenceEncoderModule.default.load
-    console.log('Using sentenceEncoderModule.default.load')
   }
   // Try sentenceEncoderModule.default directly if it's a function
   else if (
@@ -522,12 +508,10 @@ function findUSELoadFunction(
     typeof sentenceEncoderModule.default === 'function'
   ) {
     loadFunction = sentenceEncoderModule.default
-    console.log('Using sentenceEncoderModule.default as function')
   }
   // Try sentenceEncoderModule directly if it's a function
   else if (typeof sentenceEncoderModule === 'function') {
     loadFunction = sentenceEncoderModule
-    console.log('Using sentenceEncoderModule as function')
   }
   // Try additional common patterns
   else if (
@@ -535,7 +519,6 @@ function findUSELoadFunction(
     typeof sentenceEncoderModule.UniversalSentenceEncoder.load === 'function'
   ) {
     loadFunction = sentenceEncoderModule.UniversalSentenceEncoder.load
-    console.log('Using sentenceEncoderModule.UniversalSentenceEncoder.load')
   } else if (
     sentenceEncoderModule.default &&
     sentenceEncoderModule.default.UniversalSentenceEncoder &&
@@ -543,9 +526,6 @@ function findUSELoadFunction(
       'function'
   ) {
     loadFunction = sentenceEncoderModule.default.UniversalSentenceEncoder.load
-    console.log(
-      'Using sentenceEncoderModule.default.UniversalSentenceEncoder.load'
-    )
   }
   // Try to find the load function in the module's properties
   else {
@@ -556,7 +536,6 @@ function findUSELoadFunction(
         const fnName = sentenceEncoderModule[key].name || key
         if (fnName.toLowerCase().includes('load')) {
           loadFunction = sentenceEncoderModule[key]
-          console.log(`Using sentenceEncoderModule.${key} as load function`)
           break
         }
       }
@@ -571,9 +550,6 @@ function findUSELoadFunction(
               sentenceEncoderModule[key][nestedKey].name || nestedKey
             if (fnName.toLowerCase().includes('load')) {
               loadFunction = sentenceEncoderModule[key][nestedKey]
-              console.log(
-                `Using sentenceEncoderModule.${key}.${nestedKey} as load function`
-              )
               break
             }
           }

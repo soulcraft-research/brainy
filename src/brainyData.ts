@@ -255,10 +255,10 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       // Pre-load the embedding model early to ensure it's always available
       // This helps prevent issues with the Universal Sentence Encoder not being loaded
       try {
-        console.log('Pre-loading Universal Sentence Encoder model...')
+        // Pre-loading Universal Sentence Encoder model
         // Call embedding function directly to avoid circular dependency with embed()
         await this.embeddingFunction('')
-        console.log('Universal Sentence Encoder model loaded successfully')
+        // Universal Sentence Encoder model loaded successfully
       } catch (embedError) {
         console.warn(
           'Failed to pre-load Universal Sentence Encoder:',
@@ -266,7 +266,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         )
 
         // Try again with a retry mechanism
-        console.log('Retrying Universal Sentence Encoder initialization...')
+        // Retrying Universal Sentence Encoder initialization
         try {
           // Wait a moment before retrying
           await new Promise((resolve) => setTimeout(resolve, 1000))
