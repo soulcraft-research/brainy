@@ -62,6 +62,31 @@ Brainy uses a modern build system that optimizes for both Node.js and browser en
 
 ## Testing
 
+### Testing Best Practices
+
+When developing and debugging Brainy, follow these testing guidelines:
+
+1. **Use Proper Test Files**: All tests should be written as vitest test files in the `tests/` directory with `.test.ts` or `.spec.ts` extensions.
+
+2. **Avoid Temporary Debug Files**: Do not create temporary debug files like `debug_test.js`, `reproduce_issue.js`, or similar files in the root directory. These files:
+   - Clutter the repository
+   - Are excluded by vitest configuration but remain in the codebase
+   - Often duplicate functionality already covered by proper tests
+
+3. **Debugging Approach**: When debugging issues:
+   - Add temporary test cases to existing test files in the `tests/` directory
+   - Use `it.only()` or `describe.only()` to focus on specific tests during debugging
+   - Remove or convert temporary test cases to permanent tests before committing
+   - Use the existing test setup and utilities in `tests/setup.ts`
+
+4. **Test Organization**: 
+   - Core functionality tests go in `tests/core.test.ts`
+   - Environment-specific tests go in `tests/environment.*.test.ts`
+   - Utility function tests go in `tests/vector-operations.test.ts`
+   - New feature tests should follow the existing naming convention
+
+5. **Cleanup**: Always clean up temporary files before committing. The vitest configuration already excludes `*.js` files in the root directory, but they should be deleted rather than left in the repository.
+
 ### Testing All Environments
 
 Brainy provides a comprehensive test script that verifies the library works correctly in all supported environments (

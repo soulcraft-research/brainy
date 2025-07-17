@@ -31,7 +31,8 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
    */
   private addServerCompatibilityPolyfills(): void {
     // Apply in all non-browser environments (Node.js, serverless, server environments)
-    const isBrowserEnv = typeof window !== 'undefined' && typeof document !== 'undefined'
+    const isBrowserEnv =
+      typeof window !== 'undefined' && typeof document !== 'undefined'
     if (isBrowserEnv) {
       return // Browser environments don't need these polyfills
     }
@@ -82,7 +83,7 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
     if (typeof process === 'undefined') {
       return false
     }
-    
+
     return (
       process.env.NODE_ENV === 'test' ||
       process.env.VITEST === 'true' ||
@@ -94,14 +95,12 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
   /**
    * Log message only if not in test environment
    */
-  private logIfNotTest(
+  private logger(
     level: 'log' | 'warn' | 'error',
     message: string,
     ...args: any[]
   ): void {
-    if (!this.isTestEnvironment()) {
-      console[level](message, ...args)
-    }
+    console[level](message, ...args)
   }
 
   /**
@@ -120,7 +119,7 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        this.logIfNotTest(
+        this.logger(
           'log',
           attempt === 0
             ? 'Loading Universal Sentence Encoder model...'
@@ -130,7 +129,7 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
         const model = await loadFunction()
 
         if (attempt > 0) {
-          this.logIfNotTest(
+          this.logger(
             'log',
             'Universal Sentence Encoder model loaded successfully after retry'
           )
@@ -154,7 +153,7 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
 
         if (attempt < maxRetries && isRetryableError) {
           const delay = baseDelay * Math.pow(2, attempt) // Exponential backoff
-          this.logIfNotTest(
+          this.logger(
             'warn',
             `Universal Sentence Encoder model loading failed (attempt ${attempt + 1}): ${errorMessage}. Retrying in ${delay}ms...`
           )
@@ -162,12 +161,12 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
         } else {
           // Either we've exhausted retries or this is not a retryable error
           if (attempt >= maxRetries) {
-            this.logIfNotTest(
+            this.logger(
               'error',
               `Universal Sentence Encoder model loading failed after ${maxRetries + 1} attempts. Last error: ${errorMessage}`
             )
           } else {
-            this.logIfNotTest(
+            this.logger(
               'error',
               `Universal Sentence Encoder model loading failed with non-retryable error: ${errorMessage}`
             )
@@ -222,7 +221,11 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
         if (globalObj) {
           // Try to use Node.js util module if available (Node.js environments)
           try {
-            if (typeof process !== 'undefined' && process.versions && process.versions.node) {
+            if (
+              typeof process !== 'undefined' &&
+              process.versions &&
+              process.versions.node
+            ) {
               const util = await import('util')
               if (!globalObj.TextEncoder) {
                 globalObj.TextEncoder = util.TextEncoder
@@ -286,7 +289,7 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
         // Load Universal Sentence Encoder using dynamic import
         this.use = await import('@tensorflow-models/universal-sentence-encoder')
       } catch (error) {
-        this.logIfNotTest('error', 'Failed to initialize TensorFlow.js:', error)
+        this.logger('error', 'Failed to initialize TensorFlow.js:', error)
         throw error
       }
 
@@ -318,7 +321,7 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
       // Restore original console.warn
       console.warn = originalWarn
     } catch (error) {
-      this.logIfNotTest(
+      this.logger(
         'error',
         'Failed to initialize Universal Sentence Encoder:',
         error
@@ -378,7 +381,7 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
 
       return embeddingArray[0]
     } catch (error) {
-      this.logIfNotTest(
+      this.logger(
         'error',
         'Failed to embed text with Universal Sentence Encoder:',
         error
@@ -443,7 +446,7 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
 
       return results
     } catch (error) {
-      this.logIfNotTest(
+      this.logger(
         'error',
         'Failed to batch embed text with Universal Sentence Encoder:',
         error
@@ -465,7 +468,7 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
         this.tf.disposeVariables()
         this.initialized = false
       } catch (error) {
-        this.logIfNotTest(
+        this.logger(
           'error',
           'Failed to dispose Universal Sentence Encoder:',
           error
@@ -591,7 +594,7 @@ function isTestEnvironment(): boolean {
   if (typeof process === 'undefined') {
     return false
   }
-  
+
   return (
     process.env.NODE_ENV === 'test' ||
     process.env.VITEST === 'true' ||

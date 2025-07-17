@@ -182,7 +182,10 @@ describe('Brainy Core Functionality', () => {
         const data = new brainy.BrainyData({
           embeddingFunction,
           dimensions: 512, // Universal Sentence Encoder produces 512-dimensional vectors
-          metric: 'cosine'
+          metric: 'cosine',
+          storage: {
+            forceMemoryStorage: true
+          }
         })
 
         await data.init()
