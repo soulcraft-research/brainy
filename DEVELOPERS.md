@@ -168,11 +168,7 @@ These optimizations are particularly beneficial for:
 
 ## Reporting Issues
 
-We use GitHub issues to track bugs and feature requests. Please use the provided issue templates when creating a new
-issue:
-
-- [Bug Report Template](.github/ISSUE_TEMPLATE/bug_report.md)
-- [Feature Request Template](.github/ISSUE_TEMPLATE/feature_request.md)
+We use GitHub issues to track bugs and feature requests. When creating a new issue, please provide detailed information including steps to reproduce, expected behavior, and actual behavior for bugs, or clear use cases and benefits for feature requests.
 
 ## Code Style Guidelines
 
