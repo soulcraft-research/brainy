@@ -25,6 +25,8 @@ import {
   cosineDistance,
   defaultEmbeddingFunction,
   defaultBatchEmbeddingFunction,
+  getDefaultEmbeddingFunction,
+  getDefaultBatchEmbeddingFunction,
   euclideanDistance,
   cleanupWorkerPools
 } from './utils/index.js'
@@ -128,6 +130,18 @@ export interface BrainyDataConfig {
      */
     autoConnect?: boolean
   }
+
+  /**
+   * Logging configuration
+   */
+  logging?: {
+    /**
+     * Whether to enable verbose logging
+     * When false, suppresses non-essential log messages like model loading progress
+     * Default: true
+     */
+    verbose?: boolean
+  }
 }
 
 export class BrainyData<T = any> implements BrainyDataInterface<T> {
@@ -142,6 +156,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   private storageConfig: BrainyDataConfig['storage'] = {}
   private useOptimizedIndex: boolean = false
   private _dimensions: number
+  private loggingConfig: BrainyDataConfig['logging'] = { verbose: true }
 
   // Remote server properties
   private remoteServerConfig: BrainyDataConfig['remoteServer'] | null = null
@@ -203,9 +218,22 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     // Set storage if provided, otherwise it will be initialized in init()
     this.storage = config.storageAdapter || null
 
-    // Set embedding function if provided, otherwise use default
-    this.embeddingFunction =
-      config.embeddingFunction || defaultEmbeddingFunction
+    // Store logging configuration
+    if (config.logging !== undefined) {
+      this.loggingConfig = {
+        ...this.loggingConfig,
+        ...config.logging
+      }
+    }
+
+    // Set embedding function if provided, otherwise create one with the appropriate verbose setting
+    if (config.embeddingFunction) {
+      this.embeddingFunction = config.embeddingFunction
+    } else {
+      this.embeddingFunction = getDefaultEmbeddingFunction({ 
+        verbose: this.loggingConfig.verbose 
+      })
+    }
 
     // Set persistent storage request flag
     this.requestPersistentStorage =
@@ -806,13 +834,18 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
             continue
           }
 
-          const metadata = await this.storage!.getMetadata(id)
+          let metadata = await this.storage!.getMetadata(id)
+          
+          // Initialize metadata to an empty object if it's null
+          if (metadata === null) {
+            metadata = {} as T
+          }
 
           searchResults.push({
             id,
             score,
             vector: noun.vector,
-            metadata: metadata as T | undefined
+            metadata: metadata as T
           })
         }
 
@@ -855,13 +888,18 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
             continue
           }
 
-          const metadata = await this.storage!.getMetadata(id)
+          let metadata = await this.storage!.getMetadata(id)
+          
+          // Initialize metadata to an empty object if it's null
+          if (metadata === null) {
+            metadata = {} as T
+          }
 
           searchResults.push({
             id,
             score,
             vector: noun.vector,
-            metadata: metadata as T | undefined
+            metadata: metadata as T
           })
         }
 
