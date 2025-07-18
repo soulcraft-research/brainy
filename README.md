@@ -906,6 +906,71 @@ The simplified augmentation system provides:
 4. **Dynamic Loading** - Load augmentations at runtime when needed
 5. **Static & Streaming Data** - Handle both static and streaming data with the same API
 
+#### WebSocket Augmentation Types
+
+Brainy exports several WebSocket augmentation types that can be used by augmentation creators to add WebSocket capabilities to their augmentations:
+
+```typescript
+import {
+  // Base WebSocket support interface
+  IWebSocketSupport,
+  
+  // Combined WebSocket augmentation types
+  IWebSocketSenseAugmentation,
+  IWebSocketConduitAugmentation,
+  IWebSocketCognitionAugmentation,
+  IWebSocketMemoryAugmentation,
+  IWebSocketPerceptionAugmentation,
+  IWebSocketDialogAugmentation,
+  IWebSocketActivationAugmentation,
+  
+  // Function to add WebSocket support to any augmentation
+  addWebSocketSupport
+} from '@soulcraft/brainy'
+
+// Example: Creating a typed WebSocket-enabled sense augmentation
+const mySenseAug = createSenseAugmentation({
+  name: 'my-sense',
+  processRawData: async (data, dataType) => {
+    // Implementation
+    return {
+      success: true,
+      data: { nouns: [], verbs: [] }
+    }
+  }
+}) as IWebSocketSenseAugmentation
+
+// Add WebSocket support
+addWebSocketSupport(mySenseAug, {
+  connectWebSocket: async (url) => {
+    // WebSocket implementation
+    return {
+      connectionId: 'ws-1',
+      url,
+      status: 'connected'
+    }
+  },
+  sendWebSocketMessage: async (connectionId, data) => {
+    // Send message implementation
+  },
+  onWebSocketMessage: async (connectionId, callback) => {
+    // Register callback implementation
+  },
+  offWebSocketMessage: async (connectionId, callback) => {
+    // Remove callback implementation
+  },
+  closeWebSocket: async (connectionId, code, reason) => {
+    // Close connection implementation
+  }
+})
+
+// Now mySenseAug has both sense augmentation methods and WebSocket methods
+await mySenseAug.processRawData('data', 'text')
+await mySenseAug.connectWebSocket('wss://example.com')
+```
+
+These WebSocket augmentation types combine the base augmentation interfaces with the `IWebSocketSupport` interface, providing type safety and autocompletion for augmentations with WebSocket capabilities.
+
 ### Model Control Protocol (MCP)
 
 Brainy includes a Model Control Protocol (MCP) implementation that allows external models to access Brainy data and use
