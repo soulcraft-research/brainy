@@ -231,7 +231,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       this.embeddingFunction = config.embeddingFunction
     } else {
       this.embeddingFunction = getDefaultEmbeddingFunction({ 
-        verbose: this.loggingConfig.verbose 
+        verbose: this.loggingConfig?.verbose 
       })
     }
 
