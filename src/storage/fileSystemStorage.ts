@@ -111,7 +111,14 @@ export class FileSystemStorage implements StorageAdapter {
     try {
       // Now set up the directory paths
       const rootDir = this.rootDir || process.cwd()
-      this.rootDir = path.resolve(rootDir, ROOT_DIR)
+      
+      // Check if rootDir already ends with ROOT_DIR to prevent duplication
+      if (rootDir.endsWith(ROOT_DIR)) {
+        this.rootDir = rootDir
+      } else {
+        this.rootDir = path.resolve(rootDir, ROOT_DIR)
+      }
+      
       this.nounsDir = path.join(this.rootDir, NOUNS_DIR)
       this.verbsDir = path.join(this.rootDir, VERBS_DIR)
       this.metadataDir = path.join(this.rootDir, METADATA_DIR)
