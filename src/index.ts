@@ -83,13 +83,11 @@ export {
 import {
   OPFSStorage,
   MemoryStorage,
-  createStorage
-} from './storage/opfsStorage.js'
-import { FileSystemStorage } from './storage/fileSystemStorage.js'
-import {
+  FileSystemStorage,
   R2Storage,
-  S3CompatibleStorage
-} from './storage/s3CompatibleStorage.js'
+  S3CompatibleStorage,
+  createStorage
+} from './storage/storageFactory.js'
 
 export {
   OPFSStorage,
