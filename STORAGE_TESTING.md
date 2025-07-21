@@ -68,12 +68,54 @@ The storage tests can be run with:
 npx vitest run tests/storage-adapters.test.ts
 ```
 
+## Mock Implementations for Testing
+
+To facilitate testing of storage adapters in different environments, we've created mock implementations for both OPFS and S3 compatible storage:
+
+### OPFS Mock
+
+The OPFS (Origin Private File System) mock implementation provides a simulated file system environment for testing OPFS storage in a Node.js environment without requiring actual browser APIs. It's located in `/tests/mocks/opfs-mock.ts` and includes:
+
+- A mock file system using Maps to store directories and files
+- Mock implementations of FileSystemDirectoryHandle and FileSystemFileHandle
+- Functions to set up and clean up the mock environment
+- Support for all OPFS operations used by the OPFSStorage adapter
+
+### S3 Mock
+
+The S3 compatible storage mock implementation provides a simulated S3 bucket environment for testing S3 compatible storage in a Node.js environment without requiring actual S3 credentials. It's located in `/tests/mocks/s3-mock.ts` and includes:
+
+- A mock S3 storage using Maps to store buckets and objects
+- Mock implementations of S3 commands (CreateBucketCommand, PutObjectCommand, etc.)
+- Functions to set up and clean up the mock environment
+- Support for basic S3 operations used by the S3CompatibleStorage adapter
+
+## Running the Tests
+
+The storage tests can be run with:
+
+```bash
+# Run all storage tests
+npx vitest run tests/storage-adapters.test.ts
+
+# Run OPFS storage tests
+npx vitest run tests/opfs-storage.test.ts
+
+# Run S3 storage tests
+npx vitest run tests/s3-storage.test.ts
+```
+
 ## Future Improvements
 
 1. **Increase Test Coverage**: Add more tests for specific methods of each storage adapter
-2. **Improve OPFS Testing**: Develop better mocking for the OPFS API to test operations in browser environments
-3. **Add S3 Testing**: Add tests for S3CompatibleStorage and R2Storage using mock S3 services
+2. **Improve OPFS Testing**: Continue to enhance the OPFS mock implementation to better simulate browser environments
+3. **Enhance S3 Testing**: Improve the S3 mock implementation to fully support all operations used by the S3CompatibleStorage adapter, particularly:
+   - Fix issues with ListObjectsV2Command response handling
+   - Improve handling of metadata in GetObjectCommand
+   - Add better support for error cases and edge conditions
 4. **Integration Tests**: Add integration tests that test the storage system with real data
+5. **Browser Environment Testing**: Add tests that run in actual browser environments for OPFS storage
+6. **Real S3 Testing**: Add optional tests that can run against real S3 compatible services when credentials are provided
 
 ## Conclusion
 
