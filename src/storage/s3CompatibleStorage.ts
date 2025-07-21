@@ -13,14 +13,8 @@ const VERBS_PREFIX = 'verbs/'
 const EDGES_PREFIX = 'verbs/' // Alias for VERBS_PREFIX for edge operations
 const METADATA_PREFIX = 'metadata/'
 
-// Constants for noun type prefixes
-const PERSON_PREFIX = 'nouns/person/'
-const PLACE_PREFIX = 'place/'
-const THING_PREFIX = 'thing/'
-const EVENT_PREFIX = 'event/'
-const CONCEPT_PREFIX = 'concept/'
-const CONTENT_PREFIX = 'content/'
-const DEFAULT_PREFIX = 'default/' // For nodes without a noun type
+// All nouns now use the same prefix - no separate directories per noun type
+const NOUN_PREFIX = 'nouns/' // Single directory for all noun types
 
 /**
  * S3-compatible storage adapter for server environments
@@ -257,45 +251,86 @@ export class S3CompatibleStorage implements StorageAdapter {
     await this.ensureInitialized()
 
     try {
-      // Get the appropriate prefix based on the node's metadata
-      const nodePrefix = await this.getNodePrefix(id)
-
       // Import the GetObjectCommand only when needed
       const { GetObjectCommand } = await import('@aws-sdk/client-s3')
 
-      try {
-        // Try to get the node from S3-compatible storage
-        const response = await this.s3Client.send(
-          new GetObjectCommand({
-            Bucket: this.bucketName,
-            Key: `${nodePrefix}${id}.json`
-          })
-        )
+      // Try to get the node from the consolidated nouns directory
+      const response = await this.s3Client.send(
+        new GetObjectCommand({
+          Bucket: this.bucketName,
+          Key: `${NOUN_PREFIX}${id}.json`
+        })
+      )
 
-        // Convert the response body to a string
-        const bodyContents = await response.Body.transformToString()
-        const parsedNode = JSON.parse(bodyContents)
+      // Convert the response body to a string
+      const bodyContents = await response.Body.transformToString()
+      const parsedNode = JSON.parse(bodyContents)
 
-        // Convert serialized connections back to Map<number, Set<string>>
-        const connections = new Map<number, Set<string>>()
-        for (const [level, nodeIds] of Object.entries(parsedNode.connections)) {
-          connections.set(Number(level), new Set(nodeIds as string[]))
-        }
+      // Convert serialized connections back to Map<number, Set<string>>
+      const connections = new Map<number, Set<string>>()
+      for (const [level, nodeIds] of Object.entries(parsedNode.connections)) {
+        connections.set(Number(level), new Set(nodeIds as string[]))
+      }
 
-        return {
-          id: parsedNode.id,
-          vector: parsedNode.vector,
-          connections
-        }
-      } catch (error) {
-        // If the node is not found in the expected prefix, try other prefixes
-        if (nodePrefix !== DEFAULT_PREFIX) {
-          // Try the default prefix
+      return {
+        id: parsedNode.id,
+        vector: parsedNode.vector,
+        connections
+      }
+    } catch (error) {
+      // Node not found or other error
+      return null
+    }
+  }
+
+  /**
+   * Get nodes by noun type
+   * @param nounType The noun type to filter by
+   * @returns Promise that resolves to an array of nodes of the specified noun type
+   */
+  public async getNodesByNounType(nounType: string): Promise<HNSWNode[]> {
+    await this.ensureInitialized()
+
+    try {
+      // Import the ListObjectsV2Command and GetObjectCommand only when needed
+      const { ListObjectsV2Command, GetObjectCommand } = await import(
+        '@aws-sdk/client-s3'
+      )
+
+      // List all objects in the consolidated nouns directory
+      const listResponse = await this.s3Client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucketName,
+          Prefix: NOUN_PREFIX
+        })
+      )
+
+      const nodes: HNSWNode[] = []
+
+      // If there are no objects, return an empty array
+      if (!listResponse.Contents || listResponse.Contents.length === 0) {
+        return nodes
+      }
+
+      // Get each node and filter by noun type
+      const nodePromises = listResponse.Contents.map(
+        async (object: { Key: string }) => {
           try {
+            // Extract node ID from the key (remove prefix and .json extension)
+            const nodeId = object.Key.replace(NOUN_PREFIX, '').replace('.json', '')
+            
+            // Get the metadata to check the noun type
+            const metadata = await this.getMetadata(nodeId)
+            
+            // Skip if metadata doesn't exist or noun type doesn't match
+            if (!metadata || metadata.noun !== nounType) {
+              return null
+            }
+
             const response = await this.s3Client.send(
               new GetObjectCommand({
                 Bucket: this.bucketName,
-                Key: `${NOUNS_PREFIX}${DEFAULT_PREFIX}${id}.json`
+                Key: object.Key
               })
             )
 
@@ -315,103 +350,38 @@ export class S3CompatibleStorage implements StorageAdapter {
               vector: parsedNode.vector,
               connections
             }
-          } catch {
-            // If not found in default prefix, try all other prefixes
-            const prefixes = [
-              PERSON_PREFIX,
-              PLACE_PREFIX,
-              THING_PREFIX,
-              EVENT_PREFIX,
-              CONCEPT_PREFIX,
-              CONTENT_PREFIX
-            ]
-
-            for (const prefix of prefixes) {
-              if (prefix === nodePrefix) continue // Skip the already checked prefix
-
-              try {
-                const response = await this.s3Client.send(
-                  new GetObjectCommand({
-                    Bucket: this.bucketName,
-                    Key: `${NOUNS_PREFIX}${prefix}${id}.json`
-                  })
-                )
-
-                const bodyContents = await response.Body.transformToString()
-                const parsedNode = JSON.parse(bodyContents)
-
-                // Convert serialized connections back to Map<number, Set<string>>
-                const connections = new Map<number, Set<string>>()
-                for (const [level, nodeIds] of Object.entries(
-                  parsedNode.connections
-                )) {
-                  connections.set(Number(level), new Set(nodeIds as string[]))
-                }
-
-                return {
-                  id: parsedNode.id,
-                  vector: parsedNode.vector,
-                  connections
-                }
-              } catch {
-                // Continue to the next prefix
-              }
-            }
+          } catch (error) {
+            console.error(`Failed to get node from ${object.Key}:`, error)
+            return null
           }
         }
+      )
 
-        return null // Node not found in any prefix
-      }
+      const nodeResults = await Promise.all(nodePromises)
+      return nodeResults.filter((node): node is HNSWNode => node !== null)
     } catch (error) {
-      console.error(`Failed to get node ${id}:`, error)
-      return null
+      console.error(`Failed to get nodes for noun type ${nounType}:`, error)
+      throw new Error(`Failed to get nodes for noun type ${nounType}: ${error}`)
     }
   }
 
   /**
-   * Get nodes by noun type
-   * @param nounType The noun type to filter by
-   * @returns Promise that resolves to an array of nodes of the specified noun type
+   * Get all nodes from storage
    */
-  public async getNodesByNounType(nounType: string): Promise<HNSWNode[]> {
+  public async getAllNodes(): Promise<HNSWNode[]> {
     await this.ensureInitialized()
 
     try {
-      // Determine the prefix based on the noun type
-      let prefix: string
-      switch (nounType) {
-        case 'person':
-          prefix = PERSON_PREFIX
-          break
-        case 'place':
-          prefix = PLACE_PREFIX
-          break
-        case 'thing':
-          prefix = THING_PREFIX
-          break
-        case 'event':
-          prefix = EVENT_PREFIX
-          break
-        case 'concept':
-          prefix = CONCEPT_PREFIX
-          break
-        case 'content':
-          prefix = CONTENT_PREFIX
-          break
-        default:
-          prefix = DEFAULT_PREFIX
-      }
-
       // Import the ListObjectsV2Command and GetObjectCommand only when needed
       const { ListObjectsV2Command, GetObjectCommand } = await import(
         '@aws-sdk/client-s3'
       )
 
-      // List all objects with the specified prefix
+      // List all objects in the consolidated nouns directory
       const listResponse = await this.s3Client.send(
         new ListObjectsV2Command({
           Bucket: this.bucketName,
-          Prefix: `${NOUNS_PREFIX}${prefix}`
+          Prefix: NOUN_PREFIX
         })
       )
 
@@ -459,43 +429,6 @@ export class S3CompatibleStorage implements StorageAdapter {
       const nodeResults = await Promise.all(nodePromises)
       return nodeResults.filter((node): node is HNSWNode => node !== null)
     } catch (error) {
-      console.error(`Failed to get nodes for noun type ${nounType}:`, error)
-      throw new Error(`Failed to get nodes for noun type ${nounType}: ${error}`)
-    }
-  }
-
-  /**
-   * Get all nodes from storage
-   */
-  public async getAllNodes(): Promise<HNSWNode[]> {
-    await this.ensureInitialized()
-
-    try {
-      // Get all noun types
-      const nounTypes = [
-        'person',
-        'place',
-        'thing',
-        'event',
-        'concept',
-        'content',
-        'default'
-      ]
-
-      // Run searches in parallel for all noun types
-      const nodePromises = nounTypes.map((nounType) =>
-        this.getNodesByNounType(nounType)
-      )
-      const nodeArrays = await Promise.all(nodePromises)
-
-      // Combine all results
-      const allNodes: HNSWNode[] = []
-      for (const nodes of nodeArrays) {
-        allNodes.push(...nodes)
-      }
-
-      return allNodes
-    } catch (error) {
       console.error('Failed to get all nodes:', error)
       throw new Error(`Failed to get all nodes: ${error}`)
     }
@@ -508,90 +441,16 @@ export class S3CompatibleStorage implements StorageAdapter {
     await this.ensureInitialized()
 
     try {
-      // Get the appropriate prefix based on the node's metadata
-      const nodePrefix = await this.getNodePrefix(id)
-
       // Import the DeleteObjectCommand only when needed
-      const { DeleteObjectCommand, GetObjectCommand } = await import(
-        '@aws-sdk/client-s3'
+      const { DeleteObjectCommand } = await import('@aws-sdk/client-s3')
+
+      // Delete the node from the consolidated nouns directory
+      await this.s3Client.send(
+        new DeleteObjectCommand({
+          Bucket: this.bucketName,
+          Key: `${NOUN_PREFIX}${id}.json`
+        })
       )
-
-      try {
-        // Check if the node exists before deleting
-        await this.s3Client.send(
-          new GetObjectCommand({
-            Bucket: this.bucketName,
-            Key: `${nodePrefix}${id}.json`
-          })
-        )
-
-        // Delete the node
-        await this.s3Client.send(
-          new DeleteObjectCommand({
-            Bucket: this.bucketName,
-            Key: `${nodePrefix}${id}.json`
-          })
-        )
-        return // Node found and deleted
-      } catch {
-        // If the node is not found in the expected prefix, try other prefixes
-        if (nodePrefix !== DEFAULT_PREFIX) {
-          try {
-            // Try the default prefix
-            await this.s3Client.send(
-              new GetObjectCommand({
-                Bucket: this.bucketName,
-                Key: `${NOUNS_PREFIX}${DEFAULT_PREFIX}${id}.json`
-              })
-            )
-
-            // Delete the node
-            await this.s3Client.send(
-              new DeleteObjectCommand({
-                Bucket: this.bucketName,
-                Key: `${NOUNS_PREFIX}${DEFAULT_PREFIX}${id}.json`
-              })
-            )
-            return // Node found and deleted
-          } catch {
-            // If not found in default prefix, try all other prefixes
-            const prefixes = [
-              PERSON_PREFIX,
-              PLACE_PREFIX,
-              THING_PREFIX,
-              EVENT_PREFIX,
-              CONCEPT_PREFIX,
-              CONTENT_PREFIX
-            ]
-
-            for (const prefix of prefixes) {
-              if (prefix === nodePrefix) continue // Skip the already checked prefix
-
-              try {
-                await this.s3Client.send(
-                  new GetObjectCommand({
-                    Bucket: this.bucketName,
-                    Key: `${NOUNS_PREFIX}${prefix}${id}.json`
-                  })
-                )
-
-                // Delete the node
-                await this.s3Client.send(
-                  new DeleteObjectCommand({
-                    Bucket: this.bucketName,
-                    Key: `${NOUNS_PREFIX}${prefix}${id}.json`
-                  })
-                )
-                return // Node found and deleted
-              } catch {
-                // Continue to the next prefix
-              }
-            }
-          }
-        }
-
-        return // Node not found in any prefix, nothing to delete
-      }
     } catch (error) {
       console.error(`Failed to delete node ${id}:`, error)
       throw new Error(`Failed to delete node ${id}: ${error}`)
@@ -982,7 +841,7 @@ export class S3CompatibleStorage implements StorageAdapter {
         }
       }
 
-      // Count nodes by noun type
+      // Count nodes by noun type by examining metadata
       const nounTypeCounts: Record<string, number> = {
         person: 0,
         place: 0,
@@ -990,29 +849,41 @@ export class S3CompatibleStorage implements StorageAdapter {
         event: 0,
         concept: 0,
         content: 0,
+        group: 0,
+        list: 0,
+        category: 0,
         default: 0
       }
 
-      // List objects for each noun type prefix
-      const nounTypes = [
-        { type: 'person', prefix: PERSON_PREFIX },
-        { type: 'place', prefix: PLACE_PREFIX },
-        { type: 'thing', prefix: THING_PREFIX },
-        { type: 'event', prefix: EVENT_PREFIX },
-        { type: 'concept', prefix: CONCEPT_PREFIX },
-        { type: 'content', prefix: CONTENT_PREFIX },
-        { type: 'default', prefix: DEFAULT_PREFIX }
-      ]
+      // List all noun objects and count by type using metadata
+      const nounsListResponse = await this.s3Client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucketName,
+          Prefix: NOUN_PREFIX
+        })
+      )
 
-      for (const { type, prefix } of nounTypes) {
-        const listResponse = await this.s3Client.send(
-          new ListObjectsV2Command({
-            Bucket: this.bucketName,
-            Prefix: `${NOUNS_PREFIX}${prefix}`
-          })
-        )
-
-        nounTypeCounts[type] = listResponse.Contents?.length || 0
+      if (nounsListResponse.Contents) {
+        for (const object of nounsListResponse.Contents) {
+          try {
+            // Extract node ID from the key
+            const nodeId = object.Key?.replace(NOUN_PREFIX, '').replace('.json', '')
+            if (nodeId) {
+              // Get metadata to determine noun type
+              const metadata = await this.getMetadata(nodeId)
+              const nounType = metadata?.noun || 'default'
+              
+              if (nounType in nounTypeCounts) {
+                nounTypeCounts[nounType]++
+              } else {
+                nounTypeCounts.default++
+              }
+            }
+          } catch (error) {
+            // If we can't get metadata, count as default
+            nounTypeCounts.default++
+          }
+        }
       }
 
       return {
@@ -1030,6 +901,9 @@ export class S3CompatibleStorage implements StorageAdapter {
             event: { count: nounTypeCounts.event },
             concept: { count: nounTypeCounts.concept },
             content: { count: nounTypeCounts.content },
+            group: { count: nounTypeCounts.group },
+            list: { count: nounTypeCounts.list },
+            category: { count: nounTypeCounts.category },
             default: { count: nounTypeCounts.default }
           }
         }
@@ -1055,39 +929,11 @@ export class S3CompatibleStorage implements StorageAdapter {
   }
 
   /**
-   * Get the appropriate prefix for a node based on its metadata
+   * Get the appropriate prefix for a node - now all nouns use the same prefix
    */
   private async getNodePrefix(id: string): Promise<string> {
-    try {
-      // Try to get the metadata for the node
-      const metadata = await this.getMetadata(id)
-
-      // If metadata exists and has a noun field, use the corresponding prefix
-      if (metadata && metadata.noun) {
-        switch (metadata.noun) {
-          case 'person':
-            return PERSON_PREFIX
-          case 'place':
-            return PLACE_PREFIX
-          case 'thing':
-            return THING_PREFIX
-          case 'event':
-            return EVENT_PREFIX
-          case 'concept':
-            return CONCEPT_PREFIX
-          case 'content':
-            return CONTENT_PREFIX
-          default:
-            return DEFAULT_PREFIX
-        }
-      }
-
-      // If no metadata or no noun field, use the default prefix
-      return DEFAULT_PREFIX
-    } catch (error) {
-      // If there's an error getting the metadata, use the default prefix
-      return DEFAULT_PREFIX
-    }
+    // All nouns now use the same prefix regardless of type
+    return NOUN_PREFIX
   }
 
   /**
