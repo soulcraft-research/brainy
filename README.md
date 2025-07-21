@@ -146,6 +146,7 @@ Brainy combines four key technologies to create its adaptive intelligence:
     - Serverless: In-memory storage with optional cloud persistence
     - Fallback: In-memory storage
     - Automatically migrates between storage types as needed
+    - Uses a simplified, consolidated storage structure for all noun types
 
 ## 🚀 The Brainy Pipeline
 
