@@ -335,13 +335,13 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                 // Ensure s3Storage has all required fields if it's provided
                 if (storageOptions.s3Storage) {
                     // Only include s3Storage if all required fields are present
-                    if (storageOptions.s3Storage.bucketName && 
-                        storageOptions.s3Storage.accessKeyId && 
+                    if (storageOptions.s3Storage.bucketName &&
+                        storageOptions.s3Storage.accessKeyId &&
                         storageOptions.s3Storage.secretAccessKey) {
                         // All required fields are present, keep s3Storage as is
                     } else {
                         // Missing required fields, remove s3Storage to avoid type errors
-                        const { s3Storage, ...rest } = storageOptions
+                        const {s3Storage, ...rest} = storageOptions
                         storageOptions = rest
                         console.warn('Ignoring s3Storage configuration due to missing required fields')
                     }
@@ -1253,6 +1253,22 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     /**
      * Add a verb between two nouns
      * If metadata is provided and vector is not, the metadata will be vectorized using the embedding function
+     *
+     * @param sourceId ID of the source noun
+     * @param targetId ID of the target noun
+     * @param vector Optional vector for the verb
+     * @param options Additional options:
+     *   - type: Type of the verb
+     *   - weight: Weight of the verb
+     *   - metadata: Metadata for the verb
+     *   - forceEmbed: Force using the embedding function for metadata even if vector is provided
+     *   - id: Optional ID to use instead of generating a new one
+     *   - autoCreateMissingNouns: Automatically create missing nouns if they don't exist
+     *   - missingNounMetadata: Metadata to use when auto-creating missing nouns
+     *
+     * @returns The ID of the added verb
+     *
+     * @throws Error if source or target nouns don't exist and autoCreateMissingNouns is false or auto-creation fails
      */
     public async addVerb(
         sourceId: string,
@@ -1264,6 +1280,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
             metadata?: any
             forceEmbed?: boolean // Force using the embedding function for metadata even if vector is provided
             id?: string // Optional ID to use instead of generating a new one
+            autoCreateMissingNouns?: boolean // Automatically create missing nouns
+            missingNounMetadata?: any // Metadata to use when auto-creating missing nouns
         } = {}
     ): Promise<string> {
         await this.ensureInitialized()
@@ -1273,8 +1291,59 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
         try {
             // Check if source and target nouns exist
-            const sourceNoun = this.index.getNouns().get(sourceId)
-            const targetNoun = this.index.getNouns().get(targetId)
+            let sourceNoun = this.index.getNouns().get(sourceId)
+            let targetNoun = this.index.getNouns().get(targetId)
+
+            // Auto-create missing nouns if option is enabled
+            if (!sourceNoun && options.autoCreateMissingNouns) {
+                try {
+                    // Create a placeholder vector for the missing noun
+                    const placeholderVector = new Array(this._dimensions).fill(0)
+
+                    // Add metadata if provided
+                    const metadata = options.missingNounMetadata || {
+                        autoCreated: true,
+                        createdAt: new Date().toISOString(),
+                        noun: NounType.Concept
+                    }
+
+                    // Add the missing noun
+                    await this.add(placeholderVector, metadata, {id: sourceId})
+
+                    // Get the newly created noun
+                    sourceNoun = this.index.getNouns().get(sourceId)
+
+                    console.warn(`Auto-created missing source noun with ID ${sourceId}`)
+                } catch (createError) {
+                    console.error(`Failed to auto-create source noun with ID ${sourceId}:`, createError)
+                    throw new Error(`Failed to auto-create source noun with ID ${sourceId}: ${createError}`)
+                }
+            }
+
+            if (!targetNoun && options.autoCreateMissingNouns) {
+                try {
+                    // Create a placeholder vector for the missing noun
+                    const placeholderVector = new Array(this._dimensions).fill(0)
+
+                    // Add metadata if provided
+                    const metadata = options.missingNounMetadata || {
+                        autoCreated: true,
+                        createdAt: new Date().toISOString(),
+                        noun: NounType.Concept
+                    }
+
+                    // Add the missing noun
+                    await this.add(placeholderVector, metadata, {id: targetId})
+
+                    // Get the newly created noun
+                    targetNoun = this.index.getNouns().get(targetId)
+
+                    console.warn(`Auto-created missing target noun with ID ${targetId}`)
+                } catch (createError) {
+                    console.error(`Failed to auto-create target noun with ID ${targetId}:`, createError)
+                    throw new Error(`Failed to auto-create target noun with ID ${targetId}: ${createError}`)
+                }
+            }
 
             if (!sourceNoun) {
                 throw new Error(`Source noun with ID ${sourceId} not found`)
