@@ -6,7 +6,6 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.4.0-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4.5-blue.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![npm](https://img.shields.io/badge/npm-v0.15.0-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
 
 [//]: # ([![Cartographer]&#40;https://img.shields.io/badge/Cartographer-Official%20Standard-brightgreen&#41;]&#40;https://github.com/sodal-project/cartographer&#41;)
 
@@ -36,7 +35,7 @@ it gets - learning from your data to provide increasingly relevant results and c
 - **Adaptive Intelligence** - Automatically optimizes for your environment and usage patterns
 - **Persistent Storage** - Data persists across sessions and scales to any size
 - **TypeScript Support** - Fully typed API with generics
-- **CLI Tools** - Powerful command-line interface for data management
+- **CLI Tools & Web Service** - Command-line interface and REST API web service for data management
 - **Model Control Protocol (MCP)** - Allow external AI models to access Brainy data and use augmentation pipeline as
   tools
 
@@ -64,6 +63,22 @@ npm install @soulcraft/brainy
 
 TensorFlow.js packages are included as bundled dependencies and will be automatically installed without any additional
 configuration.
+
+### Additional Packages
+
+Brainy offers specialized packages for different use cases:
+
+#### CLI Package
+```bash
+npm install -g @soulcraft/brainy-cli
+```
+Command-line interface for data management, bulk operations, and database administration.
+
+#### Web Service Package
+```bash
+npm install @soulcraft/brainy-web-service
+```
+REST API web service wrapper that provides HTTP endpoints for search operations and database queries.
 
 ## 🏁 Quick Start
 
