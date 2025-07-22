@@ -67,6 +67,7 @@
     "prepare": "npm run build",
     "deploy": "npm run build && npm publish && node scripts/create-github-release.js",
     "deploy:cli": "node scripts/generate-version.js && cd cli-package && npm run build && npm publish",
+    "deploy:web-service": "node scripts/generate-version.js && cd web-service-package && npm run build && npm publish",
     "dry-run": "npm pack --dry-run",
     "test": "vitest run",
     "test:watch": "vitest",
