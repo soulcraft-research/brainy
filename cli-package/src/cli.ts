@@ -27,7 +27,6 @@ import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import fs from 'fs'
 import { Command } from 'commander'
-// @ts-expect-error - Missing type declarations for omelette
 import omelette from 'omelette'
 
 // Get the directory of the current module
