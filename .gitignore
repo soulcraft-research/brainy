@@ -57,3 +57,4 @@ Thumbs.db
 /soulcraft-brainy-*.tgz
 /data/
 /cli-package/soulcraft-brainy-cli-*.tgz
+/web-service-package/node_modules/
