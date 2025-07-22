@@ -62,14 +62,15 @@ GitHub Pages that showcases Brainy's main features.
 npm install @soulcraft/brainy
 ```
 
-TensorFlow.js packages are included as bundled dependencies and will be automatically installed without any additional configuration.
+TensorFlow.js packages are included as bundled dependencies and will be automatically installed without any additional
+configuration.
 
 ## 🏁 Quick Start
 
 Brainy uses a unified build that automatically adapts to your environment (Node.js, browser, or serverless):
 
 ```typescript
-import { BrainyData, NounType, VerbType } from '@soulcraft/brainy'
+import {BrainyData, NounType, VerbType} from '@soulcraft/brainy'
 
 // Create and initialize the database
 const db = new BrainyData()
@@ -77,13 +78,13 @@ await db.init()
 
 // Add data (automatically converted to vectors)
 const catId = await db.add("Cats are independent pets", {
-  noun: NounType.Thing,
-  category: 'animal'
+    noun: NounType.Thing,
+    category: 'animal'
 })
 
 const dogId = await db.add("Dogs are loyal companions", {
-  noun: NounType.Thing,
-  category: 'animal'
+    noun: NounType.Thing,
+    category: 'animal'
 })
 
 // Search for similar items
@@ -92,8 +93,8 @@ console.log(results)
 
 // Add a relationship between items
 await db.addVerb(catId, dogId, {
-  verb: VerbType.RelatedTo,
-  description: 'Both are common household pets'
+    verb: VerbType.RelatedTo,
+    description: 'Both are common household pets'
 })
 ```
 
@@ -101,28 +102,30 @@ await db.addVerb(catId, dogId, {
 
 ```typescript
 // Standard import - automatically adapts to any environment
-import { BrainyData } from '@soulcraft/brainy'
+import {BrainyData} from '@soulcraft/brainy'
 
 // Minified version for production
-import { BrainyData } from '@soulcraft/brainy/min'
+import {BrainyData} from '@soulcraft/brainy/min'
 ```
 
-> **Note**: The CLI functionality is available as a separate package `@soulcraft/brainy-cli` to reduce the bundle size of the main package. Install it globally with `npm install -g @soulcraft/brainy-cli` to use the command-line interface.
+> **Note**: The CLI functionality is available as a separate package `@soulcraft/brainy-cli` to reduce the bundle size
+> of the main package. Install it globally with `npm install -g @soulcraft/brainy-cli` to use the command-line
+> interface.
 
 ### Browser Usage
 
 ```html
 
 <script type="module">
-  // Use local files instead of CDN
-  import { BrainyData } from './dist/unified.js'
+    // Use local files instead of CDN
+    import {BrainyData} from './dist/unified.js'
 
-  // Or minified version
-  // import { BrainyData } from './dist/unified.min.js'
+    // Or minified version
+    // import { BrainyData } from './dist/unified.min.js'
 
-  const db = new BrainyData()
-  await db.init()
-  // ...
+    const db = new BrainyData()
+    await db.init()
+    // ...
 </script>
 ```
 
@@ -277,13 +280,13 @@ The pipeline runs automatically when you:
 
 ```typescript
 // Add data (runs embedding → indexing → storage)
-const id = await db.add("Your text data here", { metadata })
+const id = await db.add("Your text data here", {metadata})
 
 // Search (runs embedding → similarity search)
 const results = await db.searchText("Your query here", 5)
 
 // Connect entities (runs graph construction → storage)
-await db.addVerb(sourceId, targetId, { verb: VerbType.RelatedTo })
+await db.addVerb(sourceId, targetId, {verb: VerbType.RelatedTo})
 ```
 
 Using the CLI:
@@ -408,7 +411,8 @@ brainy visualize --root <id> --depth 3
 
 ### Using the CLI in Your Code
 
-The CLI functionality is available as a separate package `@soulcraft/brainy-cli`. If you need CLI functionality in your application, install the CLI package:
+The CLI functionality is available as a separate package `@soulcraft/brainy-cli`. If you need CLI functionality in your
+application, install the CLI package:
 
 ```bash
 npm install @soulcraft/brainy-cli
@@ -466,7 +470,7 @@ const status = await db.status()
 const backupData = await db.backup()
 
 // Restore data into the database
-const restoreResult = await db.restore(backupData, { clearExisting: true })
+const restoreResult = await db.restore(backupData, {clearExisting: true})
 ```
 
 ### Working with Nouns (Entities)
@@ -474,25 +478,25 @@ const restoreResult = await db.restore(backupData, { clearExisting: true })
 ```typescript
 // Add a noun (automatically vectorized)
 const id = await db.add(textOrVector, {
-  noun: NounType.Thing,
-  // other metadata...
+    noun: NounType.Thing,
+    // other metadata...
 })
 
 // Add multiple nouns in parallel (with multithreading and batch embedding)
 const ids = await db.addBatch([
-  {
-    vectorOrData: "First item to add",
-    metadata: { noun: NounType.Thing, category: 'example' }
-  },
-  {
-    vectorOrData: "Second item to add",
-    metadata: { noun: NounType.Thing, category: 'example' }
-  },
-  // More items...
+    {
+        vectorOrData: "First item to add",
+        metadata: {noun: NounType.Thing, category: 'example'}
+    },
+    {
+        vectorOrData: "Second item to add",
+        metadata: {noun: NounType.Thing, category: 'example'}
+    },
+    // More items...
 ], {
-  forceEmbed: false,
-  concurrency: 4, // Control the level of parallelism (default: 4)
-  batchSize: 50   // Control the number of items to process in a single batch (default: 50)
+    forceEmbed: false,
+    concurrency: 4, // Control the level of parallelism (default: 4)
+    batchSize: 50   // Control the number of items to process in a single batch (default: 50)
 })
 
 // Retrieve a noun
@@ -500,8 +504,8 @@ const noun = await db.get(id)
 
 // Update noun metadata
 await db.updateMetadata(id, {
-  noun: NounType.Thing,
-  // updated metadata...
+    noun: NounType.Thing,
+    // updated metadata...
 })
 
 // Delete a noun
@@ -520,8 +524,21 @@ const thingNouns = await db.searchByNounTypes([NounType.Thing], numResults)
 ```typescript
 // Add a relationship between nouns
 await db.addVerb(sourceId, targetId, {
-  verb: VerbType.RelatedTo,
-  // other metadata...
+    verb: VerbType.RelatedTo,
+    // other metadata...
+})
+
+// Add a relationship with auto-creation of missing nouns
+// This is useful when the target noun might not exist yet
+await db.addVerb(sourceId, targetId, {
+    verb: VerbType.RelatedTo,
+    // Enable auto-creation of missing nouns
+    autoCreateMissingNouns: true,
+    // Optional metadata for auto-created nouns
+    missingNounMetadata: {
+        noun: NounType.Concept,
+        description: 'Auto-created noun'
+    }
 })
 
 // Get all relationships
@@ -549,20 +566,20 @@ await db.deleteVerb(verbId)
 
 ```typescript
 import {
-  BrainyData,
-  createTensorFlowEmbeddingFunction,
-  createThreadedEmbeddingFunction
+    BrainyData,
+    createTensorFlowEmbeddingFunction,
+    createThreadedEmbeddingFunction
 } from '@soulcraft/brainy'
 
 // Use the standard TensorFlow Universal Sentence Encoder embedding function
 const db = new BrainyData({
-  embeddingFunction: createTensorFlowEmbeddingFunction()
+    embeddingFunction: createTensorFlowEmbeddingFunction()
 })
 await db.init()
 
 // Or use the threaded embedding function for better performance
 const threadedDb = new BrainyData({
-  embeddingFunction: createThreadedEmbeddingFunction()
+    embeddingFunction: createThreadedEmbeddingFunction()
 })
 await threadedDb.init()
 
@@ -603,42 +620,42 @@ Brainy includes comprehensive multithreading support to improve performance acro
 7. **Automatic Environment Detection**: Adapts to browser (Web Workers) and Node.js (Worker Threads) environments
 
 ```typescript
-import { BrainyData, euclideanDistance } from '@soulcraft/brainy'
+import {BrainyData, euclideanDistance} from '@soulcraft/brainy'
 
 // Configure with custom options
 const db = new BrainyData({
-  // Use Euclidean distance instead of default cosine distance
-  distanceFunction: euclideanDistance,
+    // Use Euclidean distance instead of default cosine distance
+    distanceFunction: euclideanDistance,
 
-  // HNSW index configuration for search performance
-  hnsw: {
-    M: 16,              // Max connections per noun
-    efConstruction: 200, // Construction candidate list size
-    efSearch: 50,       // Search candidate list size
-  },
+    // HNSW index configuration for search performance
+    hnsw: {
+        M: 16,              // Max connections per noun
+        efConstruction: 200, // Construction candidate list size
+        efSearch: 50,       // Search candidate list size
+    },
 
-  // Performance optimization options
-  performance: {
-    useParallelization: true, // Enable multithreaded search operations
-  },
+    // Performance optimization options
+    performance: {
+        useParallelization: true, // Enable multithreaded search operations
+    },
 
-  // Noun and Verb type validation
-  typeValidation: {
-    enforceNounTypes: true,  // Validate noun types against NounType enum
-    enforceVerbTypes: true,  // Validate verb types against VerbType enum
-  },
+    // Noun and Verb type validation
+    typeValidation: {
+        enforceNounTypes: true,  // Validate noun types against NounType enum
+        enforceVerbTypes: true,  // Validate verb types against VerbType enum
+    },
 
-  // Storage configuration
-  storage: {
-    requestPersistentStorage: true,
-    // Example configuration for cloud storage (replace with your own values):
-    // s3Storage: {
-    //   bucketName: 'your-s3-bucket-name',
-    //   region: 'your-aws-region'
-    //   // Credentials should be provided via environment variables
-    //   // AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
-    // }
-  }
+    // Storage configuration
+    storage: {
+        requestPersistentStorage: true,
+        // Example configuration for cloud storage (replace with your own values):
+        // s3Storage: {
+        //   bucketName: 'your-s3-bucket-name',
+        //   region: 'your-aws-region'
+        //   // Credentials should be provided via environment variables
+        //   // AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+        // }
+    }
 })
 ```
 
@@ -652,34 +669,34 @@ hybrid approach:
 3. **Memory-Efficient Indexing** - Optimizes memory usage for large-scale vector collections
 
 ```typescript
-import { BrainyData } from '@soulcraft/brainy'
+import {BrainyData} from '@soulcraft/brainy'
 
 // Configure with optimized HNSW index for large datasets
 const db = new BrainyData({
-  hnswOptimized: {
-    // Standard HNSW parameters
-    M: 16,              // Max connections per noun
-    efConstruction: 200, // Construction candidate list size
-    efSearch: 50,       // Search candidate list size
+    hnswOptimized: {
+        // Standard HNSW parameters
+        M: 16,              // Max connections per noun
+        efConstruction: 200, // Construction candidate list size
+        efSearch: 50,       // Search candidate list size
 
-    // Memory threshold in bytes - when exceeded, will use disk-based approach
-    memoryThreshold: 1024 * 1024 * 1024, // 1GB default threshold
+        // Memory threshold in bytes - when exceeded, will use disk-based approach
+        memoryThreshold: 1024 * 1024 * 1024, // 1GB default threshold
 
-    // Product quantization settings for dimensionality reduction
-    productQuantization: {
-      enabled: true,              // Enable product quantization
-      numSubvectors: 16,          // Number of subvectors to split the vector into
-      numCentroids: 256           // Number of centroids per subvector
+        // Product quantization settings for dimensionality reduction
+        productQuantization: {
+            enabled: true,              // Enable product quantization
+            numSubvectors: 16,          // Number of subvectors to split the vector into
+            numCentroids: 256           // Number of centroids per subvector
+        },
+
+        // Whether to use disk-based storage for the index
+        useDiskBasedIndex: true         // Enable disk-based storage
     },
 
-    // Whether to use disk-based storage for the index
-    useDiskBasedIndex: true         // Enable disk-based storage
-  },
-
-  // Storage configuration (required for disk-based index)
-  storage: {
-    requestPersistentStorage: true
-  }
+    // Storage configuration (required for disk-based index)
+    storage: {
+        requestPersistentStorage: true
+    }
 })
 
 // The optimized index automatically adapts based on dataset size:
@@ -744,24 +761,24 @@ Brainy's restore functionality can handle:
 ```typescript
 // Restore data with all options
 const restoreResult = await db.restore(backupData, {
-  clearExisting: true // Whether to clear existing data before restore
+    clearExisting: true // Whether to clear existing data before restore
 })
 
 // Import sparse data (without vectors)
 // Vectors will be automatically created using the embedding function
 const sparseData = {
-  nouns: [
-    {
-      id: '123',
-      // No vector field - will be created during import
-      metadata: {
-        noun: 'Thing',
-        text: 'This text will be used to generate a vector'
-      }
-    }
-  ],
-  verbs: [],
-  version: '1.0.0'
+    nouns: [
+        {
+            id: '123',
+            // No vector field - will be created during import
+            metadata: {
+                noun: 'Thing',
+                text: 'This text will be used to generate a vector'
+            }
+        }
+    ],
+    verbs: [],
+    version: '1.0.0'
 }
 
 const sparseImportResult = await db.importSparseData(sparseData)
@@ -808,82 +825,82 @@ boilerplate:
 
 ```typescript
 import {
-  createMemoryAugmentation,
-  createConduitAugmentation,
-  createSenseAugmentation,
-  addWebSocketSupport,
-  executeStreamlined,
-  processStaticData,
-  processStreamingData,
-  createPipeline
+    createMemoryAugmentation,
+    createConduitAugmentation,
+    createSenseAugmentation,
+    addWebSocketSupport,
+    executeStreamlined,
+    processStaticData,
+    processStreamingData,
+    createPipeline
 } from '@soulcraft/brainy'
 
 // Create a memory augmentation with minimal code
 const memoryAug = createMemoryAugmentation({
-  name: 'simple-memory',
-  description: 'A simple in-memory storage augmentation',
-  autoRegister: true,
-  autoInitialize: true,
+    name: 'simple-memory',
+    description: 'A simple in-memory storage augmentation',
+    autoRegister: true,
+    autoInitialize: true,
 
-  // Implement only the methods you need
-  storeData: async (key, data) => {
-    // Your implementation here
-    return {
-      success: true,
-      data: true
-    }
-  },
+    // Implement only the methods you need
+    storeData: async (key, data) => {
+        // Your implementation here
+        return {
+            success: true,
+            data: true
+        }
+    },
 
-  retrieveData: async (key) => {
-    // Your implementation here
-    return {
-      success: true,
-      data: { example: 'data', key }
+    retrieveData: async (key) => {
+        // Your implementation here
+        return {
+            success: true,
+            data: {example: 'data', key}
+        }
     }
-  }
 })
 
 // Add WebSocket support to any augmentation
 const wsAugmentation = addWebSocketSupport(memoryAug, {
-  connectWebSocket: async (url) => {
-    // Your implementation here
-    return {
-      connectionId: 'ws-1',
-      url,
-      status: 'connected'
+    connectWebSocket: async (url) => {
+        // Your implementation here
+        return {
+            connectionId: 'ws-1',
+            url,
+            status: 'connected'
+        }
     }
-  }
 })
 
 // Process static data through a pipeline
 const result = await processStaticData(
-  'Input data',
-  [
-    {
-      augmentation: senseAug,
-      method: 'processRawData',
-      transformArgs: (data) => [data, 'text']
-    },
-    {
-      augmentation: memoryAug,
-      method: 'storeData',
-      transformArgs: (data) => ['processed-data', data]
-    }
-  ]
+    'Input data',
+    [
+        {
+            augmentation: senseAug,
+            method: 'processRawData',
+            transformArgs: (data) => [data, 'text']
+        },
+        {
+            augmentation: memoryAug,
+            method: 'storeData',
+            transformArgs: (data) => ['processed-data', data]
+        }
+    ]
 )
 
 // Create a reusable pipeline
 const pipeline = createPipeline([
-  {
-    augmentation: senseAug,
-    method: 'processRawData',
-    transformArgs: (data) => [data, 'text']
-  },
-  {
-    augmentation: memoryAug,
-    method: 'storeData',
-    transformArgs: (data) => ['processed-data', data]
-  }
+    {
+        augmentation: senseAug,
+        method: 'processRawData',
+        transformArgs: (data) => [data, 'text']
+    },
+    {
+        augmentation: memoryAug,
+        method: 'storeData',
+        transformArgs: (data) => ['processed-data', data]
+    }
 ])
 
 // Use the pipeline
@@ -891,11 +908,11 @@ const result = await pipeline('New input data')
 
 // Dynamically load augmentations at runtime
 const loadedAugmentations = await loadAugmentationModule(
-  import('./my-augmentations.js'),
-  {
-    autoRegister: true,
-    autoInitialize: true
-  }
+    import('./my-augmentations.js'),
+    {
+        autoRegister: true,
+        autoInitialize: true
+    }
 )
 ```
 
@@ -909,60 +926,61 @@ The simplified augmentation system provides:
 
 #### WebSocket Augmentation Types
 
-Brainy exports several WebSocket augmentation types that can be used by augmentation creators to add WebSocket capabilities to their augmentations:
+Brainy exports several WebSocket augmentation types that can be used by augmentation creators to add WebSocket
+capabilities to their augmentations:
 
 ```typescript
 import {
-  // Base WebSocket support interface
-  IWebSocketSupport,
-  
-  // Combined WebSocket augmentation types
-  IWebSocketSenseAugmentation,
-  IWebSocketConduitAugmentation,
-  IWebSocketCognitionAugmentation,
-  IWebSocketMemoryAugmentation,
-  IWebSocketPerceptionAugmentation,
-  IWebSocketDialogAugmentation,
-  IWebSocketActivationAugmentation,
-  
-  // Function to add WebSocket support to any augmentation
-  addWebSocketSupport
+    // Base WebSocket support interface
+    IWebSocketSupport,
+
+    // Combined WebSocket augmentation types
+    IWebSocketSenseAugmentation,
+    IWebSocketConduitAugmentation,
+    IWebSocketCognitionAugmentation,
+    IWebSocketMemoryAugmentation,
+    IWebSocketPerceptionAugmentation,
+    IWebSocketDialogAugmentation,
+    IWebSocketActivationAugmentation,
+
+    // Function to add WebSocket support to any augmentation
+    addWebSocketSupport
 } from '@soulcraft/brainy'
 
 // Example: Creating a typed WebSocket-enabled sense augmentation
 const mySenseAug = createSenseAugmentation({
-  name: 'my-sense',
-  processRawData: async (data, dataType) => {
-    // Implementation
-    return {
-      success: true,
-      data: { nouns: [], verbs: [] }
+    name: 'my-sense',
+    processRawData: async (data, dataType) => {
+        // Implementation
+        return {
+            success: true,
+            data: {nouns: [], verbs: []}
+        }
     }
-  }
 }) as IWebSocketSenseAugmentation
 
 // Add WebSocket support
 addWebSocketSupport(mySenseAug, {
-  connectWebSocket: async (url) => {
-    // WebSocket implementation
-    return {
-      connectionId: 'ws-1',
-      url,
-      status: 'connected'
+    connectWebSocket: async (url) => {
+        // WebSocket implementation
+        return {
+            connectionId: 'ws-1',
+            url,
+            status: 'connected'
+        }
+    },
+    sendWebSocketMessage: async (connectionId, data) => {
+        // Send message implementation
+    },
+    onWebSocketMessage: async (connectionId, callback) => {
+        // Register callback implementation
+    },
+    offWebSocketMessage: async (connectionId, callback) => {
+        // Remove callback implementation
+    },
+    closeWebSocket: async (connectionId, code, reason) => {
+        // Close connection implementation
     }
-  },
-  sendWebSocketMessage: async (connectionId, data) => {
-    // Send message implementation
-  },
-  onWebSocketMessage: async (connectionId, callback) => {
-    // Register callback implementation
-  },
-  offWebSocketMessage: async (connectionId, callback) => {
-    // Remove callback implementation
-  },
-  closeWebSocket: async (connectionId, code, reason) => {
-    // Close connection implementation
-  }
 })
 
 // Now mySenseAug has both sense augmentation methods and WebSocket methods
@@ -970,7 +988,8 @@ await mySenseAug.processRawData('data', 'text')
 await mySenseAug.connectWebSocket('wss://example.com')
 ```
 
-These WebSocket augmentation types combine the base augmentation interfaces with the `IWebSocketSupport` interface, providing type safety and autocompletion for augmentations with WebSocket capabilities.
+These WebSocket augmentation types combine the base augmentation interfaces with the `IWebSocketSupport` interface,
+providing type safety and autocompletion for augmentations with WebSocket capabilities.
 
 ### Model Control Protocol (MCP)
 
@@ -999,13 +1018,13 @@ everywhere.
 Brainy automatically detects the environment it's running in:
 
 ```typescript
-import { environment } from '@soulcraft/brainy'
+import {environment} from '@soulcraft/brainy'
 
 // Check which environment we're running in
 console.log(`Running in ${
-  environment.isBrowser ? 'browser' :
-    environment.isNode ? 'Node.js' :
-      'serverless/unknown'
+    environment.isBrowser ? 'browser' :
+        environment.isNode ? 'Node.js' :
+            'serverless/unknown'
 } environment`)
 ```
 
@@ -1033,7 +1052,6 @@ Works in all modern browsers:
 - Chrome for Android 86+
 
 For browsers without OPFS support, falls back to in-memory storage.
-
 
 ## Related Projects
 
@@ -1079,9 +1097,9 @@ You can use the conduit augmentations to sync Brainy instances:
 
 ```typescript
 import {
-  BrainyData,
-  pipeline,
-  createConduitAugmentation
+    BrainyData,
+    pipeline,
+    createConduitAugmentation
 } from '@soulcraft/brainy'
 
 // Create and initialize the database
@@ -1097,36 +1115,36 @@ pipeline.register(wsConduit)
 // Connect to another Brainy instance (server or browser)
 // Replace the example URL below with your actual WebSocket server URL
 const connectionResult = await pipeline.executeConduitPipeline(
-  'establishConnection',
-  ['wss://example-websocket-server.com/brainy-sync', { protocols: 'brainy-sync' }]
+    'establishConnection',
+    ['wss://example-websocket-server.com/brainy-sync', {protocols: 'brainy-sync'}]
 )
 
 if (connectionResult[0] && (await connectionResult[0]).success) {
-  const connection = (await connectionResult[0]).data
+    const connection = (await connectionResult[0]).data
 
-  // Read data from the remote instance
-  const readResult = await pipeline.executeConduitPipeline(
-    'readData',
-    [{ connectionId: connection.connectionId, query: { type: 'getAllNouns' } }]
-  )
+    // Read data from the remote instance
+    const readResult = await pipeline.executeConduitPipeline(
+        'readData',
+        [{connectionId: connection.connectionId, query: {type: 'getAllNouns'}}]
+    )
 
-  // Process and add the received data to the local instance
-  if (readResult[0] && (await readResult[0]).success) {
-    const remoteNouns = (await readResult[0]).data
-    for (const noun of remoteNouns) {
-      await db.add(noun.vector, noun.metadata)
+    // Process and add the received data to the local instance
+    if (readResult[0] && (await readResult[0]).success) {
+        const remoteNouns = (await readResult[0]).data
+        for (const noun of remoteNouns) {
+            await db.add(noun.vector, noun.metadata)
+        }
     }
-  }
 
-  // Set up real-time sync by monitoring the stream
-  await wsConduit.monitorStream(connection.connectionId, async (data) => {
-    // Handle incoming data (e.g., new nouns, verbs, updates)
-    if (data.type === 'newNoun') {
-      await db.add(data.vector, data.metadata)
-    } else if (data.type === 'newVerb') {
-      await db.addVerb(data.sourceId, data.targetId, data.vector, data.options)
-    }
-  })
+    // Set up real-time sync by monitoring the stream
+    await wsConduit.monitorStream(connection.connectionId, async (data) => {
+        // Handle incoming data (e.g., new nouns, verbs, updates)
+        if (data.type === 'newNoun') {
+            await db.add(data.vector, data.metadata)
+        } else if (data.type === 'newVerb') {
+            await db.addVerb(data.sourceId, data.targetId, data.vector, data.options)
+        }
+    })
 }
 ```
 
@@ -1134,9 +1152,9 @@ if (connectionResult[0] && (await connectionResult[0]).success) {
 
 ```typescript
 import {
-  BrainyData,
-  pipeline,
-  createConduitAugmentation
+    BrainyData,
+    pipeline,
+    createConduitAugmentation
 } from '@soulcraft/brainy'
 
 // Create and initialize the database
@@ -1152,48 +1170,48 @@ pipeline.register(webrtcConduit)
 // Connect to a peer using a signaling server
 // Replace the example values below with your actual configuration
 const connectionResult = await pipeline.executeConduitPipeline(
-  'establishConnection',
-  [
-    'peer-id-to-connect-to', // Replace with actual peer ID
-    {
-      signalServerUrl: 'wss://example-signal-server.com', // Replace with your signal server
-      localPeerId: 'my-local-peer-id', // Replace with your local peer ID
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] // Public STUN server
-    }
-  ]
+    'establishConnection',
+    [
+        'peer-id-to-connect-to', // Replace with actual peer ID
+        {
+            signalServerUrl: 'wss://example-signal-server.com', // Replace with your signal server
+            localPeerId: 'my-local-peer-id', // Replace with your local peer ID
+            iceServers: [{urls: 'stun:stun.l.google.com:19302'}] // Public STUN server
+        }
+    ]
 )
 
 if (connectionResult[0] && (await connectionResult[0]).success) {
-  const connection = (await connectionResult[0]).data
+    const connection = (await connectionResult[0]).data
 
-  // Set up real-time sync by monitoring the stream
-  await webrtcConduit.monitorStream(connection.connectionId, async (data) => {
-    // Handle incoming data (e.g., new nouns, verbs, updates)
-    if (data.type === 'newNoun') {
-      await db.add(data.vector, data.metadata)
-    } else if (data.type === 'newVerb') {
-      await db.addVerb(data.sourceId, data.targetId, data.vector, data.options)
-    }
-  })
-
-  // When adding new data locally, also send to the peer
-  const nounId = await db.add("New data to sync", { noun: "Thing" })
-
-  // Send the new noun to the peer
-  await pipeline.executeConduitPipeline(
-    'writeData',
-    [
-      {
-        connectionId: connection.connectionId,
-        data: {
-          type: 'newNoun',
-          id: nounId,
-          vector: (await db.get(nounId)).vector,
-          metadata: (await db.get(nounId)).metadata
+    // Set up real-time sync by monitoring the stream
+    await webrtcConduit.monitorStream(connection.connectionId, async (data) => {
+        // Handle incoming data (e.g., new nouns, verbs, updates)
+        if (data.type === 'newNoun') {
+            await db.add(data.vector, data.metadata)
+        } else if (data.type === 'newVerb') {
+            await db.addVerb(data.sourceId, data.targetId, data.vector, data.options)
         }
-      }
-    ]
-  )
+    })
+
+    // When adding new data locally, also send to the peer
+    const nounId = await db.add("New data to sync", {noun: "Thing"})
+
+    // Send the new noun to the peer
+    await pipeline.executeConduitPipeline(
+        'writeData',
+        [
+            {
+                connectionId: connection.connectionId,
+                data: {
+                    type: 'newNoun',
+                    id: nounId,
+                    vector: (await db.get(nounId)).vector,
+                    metadata: (await db.get(nounId)).metadata
+                }
+            }
+        ]
+    )
 }
 ```
 
@@ -1203,39 +1221,39 @@ Brainy supports searching a server-hosted instance from a browser, storing resul
 searches against the local instance:
 
 ```typescript
-import { BrainyData } from '@soulcraft/brainy'
+import {BrainyData} from '@soulcraft/brainy'
 
 // Create and initialize the database with remote server configuration
 // Replace the example URL below with your actual Brainy server URL
 const db = new BrainyData({
-  remoteServer: {
-    url: 'wss://example-brainy-server.com/ws', // Replace with your server URL
-    protocols: 'brainy-sync',
-    autoConnect: true // Connect automatically during initialization
-  }
+    remoteServer: {
+        url: 'wss://example-brainy-server.com/ws', // Replace with your server URL
+        protocols: 'brainy-sync',
+        autoConnect: true // Connect automatically during initialization
+    }
 })
 await db.init()
 
 // Or connect manually after initialization
 if (!db.isConnectedToRemoteServer()) {
-  // Replace the example URL below with your actual Brainy server URL
-  await db.connectToRemoteServer('wss://example-brainy-server.com/ws', 'brainy-sync')
+    // Replace the example URL below with your actual Brainy server URL
+    await db.connectToRemoteServer('wss://example-brainy-server.com/ws', 'brainy-sync')
 }
 
 // Search the remote server (results are stored locally)
-const remoteResults = await db.searchText('machine learning', 5, { searchMode: 'remote' })
+const remoteResults = await db.searchText('machine learning', 5, {searchMode: 'remote'})
 
 // Search the local database (includes previously stored results)
-const localResults = await db.searchText('machine learning', 5, { searchMode: 'local' })
+const localResults = await db.searchText('machine learning', 5, {searchMode: 'local'})
 
 // Perform a combined search (local first, then remote if needed)
-const combinedResults = await db.searchText('neural networks', 5, { searchMode: 'combined' })
+const combinedResults = await db.searchText('neural networks', 5, {searchMode: 'combined'})
 
 // Add data to both local and remote instances
 const id = await db.addToBoth('Deep learning is a subset of machine learning', {
-  noun: 'Concept',
-  category: 'AI',
-  tags: ['deep learning', 'neural networks']
+    noun: 'Concept',
+    category: 'AI',
+    tags: ['deep learning', 'neural networks']
 })
 
 // Clean up when done (this also cleans up worker pools)
