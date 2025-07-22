@@ -49,14 +49,7 @@ const NOUNS_DIR = 'nouns'
 const VERBS_DIR = 'verbs'
 const METADATA_DIR = 'metadata'
 
-// Constants for noun type directories
-const PERSON_DIR = 'person'
-const PLACE_DIR = 'place'
-const THING_DIR = 'thing'
-const EVENT_DIR = 'event'
-const CONCEPT_DIR = 'concept'
-const CONTENT_DIR = 'content'
-const DEFAULT_DIR = 'default' // For nodes without a noun type
+// All nouns now use the same directory - no separate directories per noun type
 
 /**
  * File system storage adapter for Node.js environments
@@ -66,13 +59,6 @@ export class FileSystemStorage implements StorageAdapter {
   private nounsDir: string
   private verbsDir: string
   private metadataDir: string
-  private personDir: string
-  private placeDir: string
-  private thingDir: string
-  private eventDir: string
-  private conceptDir: string
-  private contentDir: string
-  private defaultDir: string
   private isInitialized = false
 
   constructor(rootDirectory?: string) {
@@ -81,13 +67,6 @@ export class FileSystemStorage implements StorageAdapter {
     this.nounsDir = ''
     this.verbsDir = ''
     this.metadataDir = ''
-    this.personDir = ''
-    this.placeDir = ''
-    this.thingDir = ''
-    this.eventDir = ''
-    this.conceptDir = ''
-    this.contentDir = ''
-    this.defaultDir = ''
   }
 
   /**
@@ -111,32 +90,23 @@ export class FileSystemStorage implements StorageAdapter {
     try {
       // Now set up the directory paths
       const rootDir = this.rootDir || process.cwd()
-      this.rootDir = path.resolve(rootDir, ROOT_DIR)
+      
+      // Check if rootDir already ends with ROOT_DIR to prevent duplication
+      if (rootDir.endsWith(ROOT_DIR)) {
+        this.rootDir = rootDir
+      } else {
+        this.rootDir = path.resolve(rootDir, ROOT_DIR)
+      }
+      
       this.nounsDir = path.join(this.rootDir, NOUNS_DIR)
       this.verbsDir = path.join(this.rootDir, VERBS_DIR)
       this.metadataDir = path.join(this.rootDir, METADATA_DIR)
-
-      // Set up noun type directory paths
-      this.personDir = path.join(this.nounsDir, PERSON_DIR)
-      this.placeDir = path.join(this.nounsDir, PLACE_DIR)
-      this.thingDir = path.join(this.nounsDir, THING_DIR)
-      this.eventDir = path.join(this.nounsDir, EVENT_DIR)
-      this.conceptDir = path.join(this.nounsDir, CONCEPT_DIR)
-      this.contentDir = path.join(this.nounsDir, CONTENT_DIR)
-      this.defaultDir = path.join(this.nounsDir, DEFAULT_DIR)
 
       // Create directories if they don't exist
       await this.ensureDirectoryExists(this.rootDir)
       await this.ensureDirectoryExists(this.nounsDir)
       await this.ensureDirectoryExists(this.verbsDir)
       await this.ensureDirectoryExists(this.metadataDir)
-      await this.ensureDirectoryExists(this.personDir)
-      await this.ensureDirectoryExists(this.placeDir)
-      await this.ensureDirectoryExists(this.thingDir)
-      await this.ensureDirectoryExists(this.eventDir)
-      await this.ensureDirectoryExists(this.conceptDir)
-      await this.ensureDirectoryExists(this.contentDir)
-      await this.ensureDirectoryExists(this.defaultDir)
 
       this.isInitialized = true
     } catch (error: any) {
@@ -157,32 +127,8 @@ export class FileSystemStorage implements StorageAdapter {
   }
 
   private getNounPath(id: string, nounType?: string): string {
-    let typeDir = this.defaultDir
-    if (nounType) {
-      switch (nounType.toLowerCase()) {
-        case 'person':
-          typeDir = this.personDir
-          break
-        case 'place':
-          typeDir = this.placeDir
-          break
-        case 'thing':
-          typeDir = this.thingDir
-          break
-        case 'event':
-          typeDir = this.eventDir
-          break
-        case 'concept':
-          typeDir = this.conceptDir
-          break
-        case 'content':
-          typeDir = this.contentDir
-          break
-        default:
-          typeDir = this.defaultDir
-      }
-    }
-    return path.join(typeDir, `${id}.json`)
+    // All nouns now use the same directory regardless of type
+    return path.join(this.nounsDir, `${id}.json`)
   }
 
   public async saveNoun(
@@ -197,27 +143,16 @@ export class FileSystemStorage implements StorageAdapter {
 
   public async getNoun(id: string): Promise<HNSWNoun | null> {
     if (!this.isInitialized) await this.init()
-    const nounDirs = [
-      this.personDir,
-      this.placeDir,
-      this.thingDir,
-      this.eventDir,
-      this.conceptDir,
-      this.contentDir,
-      this.defaultDir
-    ]
-    for (const dir of nounDirs) {
-      const filePath = path.join(dir, `${id}.json`)
-      try {
-        const data = await fs.promises.readFile(filePath, 'utf-8')
-        return JSON.parse(data)
-      } catch (error: any) {
-        if (error.code !== 'ENOENT') {
-          console.error(`Error reading noun ${id}:`, error)
-        }
+    const filePath = path.join(this.nounsDir, `${id}.json`)
+    try {
+      const data = await fs.promises.readFile(filePath, 'utf-8')
+      return JSON.parse(data)
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') {
+        console.error(`Error reading noun ${id}:`, error)
       }
+      return null
     }
-    return null
   }
 
   public async deleteNoun(id: string): Promise<void> {
@@ -240,29 +175,18 @@ export class FileSystemStorage implements StorageAdapter {
   public async getAllNouns(): Promise<HNSWNoun[]> {
     if (!this.isInitialized) await this.init()
     const allNouns: HNSWNoun[] = []
-    const nounDirs = [
-      this.personDir,
-      this.placeDir,
-      this.thingDir,
-      this.eventDir,
-      this.conceptDir,
-      this.contentDir,
-      this.defaultDir
-    ]
-    for (const dir of nounDirs) {
-      try {
-        const files = await fs.promises.readdir(dir)
-        for (const file of files) {
-          if (file.endsWith('.json')) {
-            const filePath = path.join(dir, file)
-            const data = await fs.promises.readFile(filePath, 'utf-8')
-            allNouns.push(JSON.parse(data))
-          }
+    try {
+      const files = await fs.promises.readdir(this.nounsDir)
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          const filePath = path.join(this.nounsDir, file)
+          const data = await fs.promises.readFile(filePath, 'utf-8')
+          allNouns.push(JSON.parse(data))
         }
-      } catch (error: any) {
-        if (error.code !== 'ENOENT') {
-          console.error(`Error reading directory ${dir}:`, error)
-        }
+      }
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') {
+        console.error(`Error reading directory ${this.nounsDir}:`, error)
       }
     }
     return allNouns
@@ -276,43 +200,25 @@ export class FileSystemStorage implements StorageAdapter {
   public async getNounsByNounType(nounType: string): Promise<HNSWNoun[]> {
     if (!this.isInitialized) await this.init()
 
-    let typeDir: string
-    switch (nounType.toLowerCase()) {
-      case 'person':
-        typeDir = this.personDir
-        break
-      case 'place':
-        typeDir = this.placeDir
-        break
-      case 'thing':
-        typeDir = this.thingDir
-        break
-      case 'event':
-        typeDir = this.eventDir
-        break
-      case 'concept':
-        typeDir = this.conceptDir
-        break
-      case 'content':
-        typeDir = this.contentDir
-        break
-      default:
-        typeDir = this.defaultDir
-    }
-
     const nouns: HNSWNoun[] = []
     try {
-      const files = await fs.promises.readdir(typeDir)
+      const files = await fs.promises.readdir(this.nounsDir)
       for (const file of files) {
         if (file.endsWith('.json')) {
-          const filePath = path.join(typeDir, file)
+          const filePath = path.join(this.nounsDir, file)
           const data = await fs.promises.readFile(filePath, 'utf-8')
-          nouns.push(JSON.parse(data))
+          const noun = JSON.parse(data)
+          
+          // Filter by noun type using metadata
+          const metadata = await this.getMetadata(noun.id)
+          if (metadata && metadata.noun === nounType) {
+            nouns.push(noun)
+          }
         }
       }
     } catch (error: any) {
       if (error.code !== 'ENOENT') {
-        console.error(`Error reading directory ${typeDir}:`, error)
+        console.error(`Error reading directory ${this.nounsDir}:`, error)
       }
     }
 
