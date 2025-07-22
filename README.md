@@ -36,7 +36,7 @@ it gets - learning from your data to provide increasingly relevant results and c
 - **Adaptive Intelligence** - Automatically optimizes for your environment and usage patterns
 - **Persistent Storage** - Data persists across sessions and scales to any size
 - **TypeScript Support** - Fully typed API with generics
-- **CLI Tools** - Powerful command-line interface for data management
+- **CLI Tools & Web Service** - Command-line interface and REST API web service for data management
 - **Model Control Protocol (MCP)** - Allow external AI models to access Brainy data and use augmentation pipeline as
   tools
 
@@ -63,6 +63,22 @@ npm install @soulcraft/brainy
 ```
 
 TensorFlow.js packages are included as bundled dependencies and will be automatically installed without any additional configuration.
+
+### Additional Packages
+
+Brainy offers specialized packages for different use cases:
+
+#### CLI Package
+```bash
+npm install -g @soulcraft/brainy-cli
+```
+Command-line interface for data management, bulk operations, and database administration.
+
+#### Web Service Package
+```bash
+npm install @soulcraft/brainy-web-service
+```
+REST API web service wrapper that provides HTTP endpoints for search operations and database queries.
 
 ## 🏁 Quick Start
 
