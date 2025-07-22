@@ -1,6 +1,6 @@
 {
   "name": "@soulcraft/brainy-web-service",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "Web service wrapper for the Brainy vector graph database - read-only search service",
   "type": "module",
   "main": "dist/server.js",
