@@ -19,6 +19,15 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
   private tf: any = null
   private use: any = null
   private backend: string = 'cpu' // Default to CPU
+  private verbose: boolean = true // Whether to log non-essential messages
+  
+  /**
+   * Create a new UniversalSentenceEncoder instance
+   * @param options Configuration options
+   */
+  constructor(options: { verbose?: boolean } = {}) {
+    this.verbose = options.verbose !== undefined ? options.verbose : true
+  }
 
   /**
    * Add polyfills and patches for TensorFlow.js compatibility
@@ -93,14 +102,18 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
   }
 
   /**
-   * Log message only if not in test environment
+   * Log message only if verbose mode is enabled or if it's an error
+   * This helps suppress non-essential log messages
    */
   private logger(
     level: 'log' | 'warn' | 'error',
     message: string,
     ...args: any[]
   ): void {
-    console[level](message, ...args)
+    // Always log errors, but only log other messages if verbose mode is enabled
+    if (level === 'error' || this.verbose) {
+      console[level](message, ...args)
+    }
   }
 
   /**
@@ -580,14 +593,20 @@ function isTestEnvironment(): boolean {
 }
 
 /**
- * Log message only if not in test environment (standalone version)
+ * Log message only if not in test environment and verbose mode is enabled (standalone version)
+ * @param level Log level ('log', 'warn', 'error')
+ * @param message Message to log
+ * @param args Additional arguments to log
+ * @param verbose Whether to log non-essential messages (default: true)
  */
 function logIfNotTest(
   level: 'log' | 'warn' | 'error',
   message: string,
-  ...args: any[]
+  args: any[] = [],
+  verbose: boolean = true
 ): void {
-  if (!isTestEnvironment()) {
+  // Always log errors, but only log other messages if verbose mode is enabled
+  if ((level === 'error' || verbose) && !isTestEnvironment()) {
     console[level](message, ...args)
   }
 }
@@ -613,18 +632,31 @@ export function createEmbeddingFunction(
  * Creates a TensorFlow-based Universal Sentence Encoder embedding function
  * This is the required embedding function for all text embeddings
  * Uses a shared model instance for better performance across multiple calls
+ * @param options Configuration options
+ * @param options.verbose Whether to log non-essential messages (default: true)
  */
 // Create a single shared instance of the model that persists across all embedding calls
-const sharedModel = new UniversalSentenceEncoder()
+let sharedModel: UniversalSentenceEncoder | null = null
 let sharedModelInitialized = false
+let sharedModelVerbose = true
 
-export function createTensorFlowEmbeddingFunction(): EmbeddingFunction {
+export function createTensorFlowEmbeddingFunction(options: { verbose?: boolean } = {}): EmbeddingFunction {
+  // Update verbose setting if provided
+  if (options.verbose !== undefined) {
+    sharedModelVerbose = options.verbose
+  }
+  
+  // Create the shared model if it doesn't exist yet
+  if (!sharedModel) {
+    sharedModel = new UniversalSentenceEncoder({ verbose: sharedModelVerbose })
+  }
+  
   return async (data: any): Promise<Vector> => {
     try {
       // Initialize the model if it hasn't been initialized yet
       if (!sharedModelInitialized) {
         try {
-          await sharedModel.init()
+          await sharedModel!.init()
           sharedModelInitialized = true
         } catch (initError) {
           // Reset the flag so we can retry initialization on the next call
@@ -633,9 +665,9 @@ export function createTensorFlowEmbeddingFunction(): EmbeddingFunction {
         }
       }
 
-      return await sharedModel.embed(data)
+      return await sharedModel!.embed(data)
     } catch (error) {
-      logIfNotTest('error', 'Failed to use TensorFlow embedding:', error)
+      logIfNotTest('error', 'Failed to use TensorFlow embedding:', [error], sharedModelVerbose)
       throw new Error(
         `Universal Sentence Encoder is required but failed: ${error}`
       )
@@ -648,39 +680,86 @@ export function createTensorFlowEmbeddingFunction(): EmbeddingFunction {
  * Uses UniversalSentenceEncoder for all text embeddings
  * TensorFlow.js is required for this to work
  * Uses CPU for compatibility
+ * @param options Configuration options
+ * @param options.verbose Whether to log non-essential messages (default: true)
  */
-export const defaultEmbeddingFunction: EmbeddingFunction =
-  createTensorFlowEmbeddingFunction()
+export function getDefaultEmbeddingFunction(options: { verbose?: boolean } = {}): EmbeddingFunction {
+  return createTensorFlowEmbeddingFunction(options)
+}
 
 /**
- * Default batch embedding function
+ * Default embedding function with default options
  * Uses UniversalSentenceEncoder for all text embeddings
+ * TensorFlow.js is required for this to work
+ * Uses CPU for compatibility
+ */
+export const defaultEmbeddingFunction: EmbeddingFunction = getDefaultEmbeddingFunction()
+
+/**
+ * Creates a batch embedding function that uses UniversalSentenceEncoder
  * TensorFlow.js is required for this to work
  * Processes all items in a single batch operation
  * Uses a shared model instance for better performance across multiple calls
+ * @param options Configuration options
+ * @param options.verbose Whether to log non-essential messages (default: true)
  */
 // Create a single shared instance of the model that persists across function calls
-const sharedBatchModel = new UniversalSentenceEncoder()
+let sharedBatchModel: UniversalSentenceEncoder | null = null
 let sharedBatchModelInitialized = false
+let sharedBatchModelVerbose = true
 
-export const defaultBatchEmbeddingFunction: (
+export function createBatchEmbeddingFunction(options: { verbose?: boolean } = {}): (
   dataArray: string[]
-) => Promise<Vector[]> = async (dataArray: string[]): Promise<Vector[]> => {
-  try {
-    // Initialize the model if it hasn't been initialized yet
-    if (!sharedBatchModelInitialized) {
-      await sharedBatchModel.init()
-      sharedBatchModelInitialized = true
-    }
+) => Promise<Vector[]> {
+  // Update verbose setting if provided
+  if (options.verbose !== undefined) {
+    sharedBatchModelVerbose = options.verbose
+  }
+  
+  // Create the shared model if it doesn't exist yet
+  if (!sharedBatchModel) {
+    sharedBatchModel = new UniversalSentenceEncoder({ verbose: sharedBatchModelVerbose })
+  }
+  
+  return async (dataArray: string[]): Promise<Vector[]> => {
+    try {
+      // Initialize the model if it hasn't been initialized yet
+      if (!sharedBatchModelInitialized) {
+        await sharedBatchModel!.init()
+        sharedBatchModelInitialized = true
+      }
 
-    return await sharedBatchModel.embedBatch(dataArray)
-  } catch (error) {
-    logIfNotTest('error', 'Failed to use TensorFlow batch embedding:', error)
-    throw new Error(
-      `Universal Sentence Encoder batch embedding failed: ${error}`
-    )
+      return await sharedBatchModel!.embedBatch(dataArray)
+    } catch (error) {
+      logIfNotTest('error', 'Failed to use TensorFlow batch embedding:', [error], sharedBatchModelVerbose)
+      throw new Error(
+        `Universal Sentence Encoder batch embedding failed: ${error}`
+      )
+    }
   }
 }
+
+/**
+ * Get a batch embedding function with custom options
+ * Uses UniversalSentenceEncoder for all text embeddings
+ * TensorFlow.js is required for this to work
+ * Processes all items in a single batch operation
+ * @param options Configuration options
+ * @param options.verbose Whether to log non-essential messages (default: true)
+ */
+export function getDefaultBatchEmbeddingFunction(options: { verbose?: boolean } = {}): (
+  dataArray: string[]
+) => Promise<Vector[]> {
+  return createBatchEmbeddingFunction(options)
+}
+
+/**
+ * Default batch embedding function with default options
+ * Uses UniversalSentenceEncoder for all text embeddings
+ * TensorFlow.js is required for this to work
+ * Processes all items in a single batch operation
+ */
+export const defaultBatchEmbeddingFunction = getDefaultBatchEmbeddingFunction()
 
 /**
  * Creates an embedding function that runs in a separate thread

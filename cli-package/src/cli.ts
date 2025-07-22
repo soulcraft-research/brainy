@@ -27,11 +27,24 @@ import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import fs from 'fs'
 import { Command } from 'commander'
+// @ts-expect-error - Missing type declarations for omelette
 import omelette from 'omelette'
 
 // Get the directory of the current module
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
+
+// Define interface for search results
+interface SearchResult {
+  id: string;
+  metadata?: {
+    noun?: string;
+    label?: string;
+    [key: string]: any;
+  };
+  vector: number[];
+  score?: number;
+}
 
 // Get version from package.json
 const packageJsonPath = join(__dirname, '..', 'package.json')
@@ -93,7 +106,7 @@ program
   .description(
     'A vector database using HNSW indexing with Origin Private File System storage'
   )
-  .version(VERSION, '-V, --version', 'Output the current version')
+  .version(VERSION, '-V, --version')
 
 // Create data directory if it doesn't exist
 const dataDir = join(process.cwd(), 'data')
@@ -128,7 +141,7 @@ program
   .description('Add a new noun with the given text and optional metadata')
   .argument('<text>', 'Text to add as a noun')
   .argument('[metadata]', 'Optional metadata as JSON string')
-  .action(async (text, metadataStr) => {
+  .action(async (text: string, metadataStr: string) => {
     try {
       const db = createDb()
       await db.init()
@@ -153,27 +166,22 @@ program
   .description('Search for nouns similar to the query')
   .argument('<query>', 'Search query text')
   .option('-l, --limit <number>', 'Maximum number of results to return', '5')
-  .action(async (query, options) => {
+  .action(async (query: string, options: { limit?: string, type?: string }) => {
     try {
       const db = createDb()
       await db.init()
 
-      const limit = parseInt(options.limit, 10)
-      const results = await db.searchText(query, limit)
+      const limit = parseInt(options.limit || '5', 10)
+      const results: SearchResult[] = await db.searchText(query, limit)
 
       console.log(`Search results for "${query}":`)
       results.forEach(
         (
-          result: {
-            id: string
-            score: number
-            metadata: any
-            vector: number[]
-          },
+          result: SearchResult,
           index: number
         ) => {
           console.log(`${index + 1}. ID: ${result.id}`)
-          console.log(`   Score: ${result.score.toFixed(4)}`)
+          console.log(`   Score: ${result.score ? result.score.toFixed(4) : 'N/A'}`)
           console.log(`   Metadata: ${JSON.stringify(result.metadata)}`)
           console.log(
             `   Vector: [${result.vector
@@ -194,7 +202,7 @@ program
   .command('get')
   .description('Get a noun by ID')
   .argument('<id>', 'ID of the noun to get')
-  .action(async (id) => {
+  .action(async (id: string) => {
     try {
       const db = createDb()
       await db.init()
@@ -222,7 +230,7 @@ program
   .command('delete')
   .description('Delete a noun by ID')
   .argument('<id>', 'ID of the noun to delete')
-  .action(async (id) => {
+  .action(async (id: string) => {
     try {
       const db = createDb()
       await db.init()
@@ -242,7 +250,7 @@ program
   .argument('<targetId>', 'ID of the target noun')
   .argument('<verbType>', 'Type of relationship')
   .argument('[metadata]', 'Optional metadata as JSON string')
-  .action(async (sourceId, targetId, verbTypeStr, metadataStr) => {
+  .action(async (sourceId: string, targetId: string, verbTypeStr: string, metadataStr: string) => {
     try {
       const db = createDb()
       await db.init()
@@ -268,7 +276,7 @@ program
   .command('getVerbs')
   .description('Get all relationships for a noun')
   .argument('<id>', 'ID of the noun to get relationships for')
-  .action(async (id) => {
+  .action(async (id: string) => {
     try {
       const db = createDb()
       await db.init()
@@ -367,7 +375,7 @@ program
   .command('backup')
   .description('Backup all data from the database to a JSON file')
   .argument('[filename]', 'Output filename (default: brainy-backup.json)')
-  .action(async (filename) => {
+  .action(async (filename: string) => {
     try {
       const db = createDb()
       await db.init()
@@ -396,7 +404,7 @@ program
   .description('Restore data from a JSON file into the database')
   .argument('<filename>', 'Input JSON file')
   .option('-c, --clear', 'Clear existing data before restoring', false)
-  .action(async (filename, options) => {
+  .action(async (filename: string, options: { clear?: boolean }) => {
     try {
       const db = createDb()
       await db.init()
@@ -430,7 +438,7 @@ program
   )
   .argument('<filename>', 'Input JSON file')
   .option('-c, --clear', 'Clear existing data before importing', false)
-  .action(async (filename, options) => {
+  .action(async (filename: string, options: { clear?: boolean }) => {
     try {
       const db = createDb()
       await db.init()
@@ -488,11 +496,11 @@ program
       // Get all nouns if no root is specified
       if (!rootId && !nounType) {
         // Get all nouns (limited by the limit option)
-        const allNouns = []
+        const allNouns: SearchResult[] = []
         let count = 0
 
         // Since there's no direct method to get all nouns, we'll use search with a high limit
-        const searchResults = await db.search('', 1000, {
+        const searchResults: SearchResult[] = await db.search('', 1000, {
           forceEmbed: true
         })
 
@@ -561,12 +569,12 @@ program
         console.log(`Visualizing nouns of type: ${nounType}\n`)
 
         // Search for nouns of the specified type
-        const searchResults = await db.search('', 1000, {
+        const searchResults: SearchResult[] = await db.search('', 1000, {
           nounTypes: [nounType],
           forceEmbed: true
         })
 
-        const filteredNouns = searchResults.slice(0, limit)
+        const filteredNouns: SearchResult[] = searchResults.slice(0, limit)
 
         if (filteredNouns.length === 0) {
           console.log(`No nouns found with type: ${nounType}`)
@@ -1470,4 +1478,4 @@ program
   })
 
 // Parse command line arguments
-program.parse()
+program.parse(process.argv)

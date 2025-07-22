@@ -6,7 +6,7 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.4.0-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4.5-blue.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![npm](https://img.shields.io/badge/npm-v0.12.0-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
+[![npm](https://img.shields.io/badge/npm-v0.15.0-blue.svg)](https://www.npmjs.com/package/@soulcraft/brainy)
 
 [//]: # ([![Cartographer]&#40;https://img.shields.io/badge/Cartographer-Official%20Standard-brightgreen&#41;]&#40;https://github.com/sodal-project/cartographer&#41;)
 
@@ -162,6 +162,7 @@ Brainy combines four key technologies to create its adaptive intelligence:
     - Serverless: In-memory storage with optional cloud persistence
     - Fallback: In-memory storage
     - Automatically migrates between storage types as needed
+    - Uses a simplified, consolidated storage structure for all noun types
 
 ## 🚀 The Brainy Pipeline
 
@@ -921,6 +922,71 @@ The simplified augmentation system provides:
 3. **Streamlined Pipeline** - Process data through augmentations more efficiently
 4. **Dynamic Loading** - Load augmentations at runtime when needed
 5. **Static & Streaming Data** - Handle both static and streaming data with the same API
+
+#### WebSocket Augmentation Types
+
+Brainy exports several WebSocket augmentation types that can be used by augmentation creators to add WebSocket capabilities to their augmentations:
+
+```typescript
+import {
+  // Base WebSocket support interface
+  IWebSocketSupport,
+  
+  // Combined WebSocket augmentation types
+  IWebSocketSenseAugmentation,
+  IWebSocketConduitAugmentation,
+  IWebSocketCognitionAugmentation,
+  IWebSocketMemoryAugmentation,
+  IWebSocketPerceptionAugmentation,
+  IWebSocketDialogAugmentation,
+  IWebSocketActivationAugmentation,
+  
+  // Function to add WebSocket support to any augmentation
+  addWebSocketSupport
+} from '@soulcraft/brainy'
+
+// Example: Creating a typed WebSocket-enabled sense augmentation
+const mySenseAug = createSenseAugmentation({
+  name: 'my-sense',
+  processRawData: async (data, dataType) => {
+    // Implementation
+    return {
+      success: true,
+      data: { nouns: [], verbs: [] }
+    }
+  }
+}) as IWebSocketSenseAugmentation
+
+// Add WebSocket support
+addWebSocketSupport(mySenseAug, {
+  connectWebSocket: async (url) => {
+    // WebSocket implementation
+    return {
+      connectionId: 'ws-1',
+      url,
+      status: 'connected'
+    }
+  },
+  sendWebSocketMessage: async (connectionId, data) => {
+    // Send message implementation
+  },
+  onWebSocketMessage: async (connectionId, callback) => {
+    // Register callback implementation
+  },
+  offWebSocketMessage: async (connectionId, callback) => {
+    // Remove callback implementation
+  },
+  closeWebSocket: async (connectionId, code, reason) => {
+    // Close connection implementation
+  }
+})
+
+// Now mySenseAug has both sense augmentation methods and WebSocket methods
+await mySenseAug.processRawData('data', 'text')
+await mySenseAug.connectWebSocket('wss://example.com')
+```
+
+These WebSocket augmentation types combine the base augmentation interfaces with the `IWebSocketSupport` interface, providing type safety and autocompletion for augmentations with WebSocket capabilities.
 
 ### Model Control Protocol (MCP)
 
