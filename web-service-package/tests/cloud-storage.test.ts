@@ -37,24 +37,48 @@ describe('Brainy Web Service Cloud Storage Integration', () => {
       let errorOutput = ''
 
       serverProcess.stdout?.on('data', (data) => {
-        output += data.toString()
+        const dataStr = data.toString()
+        output += dataStr
+        
+        // Check for error messages in stdout that indicate initialization failure
+        if (dataStr.includes('Failed to initialize') || dataStr.includes('Error:')) {
+          console.log(`   Server stdout error: ${dataStr.trim()}`)
+          reject(new Error(`Server initialization failed: ${dataStr.trim()}`))
+          return
+        }
+        
         if (output.includes('Server running on')) {
           resolve()
         }
       })
 
       serverProcess.stderr?.on('data', (data) => {
-        errorOutput += data.toString()
-        console.log(`   Server stderr: ${data.toString().trim()}`)
+        const dataStr = data.toString()
+        errorOutput += dataStr
+        console.log(`   Server stderr: ${dataStr.trim()}`)
+        
+        // Check for error messages in stderr that indicate initialization failure
+        if (dataStr.includes('Failed to initialize') || dataStr.includes('Error:')) {
+          reject(new Error(`Server initialization failed: ${dataStr.trim()}`))
+        }
       })
 
       serverProcess.on('error', (error) => {
         reject(new Error(`Failed to start server: ${error.message}`))
       })
 
-      serverProcess.on('exit', (code) => {
+      serverProcess.on('exit', (code, signal) => {
+        // If the process exited with a non-zero code, it's an error
         if (code !== 0 && code !== null) {
           reject(new Error(`Server exited with code ${code}. Error: ${errorOutput}`))
+        }
+        // If the process was terminated by a signal and we have error output, it's an error
+        else if (signal && errorOutput) {
+          reject(new Error(`Server terminated by signal ${signal}. Error: ${errorOutput}`))
+        }
+        // If we have error output but no code or signal, it's still an error
+        else if (errorOutput && errorOutput.includes('Error:')) {
+          reject(new Error(`Server exited with error: ${errorOutput}`))
         }
       })
 

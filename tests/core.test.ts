@@ -342,4 +342,52 @@ describe('Brainy Core Functionality', () => {
       expect(results[0].metadata?.id).toBe('known')
     })
   })
+
+  describe('Database Statistics', () => {
+    it('should provide accurate statistics about the database', async () => {
+      const data = new brainy.BrainyData({
+        dimensions: 3,
+        metric: 'euclidean'
+      })
+
+      await data.init()
+      await data.clear() // Clear any existing data
+
+      // Add some vectors (nouns)
+      await data.add([1, 0, 0], { id: 'v1', label: 'x-axis' })
+      await data.add([0, 1, 0], { id: 'v2', label: 'y-axis' })
+      await data.add([0, 0, 1], { id: 'v3', label: 'z-axis' })
+
+      // Add some connections (verbs)
+      await data.connect('v1', 'v2', 'related_to')
+      await data.connect('v2', 'v3', 'related_to')
+
+      // Get statistics
+      const stats = await data.getStatistics()
+
+      // Debug: Log all nouns in the database
+      const allNouns = await data.getAllNouns()
+      console.log('All nouns in database:', allNouns.map(n => n.id))
+      
+      // Debug: Log all verbs in the database
+      const allVerbs = await data.getAllVerbs()
+      console.log('All verbs in database:', allVerbs.map(v => v.id))
+      
+      // Debug: Log the verb IDs set used in getStatistics
+      const verbIds = new Set(allVerbs.map(verb => verb.id))
+      console.log('Verb IDs set:', Array.from(verbIds))
+
+      // Verify statistics
+      expect(stats).toBeDefined()
+      expect(stats).toHaveProperty('nounCount')
+      expect(stats).toHaveProperty('verbCount')
+      expect(stats).toHaveProperty('metadataCount')
+      expect(stats).toHaveProperty('hnswIndexSize')
+
+      // Verify counts
+      expect(stats.nounCount).toBe(3)
+      expect(stats.verbCount).toBe(2)
+      expect(stats.hnswIndexSize).toBe(3)
+    })
+  })
 })
