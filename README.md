@@ -488,6 +488,32 @@ const backupData = await db.backup()
 const restoreResult = await db.restore(backupData, {clearExisting: true})
 ```
 
+### Database Statistics
+
+Brainy provides a way to get statistics about the current state of the database:
+
+```typescript
+import { BrainyData, getStatistics } from '@soulcraft/brainy'
+
+// Create and initialize the database
+const db = new BrainyData()
+await db.init()
+
+// Get statistics using the standalone function
+const stats = await getStatistics(db)
+console.log(stats)
+// Output: { nounCount: 0, verbCount: 0, metadataCount: 0, hnswIndexSize: 0 }
+
+// Or using the instance method
+const instanceStats = await db.getStatistics()
+```
+
+The statistics include:
+- `nounCount`: Number of nouns (entities) in the database
+- `verbCount`: Number of verbs (relationships) in the database
+- `metadataCount`: Number of metadata entries
+- `hnswIndexSize`: Size of the HNSW index
+
 ### Working with Nouns (Entities)
 
 ```typescript
