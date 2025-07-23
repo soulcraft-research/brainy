@@ -1519,6 +1519,56 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     }
 
     /**
+     * Get statistics about the current state of the database
+     * @returns Object containing counts of nouns, verbs, metadata entries, and HNSW index size
+     */
+    public async getStatistics(): Promise<{
+        nounCount: number
+        verbCount: number
+        metadataCount: number
+        hnswIndexSize: number
+    }> {
+        await this.ensureInitialized()
+
+        try {
+            // Get noun count from the index
+            const nounCount = this.index.getNouns().size
+
+            // Get verb count from storage
+            const allVerbs = await this.storage!.getAllVerbs()
+            const verbCount = allVerbs.length
+
+            // Count metadata entries by checking each noun for metadata
+            let metadataCount = 0
+            const nouns = this.index.getNouns()
+            for (const [id] of nouns.entries()) {
+                try {
+                    const metadata = await this.storage!.getMetadata(id)
+                    if (metadata !== null && metadata !== undefined) {
+                        metadataCount++
+                    }
+                } catch (error) {
+                    // Ignore errors when checking individual metadata entries
+                    // This could happen if metadata is corrupted or missing
+                }
+            }
+
+            // Get HNSW index size
+            const hnswIndexSize = this.index.size()
+
+            return {
+                nounCount,
+                verbCount,
+                metadataCount,
+                hnswIndexSize
+            }
+        } catch (error) {
+            console.error('Failed to get statistics:', error)
+            throw new Error(`Failed to get statistics: ${error}`)
+        }
+    }
+
+    /**
      * Check if the database is in read-only mode
      * @returns True if the database is in read-only mode, false otherwise
      */
