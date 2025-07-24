@@ -69,15 +69,19 @@ configuration.
 Brainy offers specialized packages for different use cases:
 
 #### CLI Package
+
 ```bash
 npm install -g @soulcraft/brainy-cli
 ```
+
 Command-line interface for data management, bulk operations, and database administration.
 
 #### Web Service Package
+
 ```bash
 npm install @soulcraft/brainy-web-service
 ```
+
 REST API web service wrapper that provides HTTP endpoints for search operations and database queries.
 
 ## 🏁 Quick Start
@@ -493,7 +497,7 @@ const restoreResult = await db.restore(backupData, {clearExisting: true})
 Brainy provides a way to get statistics about the current state of the database:
 
 ```typescript
-import { BrainyData, getStatistics } from '@soulcraft/brainy'
+import {BrainyData, getStatistics} from '@soulcraft/brainy'
 
 // Create and initialize the database
 const db = new BrainyData()
@@ -509,6 +513,7 @@ const instanceStats = await db.getStatistics()
 ```
 
 The statistics include:
+
 - `nounCount`: Number of nouns (entities) in the database
 - `verbCount`: Number of verbs (relationships) in the database
 - `metadataCount`: Number of metadata entries
@@ -1107,7 +1112,7 @@ The repository includes a comprehensive demo that showcases Brainy's main featur
     - **[Try the live demo](https://soulcraft-research.github.io/brainy/demo/index.html)** - Check out the
       interactive demo on
       GitHub Pages
-    - Or run it locally with `npm run demo` (see [demo instructions](README.demo.md) for details)
+    - Or run it locally with `npm run demo` (see [demo instructions](demo.md) for details)
     - To deploy your own version to GitHub Pages, use the GitHub Actions workflow in
       `.github/workflows/deploy-demo.yml`,
       which automatically deploys when pushing to the main branch or can be manually triggered
