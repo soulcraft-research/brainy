@@ -3,8 +3,8 @@
  * Provides persistent storage for the vector database using the Origin Private File System API
  */
 
-import {GraphVerb, HNSWNoun} from '../../coreTypes.js'
-import {BaseStorage, NOUNS_DIR, VERBS_DIR, METADATA_DIR, INDEX_DIR} from '../baseStorage.js'
+import {GraphVerb, HNSWNoun, StatisticsData} from '../../coreTypes.js'
+import {BaseStorage, NOUNS_DIR, VERBS_DIR, METADATA_DIR, INDEX_DIR, STATISTICS_KEY} from '../baseStorage.js'
 import '../../types/fileSystemTypes.js'
 
 /**
@@ -37,6 +37,7 @@ export class OPFSStorage extends BaseStorage {
     private isAvailable = false
     private isPersistentRequested = false
     private isPersistentGranted = false
+    private statistics: StatisticsData | null = null
 
     constructor() {
         super()
@@ -686,6 +687,108 @@ export class OPFSStorage extends BaseStorage {
                 quota: null,
                 details: {error: String(error)}
             }
+        }
+    }
+
+    /**
+     * Save statistics data to storage
+     * @param statistics The statistics data to save
+     */
+    protected async saveStatisticsData(statistics: StatisticsData): Promise<void> {
+        // Create a deep copy to avoid reference issues
+        this.statistics = {
+            nounCount: {...statistics.nounCount},
+            verbCount: {...statistics.verbCount},
+            metadataCount: {...statistics.metadataCount},
+            hnswIndexSize: statistics.hnswIndexSize,
+            lastUpdated: statistics.lastUpdated
+        }
+
+        try {
+            // Ensure the root directory is initialized
+            await this.ensureInitialized()
+
+            // Get or create the index directory
+            if (!this.indexDir) {
+                throw new Error('Index directory not initialized')
+            }
+
+            // Create a file for the statistics data
+            const fileHandle = await this.indexDir.getFileHandle('statistics.json', {
+                create: true
+            })
+
+            // Create a writable stream
+            const writable = await fileHandle.createWritable()
+
+            // Write the statistics data to the file
+            await writable.write(JSON.stringify(this.statistics, null, 2))
+
+            // Close the stream
+            await writable.close()
+        } catch (error) {
+            console.error('Failed to save statistics data:', error)
+            throw new Error(`Failed to save statistics data: ${error}`)
+        }
+    }
+
+    /**
+     * Get statistics data from storage
+     * @returns Promise that resolves to the statistics data or null if not found
+     */
+    protected async getStatisticsData(): Promise<StatisticsData | null> {
+        // If we have cached statistics, return a deep copy
+        if (this.statistics) {
+            return {
+                nounCount: {...this.statistics.nounCount},
+                verbCount: {...this.statistics.verbCount},
+                metadataCount: {...this.statistics.metadataCount},
+                hnswIndexSize: this.statistics.hnswIndexSize,
+                lastUpdated: this.statistics.lastUpdated
+            }
+        }
+
+        try {
+            // Ensure the root directory is initialized
+            await this.ensureInitialized()
+
+            if (!this.indexDir) {
+                throw new Error('Index directory not initialized')
+            }
+
+            try {
+                // Try to get the statistics file
+                const fileHandle = await this.indexDir.getFileHandle('statistics.json', {
+                    create: false
+                })
+
+                // Get the file data
+                const file = await fileHandle.getFile()
+                const text = await file.text()
+
+                // Parse the statistics data
+                this.statistics = JSON.parse(text)
+
+                // Return a deep copy
+                if (this.statistics) {
+                    return {
+                        nounCount: {...this.statistics.nounCount},
+                        verbCount: {...this.statistics.verbCount},
+                        metadataCount: {...this.statistics.metadataCount},
+                        hnswIndexSize: this.statistics.hnswIndexSize,
+                        lastUpdated: this.statistics.lastUpdated
+                    }
+                }
+                
+                // If statistics is null, return default statistics
+                return this.createDefaultStatistics()
+            } catch (error) {
+                // If the file doesn't exist, return null
+                return null
+            }
+        } catch (error) {
+            console.error('Failed to get statistics data:', error)
+            throw new Error(`Failed to get statistics data: ${error}`)
         }
     }
 }

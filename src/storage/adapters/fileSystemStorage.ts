@@ -3,8 +3,8 @@
  * File system storage adapter for Node.js environments
  */
 
-import { GraphVerb, HNSWNoun } from '../../coreTypes.js'
-import { BaseStorage, NOUNS_DIR, VERBS_DIR, METADATA_DIR, INDEX_DIR } from '../baseStorage.js'
+import { GraphVerb, HNSWNoun, StatisticsData } from '../../coreTypes.js'
+import { BaseStorage, NOUNS_DIR, VERBS_DIR, METADATA_DIR, INDEX_DIR, STATISTICS_KEY } from '../baseStorage.js'
 
 // Type aliases for better readability
 type HNSWNode = HNSWNoun
@@ -550,6 +550,43 @@ export class FileSystemStorage extends BaseStorage {
         quota: null,
         details: { error: String(error) }
       }
+    }
+  }
+
+  /**
+   * Save statistics data to storage
+   * @param statistics The statistics data to save
+   */
+  protected async saveStatisticsData(statistics: StatisticsData): Promise<void> {
+    await this.ensureInitialized()
+
+    try {
+      const filePath = path.join(this.indexDir, `${STATISTICS_KEY}.json`)
+      await fs.promises.writeFile(filePath, JSON.stringify(statistics, null, 2))
+    } catch (error) {
+      console.error('Failed to save statistics data:', error)
+      throw new Error(`Failed to save statistics data: ${error}`)
+    }
+  }
+
+  /**
+   * Get statistics data from storage
+   * @returns Promise that resolves to the statistics data or null if not found
+   */
+  protected async getStatisticsData(): Promise<StatisticsData | null> {
+    await this.ensureInitialized()
+
+    try {
+      const filePath = path.join(this.indexDir, `${STATISTICS_KEY}.json`)
+      const data = await fs.promises.readFile(filePath, 'utf-8')
+      return JSON.parse(data)
+    } catch (error: any) {
+      // If the file doesn't exist, return null
+      if (error.code === 'ENOENT') {
+        return null
+      }
+      console.error('Error getting statistics data:', error)
+      throw error
     }
   }
 }
