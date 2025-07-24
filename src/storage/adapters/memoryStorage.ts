@@ -3,8 +3,8 @@
  * In-memory storage adapter for environments where persistent storage is not available or needed
  */
 
-import { GraphVerb, HNSWNoun } from '../../coreTypes.js'
-import { BaseStorage } from '../baseStorage.js'
+import { GraphVerb, HNSWNoun, StatisticsData } from '../../coreTypes.js'
+import { BaseStorage, STATISTICS_KEY } from '../baseStorage.js'
 
 /**
  * Type alias for HNSWNoun to make the code more readable
@@ -25,6 +25,7 @@ export class MemoryStorage extends BaseStorage {
   private nouns: Map<string, HNSWNode> = new Map()
   private verbs: Map<string, Edge> = new Map()
   private metadata: Map<string, any> = new Map()
+  private statistics: StatisticsData | null = null
 
   constructor() {
     super()
@@ -319,6 +320,40 @@ export class MemoryStorage extends BaseStorage {
         edgeCount: this.verbs.size,
         metadataCount: this.metadata.size
       }
+    }
+  }
+
+  /**
+   * Save statistics data to storage
+   * @param statistics The statistics data to save
+   */
+  protected async saveStatisticsData(statistics: StatisticsData): Promise<void> {
+    // Create a deep copy to avoid reference issues
+    this.statistics = {
+      nounCount: {...statistics.nounCount},
+      verbCount: {...statistics.verbCount},
+      metadataCount: {...statistics.metadataCount},
+      hnswIndexSize: statistics.hnswIndexSize,
+      lastUpdated: statistics.lastUpdated
+    }
+  }
+
+  /**
+   * Get statistics data from storage
+   * @returns Promise that resolves to the statistics data or null if not found
+   */
+  protected async getStatisticsData(): Promise<StatisticsData | null> {
+    if (!this.statistics) {
+      return null
+    }
+
+    // Return a deep copy to avoid reference issues
+    return {
+      nounCount: {...this.statistics.nounCount},
+      verbCount: {...this.statistics.verbCount},
+      metadataCount: {...this.statistics.metadataCount},
+      hnswIndexSize: this.statistics.hnswIndexSize,
+      lastUpdated: this.statistics.lastUpdated
     }
   }
 }

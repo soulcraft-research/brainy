@@ -4,8 +4,8 @@
  * including Amazon S3, Cloudflare R2, and Google Cloud Storage
  */
 
-import { GraphVerb, HNSWNoun } from '../../coreTypes.js'
-import { BaseStorage, NOUNS_DIR, VERBS_DIR, METADATA_DIR, INDEX_DIR } from '../baseStorage.js'
+import { GraphVerb, HNSWNoun, StatisticsData } from '../../coreTypes.js'
+import { BaseStorage, NOUNS_DIR, VERBS_DIR, METADATA_DIR, INDEX_DIR, STATISTICS_KEY } from '../baseStorage.js'
 
 // Type aliases for better readability
 type HNSWNode = HNSWNoun
@@ -56,6 +56,9 @@ export class S3CompatibleStorage extends BaseStorage {
   private verbPrefix: string
   private metadataPrefix: string
   private indexPrefix: string
+  
+  // Statistics caching for better performance
+  private statisticsCache: StatisticsData | null = null
 
   /**
    * Initialize the storage adapter
@@ -1012,6 +1015,115 @@ export class S3CompatibleStorage extends BaseStorage {
         quota: null,
         details: { error: String(error) }
       }
+    }
+  }
+  
+  /**
+   * Save statistics data to storage
+   * @param statistics The statistics data to save
+   */
+  protected async saveStatisticsData(statistics: StatisticsData): Promise<void> {
+    await this.ensureInitialized()
+
+    try {
+      // Update the cache with a deep copy to avoid reference issues
+      this.statisticsCache = {
+        nounCount: {...statistics.nounCount},
+        verbCount: {...statistics.verbCount},
+        metadataCount: {...statistics.metadataCount},
+        hnswIndexSize: statistics.hnswIndexSize,
+        lastUpdated: statistics.lastUpdated
+      }
+      
+      // Import the PutObjectCommand only when needed
+      const { PutObjectCommand } = await import('@aws-sdk/client-s3')
+
+      const key = `${this.indexPrefix}${STATISTICS_KEY}.json`
+      const body = JSON.stringify(statistics, null, 2)
+      
+      // Save the statistics to S3-compatible storage
+      await this.s3Client!.send(
+        new PutObjectCommand({
+          Bucket: this.bucketName,
+          Key: key,
+          Body: body,
+          ContentType: 'application/json'
+        })
+      )
+    } catch (error) {
+      console.error('Failed to save statistics data:', error)
+      throw new Error(`Failed to save statistics data: ${error}`)
+    }
+  }
+
+  /**
+   * Get statistics data from storage
+   * @returns Promise that resolves to the statistics data or null if not found
+   */
+  protected async getStatisticsData(): Promise<StatisticsData | null> {
+    await this.ensureInitialized()
+
+    // If we have cached statistics, return a deep copy
+    if (this.statisticsCache) {
+      return {
+        nounCount: {...this.statisticsCache.nounCount},
+        verbCount: {...this.statisticsCache.verbCount},
+        metadataCount: {...this.statisticsCache.metadataCount},
+        hnswIndexSize: this.statisticsCache.hnswIndexSize,
+        lastUpdated: this.statisticsCache.lastUpdated
+      }
+    }
+
+    try {
+      // Import the GetObjectCommand only when needed
+      const { GetObjectCommand } = await import('@aws-sdk/client-s3')
+
+      const key = `${this.indexPrefix}${STATISTICS_KEY}.json`
+      
+      // Try to get the statistics from the index directory
+      const response = await this.s3Client!.send(
+        new GetObjectCommand({
+          Bucket: this.bucketName,
+          Key: key
+        })
+      )
+
+      // Check if response is null or undefined
+      if (!response || !response.Body) {
+        return null
+      }
+
+      // Convert the response body to a string
+      const bodyContents = await response.Body.transformToString()
+      
+      // Parse the JSON string and update the cache
+      const statistics = JSON.parse(bodyContents)
+      
+      // Update the cache with a deep copy
+      this.statisticsCache = {
+        nounCount: {...statistics.nounCount},
+        verbCount: {...statistics.verbCount},
+        metadataCount: {...statistics.metadataCount},
+        hnswIndexSize: statistics.hnswIndexSize,
+        lastUpdated: statistics.lastUpdated
+      }
+      
+      return statistics
+    } catch (error: any) {
+      // Check if this is a "NoSuchKey" error (object doesn't exist)
+      if (
+        error.name === 'NoSuchKey' || 
+        (error.message && (
+          error.message.includes('NoSuchKey') || 
+          error.message.includes('not found') || 
+          error.message.includes('does not exist')
+        ))
+      ) {
+        return null
+      }
+      
+      console.error('Error getting statistics data:', error)
+      throw error
     }
   }
 }

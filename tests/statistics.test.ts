@@ -72,5 +72,54 @@ describe('Brainy Statistics Functionality', () => {
       // Verify they match
       expect(functionStats).toEqual(instanceStats)
     })
+
+    it('should track statistics by service', async () => {
+      // Create a BrainyData instance
+      const data = new brainy.BrainyData({
+        dimensions: 3,
+        metric: 'euclidean'
+      })
+
+      await data.init()
+      await data.clear() // Clear any existing data
+
+      // Add data from different services
+      await data.add([1, 0, 0], { id: 'v1', label: 'service1-item' }, { service: 'service1' })
+      await data.add([0, 1, 0], { id: 'v2', label: 'service1-item' }, { service: 'service1' })
+      await data.add([0, 0, 1], { id: 'v3', label: 'service2-item' }, { service: 'service2' })
+      
+      // Add verbs from different services
+      await data.addVerb('v1', 'v2', undefined, { type: 'related_to', service: 'service1' })
+      await data.addVerb('v2', 'v3', undefined, { type: 'related_to', service: 'service2' })
+
+      // Get statistics for all services
+      const allStats = await data.getStatistics()
+      
+      // Verify total counts
+      expect(allStats.nounCount).toBe(3)
+      expect(allStats.verbCount).toBe(2)
+      expect(allStats.metadataCount).toBe(3)
+      
+      // Verify service breakdown exists
+      expect(allStats.serviceBreakdown).toBeDefined()
+      
+      // Verify service1 statistics
+      const service1Stats = await data.getStatistics({ service: 'service1' })
+      expect(service1Stats.nounCount).toBe(2)
+      expect(service1Stats.verbCount).toBe(1)
+      expect(service1Stats.metadataCount).toBe(2)
+      
+      // Verify service2 statistics
+      const service2Stats = await data.getStatistics({ service: 'service2' })
+      expect(service2Stats.nounCount).toBe(1)
+      expect(service2Stats.verbCount).toBe(1)
+      expect(service2Stats.metadataCount).toBe(1)
+      
+      // Verify multiple services filter
+      const combinedStats = await data.getStatistics({ service: ['service1', 'service2'] })
+      expect(combinedStats.nounCount).toBe(3)
+      expect(combinedStats.verbCount).toBe(2)
+      expect(combinedStats.metadataCount).toBe(3)
+    })
   })
 })

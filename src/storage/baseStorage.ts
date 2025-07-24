@@ -3,19 +3,21 @@
  * Provides common functionality for all storage adapters
  */
 
-import { GraphVerb, HNSWNoun, StorageAdapter } from '../coreTypes.js'
+import { GraphVerb, HNSWNoun, StatisticsData } from '../coreTypes.js'
+import { BaseStorageAdapter } from './adapters/baseStorageAdapter.js'
 
 // Common directory/prefix names
 export const NOUNS_DIR = 'nouns'
 export const VERBS_DIR = 'verbs'
 export const METADATA_DIR = 'metadata'
 export const INDEX_DIR = 'index'
+export const STATISTICS_KEY = 'statistics'
 
 /**
  * Base storage adapter that implements common functionality
  * This is an abstract class that should be extended by specific storage adapters
  */
-export abstract class BaseStorage implements StorageAdapter {
+export abstract class BaseStorage extends BaseStorageAdapter {
   protected isInitialized = false
 
   /**
@@ -245,4 +247,18 @@ export abstract class BaseStorage implements StorageAdapter {
     }
     return obj
   }
+
+  /**
+   * Save statistics data to storage
+   * This method should be implemented by each specific adapter
+   * @param statistics The statistics data to save
+   */
+  protected abstract saveStatisticsData(statistics: StatisticsData): Promise<void>
+
+  /**
+   * Get statistics data from storage
+   * This method should be implemented by each specific adapter
+   * @returns Promise that resolves to the statistics data or null if not found
+   */
+  protected abstract getStatisticsData(): Promise<StatisticsData | null>
 }
