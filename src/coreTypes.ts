@@ -97,6 +97,36 @@ export interface HNSWConfig {
 /**
  * Storage interface for persistence
  */
+/**
+ * Statistics data structure for tracking counts by service
+ */
+export interface StatisticsData {
+  /**
+   * Count of nouns by service
+   */
+  nounCount: Record<string, number>
+  
+  /**
+   * Count of verbs by service
+   */
+  verbCount: Record<string, number>
+  
+  /**
+   * Count of metadata entries by service
+   */
+  metadataCount: Record<string, number>
+  
+  /**
+   * Size of the HNSW index
+   */
+  hnswIndexSize: number
+  
+  /**
+   * Last updated timestamp
+   */
+  lastUpdated: string
+}
+
 export interface StorageAdapter {
   init(): Promise<void>
 
@@ -160,4 +190,38 @@ export interface StorageAdapter {
      */
     details?: Record<string, any>
   }>
+
+  /**
+   * Save statistics data
+   * @param statistics The statistics data to save
+   */
+  saveStatistics(statistics: StatisticsData): Promise<void>
+
+  /**
+   * Get statistics data
+   * @returns Promise that resolves to the statistics data
+   */
+  getStatistics(): Promise<StatisticsData | null>
+
+  /**
+   * Increment a statistic counter
+   * @param type The type of statistic to increment ('noun', 'verb', 'metadata')
+   * @param service The service that inserted the data
+   * @param amount The amount to increment by (default: 1)
+   */
+  incrementStatistic(type: 'noun' | 'verb' | 'metadata', service: string, amount?: number): Promise<void>
+
+  /**
+   * Decrement a statistic counter
+   * @param type The type of statistic to decrement ('noun', 'verb', 'metadata')
+   * @param service The service that inserted the data
+   * @param amount The amount to decrement by (default: 1)
+   */
+  decrementStatistic(type: 'noun' | 'verb' | 'metadata', service: string, amount?: number): Promise<void>
+
+  /**
+   * Update the HNSW index size statistic
+   * @param size The new size of the HNSW index
+   */
+  updateHnswIndexSize(size: number): Promise<void>
 }
