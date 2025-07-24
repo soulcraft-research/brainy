@@ -328,6 +328,7 @@ export class MemoryStorage extends BaseStorage {
    * @param statistics The statistics data to save
    */
   protected async saveStatisticsData(statistics: StatisticsData): Promise<void> {
+    // For memory storage, we just need to store the statistics in memory
     // Create a deep copy to avoid reference issues
     this.statistics = {
       nounCount: {...statistics.nounCount},
@@ -336,6 +337,9 @@ export class MemoryStorage extends BaseStorage {
       hnswIndexSize: statistics.hnswIndexSize,
       lastUpdated: statistics.lastUpdated
     }
+    
+    // Since this is in-memory, there's no need for time-based partitioning
+    // or legacy file handling
   }
 
   /**
@@ -355,5 +359,8 @@ export class MemoryStorage extends BaseStorage {
       hnswIndexSize: this.statistics.hnswIndexSize,
       lastUpdated: this.statistics.lastUpdated
     }
+    
+    // Since this is in-memory, there's no need for fallback mechanisms
+    // to check multiple storage locations
   }
 }

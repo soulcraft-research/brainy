@@ -33,7 +33,25 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
     details?: Record<string, any>
   }>
 
-  // Statistics-specific methods
+  // Statistics cache
+  protected statisticsCache: StatisticsData | null = null
+  
+  // Batch update timer ID
+  protected statisticsBatchUpdateTimerId: NodeJS.Timeout | null = null
+  
+  // Flag to indicate if statistics have been modified since last save
+  protected statisticsModified = false
+  
+  // Time of last statistics flush to storage
+  protected lastStatisticsFlushTime = 0
+  
+  // Minimum time between statistics flushes (5 seconds)
+  protected readonly MIN_FLUSH_INTERVAL_MS = 5000
+  
+  // Maximum time to wait before flushing statistics (30 seconds)
+  protected readonly MAX_FLUSH_DELAY_MS = 30000
+
+  // Statistics-specific methods that must be implemented by subclasses
   protected abstract saveStatisticsData(statistics: StatisticsData): Promise<void>
   protected abstract getStatisticsData(): Promise<StatisticsData | null>
 
@@ -42,7 +60,17 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
    * @param statistics The statistics data to save
    */
   async saveStatistics(statistics: StatisticsData): Promise<void> {
-    await this.saveStatisticsData(statistics)
+    // Update the cache with a deep copy to avoid reference issues
+    this.statisticsCache = {
+      nounCount: {...statistics.nounCount},
+      verbCount: {...statistics.verbCount},
+      metadataCount: {...statistics.metadataCount},
+      hnswIndexSize: statistics.hnswIndexSize,
+      lastUpdated: statistics.lastUpdated
+    }
+    
+    // Schedule a batch update instead of saving immediately
+    this.scheduleBatchUpdate()
   }
 
   /**
@@ -50,7 +78,91 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
    * @returns Promise that resolves to the statistics data
    */
   async getStatistics(): Promise<StatisticsData | null> {
-    return await this.getStatisticsData()
+    // If we have cached statistics, return a deep copy
+    if (this.statisticsCache) {
+      return {
+        nounCount: {...this.statisticsCache.nounCount},
+        verbCount: {...this.statisticsCache.verbCount},
+        metadataCount: {...this.statisticsCache.metadataCount},
+        hnswIndexSize: this.statisticsCache.hnswIndexSize,
+        lastUpdated: this.statisticsCache.lastUpdated
+      }
+    }
+    
+    // Otherwise, get from storage
+    const statistics = await this.getStatisticsData()
+    
+    // If we found statistics, update the cache
+    if (statistics) {
+      // Update the cache with a deep copy
+      this.statisticsCache = {
+        nounCount: {...statistics.nounCount},
+        verbCount: {...statistics.verbCount},
+        metadataCount: {...statistics.metadataCount},
+        hnswIndexSize: statistics.hnswIndexSize,
+        lastUpdated: statistics.lastUpdated
+      }
+    }
+    
+    return statistics
+  }
+  
+  /**
+   * Schedule a batch update of statistics
+   */
+  protected scheduleBatchUpdate(): void {
+    // Mark statistics as modified
+    this.statisticsModified = true
+
+    // If a timer is already set, don't set another one
+    if (this.statisticsBatchUpdateTimerId !== null) {
+      return
+    }
+
+    // Calculate time since last flush
+    const now = Date.now()
+    const timeSinceLastFlush = now - this.lastStatisticsFlushTime
+
+    // If we've recently flushed, wait longer before the next flush
+    const delayMs = timeSinceLastFlush < this.MIN_FLUSH_INTERVAL_MS
+      ? this.MAX_FLUSH_DELAY_MS
+      : this.MIN_FLUSH_INTERVAL_MS
+
+    // Schedule the batch update
+    this.statisticsBatchUpdateTimerId = setTimeout(() => {
+      this.flushStatistics()
+    }, delayMs)
+  }
+
+  /**
+   * Flush statistics to storage
+   */
+  protected async flushStatistics(): Promise<void> {
+    // Clear the timer
+    if (this.statisticsBatchUpdateTimerId !== null) {
+      clearTimeout(this.statisticsBatchUpdateTimerId)
+      this.statisticsBatchUpdateTimerId = null
+    }
+
+    // If statistics haven't been modified, no need to flush
+    if (!this.statisticsModified || !this.statisticsCache) {
+      return
+    }
+
+    try {
+      // Save the statistics to storage
+      await this.saveStatisticsData(this.statisticsCache)
+
+      // Update the last flush time
+      this.lastStatisticsFlushTime = Date.now()
+      // Reset the modified flag
+      this.statisticsModified = false
+    } catch (error) {
+      console.error('Failed to flush statistics data:', error)
+      // Mark as still modified so we'll try again later
+      this.statisticsModified = true
+      // Don't throw the error to avoid disrupting the application
+    }
   }
 
   /**
@@ -64,27 +176,39 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
     service: string,
     amount: number = 1
   ): Promise<void> {
-    // Get current statistics or create default if not exists
-    let statistics = await this.getStatisticsData()
+    // Get current statistics from cache or storage
+    let statistics = this.statisticsCache
     if (!statistics) {
-      statistics = this.createDefaultStatistics()
+      statistics = await this.getStatisticsData()
+      if (!statistics) {
+        statistics = this.createDefaultStatistics()
+      }
+      
+      // Update the cache
+      this.statisticsCache = {
+        nounCount: {...statistics.nounCount},
+        verbCount: {...statistics.verbCount},
+        metadataCount: {...statistics.metadataCount},
+        hnswIndexSize: statistics.hnswIndexSize,
+        lastUpdated: statistics.lastUpdated
+      }
     }
 
     // Increment the appropriate counter
     const counterMap = {
-      noun: statistics.nounCount,
-      verb: statistics.verbCount,
-      metadata: statistics.metadataCount
+      noun: this.statisticsCache!.nounCount,
+      verb: this.statisticsCache!.verbCount,
+      metadata: this.statisticsCache!.metadataCount
     }
 
     const counter = counterMap[type]
     counter[service] = (counter[service] || 0) + amount
 
     // Update timestamp
-    statistics.lastUpdated = new Date().toISOString()
+    this.statisticsCache!.lastUpdated = new Date().toISOString()
 
-    // Save updated statistics
-    await this.saveStatisticsData(statistics)
+    // Schedule a batch update instead of saving immediately
+    this.scheduleBatchUpdate()
   }
 
   /**
@@ -98,27 +222,39 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
     service: string,
     amount: number = 1
   ): Promise<void> {
-    // Get current statistics or create default if not exists
-    let statistics = await this.getStatisticsData()
+    // Get current statistics from cache or storage
+    let statistics = this.statisticsCache
     if (!statistics) {
-      statistics = this.createDefaultStatistics()
+      statistics = await this.getStatisticsData()
+      if (!statistics) {
+        statistics = this.createDefaultStatistics()
+      }
+      
+      // Update the cache
+      this.statisticsCache = {
+        nounCount: {...statistics.nounCount},
+        verbCount: {...statistics.verbCount},
+        metadataCount: {...statistics.metadataCount},
+        hnswIndexSize: statistics.hnswIndexSize,
+        lastUpdated: statistics.lastUpdated
+      }
     }
 
     // Decrement the appropriate counter
     const counterMap = {
-      noun: statistics.nounCount,
-      verb: statistics.verbCount,
-      metadata: statistics.metadataCount
+      noun: this.statisticsCache!.nounCount,
+      verb: this.statisticsCache!.verbCount,
+      metadata: this.statisticsCache!.metadataCount
     }
 
     const counter = counterMap[type]
     counter[service] = Math.max(0, (counter[service] || 0) - amount)
 
     // Update timestamp
-    statistics.lastUpdated = new Date().toISOString()
+    this.statisticsCache!.lastUpdated = new Date().toISOString()
 
-    // Save updated statistics
-    await this.saveStatisticsData(statistics)
+    // Schedule a batch update instead of saving immediately
+    this.scheduleBatchUpdate()
   }
 
   /**
@@ -126,20 +262,32 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
    * @param size The new size of the HNSW index
    */
   async updateHnswIndexSize(size: number): Promise<void> {
-    // Get current statistics or create default if not exists
-    let statistics = await this.getStatisticsData()
+    // Get current statistics from cache or storage
+    let statistics = this.statisticsCache
     if (!statistics) {
-      statistics = this.createDefaultStatistics()
+      statistics = await this.getStatisticsData()
+      if (!statistics) {
+        statistics = this.createDefaultStatistics()
+      }
+      
+      // Update the cache
+      this.statisticsCache = {
+        nounCount: {...statistics.nounCount},
+        verbCount: {...statistics.verbCount},
+        metadataCount: {...statistics.metadataCount},
+        hnswIndexSize: statistics.hnswIndexSize,
+        lastUpdated: statistics.lastUpdated
+      }
     }
 
     // Update HNSW index size
-    statistics.hnswIndexSize = size
+    this.statisticsCache!.hnswIndexSize = size
 
     // Update timestamp
-    statistics.lastUpdated = new Date().toISOString()
+    this.statisticsCache!.lastUpdated = new Date().toISOString()
 
-    // Save updated statistics
-    await this.saveStatisticsData(statistics)
+    // Schedule a batch update instead of saving immediately
+    this.scheduleBatchUpdate()
   }
 
   /**
