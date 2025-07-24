@@ -561,8 +561,22 @@ export class FileSystemStorage extends BaseStorage {
     await this.ensureInitialized()
 
     try {
-      const filePath = path.join(this.indexDir, `${STATISTICS_KEY}.json`)
-      await fs.promises.writeFile(filePath, JSON.stringify(statistics, null, 2))
+      // Get the current date for time-based partitioning
+      const now = new Date()
+      const year = now.getUTCFullYear()
+      const month = String(now.getUTCMonth() + 1).padStart(2, '0')
+      const day = String(now.getUTCDate()).padStart(2, '0')
+      const dateStr = `${year}${month}${day}`
+      
+      // Save to the current day's file
+      const currentFilePath = path.join(this.indexDir, `${STATISTICS_KEY}_${dateStr}.json`)
+      await fs.promises.writeFile(currentFilePath, JSON.stringify(statistics, null, 2))
+      
+      // Also update the legacy file for backward compatibility (less frequently)
+      if (Math.random() < 0.1) {
+        const legacyFilePath = path.join(this.indexDir, `${STATISTICS_KEY}.json`)
+        await fs.promises.writeFile(legacyFilePath, JSON.stringify(statistics, null, 2))
+      }
     } catch (error) {
       console.error('Failed to save statistics data:', error)
       throw new Error(`Failed to save statistics data: ${error}`)
@@ -577,14 +591,55 @@ export class FileSystemStorage extends BaseStorage {
     await this.ensureInitialized()
 
     try {
-      const filePath = path.join(this.indexDir, `${STATISTICS_KEY}.json`)
-      const data = await fs.promises.readFile(filePath, 'utf-8')
-      return JSON.parse(data)
-    } catch (error: any) {
-      // If the file doesn't exist, return null
-      if (error.code === 'ENOENT') {
-        return null
+      // Try to get statistics from today's file first
+      const now = new Date()
+      const year = now.getUTCFullYear()
+      const month = String(now.getUTCMonth() + 1).padStart(2, '0')
+      const day = String(now.getUTCDate()).padStart(2, '0')
+      const dateStr = `${year}${month}${day}`
+      
+      const currentFilePath = path.join(this.indexDir, `${STATISTICS_KEY}_${dateStr}.json`)
+      
+      try {
+        const data = await fs.promises.readFile(currentFilePath, 'utf-8')
+        return JSON.parse(data)
+      } catch (currentError: any) {
+        // If today's file doesn't exist, try yesterday's file
+        if (currentError.code === 'ENOENT') {
+          const yesterday = new Date()
+          yesterday.setDate(yesterday.getDate() - 1)
+          const yesterdayYear = yesterday.getUTCFullYear()
+          const yesterdayMonth = String(yesterday.getUTCMonth() + 1).padStart(2, '0')
+          const yesterdayDay = String(yesterday.getUTCDate()).padStart(2, '0')
+          const yesterdayDateStr = `${yesterdayYear}${yesterdayMonth}${yesterdayDay}`
+          
+          const yesterdayFilePath = path.join(this.indexDir, `${STATISTICS_KEY}_${yesterdayDateStr}.json`)
+          
+          try {
+            const yesterdayData = await fs.promises.readFile(yesterdayFilePath, 'utf-8')
+            return JSON.parse(yesterdayData)
+          } catch (yesterdayError: any) {
+            // If yesterday's file doesn't exist, try the legacy file
+            if (yesterdayError.code === 'ENOENT') {
+              const legacyFilePath = path.join(this.indexDir, `${STATISTICS_KEY}.json`)
+              
+              try {
+                const legacyData = await fs.promises.readFile(legacyFilePath, 'utf-8')
+                return JSON.parse(legacyData)
+              } catch (legacyError: any) {
+                // If the legacy file doesn't exist either, return null
+                if (legacyError.code === 'ENOENT') {
+                  return null
+                }
+                throw legacyError
+              }
+            }
+            throw yesterdayError
+          }
+        }
+        throw currentError
       }
+    } catch (error) {
       console.error('Error getting statistics data:', error)
       throw error
     }
