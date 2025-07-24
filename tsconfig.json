@@ -10,7 +10,8 @@
     "rootDir": "./src",
     "lib": [
       "DOM",
-      "ESNext"
+      "ESNext",
+      "DOM.Asynciterable"
     ],
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
