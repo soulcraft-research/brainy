@@ -691,6 +691,34 @@ export class OPFSStorage extends BaseStorage {
     }
 
     /**
+     * Get the statistics key for a specific date
+     * @param date The date to get the key for
+     * @returns The statistics key for the specified date
+     */
+    private getStatisticsKeyForDate(date: Date): string {
+        const year = date.getUTCFullYear()
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+        const day = String(date.getUTCDate()).padStart(2, '0')
+        return `statistics_${year}${month}${day}.json`
+    }
+
+    /**
+     * Get the current statistics key
+     * @returns The current statistics key
+     */
+    private getCurrentStatisticsKey(): string {
+        return this.getStatisticsKeyForDate(new Date())
+    }
+
+    /**
+     * Get the legacy statistics key (for backward compatibility)
+     * @returns The legacy statistics key
+     */
+    private getLegacyStatisticsKey(): string {
+        return 'statistics.json'
+    }
+
+    /**
      * Save statistics data to storage
      * @param statistics The statistics data to save
      */
@@ -713,8 +741,11 @@ export class OPFSStorage extends BaseStorage {
                 throw new Error('Index directory not initialized')
             }
 
+            // Get the current statistics key
+            const currentKey = this.getCurrentStatisticsKey()
+
             // Create a file for the statistics data
-            const fileHandle = await this.indexDir.getFileHandle('statistics.json', {
+            const fileHandle = await this.indexDir.getFileHandle(currentKey, {
                 create: true
             })
 
@@ -726,6 +757,17 @@ export class OPFSStorage extends BaseStorage {
 
             // Close the stream
             await writable.close()
+
+            // Also update the legacy key for backward compatibility, but less frequently
+            if (Math.random() < 0.1) {
+                const legacyKey = this.getLegacyStatisticsKey()
+                const legacyFileHandle = await this.indexDir.getFileHandle(legacyKey, {
+                    create: true
+                })
+                const legacyWritable = await legacyFileHandle.createWritable()
+                await legacyWritable.write(JSON.stringify(this.statistics, null, 2))
+                await legacyWritable.close()
+            }
         } catch (error) {
             console.error('Failed to save statistics data:', error)
             throw new Error(`Failed to save statistics data: ${error}`)
@@ -756,20 +798,16 @@ export class OPFSStorage extends BaseStorage {
                 throw new Error('Index directory not initialized')
             }
 
+            // First try to get statistics from today's file
+            const currentKey = this.getCurrentStatisticsKey()
             try {
-                // Try to get the statistics file
-                const fileHandle = await this.indexDir.getFileHandle('statistics.json', {
+                const fileHandle = await this.indexDir.getFileHandle(currentKey, {
                     create: false
                 })
-
-                // Get the file data
                 const file = await fileHandle.getFile()
                 const text = await file.text()
-
-                // Parse the statistics data
                 this.statistics = JSON.parse(text)
-
-                // Return a deep copy
+                
                 if (this.statistics) {
                     return {
                         nounCount: {...this.statistics.nounCount},
@@ -779,13 +817,59 @@ export class OPFSStorage extends BaseStorage {
                         lastUpdated: this.statistics.lastUpdated
                     }
                 }
-                
-                // If statistics is null, return default statistics
-                return this.createDefaultStatistics()
             } catch (error) {
-                // If the file doesn't exist, return null
-                return null
+                // If today's file doesn't exist, try yesterday's file
+                const yesterday = new Date()
+                yesterday.setDate(yesterday.getDate() - 1)
+                const yesterdayKey = this.getStatisticsKeyForDate(yesterday)
+                
+                try {
+                    const fileHandle = await this.indexDir.getFileHandle(yesterdayKey, {
+                        create: false
+                    })
+                    const file = await fileHandle.getFile()
+                    const text = await file.text()
+                    this.statistics = JSON.parse(text)
+                    
+                    if (this.statistics) {
+                        return {
+                            nounCount: {...this.statistics.nounCount},
+                            verbCount: {...this.statistics.verbCount},
+                            metadataCount: {...this.statistics.metadataCount},
+                            hnswIndexSize: this.statistics.hnswIndexSize,
+                            lastUpdated: this.statistics.lastUpdated
+                        }
+                    }
+                } catch (error) {
+                    // If yesterday's file doesn't exist, try the legacy file
+                    const legacyKey = this.getLegacyStatisticsKey()
+                    
+                    try {
+                        const fileHandle = await this.indexDir.getFileHandle(legacyKey, {
+                            create: false
+                        })
+                        const file = await fileHandle.getFile()
+                        const text = await file.text()
+                        this.statistics = JSON.parse(text)
+                        
+                        if (this.statistics) {
+                            return {
+                                nounCount: {...this.statistics.nounCount},
+                                verbCount: {...this.statistics.verbCount},
+                                metadataCount: {...this.statistics.metadataCount},
+                                hnswIndexSize: this.statistics.hnswIndexSize,
+                                lastUpdated: this.statistics.lastUpdated
+                            }
+                        }
+                    } catch (error) {
+                        // If the legacy file doesn't exist either, return null
+                        return null
+                    }
+                }
             }
+            
+            // If we get here and statistics is null, return default statistics
+            return this.statistics ? this.statistics : null
         } catch (error) {
             console.error('Failed to get statistics data:', error)
             throw new Error(`Failed to get statistics data: ${error}`)
