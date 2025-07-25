@@ -118,7 +118,6 @@ async function initializeBrainy() {
                 // Initialize the storage adapter before using it
                 await storage.init();
                 brainyInstance = new BrainyData({
-                    dimensions: 384, // Default dimensions, can be overridden
                     storageAdapter: storage,
                     distanceFunction: cosineDistance
                 });
@@ -128,7 +127,6 @@ async function initializeBrainy() {
         if (!brainyInstance) {
             const storage = await createStorage(storageOptions);
             brainyInstance = new BrainyData({
-                dimensions: 384, // Default dimensions, can be overridden
                 storageAdapter: storage,
                 distanceFunction: cosineDistance
             });

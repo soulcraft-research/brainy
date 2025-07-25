@@ -138,7 +138,6 @@ async function initializeBrainy(): Promise<BrainyData> {
         await storage.init()
         
         brainyInstance = new BrainyData({
-          dimensions: 384, // Default dimensions, can be overridden
           storageAdapter: storage,
           distanceFunction: cosineDistance
         })
@@ -150,7 +149,6 @@ async function initializeBrainy(): Promise<BrainyData> {
       const storage = await createStorage(storageOptions)
       
       brainyInstance = new BrainyData({
-        dimensions: 384, // Default dimensions, can be overridden
         storageAdapter: storage,
         distanceFunction: cosineDistance
       })
