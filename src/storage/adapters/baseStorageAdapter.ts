@@ -291,6 +291,20 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
   }
 
   /**
+   * Force an immediate flush of statistics to storage
+   * This ensures that any pending statistics updates are written to persistent storage
+   */
+  async flushStatisticsToStorage(): Promise<void> {
+    // If there are no statistics in cache or they haven't been modified, nothing to flush
+    if (!this.statisticsCache || !this.statisticsModified) {
+      return
+    }
+
+    // Call the protected flushStatistics method to immediately write to storage
+    await this.flushStatistics()
+  }
+
+  /**
    * Create default statistics data
    * @returns Default statistics data
    */
