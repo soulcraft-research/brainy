@@ -41,20 +41,11 @@ import {augmentationPipeline} from './augmentationPipeline.js'
 
 export interface BrainyDataConfig {
     /**
-     * Vector dimensions (required if not using an embedding function that auto-detects dimensions)
-     */
-    dimensions?: number
-
-    /**
      * HNSW index configuration
+     * Uses the optimized HNSW implementation which supports large datasets
+     * through product quantization and disk-based storage
      */
-    hnsw?: Partial<HNSWConfig>
-
-    /**
-     * Optimized HNSW index configuration
-     * If provided, will use the optimized HNSW index instead of the standard one
-     */
-    hnswOptimized?: Partial<HNSWOptimizedConfig>
+    hnsw?: Partial<HNSWOptimizedConfig>
 
     /**
      * Distance function to use for similarity calculations
@@ -191,30 +182,19 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
      * Create a new vector database
      */
     constructor(config: BrainyDataConfig = {}) {
-        // Validate dimensions
-        if (config.dimensions !== undefined && config.dimensions <= 0) {
-            throw new Error('Dimensions must be a positive number')
-        }
-
-        // Set dimensions (default to 512 for embedding functions, or require explicit config)
-        this._dimensions = config.dimensions || 512
+        // Set dimensions to fixed value of 512 (Universal Sentence Encoder dimension)
+        this._dimensions = 512
 
         // Set distance function
         this.distanceFunction = config.distanceFunction || cosineDistance
 
-        // Check if optimized HNSW index configuration is provided
-        if (config.hnswOptimized) {
-            // Initialize optimized HNSW index
-            this.index = new HNSWIndexOptimized(
-                config.hnswOptimized,
-                this.distanceFunction,
-                config.storageAdapter || null
-            )
-            this.useOptimizedIndex = true
-        } else {
-            // Initialize standard HNSW index
-            this.index = new HNSWIndex(config.hnsw, this.distanceFunction)
-        }
+        // Always use the optimized HNSW index implementation
+        this.index = new HNSWIndexOptimized(
+            config.hnsw || {},
+            this.distanceFunction,
+            config.storageAdapter || null
+        )
+        this.useOptimizedIndex = true
 
         // Set storage if provided, otherwise it will be initialized in init()
         this.storage = config.storageAdapter || null
@@ -944,6 +924,11 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                 throw new Error('Query vector is undefined or null')
             }
 
+            // Check if query vector dimensions match the expected dimensions
+            if (queryVector.length !== this._dimensions) {
+                throw new Error(`Query vector dimension mismatch: expected ${this._dimensions}, got ${queryVector.length}`)
+            }
+
             // If no noun types specified, search all nouns
             if (!nounTypes || nounTypes.length === 0) {
                 // Search in the index
@@ -1658,14 +1643,14 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
             // Get service name from options or current augmentation
             const service = options.service || this.getCurrentAugmentation()
-            
+
             // Create timestamp for creation/update time
             const now = new Date()
             const timestamp = {
                 seconds: Math.floor(now.getTime() / 1000),
                 nanoseconds: (now.getTime() % 1000) * 1000000
             }
-            
+
             // Create verb
             const verb: GraphVerb = {
                 id,
@@ -2924,10 +2909,13 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                     console.log('Reconstructing HNSW index from backup data...')
 
                     // Create a new index with the restored configuration
-                    this.index = new HNSWIndex(
+                    // Always use the optimized implementation for consistency
+                    this.index = new HNSWIndexOptimized(
                         data.hnswIndex.config,
-                        this.distanceFunction
+                        this.distanceFunction,
+                        this.storage
                     )
+                    this.useOptimizedIndex = true
 
                     // Re-add all nouns to the index
                     for (const noun of data.nouns) {
