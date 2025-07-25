@@ -1656,16 +1656,34 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                 }
             }
 
+            // Get service name from options or current augmentation
+            const service = options.service || this.getCurrentAugmentation()
+            
+            // Create timestamp for creation/update time
+            const now = new Date()
+            const timestamp = {
+                seconds: Math.floor(now.getTime() / 1000),
+                nanoseconds: (now.getTime() % 1000) * 1000000
+            }
+            
             // Create verb
             const verb: GraphVerb = {
                 id,
                 vector: verbVector,
                 connections: new Map(),
-                sourceId,
-                targetId,
-                type: verbType,
+                sourceId: sourceId,
+                targetId: targetId,
+                source: sourceId,
+                target: targetId,
+                verb: verbType as VerbType,
                 weight: options.weight,
-                metadata: options.metadata
+                metadata: options.metadata,
+                createdAt: timestamp,
+                updatedAt: timestamp,
+                createdBy: {
+                    augmentation: service,
+                    version: '1.0' // TODO: Get actual version from augmentation
+                }
             }
 
             // Add to index
@@ -1687,8 +1705,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
             await this.storage!.saveVerb(verb)
 
             // Track verb statistics
-            const service = options.service || 'default'
-            await this.storage!.incrementStatistic('verb', service)
+            const serviceForStats = options.service || 'default'
+            await this.storage!.incrementStatistic('verb', serviceForStats)
 
             // Update HNSW index size (excluding verbs)
             await this.storage!.updateHnswIndexSize(await this.getNounCount())

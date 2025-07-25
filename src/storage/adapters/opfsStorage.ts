@@ -7,6 +7,14 @@ import {GraphVerb, HNSWNoun, StatisticsData} from '../../coreTypes.js'
 import {BaseStorage, NOUNS_DIR, VERBS_DIR, METADATA_DIR, INDEX_DIR, STATISTICS_KEY} from '../baseStorage.js'
 import '../../types/fileSystemTypes.js'
 
+// Type alias for HNSWNode
+type HNSWNode = HNSWNoun
+
+/**
+ * Type alias for GraphVerb to make the code more readable
+ */
+type Edge = GraphVerb
+
 /**
  * Helper function to safely get a file from a FileSystemHandle
  * This is needed because TypeScript doesn't recognize that a FileSystemHandle
@@ -18,8 +26,8 @@ async function safeGetFile(handle: FileSystemHandle): Promise<File> {
 }
 
 // Type aliases for better readability
-type HNSWNode = HNSWNoun
-type Edge = GraphVerb
+type HNSWNoun_internal = HNSWNoun
+type Verb = GraphVerb
 
 // Root directory name for OPFS storage
 const ROOT_DIR = 'opfs-vector-db'
@@ -149,54 +157,54 @@ export class OPFSStorage extends BaseStorage {
     }
 
     /**
-     * Save a node to storage
+     * Save a noun to storage
      */
-    protected async saveNode(node: HNSWNode): Promise<void> {
+    protected async saveNoun_internal(noun: HNSWNoun_internal): Promise<void> {
         await this.ensureInitialized()
 
         try {
             // Convert connections Map to a serializable format
-            const serializableNode = {
-                ...node,
-                connections: this.mapToObject(node.connections, (set) =>
+            const serializableNoun = {
+                ...noun,
+                connections: this.mapToObject(noun.connections, (set) =>
                     Array.from(set as Set<string>)
                 )
             }
 
             // Create or get the file for this noun
-            const fileHandle = await this.nounsDir!.getFileHandle(node.id, {
+            const fileHandle = await this.nounsDir!.getFileHandle(noun.id, {
                 create: true
             })
 
             // Write the noun data to the file
             const writable = await fileHandle.createWritable()
-            await writable.write(JSON.stringify(serializableNode))
+            await writable.write(JSON.stringify(serializableNoun))
             await writable.close()
         } catch (error) {
-            console.error(`Failed to save node ${node.id}:`, error)
-            throw new Error(`Failed to save node ${node.id}: ${error}`)
+            console.error(`Failed to save noun ${noun.id}:`, error)
+            throw new Error(`Failed to save noun ${noun.id}: ${error}`)
         }
     }
 
     /**
-     * Get a node from storage
+     * Get a noun from storage
      */
-    protected async getNode(id: string): Promise<HNSWNode | null> {
+    protected async getNoun_internal(id: string): Promise<HNSWNoun_internal | null> {
         await this.ensureInitialized()
 
         try {
-            // Get the file handle for this node
+            // Get the file handle for this noun
             const fileHandle = await this.nounsDir!.getFileHandle(id)
 
-            // Read the node data from the file
+            // Read the noun data from the file
             const file = await fileHandle.getFile()
             const text = await file.text()
             const data = JSON.parse(text)
 
             // Convert serialized connections back to Map<number, Set<string>>
             const connections = new Map<number, Set<string>>()
-            for (const [level, nodeIds] of Object.entries(data.connections)) {
-                connections.set(Number(level), new Set(nodeIds as string[]))
+            for (const [level, nounIds] of Object.entries(data.connections)) {
+                connections.set(Number(level), new Set(nounIds as string[]))
             }
 
             return {
@@ -205,41 +213,41 @@ export class OPFSStorage extends BaseStorage {
                 connections
             }
         } catch (error) {
-            // Node not found or other error
+            // Noun not found or other error
             return null
         }
     }
 
     /**
-     * Get all nodes from storage
+     * Get all nouns from storage
      */
-    protected async getAllNodes(): Promise<HNSWNode[]> {
+    protected async getAllNouns_internal(): Promise<HNSWNoun_internal[]> {
         await this.ensureInitialized()
 
-        const allNodes: HNSWNode[] = []
+        const allNouns: HNSWNoun_internal[] = []
         try {
             // Iterate through all files in the nouns directory
             for await (const [name, handle] of this.nounsDir!.entries()) {
                 if (handle.kind === 'file') {
                     try {
-                        // Read the node data from the file
+                        // Read the noun data from the file
                         const file = await safeGetFile(handle)
                         const text = await file.text()
                         const data = JSON.parse(text)
 
                         // Convert serialized connections back to Map<number, Set<string>>
                         const connections = new Map<number, Set<string>>()
-                        for (const [level, nodeIds] of Object.entries(data.connections)) {
-                            connections.set(Number(level), new Set(nodeIds as string[]))
+                        for (const [level, nounIds] of Object.entries(data.connections)) {
+                            connections.set(Number(level), new Set(nounIds as string[]))
                         }
 
-                        allNodes.push({
+                        allNouns.push({
                             id: data.id,
                             vector: data.vector,
                             connections
                         })
                     } catch (error) {
-                        console.error(`Error reading node file ${name}:`, error)
+                        console.error(`Error reading noun file ${name}:`, error)
                     }
                 }
             }
@@ -247,7 +255,16 @@ export class OPFSStorage extends BaseStorage {
             console.error('Error reading nouns directory:', error)
         }
 
-        return allNodes
+        return allNouns
+    }
+
+    /**
+     * Get nouns by noun type (internal implementation)
+     * @param nounType The noun type to filter by
+     * @returns Promise that resolves to an array of nouns of the specified noun type
+     */
+    protected async getNounsByNounType_internal(nounType: string): Promise<HNSWNoun[]> {
+        return this.getNodesByNounType(nounType)
     }
 
     /**
@@ -300,6 +317,13 @@ export class OPFSStorage extends BaseStorage {
     }
 
     /**
+     * Delete a noun from storage (internal implementation)
+     */
+    protected async deleteNoun_internal(id: string): Promise<void> {
+        return this.deleteNode(id)
+    }
+
+    /**
      * Delete a node from storage
      */
     protected async deleteNode(id: string): Promise<void> {
@@ -314,6 +338,13 @@ export class OPFSStorage extends BaseStorage {
                 throw error
             }
         }
+    }
+
+    /**
+     * Save a verb to storage (internal implementation)
+     */
+    protected async saveVerb_internal(verb: GraphVerb): Promise<void> {
+        return this.saveEdge(verb)
     }
 
     /**
@@ -347,6 +378,13 @@ export class OPFSStorage extends BaseStorage {
     }
 
     /**
+     * Get a verb from storage (internal implementation)
+     */
+    protected async getVerb_internal(id: string): Promise<GraphVerb | null> {
+        return this.getEdge(id)
+    }
+
+    /**
      * Get an edge from storage
      */
     protected async getEdge(id: string): Promise<Edge | null> {
@@ -367,20 +405,44 @@ export class OPFSStorage extends BaseStorage {
                 connections.set(Number(level), new Set(nodeIds as string[]))
             }
 
+            // Create default timestamp if not present
+            const defaultTimestamp = {
+                seconds: Math.floor(Date.now() / 1000),
+                nanoseconds: (Date.now() % 1000) * 1000000
+            }
+
+            // Create default createdBy if not present
+            const defaultCreatedBy = {
+                augmentation: 'unknown',
+                version: '1.0'
+            }
+
             return {
                 id: data.id,
                 vector: data.vector,
                 connections,
-                sourceId: data.sourceId,
-                targetId: data.targetId,
-                type: data.type,
+                sourceId: data.sourceId || data.source,
+                targetId: data.targetId || data.target,
+                source: data.sourceId || data.source,
+                target: data.targetId || data.target,
+                verb: data.type || data.verb,
                 weight: data.weight,
-                metadata: data.metadata
+                metadata: data.metadata,
+                createdAt: data.createdAt || defaultTimestamp,
+                updatedAt: data.updatedAt || defaultTimestamp,
+                createdBy: data.createdBy || defaultCreatedBy
             }
         } catch (error) {
             // Edge not found or other error
             return null
         }
+    }
+
+    /**
+     * Get all verbs from storage (internal implementation)
+     */
+    protected async getAllVerbs_internal(): Promise<GraphVerb[]> {
+        return this.getAllEdges()
     }
 
     /**
@@ -406,15 +468,32 @@ export class OPFSStorage extends BaseStorage {
                             connections.set(Number(level), new Set(nodeIds as string[]))
                         }
 
+                        // Create default timestamp if not present
+                        const defaultTimestamp = {
+                            seconds: Math.floor(Date.now() / 1000),
+                            nanoseconds: (Date.now() % 1000) * 1000000
+                        }
+
+                        // Create default createdBy if not present
+                        const defaultCreatedBy = {
+                            augmentation: 'unknown',
+                            version: '1.0'
+                        }
+
                         allEdges.push({
                             id: data.id,
                             vector: data.vector,
                             connections,
-                            sourceId: data.sourceId,
-                            targetId: data.targetId,
-                            type: data.type,
+                            sourceId: data.sourceId || data.source,
+                            targetId: data.targetId || data.target,
+                            source: data.sourceId || data.source,
+                            target: data.targetId || data.target,
+                            verb: data.type || data.verb,
                             weight: data.weight,
-                            metadata: data.metadata
+                            metadata: data.metadata,
+                            createdAt: data.createdAt || defaultTimestamp,
+                            updatedAt: data.updatedAt || defaultTimestamp,
+                            createdBy: data.createdBy || defaultCreatedBy
                         })
                     } catch (error) {
                         console.error(`Error reading edge file ${name}:`, error)
@@ -429,11 +508,25 @@ export class OPFSStorage extends BaseStorage {
     }
 
     /**
+     * Get verbs by source (internal implementation)
+     */
+    protected async getVerbsBySource_internal(sourceId: string): Promise<GraphVerb[]> {
+        return this.getEdgesBySource(sourceId)
+    }
+
+    /**
      * Get edges by source
      */
     protected async getEdgesBySource(sourceId: string): Promise<Edge[]> {
         const edges = await this.getAllEdges()
-        return edges.filter((edge) => edge.sourceId === sourceId)
+        return edges.filter((edge) => (edge.sourceId || edge.source) === sourceId)
+    }
+
+    /**
+     * Get verbs by target (internal implementation)
+     */
+    protected async getVerbsByTarget_internal(targetId: string): Promise<GraphVerb[]> {
+        return this.getEdgesByTarget(targetId)
     }
 
     /**
@@ -441,7 +534,14 @@ export class OPFSStorage extends BaseStorage {
      */
     protected async getEdgesByTarget(targetId: string): Promise<Edge[]> {
         const edges = await this.getAllEdges()
-        return edges.filter((edge) => edge.targetId === targetId)
+        return edges.filter((edge) => (edge.targetId || edge.target) === targetId)
+    }
+
+    /**
+     * Get verbs by type (internal implementation)
+     */
+    protected async getVerbsByType_internal(type: string): Promise<GraphVerb[]> {
+        return this.getEdgesByType(type)
     }
 
     /**
@@ -449,7 +549,14 @@ export class OPFSStorage extends BaseStorage {
      */
     protected async getEdgesByType(type: string): Promise<Edge[]> {
         const edges = await this.getAllEdges()
-        return edges.filter((edge) => edge.type === type)
+        return edges.filter((edge) => (edge.type || edge.verb) === type)
+    }
+
+    /**
+     * Delete a verb from storage (internal implementation)
+     */
+    protected async deleteVerb_internal(id: string): Promise<void> {
+        return this.deleteEdge(id)
     }
 
     /**

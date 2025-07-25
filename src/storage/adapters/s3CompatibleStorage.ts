@@ -148,6 +148,13 @@ export class S3CompatibleStorage extends BaseStorage {
     }
 
     /**
+     * Save a noun to storage (internal implementation)
+     */
+    protected async saveNoun_internal(noun: HNSWNoun): Promise<void> {
+        return this.saveNode(noun)
+    }
+
+    /**
      * Save a node to storage
      */
     protected async saveNode(node: HNSWNode): Promise<void> {
@@ -207,6 +214,13 @@ export class S3CompatibleStorage extends BaseStorage {
             console.error(`Failed to save node ${node.id}:`, error)
             throw new Error(`Failed to save node ${node.id}: ${error}`)
         }
+    }
+
+    /**
+     * Get a noun from storage (internal implementation)
+     */
+    protected async getNoun_internal(id: string): Promise<HNSWNoun | null> {
+        return this.getNode(id)
     }
 
     /**
@@ -275,6 +289,13 @@ export class S3CompatibleStorage extends BaseStorage {
             console.log(`Error getting node for ${id}:`, error)
             return null
         }
+    }
+
+    /**
+     * Get all nouns from storage (internal implementation)
+     */
+    protected async getAllNouns_internal(): Promise<HNSWNoun[]> {
+        return this.getAllNodes()
     }
 
     /**
@@ -402,6 +423,15 @@ export class S3CompatibleStorage extends BaseStorage {
     }
 
     /**
+     * Get nouns by noun type (internal implementation)
+     * @param nounType The noun type to filter by
+     * @returns Promise that resolves to an array of nouns of the specified noun type
+     */
+    protected async getNounsByNounType_internal(nounType: string): Promise<HNSWNoun[]> {
+        return this.getNodesByNounType(nounType)
+    }
+
+    /**
      * Get nodes by noun type
      * @param nounType The noun type to filter by
      * @returns Promise that resolves to an array of nodes of the specified noun type
@@ -430,6 +460,13 @@ export class S3CompatibleStorage extends BaseStorage {
     }
 
     /**
+     * Delete a noun from storage (internal implementation)
+     */
+    protected async deleteNoun_internal(id: string): Promise<void> {
+        return this.deleteNode(id)
+    }
+
+    /**
      * Delete a node from storage
      */
     protected async deleteNode(id: string): Promise<void> {
@@ -450,6 +487,13 @@ export class S3CompatibleStorage extends BaseStorage {
             console.error(`Failed to delete node ${id}:`, error)
             throw new Error(`Failed to delete node ${id}: ${error}`)
         }
+    }
+
+    /**
+     * Save a verb to storage (internal implementation)
+     */
+    protected async saveVerb_internal(verb: GraphVerb): Promise<void> {
+        return this.saveEdge(verb)
     }
 
     /**
@@ -483,6 +527,13 @@ export class S3CompatibleStorage extends BaseStorage {
             console.error(`Failed to save edge ${edge.id}:`, error)
             throw new Error(`Failed to save edge ${edge.id}: ${error}`)
         }
+    }
+
+    /**
+     * Get a verb from storage (internal implementation)
+     */
+    protected async getVerb_internal(id: string): Promise<GraphVerb | null> {
+        return this.getEdge(id)
     }
 
     /**
@@ -524,7 +575,9 @@ export class S3CompatibleStorage extends BaseStorage {
 
                 // Ensure the parsed edge has the expected properties
                 if (!parsedEdge || !parsedEdge.id || !parsedEdge.vector || !parsedEdge.connections ||
-                    !parsedEdge.sourceId || !parsedEdge.targetId || !parsedEdge.type) {
+                    !(parsedEdge.sourceId || parsedEdge.source) || 
+                    !(parsedEdge.targetId || parsedEdge.target) || 
+                    !(parsedEdge.type || parsedEdge.verb)) {
                     console.error(`Invalid edge data for ${id}:`, parsedEdge)
                     return null
                 }
@@ -535,15 +588,33 @@ export class S3CompatibleStorage extends BaseStorage {
                     connections.set(Number(level), new Set(nodeIds as string[]))
                 }
 
+                // Create default timestamp if not present
+                const defaultTimestamp = {
+                    seconds: Math.floor(Date.now() / 1000),
+                    nanoseconds: (Date.now() % 1000) * 1000000
+                }
+
+                // Create default createdBy if not present
+                const defaultCreatedBy = {
+                    augmentation: 'unknown',
+                    version: '1.0'
+                }
+
                 const edge = {
                     id: parsedEdge.id,
                     vector: parsedEdge.vector,
                     connections,
-                    sourceId: parsedEdge.sourceId,
-                    targetId: parsedEdge.targetId,
-                    type: parsedEdge.type,
+                    sourceId: parsedEdge.sourceId || parsedEdge.source,
+                    targetId: parsedEdge.targetId || parsedEdge.target,
+                    source: parsedEdge.sourceId || parsedEdge.source,
+                    target: parsedEdge.targetId || parsedEdge.target,
+                    verb: parsedEdge.type || parsedEdge.verb,
+                    type: parsedEdge.type || parsedEdge.verb,
                     weight: parsedEdge.weight || 1.0, // Default weight if not provided
-                    metadata: parsedEdge.metadata || {}
+                    metadata: parsedEdge.metadata || {},
+                    createdAt: parsedEdge.createdAt || defaultTimestamp,
+                    updatedAt: parsedEdge.updatedAt || defaultTimestamp,
+                    createdBy: parsedEdge.createdBy || defaultCreatedBy
                 }
 
                 console.log(`Successfully retrieved edge ${id}:`, edge)
@@ -557,6 +628,13 @@ export class S3CompatibleStorage extends BaseStorage {
             console.log(`Error getting edge for ${id}:`, error)
             return null
         }
+    }
+
+    /**
+     * Get all verbs from storage (internal implementation)
+     */
+    protected async getAllVerbs_internal(): Promise<GraphVerb[]> {
+        return this.getAllEdges()
     }
 
     /**
@@ -611,15 +689,33 @@ export class S3CompatibleStorage extends BaseStorage {
                             connections.set(Number(level), new Set(nodeIds as string[]))
                         }
 
+                        // Create default timestamp if not present
+                        const defaultTimestamp = {
+                            seconds: Math.floor(Date.now() / 1000),
+                            nanoseconds: (Date.now() % 1000) * 1000000
+                        }
+
+                        // Create default createdBy if not present
+                        const defaultCreatedBy = {
+                            augmentation: 'unknown',
+                            version: '1.0'
+                        }
+
                         return {
                             id: parsedEdge.id,
                             vector: parsedEdge.vector,
                             connections,
-                            sourceId: parsedEdge.sourceId,
-                            targetId: parsedEdge.targetId,
-                            type: parsedEdge.type,
-                            weight: parsedEdge.weight,
-                            metadata: parsedEdge.metadata
+                            sourceId: parsedEdge.sourceId || parsedEdge.source,
+                            targetId: parsedEdge.targetId || parsedEdge.target,
+                            source: parsedEdge.sourceId || parsedEdge.source,
+                            target: parsedEdge.targetId || parsedEdge.target,
+                            verb: parsedEdge.type || parsedEdge.verb,
+                            type: parsedEdge.type || parsedEdge.verb,
+                            weight: parsedEdge.weight || 1.0,
+                            metadata: parsedEdge.metadata || {},
+                            createdAt: parsedEdge.createdAt || defaultTimestamp,
+                            updatedAt: parsedEdge.updatedAt || defaultTimestamp,
+                            createdBy: parsedEdge.createdBy || defaultCreatedBy
                         }
                     } catch (error) {
                         console.error(`Error getting edge from ${object.Key}:`, error)
@@ -638,11 +734,25 @@ export class S3CompatibleStorage extends BaseStorage {
     }
 
     /**
+     * Get verbs by source (internal implementation)
+     */
+    protected async getVerbsBySource_internal(sourceId: string): Promise<GraphVerb[]> {
+        return this.getEdgesBySource(sourceId)
+    }
+
+    /**
      * Get edges by source
      */
     protected async getEdgesBySource(sourceId: string): Promise<Edge[]> {
         const edges = await this.getAllEdges()
-        return edges.filter((edge) => edge.sourceId === sourceId)
+        return edges.filter((edge) => (edge.sourceId || edge.source) === sourceId)
+    }
+
+    /**
+     * Get verbs by target (internal implementation)
+     */
+    protected async getVerbsByTarget_internal(targetId: string): Promise<GraphVerb[]> {
+        return this.getEdgesByTarget(targetId)
     }
 
     /**
@@ -650,7 +760,14 @@ export class S3CompatibleStorage extends BaseStorage {
      */
     protected async getEdgesByTarget(targetId: string): Promise<Edge[]> {
         const edges = await this.getAllEdges()
-        return edges.filter((edge) => edge.targetId === targetId)
+        return edges.filter((edge) => (edge.targetId || edge.target) === targetId)
+    }
+
+    /**
+     * Get verbs by type (internal implementation)
+     */
+    protected async getVerbsByType_internal(type: string): Promise<GraphVerb[]> {
+        return this.getEdgesByType(type)
     }
 
     /**
@@ -658,7 +775,14 @@ export class S3CompatibleStorage extends BaseStorage {
      */
     protected async getEdgesByType(type: string): Promise<Edge[]> {
         const edges = await this.getAllEdges()
-        return edges.filter((edge) => edge.type === type)
+        return edges.filter((edge) => (edge.type || edge.verb) === type)
+    }
+
+    /**
+     * Delete a verb from storage (internal implementation)
+     */
+    protected async deleteVerb_internal(id: string): Promise<void> {
+        return this.deleteEdge(id)
     }
 
     /**

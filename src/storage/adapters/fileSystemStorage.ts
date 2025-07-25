@@ -7,8 +7,8 @@ import { GraphVerb, HNSWNoun, StatisticsData } from '../../coreTypes.js'
 import { BaseStorage, NOUNS_DIR, VERBS_DIR, METADATA_DIR, INDEX_DIR, STATISTICS_KEY } from '../baseStorage.js'
 
 // Type aliases for better readability
-type HNSWNode = HNSWNoun
-type Edge = GraphVerb
+type HNSWNoun_internal = HNSWNoun
+type Verb = GraphVerb
 
 // Node.js modules - dynamically imported to avoid issues in browser environments
 let fs: any
@@ -110,77 +110,77 @@ export class FileSystemStorage extends BaseStorage {
   }
 
   /**
-   * Save a node to storage
+   * Save a noun to storage
    */
-  protected async saveNode(node: HNSWNode): Promise<void> {
+  protected async saveNoun_internal(noun: HNSWNoun_internal): Promise<void> {
     await this.ensureInitialized()
 
     // Convert connections Map to a serializable format
-    const serializableNode = {
-      ...node,
-      connections: this.mapToObject(node.connections, (set) =>
+    const serializableNoun = {
+      ...noun,
+      connections: this.mapToObject(noun.connections, (set) =>
         Array.from(set as Set<string>)
       )
     }
 
-    const filePath = path.join(this.nounsDir, `${node.id}.json`)
-    await fs.promises.writeFile(filePath, JSON.stringify(serializableNode, null, 2))
+    const filePath = path.join(this.nounsDir, `${noun.id}.json`)
+    await fs.promises.writeFile(filePath, JSON.stringify(serializableNoun, null, 2))
   }
 
   /**
-   * Get a node from storage
+   * Get a noun from storage
    */
-  protected async getNode(id: string): Promise<HNSWNode | null> {
+  protected async getNoun_internal(id: string): Promise<HNSWNoun_internal | null> {
     await this.ensureInitialized()
 
     const filePath = path.join(this.nounsDir, `${id}.json`)
     try {
       const data = await fs.promises.readFile(filePath, 'utf-8')
-      const parsedNode = JSON.parse(data)
+      const parsedNoun = JSON.parse(data)
 
       // Convert serialized connections back to Map<number, Set<string>>
       const connections = new Map<number, Set<string>>()
-      for (const [level, nodeIds] of Object.entries(parsedNode.connections)) {
-        connections.set(Number(level), new Set(nodeIds as string[]))
+      for (const [level, nounIds] of Object.entries(parsedNoun.connections)) {
+        connections.set(Number(level), new Set(nounIds as string[]))
       }
 
       return {
-        id: parsedNode.id,
-        vector: parsedNode.vector,
+        id: parsedNoun.id,
+        vector: parsedNoun.vector,
         connections
       }
     } catch (error: any) {
       if (error.code !== 'ENOENT') {
-        console.error(`Error reading node ${id}:`, error)
+        console.error(`Error reading noun ${id}:`, error)
       }
       return null
     }
   }
 
   /**
-   * Get all nodes from storage
+   * Get all nouns from storage
    */
-  protected async getAllNodes(): Promise<HNSWNode[]> {
+  protected async getAllNouns_internal(): Promise<HNSWNoun_internal[]> {
     await this.ensureInitialized()
 
-    const allNodes: HNSWNode[] = []
+    const allNouns: HNSWNoun_internal[] = []
     try {
       const files = await fs.promises.readdir(this.nounsDir)
       for (const file of files) {
         if (file.endsWith('.json')) {
           const filePath = path.join(this.nounsDir, file)
           const data = await fs.promises.readFile(filePath, 'utf-8')
-          const parsedNode = JSON.parse(data)
+          const parsedNoun = JSON.parse(data)
 
           // Convert serialized connections back to Map<number, Set<string>>
           const connections = new Map<number, Set<string>>()
-          for (const [level, nodeIds] of Object.entries(parsedNode.connections)) {
-            connections.set(Number(level), new Set(nodeIds as string[]))
+          for (const [level, nounIds] of Object.entries(parsedNoun.connections)) {
+            connections.set(Number(level), new Set(nounIds as string[]))
           }
 
-          allNodes.push({
-            id: parsedNode.id,
-            vector: parsedNode.vector,
+          allNouns.push({
+            id: parsedNoun.id,
+            vector: parsedNoun.vector,
             connections
           })
         }
@@ -190,39 +190,39 @@ export class FileSystemStorage extends BaseStorage {
         console.error(`Error reading directory ${this.nounsDir}:`, error)
       }
     }
-    return allNodes
+    return allNouns
   }
 
   /**
-   * Get nodes by noun type
+   * Get nouns by noun type
    * @param nounType The noun type to filter by
-   * @returns Promise that resolves to an array of nodes of the specified noun type
+   * @returns Promise that resolves to an array of nouns of the specified noun type
    */
-  protected async getNodesByNounType(nounType: string): Promise<HNSWNode[]> {
+  protected async getNounsByNounType_internal(nounType: string): Promise<HNSWNoun_internal[]> {
     await this.ensureInitialized()
 
-    const nouns: HNSWNode[] = []
+    const nouns: HNSWNoun_internal[] = []
     try {
       const files = await fs.promises.readdir(this.nounsDir)
       for (const file of files) {
         if (file.endsWith('.json')) {
           const filePath = path.join(this.nounsDir, file)
           const data = await fs.promises.readFile(filePath, 'utf-8')
-          const parsedNode = JSON.parse(data)
+          const parsedNoun = JSON.parse(data)
           
           // Filter by noun type using metadata
-          const nodeId = parsedNode.id
-          const metadata = await this.getMetadata(nodeId)
+          const nounId = parsedNoun.id
+          const metadata = await this.getMetadata(nounId)
           if (metadata && metadata.noun === nounType) {
             // Convert serialized connections back to Map<number, Set<string>>
             const connections = new Map<number, Set<string>>()
-            for (const [level, nodeIds] of Object.entries(parsedNode.connections)) {
-              connections.set(Number(level), new Set(nodeIds as string[]))
+            for (const [level, nounIds] of Object.entries(parsedNoun.connections)) {
+              connections.set(Number(level), new Set(nounIds as string[]))
             }
 
             nouns.push({
-              id: parsedNode.id,
-              vector: parsedNode.vector,
+              id: parsedNoun.id,
+              vector: parsedNoun.vector,
               connections
             })
           }
@@ -238,9 +238,9 @@ export class FileSystemStorage extends BaseStorage {
   }
 
   /**
-   * Delete a node from storage
+   * Delete a noun from storage
    */
-  protected async deleteNode(id: string): Promise<void> {
+  protected async deleteNoun_internal(id: string): Promise<void> {
     await this.ensureInitialized()
 
     const filePath = path.join(this.nounsDir, `${id}.json`)
@@ -248,95 +248,112 @@ export class FileSystemStorage extends BaseStorage {
       await fs.promises.unlink(filePath)
     } catch (error: any) {
       if (error.code !== 'ENOENT') {
-        console.error(`Error deleting node file ${filePath}:`, error)
+        console.error(`Error deleting noun ${id}:`, error)
         throw error
       }
     }
   }
 
   /**
-   * Save an edge to storage
+   * Save a verb to storage
    */
-  protected async saveEdge(edge: Edge): Promise<void> {
+  protected async saveVerb_internal(verb: Verb): Promise<void> {
     await this.ensureInitialized()
 
     // Convert connections Map to a serializable format
-    const serializableEdge = {
-      ...edge,
-      connections: this.mapToObject(edge.connections, (set) =>
+    const serializableVerb = {
+      ...verb,
+      connections: this.mapToObject(verb.connections, (set) =>
         Array.from(set as Set<string>)
       )
     }
 
-    const filePath = path.join(this.verbsDir, `${edge.id}.json`)
-    await fs.promises.writeFile(filePath, JSON.stringify(serializableEdge, null, 2))
+    const filePath = path.join(this.verbsDir, `${verb.id}.json`)
+    await fs.promises.writeFile(filePath, JSON.stringify(serializableVerb, null, 2))
   }
 
   /**
-   * Get an edge from storage
+   * Get a verb from storage
    */
-  protected async getEdge(id: string): Promise<Edge | null> {
+  protected async getVerb_internal(id: string): Promise<Verb | null> {
     await this.ensureInitialized()
 
     const filePath = path.join(this.verbsDir, `${id}.json`)
     try {
       const data = await fs.promises.readFile(filePath, 'utf-8')
-      const parsedEdge = JSON.parse(data)
+      const parsedVerb = JSON.parse(data)
 
       // Convert serialized connections back to Map<number, Set<string>>
       const connections = new Map<number, Set<string>>()
-      for (const [level, nodeIds] of Object.entries(parsedEdge.connections)) {
+      for (const [level, nodeIds] of Object.entries(parsedVerb.connections)) {
         connections.set(Number(level), new Set(nodeIds as string[]))
       }
 
+      // Create default timestamp if not present
+      const defaultTimestamp = {
+        seconds: Math.floor(Date.now() / 1000),
+        nanoseconds: (Date.now() % 1000) * 1000000
+      }
+
+      // Create default createdBy if not present
+      const defaultCreatedBy = {
+        augmentation: 'unknown',
+        version: '1.0'
+      }
+
       return {
-        id: parsedEdge.id,
-        vector: parsedEdge.vector,
+        id: parsedVerb.id,
+        vector: parsedVerb.vector,
         connections,
-        sourceId: parsedEdge.sourceId,
-        targetId: parsedEdge.targetId,
-        type: parsedEdge.type,
-        weight: parsedEdge.weight,
-        metadata: parsedEdge.metadata
+        sourceId: parsedVerb.sourceId || parsedVerb.source,
+        targetId: parsedVerb.targetId || parsedVerb.target,
+        source: parsedVerb.sourceId || parsedVerb.source,
+        target: parsedVerb.targetId || parsedVerb.target,
+        verb: parsedVerb.type || parsedVerb.verb,
+        weight: parsedVerb.weight,
+        metadata: parsedVerb.metadata,
+        createdAt: parsedVerb.createdAt || defaultTimestamp,
+        updatedAt: parsedVerb.updatedAt || defaultTimestamp,
+        createdBy: parsedVerb.createdBy || defaultCreatedBy
       }
     } catch (error: any) {
       if (error.code !== 'ENOENT') {
-        console.error(`Error reading edge ${id}:`, error)
+        console.error(`Error reading verb ${id}:`, error)
       }
       return null
     }
   }
 
   /**
-   * Get all edges from storage
+   * Get all verbs from storage
    */
-  protected async getAllEdges(): Promise<Edge[]> {
+  protected async getAllVerbs_internal(): Promise<Verb[]> {
     await this.ensureInitialized()
 
-    const allEdges: Edge[] = []
+    const allVerbs: Verb[] = []
     try {
       const files = await fs.promises.readdir(this.verbsDir)
       for (const file of files) {
         if (file.endsWith('.json')) {
           const filePath = path.join(this.verbsDir, file)
           const data = await fs.promises.readFile(filePath, 'utf-8')
-          const parsedEdge = JSON.parse(data)
+          const parsedVerb = JSON.parse(data)
 
           // Convert serialized connections back to Map<number, Set<string>>
           const connections = new Map<number, Set<string>>()
-          for (const [level, nodeIds] of Object.entries(parsedEdge.connections)) {
+          for (const [level, nodeIds] of Object.entries(parsedVerb.connections)) {
             connections.set(Number(level), new Set(nodeIds as string[]))
           }
 
-          allEdges.push({
-            id: parsedEdge.id,
-            vector: parsedEdge.vector,
+          allVerbs.push({
+            id: parsedVerb.id,
+            vector: parsedVerb.vector,
             connections,
-            sourceId: parsedEdge.sourceId,
-            targetId: parsedEdge.targetId,
-            type: parsedEdge.type,
-            weight: parsedEdge.weight,
-            metadata: parsedEdge.metadata
+            sourceId: parsedVerb.sourceId,
+            targetId: parsedVerb.targetId,
+            type: parsedVerb.type,
+            weight: parsedVerb.weight,
+            metadata: parsedVerb.metadata
           })
         }
       }
@@ -345,37 +362,37 @@ export class FileSystemStorage extends BaseStorage {
         console.error(`Error reading directory ${this.verbsDir}:`, error)
       }
     }
-    return allEdges
+    return allVerbs
   }
 
   /**
-   * Get edges by source
+   * Get verbs by source
    */
-  protected async getEdgesBySource(sourceId: string): Promise<Edge[]> {
-    const edges = await this.getAllEdges()
-    return edges.filter((edge) => edge.sourceId === sourceId)
+  protected async getVerbsBySource_internal(sourceId: string): Promise<Verb[]> {
+    const verbs = await this.getAllVerbs_internal()
+    return verbs.filter((verb) => (verb.sourceId || verb.source) === sourceId)
   }
 
   /**
-   * Get edges by target
+   * Get verbs by target
    */
-  protected async getEdgesByTarget(targetId: string): Promise<Edge[]> {
-    const edges = await this.getAllEdges()
-    return edges.filter((edge) => edge.targetId === targetId)
+  protected async getVerbsByTarget_internal(targetId: string): Promise<Verb[]> {
+    const verbs = await this.getAllVerbs_internal()
+    return verbs.filter((verb) => (verb.targetId || verb.target) === targetId)
   }
 
   /**
-   * Get edges by type
+   * Get verbs by type
    */
-  protected async getEdgesByType(type: string): Promise<Edge[]> {
-    const edges = await this.getAllEdges()
-    return edges.filter((edge) => edge.type === type)
+  protected async getVerbsByType_internal(type: string): Promise<Verb[]> {
+    const verbs = await this.getAllVerbs_internal()
+    return verbs.filter((verb) => (verb.type || verb.verb) === type)
   }
 
   /**
-   * Delete an edge from storage
+   * Delete a verb from storage
    */
-  protected async deleteEdge(id: string): Promise<void> {
+  protected async deleteVerb_internal(id: string): Promise<void> {
     await this.ensureInitialized()
 
     const filePath = path.join(this.verbsDir, `${id}.json`)
@@ -383,7 +400,7 @@ export class FileSystemStorage extends BaseStorage {
       await fs.promises.unlink(filePath)
     } catch (error: any) {
       if (error.code !== 'ENOENT') {
-        console.error(`Error deleting edge file ${filePath}:`, error)
+        console.error(`Error deleting verb file ${filePath}:`, error)
         throw error
       }
     }
