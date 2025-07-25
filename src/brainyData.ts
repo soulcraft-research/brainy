@@ -263,7 +263,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
             )
         }
     }
-    
+
     /**
      * Get the current augmentation name if available
      * This is used to auto-detect the service performing data operations
@@ -273,11 +273,11 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         try {
             // Get all registered augmentations
             const augmentationTypes = augmentationPipeline.getAvailableAugmentationTypes()
-            
+
             // Check each type of augmentation
             for (const type of augmentationTypes) {
                 const augmentations = augmentationPipeline.getAugmentationsByType(type)
-                
+
                 // Find the first enabled augmentation
                 for (const augmentation of augmentations) {
                     if (augmentation.enabled) {
@@ -285,7 +285,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                     }
                 }
             }
-            
+
             return 'default'
         } catch (error) {
             // If there's any error in detection, return default
@@ -561,11 +561,11 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                         // Set a default noun type
                         ;(metadata as unknown as GraphNoun).noun = NounType.Concept
                     }
-                    
+
                     // Ensure createdBy field is populated for GraphNoun
                     const service = options.service || this.getCurrentAugmentation()
                     const graphNoun = metadata as unknown as GraphNoun
-                    
+
                     // Only set createdBy if it doesn't exist or is being explicitly updated
                     if (!graphNoun.createdBy || options.service) {
                         graphNoun.createdBy = {
@@ -573,19 +573,19 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                             version: '1.0' // TODO: Get actual version from augmentation
                         }
                     }
-                    
+
                     // Update timestamps
                     const now = new Date()
                     const timestamp = {
                         seconds: Math.floor(now.getTime() / 1000),
                         nanoseconds: (now.getTime() % 1000) * 1000000
                     }
-                    
+
                     // Set createdAt if it doesn't exist
                     if (!graphNoun.createdAt) {
                         graphNoun.createdAt = timestamp
                     }
-                    
+
                     // Always update updatedAt
                     graphNoun.updatedAt = timestamp
                 }
@@ -597,7 +597,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                 }
 
                 await this.storage!.saveMetadata(id, metadataToSave)
-                
+
                 // Track metadata statistics
                 const metadataService = options.service || this.getCurrentAugmentation()
                 await this.storage!.incrementStatistic('metadata', metadataService)
@@ -873,18 +873,18 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         service?: string
     ): R[] {
         if (!service) return results
-        
+
         return results.filter(result => {
             if (!result.metadata || typeof result.metadata !== 'object') return false
             if (!('createdBy' in result.metadata)) return false
-            
+
             const createdBy = result.metadata.createdBy as any
             if (!createdBy) return false
-            
+
             return createdBy.augmentation === service
         })
     }
-    
+
     /**
      * Search for similar vectors within specific noun types
      * @param queryVectorOrData Query vector or data to search for
@@ -905,14 +905,14 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         // Helper function to filter results by service
         const filterByService = (metadata: any): boolean => {
             if (!options.service) return true // No filter, include all
-            
+
             // Check if metadata has createdBy field with matching service
             if (!metadata || typeof metadata !== 'object') return false
             if (!('createdBy' in metadata)) return false
-            
+
             const createdBy = metadata.createdBy as any
             if (!createdBy) return false
-            
+
             return createdBy.augmentation === options.service
         }
         if (!this.isInitialized) {
@@ -967,7 +967,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
                     // Ensure metadata has the id field
                     if (metadata && typeof metadata === 'object') {
-                        metadata = { ...metadata, id } as T
+                        metadata = {...metadata, id} as T
                     }
 
                     searchResults.push({
@@ -1027,7 +1027,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
                     // Ensure metadata has the id field
                     if (metadata && typeof metadata === 'object') {
-                        metadata = { ...metadata, id } as T
+                        metadata = {...metadata, id} as T
                     }
 
                     searchResults.push({
@@ -1337,7 +1337,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
      * @returns Promise that resolves to true if the metadata was updated, false otherwise
      */
     public async updateMetadata(
-        id: string, 
+        id: string,
         metadata: T,
         options: {
             service?: string // The service that is updating the data
@@ -1369,20 +1369,20 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                     // Set a default noun type
                     ;(metadata as unknown as GraphNoun).noun = NounType.Concept
                 }
-                
+
                 // Get the service that's updating the metadata
                 const service = options.service || this.getCurrentAugmentation()
                 const graphNoun = metadata as unknown as GraphNoun
-                
+
                 // Preserve existing createdBy and createdAt if they exist
                 const existingMetadata = await this.storage!.getMetadata(id) as any
-                
-                if (existingMetadata && 
-                    typeof existingMetadata === 'object' && 
+
+                if (existingMetadata &&
+                    typeof existingMetadata === 'object' &&
                     'createdBy' in existingMetadata) {
                     // Preserve the original creator information
                     graphNoun.createdBy = existingMetadata.createdBy
-                    
+
                     // Also preserve creation timestamp if it exists
                     if ('createdAt' in existingMetadata) {
                         graphNoun.createdAt = existingMetadata.createdAt
@@ -1393,7 +1393,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                         augmentation: service,
                         version: '1.0' // TODO: Get actual version from augmentation
                     }
-                    
+
                     // Set createdAt if it doesn't exist
                     if (!graphNoun.createdAt) {
                         const now = new Date()
@@ -1403,7 +1403,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                         }
                     }
                 }
-                
+
                 // Always update the updatedAt timestamp
                 const now = new Date()
                 graphNoun.updatedAt = {
@@ -1414,7 +1414,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
             // Update metadata
             await this.storage!.saveMetadata(id, metadata)
-            
+
             // Track metadata statistics
             const service = options.service || this.getCurrentAugmentation()
             await this.storage!.incrementStatistic('metadata', service)
@@ -1513,7 +1513,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                         seconds: Math.floor(now.getTime() / 1000),
                         nanoseconds: (now.getTime() % 1000) * 1000000
                     }
-                    
+
                     const metadata = options.missingNounMetadata || {
                         autoCreated: true,
                         createdAt: timestamp,
@@ -1550,7 +1550,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                         seconds: Math.floor(now.getTime() / 1000),
                         nanoseconds: (now.getTime() % 1000) * 1000000
                     }
-                    
+
                     const metadata = options.missingNounMetadata || {
                         autoCreated: true,
                         createdAt: timestamp,
@@ -1835,7 +1835,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     public size(): number {
         return this.index.size()
     }
-    
+
     /**
      * Get the number of nouns in the database (excluding verbs)
      * This is used for statistics reporting to match the expected behavior in tests
@@ -1844,13 +1844,13 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     private async getNounCount(): Promise<number> {
         // Get all verbs from storage
         const allVerbs = await this.storage!.getAllVerbs()
-        
+
         // Create a set of verb IDs for faster lookup
         const verbIds = new Set(allVerbs.map(verb => verb.id))
-        
+
         // Get all nouns from the index
         const nouns = this.index.getNouns()
-        
+
         // Count nouns that are not verbs
         let nounCount = 0
         for (const [id] of nouns.entries()) {
@@ -1858,7 +1858,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                 nounCount++
             }
         }
-        
+
         return nounCount
     }
 
@@ -1906,7 +1906,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                 }
 
                 // Filter by service if specified
-                const services = options.service 
+                const services = options.service
                     ? (Array.isArray(options.service) ? options.service : [options.service])
                     : Object.keys({...stats.nounCount, ...stats.verbCount, ...stats.metadataCount})
 
@@ -1934,11 +1934,11 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
             // If statistics are not available, fall back to calculating them on-demand
             console.warn('Persistent statistics not available, calculating on-demand')
-            
+
             // Get all verbs from storage
             const allVerbs = await this.storage!.getAllVerbs()
             const verbCount = allVerbs.length
-            
+
             // Get the noun count using the helper method
             const nounCount = await this.getNounCount()
 
@@ -1973,9 +1973,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
             // Initialize persistent statistics
             const service = 'default'
             await this.storage!.saveStatistics({
-                nounCount: { [service]: nounCount },
-                verbCount: { [service]: verbCount },
-                metadataCount: { [service]: metadataCount },
+                nounCount: {[service]: nounCount},
+                verbCount: {[service]: verbCount},
+                metadataCount: {[service]: metadataCount},
                 hnswIndexSize,
                 lastUpdated: new Date().toISOString()
             })
@@ -2061,19 +2061,19 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
             // First use the HNSW index to find similar vectors efficiently
             const searchResults = await this.index.search(queryVector, k * 2)
-            
+
             // Get all verbs for filtering
             const allVerbs = await this.storage!.getAllVerbs()
-            
+
             // Create a map of verb IDs for faster lookup
             const verbMap = new Map<string, GraphVerb>()
             for (const verb of allVerbs) {
                 verbMap.set(verb.id, verb)
             }
-            
+
             // Filter search results to only include verbs
             const verbResults: Array<GraphVerb & { similarity: number }> = []
-            
+
             for (const result of searchResults) {
                 // Search results are [id, distance] tuples
                 const [id, distance] = result
@@ -2085,21 +2085,21 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                             continue
                         }
                     }
-                    
+
                     verbResults.push({
                         ...verb,
                         similarity: distance
                     })
                 }
             }
-            
+
             // If we didn't get enough results from the index, fall back to the old method
             if (verbResults.length < k) {
                 console.warn('Not enough verb results from HNSW index, falling back to manual search')
-                
+
                 // Get verbs to search through
                 let verbs: GraphVerb[] = []
-                
+
                 // If verb types are specified, get verbs of those types
                 if (options.verbTypes && options.verbTypes.length > 0) {
                     // Get verbs for each verb type in parallel
@@ -2107,7 +2107,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                         this.getVerbsByType(verbType)
                     )
                     const verbArrays = await Promise.all(verbPromises)
-                    
+
                     // Combine all verbs
                     for (const verbArray of verbArrays) {
                         verbs.push(...verbArray)
@@ -2116,7 +2116,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                     // Use all verbs
                     verbs = allVerbs
                 }
-                
+
                 // Calculate similarity for each verb not already in results
                 const existingIds = new Set(verbResults.map(v => v.id))
                 for (const verb of verbs) {
@@ -2132,10 +2132,10 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                     }
                 }
             }
-            
+
             // Sort by similarity (ascending distance)
             verbResults.sort((a, b) => a.similarity - b.similarity)
-            
+
             // Take top k results
             return verbResults.slice(0, k)
         } catch (error) {
