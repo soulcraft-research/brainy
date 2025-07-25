@@ -6,15 +6,7 @@
 import { GraphVerb, HNSWNoun, StatisticsData } from '../../coreTypes.js'
 import { BaseStorage, STATISTICS_KEY } from '../baseStorage.js'
 
-/**
- * Type alias for HNSWNoun to make the code more readable
- */
-type HNSWNoun_internal = HNSWNoun
-
-/**
- * Type alias for GraphVerb to make the code more readable
- */
-type Verb = GraphVerb
+// No type aliases needed - using the original types directly
 
 /**
  * In-memory storage adapter
@@ -22,8 +14,8 @@ type Verb = GraphVerb
  */
 export class MemoryStorage extends BaseStorage {
   // Single map of noun ID to noun
-  private nouns: Map<string, HNSWNoun_internal> = new Map()
-  private verbs: Map<string, Verb> = new Map()
+  private nouns: Map<string, HNSWNoun> = new Map()
+  private verbs: Map<string, GraphVerb> = new Map()
   private metadata: Map<string, any> = new Map()
   private statistics: StatisticsData | null = null
 
@@ -42,9 +34,9 @@ export class MemoryStorage extends BaseStorage {
   /**
    * Save a noun to storage
    */
-  protected async saveNoun_internal(noun: HNSWNoun_internal): Promise<void> {
+  protected async saveNoun_internal(noun: HNSWNoun): Promise<void> {
     // Create a deep copy to avoid reference issues
-    const nounCopy: HNSWNoun_internal = {
+    const nounCopy: HNSWNoun = {
       id: noun.id,
       vector: [...noun.vector],
       connections: new Map()
@@ -62,7 +54,7 @@ export class MemoryStorage extends BaseStorage {
   /**
    * Get a noun from storage
    */
-  protected async getNoun_internal(id: string): Promise<HNSWNoun_internal | null> {
+  protected async getNoun_internal(id: string): Promise<HNSWNoun | null> {
     // Get the noun directly from the nouns map
     const noun = this.nouns.get(id)
 
@@ -72,7 +64,7 @@ export class MemoryStorage extends BaseStorage {
     }
 
     // Return a deep copy to avoid reference issues
-    const nounCopy: HNSWNoun_internal = {
+    const nounCopy: HNSWNoun = {
       id: noun.id,
       vector: [...noun.vector],
       connections: new Map()
@@ -89,13 +81,13 @@ export class MemoryStorage extends BaseStorage {
   /**
    * Get all nouns from storage
    */
-  protected async getAllNouns_internal(): Promise<HNSWNoun_internal[]> {
-    const allNouns: HNSWNoun_internal[] = []
+  protected async getAllNouns_internal(): Promise<HNSWNoun[]> {
+    const allNouns: HNSWNoun[] = []
 
     // Iterate through all nouns in the nouns map
     for (const [nounId, noun] of this.nouns.entries()) {
       // Return a deep copy to avoid reference issues
-      const nounCopy: HNSWNoun_internal = {
+      const nounCopy: HNSWNoun = {
         id: noun.id,
         vector: [...noun.vector],
         connections: new Map()
@@ -117,8 +109,8 @@ export class MemoryStorage extends BaseStorage {
    * @param nounType The noun type to filter by
    * @returns Promise that resolves to an array of nouns of the specified noun type
    */
-  protected async getNounsByNounType_internal(nounType: string): Promise<HNSWNoun_internal[]> {
-    const nouns: HNSWNoun_internal[] = []
+  protected async getNounsByNounType_internal(nounType: string): Promise<HNSWNoun[]> {
+    const nouns: HNSWNoun[] = []
 
     // Iterate through all nouns and filter by noun type using metadata
     for (const [nounId, noun] of this.nouns.entries()) {
@@ -128,7 +120,7 @@ export class MemoryStorage extends BaseStorage {
       // Include the noun if its noun type matches the requested type
       if (metadata && metadata.noun === nounType) {
         // Return a deep copy to avoid reference issues
-        const nounCopy: HNSWNoun_internal = {
+        const nounCopy: HNSWNoun = {
           id: noun.id,
           vector: [...noun.vector],
           connections: new Map()
@@ -156,9 +148,9 @@ export class MemoryStorage extends BaseStorage {
   /**
    * Save a verb to storage
    */
-  protected async saveVerb_internal(verb: Verb): Promise<void> {
+  protected async saveVerb_internal(verb: GraphVerb): Promise<void> {
     // Create a deep copy to avoid reference issues
-    const verbCopy: Verb = {
+    const verbCopy: GraphVerb = {
       id: verb.id,
       vector: [...verb.vector],
       connections: new Map(),
@@ -181,7 +173,7 @@ export class MemoryStorage extends BaseStorage {
   /**
    * Get a verb from storage
    */
-  protected async getVerb_internal(id: string): Promise<Verb | null> {
+  protected async getVerb_internal(id: string): Promise<GraphVerb | null> {
     // Get the verb directly from the verbs map
     const verb = this.verbs.get(id)
 
@@ -203,7 +195,7 @@ export class MemoryStorage extends BaseStorage {
     }
 
     // Return a deep copy to avoid reference issues
-    const verbCopy: Verb = {
+    const verbCopy: GraphVerb = {
       id: verb.id,
       vector: [...verb.vector],
       connections: new Map(),
@@ -230,8 +222,8 @@ export class MemoryStorage extends BaseStorage {
   /**
    * Get all verbs from storage
    */
-  protected async getAllVerbs_internal(): Promise<Verb[]> {
-    const allVerbs: Verb[] = []
+  protected async getAllVerbs_internal(): Promise<GraphVerb[]> {
+    const allVerbs: GraphVerb[] = []
 
     // Iterate through all verbs in the verbs map
     for (const [verbId, verb] of this.verbs.entries()) {
@@ -248,7 +240,7 @@ export class MemoryStorage extends BaseStorage {
       }
 
       // Return a deep copy to avoid reference issues
-      const verbCopy: Verb = {
+      const verbCopy: GraphVerb = {
         id: verb.id,
         vector: [...verb.vector],
         connections: new Map(),
@@ -278,25 +270,25 @@ export class MemoryStorage extends BaseStorage {
   /**
    * Get verbs by source
    */
-  protected async getVerbsBySource_internal(sourceId: string): Promise<Verb[]> {
+  protected async getVerbsBySource_internal(sourceId: string): Promise<GraphVerb[]> {
     const allVerbs = await this.getAllVerbs_internal()
-    return allVerbs.filter((verb: Verb) => (verb.sourceId || verb.source) === sourceId)
+    return allVerbs.filter((verb: GraphVerb) => (verb.sourceId || verb.source) === sourceId)
   }
 
   /**
    * Get verbs by target
    */
-  protected async getVerbsByTarget_internal(targetId: string): Promise<Verb[]> {
+  protected async getVerbsByTarget_internal(targetId: string): Promise<GraphVerb[]> {
     const allVerbs = await this.getAllVerbs_internal()
-    return allVerbs.filter((verb: Verb) => (verb.targetId || verb.target) === targetId)
+    return allVerbs.filter((verb: GraphVerb) => (verb.targetId || verb.target) === targetId)
   }
 
   /**
    * Get verbs by type
    */
-  protected async getVerbsByType_internal(type: string): Promise<Verb[]> {
+  protected async getVerbsByType_internal(type: string): Promise<GraphVerb[]> {
     const allVerbs = await this.getAllVerbs_internal()
-    return allVerbs.filter((verb: Verb) => (verb.type || verb.verb) === type)
+    return allVerbs.filter((verb: GraphVerb) => (verb.type || verb.verb) === type)
   }
 
   /**
