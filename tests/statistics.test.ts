@@ -5,6 +5,17 @@
 
 import { describe, it, expect, beforeAll } from 'vitest'
 
+/**
+ * Helper function to create a 512-dimensional vector for testing
+ * @param primaryIndex The index to set to 1.0, all other indices will be 0.0
+ * @returns A 512-dimensional vector with a single 1.0 value at the specified index
+ */
+function createTestVector(primaryIndex: number = 0): number[] {
+  const vector = new Array(512).fill(0)
+  vector[primaryIndex % 512] = 1.0
+  return vector
+}
+
 describe('Brainy Statistics Functionality', () => {
   let brainy: any
 
@@ -24,7 +35,6 @@ describe('Brainy Statistics Functionality', () => {
     it('should retrieve statistics from a BrainyData instance', async () => {
       // Create a BrainyData instance
       const data = new brainy.BrainyData({
-        dimensions: 3,
         metric: 'euclidean'
       })
 
@@ -32,12 +42,12 @@ describe('Brainy Statistics Functionality', () => {
       await data.clear() // Clear any existing data
 
       // Add some test data
-      await data.add([1, 0, 0], { id: 'v1', label: 'x-axis' })
-      await data.add([0, 1, 0], { id: 'v2', label: 'y-axis' })
-      await data.add([0, 0, 1], { id: 'v3', label: 'z-axis' })
+      await data.add(createTestVector(0), { id: 'v1', label: 'x-axis' })
+      await data.add(createTestVector(1), { id: 'v2', label: 'y-axis' })
+      await data.add(createTestVector(2), { id: 'v3', label: 'z-axis' })
 
       // Add a verb
-      await data.addVerb('v1', 'v2', [0.5, 0.5, 0], { type: 'connected_to' })
+      await data.addVerb('v1', 'v2', createTestVector(3), { type: 'connected_to' })
 
       // Get statistics using the standalone function
       const stats = await brainy.getStatistics(data)
@@ -56,14 +66,12 @@ describe('Brainy Statistics Functionality', () => {
 
     it('should match the instance method results', async () => {
       // Create a BrainyData instance
-      const data = new brainy.BrainyData({
-        dimensions: 3
-      })
+      const data = new brainy.BrainyData({})
 
       await data.init()
       
       // Add some test data
-      await data.add([1, 1, 1], { id: 'test1' })
+      await data.add(createTestVector(5), { id: 'test1' })
       
       // Get statistics using both methods
       const instanceStats = await data.getStatistics()
@@ -76,7 +84,6 @@ describe('Brainy Statistics Functionality', () => {
     it('should track statistics by service', async () => {
       // Create a BrainyData instance
       const data = new brainy.BrainyData({
-        dimensions: 3,
         metric: 'euclidean'
       })
 
@@ -84,9 +91,9 @@ describe('Brainy Statistics Functionality', () => {
       await data.clear() // Clear any existing data
 
       // Add data from different services
-      await data.add([1, 0, 0], { id: 'v1', label: 'service1-item' }, { service: 'service1' })
-      await data.add([0, 1, 0], { id: 'v2', label: 'service1-item' }, { service: 'service1' })
-      await data.add([0, 0, 1], { id: 'v3', label: 'service2-item' }, { service: 'service2' })
+      await data.add(createTestVector(10), { id: 'v1', label: 'service1-item' }, { service: 'service1' })
+      await data.add(createTestVector(20), { id: 'v2', label: 'service1-item' }, { service: 'service1' })
+      await data.add(createTestVector(30), { id: 'v3', label: 'service2-item' }, { service: 'service2' })
       
       // Add verbs from different services
       await data.addVerb('v1', 'v2', undefined, { type: 'related_to', service: 'service1' })
