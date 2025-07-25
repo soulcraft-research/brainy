@@ -120,15 +120,25 @@ describe('OPFSStorage', () => {
     
     // Create test verb
     const testVector: Vector = [0.1, 0.2, 0.3, 0.4, 0.5]
+    const timestamp = {
+      seconds: Math.floor(Date.now() / 1000),
+      nanoseconds: (Date.now() % 1000) * 1000000
+    }
     const testVerb = {
       id: 'test-verb-1',
       vector: testVector,
       connections: new Map(),
-      sourceId: 'source-noun-1',
-      targetId: 'target-noun-1',
-      type: 'test-relation',
+      source: 'source-noun-1',
+      target: 'target-noun-1',
+      verb: 'test-relation',
       weight: 0.75,
-      metadata: { description: 'Test relation' }
+      metadata: { description: 'Test relation' },
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      createdBy: {
+        augmentation: 'test-service',
+        version: '1.0'
+      }
     }
     
     // Save the verb
@@ -141,11 +151,17 @@ describe('OPFSStorage', () => {
     expect(retrievedVerb).toBeDefined()
     expect(retrievedVerb?.id).toBe('test-verb-1')
     expect(retrievedVerb?.vector).toEqual(testVector)
-    expect(retrievedVerb?.sourceId).toBe('source-noun-1')
-    expect(retrievedVerb?.targetId).toBe('target-noun-1')
-    expect(retrievedVerb?.type).toBe('test-relation')
+    expect(retrievedVerb?.source).toBe('source-noun-1')
+    expect(retrievedVerb?.target).toBe('target-noun-1')
+    expect(retrievedVerb?.verb).toBe('test-relation')
     expect(retrievedVerb?.weight).toBe(0.75)
     expect(retrievedVerb?.metadata).toEqual({ description: 'Test relation' })
+    expect(retrievedVerb?.createdAt).toEqual(timestamp)
+    expect(retrievedVerb?.updatedAt).toEqual(timestamp)
+    expect(retrievedVerb?.createdBy).toEqual({
+      augmentation: 'test-service',
+      version: '1.0'
+    })
     
     // Test getAllVerbs
     const allVerbs = await opfsStorage.getAllVerbs()
