@@ -5,6 +5,17 @@
 
 import { describe, it, expect, beforeAll } from 'vitest'
 
+/**
+ * Helper function to create a 512-dimensional vector for testing
+ * @param primaryIndex The index to set to 1.0, all other indices will be 0.0
+ * @returns A 512-dimensional vector with a single 1.0 value at the specified index
+ */
+function createTestVector(primaryIndex: number = 0): number[] {
+  const vector = new Array(512).fill(0)
+  vector[primaryIndex % 512] = 1.0
+  return vector
+}
+
 describe('Brainy Core Functionality', () => {
   let brainy: any
 
@@ -42,17 +53,14 @@ describe('Brainy Core Functionality', () => {
 
   describe('BrainyData Configuration', () => {
     it('should create instance with minimal configuration', () => {
-      const data = new brainy.BrainyData({
-        dimensions: 3
-      })
+      const data = new brainy.BrainyData({})
 
       expect(data).toBeDefined()
-      expect(data.dimensions).toBe(3)
+      expect(data.dimensions).toBe(512)
     })
 
     it('should create instance with full configuration', () => {
       const data = new brainy.BrainyData({
-        dimensions: 128,
         metric: 'cosine',
         maxConnections: 32,
         efConstruction: 200,
@@ -60,29 +68,28 @@ describe('Brainy Core Functionality', () => {
       })
 
       expect(data).toBeDefined()
-      expect(data.dimensions).toBe(128)
+      expect(data.dimensions).toBe(512)
     })
 
-    it('should validate configuration parameters', () => {
+    it('should not throw with valid configuration parameters', () => {
+      // Dimensions are now fixed at 512 and not configurable
       expect(() => {
         new brainy.BrainyData({
-          dimensions: 0 // Invalid dimensions
+          metric: 'cosine'
         })
-      }).toThrow()
+      }).not.toThrow()
 
       expect(() => {
         new brainy.BrainyData({
-          dimensions: -1 // Invalid dimensions
+          metric: 'euclidean'
         })
-      }).toThrow()
+      }).not.toThrow()
     })
 
     it('should use default values for optional parameters', () => {
-      const data = new brainy.BrainyData({
-        dimensions: 10
-      })
+      const data = new brainy.BrainyData({})
 
-      expect(data.dimensions).toBe(10)
+      expect(data.dimensions).toBe(512)
       // Should have reasonable defaults for other parameters
       expect(data.maxConnections).toBeGreaterThan(0)
       expect(data.efConstruction).toBeGreaterThan(0)
@@ -92,20 +99,19 @@ describe('Brainy Core Functionality', () => {
   describe('Vector Operations', () => {
     it('should handle vector addition and search', async () => {
       const data = new brainy.BrainyData({
-        dimensions: 3,
         metric: 'euclidean'
       })
 
       await data.init()
       await data.clear() // Clear any existing data
 
-      // Add vectors
-      await data.add([1, 0, 0], { id: 'v1', label: 'x-axis' })
-      await data.add([0, 1, 0], { id: 'v2', label: 'y-axis' })
-      await data.add([0, 0, 1], { id: 'v3', label: 'z-axis' })
+      // Add vectors using helper function
+      await data.add(createTestVector(0), { id: 'v1', label: 'x-axis' })
+      await data.add(createTestVector(1), { id: 'v2', label: 'y-axis' })
+      await data.add(createTestVector(2), { id: 'v3', label: 'z-axis' })
 
       // Search for similar vector
-      const results = await data.search([1, 0, 0], 1)
+      const results = await data.search(createTestVector(0), 1)
 
       expect(results).toBeDefined()
       expect(results.length).toBe(1)
@@ -114,7 +120,6 @@ describe('Brainy Core Functionality', () => {
 
     it('should handle batch vector operations', async () => {
       const data = new brainy.BrainyData({
-        dimensions: 2,
         metric: 'euclidean'
       })
 
@@ -123,9 +128,9 @@ describe('Brainy Core Functionality', () => {
 
       // Add multiple vectors
       const vectors = [
-        { vector: [1, 1], metadata: { id: 'batch1' } },
-        { vector: [2, 2], metadata: { id: 'batch2' } },
-        { vector: [3, 3], metadata: { id: 'batch3' } }
+        { vector: createTestVector(10), metadata: { id: 'batch1' } },
+        { vector: createTestVector(20), metadata: { id: 'batch2' } },
+        { vector: createTestVector(30), metadata: { id: 'batch3' } }
       ]
 
       for (const { vector, metadata } of vectors) {
@@ -133,18 +138,16 @@ describe('Brainy Core Functionality', () => {
       }
 
       // Search should return results
-      const results = await data.search([1.5, 1.5], 3)
+      const results = await data.search(createTestVector(15), 3)
       expect(results.length).toBe(3)
     })
 
     it('should handle different distance metrics', async () => {
       const euclideanData = new brainy.BrainyData({
-        dimensions: 2,
         metric: 'euclidean'
       })
 
       const cosineData = new brainy.BrainyData({
-        dimensions: 2,
         metric: 'cosine'
       })
 
@@ -155,7 +158,7 @@ describe('Brainy Core Functionality', () => {
       await euclideanData.clear()
       await cosineData.clear()
 
-      const vector = [1, 1]
+      const vector = createTestVector(5)
       const metadata = { id: 'test' }
 
       await euclideanData.add(vector, metadata)
@@ -237,7 +240,6 @@ describe('Brainy Core Functionality', () => {
   describe('Error Handling', () => {
     it('should handle invalid vector dimensions', async () => {
       const data = new brainy.BrainyData({
-        dimensions: 3,
         metric: 'euclidean'
       })
 
@@ -245,22 +247,20 @@ describe('Brainy Core Functionality', () => {
 
       // Try to add vector with wrong dimensions
       await expect(data.add([1, 2], { id: 'wrong' })).rejects.toThrow()
-      await expect(data.add([1, 2, 3, 4], { id: 'wrong' })).rejects.toThrow()
+      await expect(data.add(new Array(100).fill(0), { id: 'wrong' })).rejects.toThrow()
     })
 
     it('should handle search before initialization', async () => {
       const data = new brainy.BrainyData({
-        dimensions: 2,
         metric: 'euclidean'
       })
 
       // Try to search without initialization
-      await expect(data.search([1, 2], 1)).rejects.toThrow()
+      await expect(data.search(createTestVector(0), 1)).rejects.toThrow()
     })
 
     it('should handle empty search results gracefully', async () => {
       const data = new brainy.BrainyData({
-        dimensions: 2,
         metric: 'euclidean'
       })
 
@@ -268,7 +268,7 @@ describe('Brainy Core Functionality', () => {
       await data.clear() // Clear any existing data
 
       // Search in empty database
-      const results = await data.search([1, 2], 1)
+      const results = await data.search(createTestVector(0), 1)
       expect(results).toBeDefined()
       expect(Array.isArray(results)).toBe(true)
       expect(results.length).toBe(0)
@@ -278,7 +278,6 @@ describe('Brainy Core Functionality', () => {
   describe('Performance and Scalability', () => {
     it('should handle moderate number of vectors efficiently', async () => {
       const data = new brainy.BrainyData({
-        dimensions: 10,
         metric: 'euclidean'
       })
 
@@ -288,21 +287,14 @@ describe('Brainy Core Functionality', () => {
 
       // Add 100 test vectors
       for (let i = 0; i < 100; i++) {
-        const vector =
-          globalThis.testUtils?.createTestVector(10) ||
-          Array.from({ length: 10 }, (_, i) => (i + 1) / 10)
-        await data.add(vector, { id: `item_${i}`, index: i })
+        await data.add(createTestVector(i), { id: `item_${i}`, index: i })
       }
 
       const addTime = Date.now() - startTime
 
       // Search should be fast
       const searchStart = Date.now()
-      const results = await data.search(
-        globalThis.testUtils?.createTestVector(10) ||
-          Array.from({ length: 10 }, (_, i) => (i + 1) / 10),
-        10
-      )
+      const results = await data.search(createTestVector(50), 10)
       const searchTime = Date.now() - searchStart
 
       expect(results.length).toBeLessThanOrEqual(10)
@@ -346,7 +338,6 @@ describe('Brainy Core Functionality', () => {
   describe('Database Statistics', () => {
     it('should provide accurate statistics about the database', async () => {
       const data = new brainy.BrainyData({
-        dimensions: 3,
         metric: 'euclidean'
       })
 
@@ -354,9 +345,9 @@ describe('Brainy Core Functionality', () => {
       await data.clear() // Clear any existing data
 
       // Add some vectors (nouns)
-      await data.add([1, 0, 0], { id: 'v1', label: 'x-axis' })
-      await data.add([0, 1, 0], { id: 'v2', label: 'y-axis' })
-      await data.add([0, 0, 1], { id: 'v3', label: 'z-axis' })
+      await data.add(createTestVector(0), { id: 'v1', label: 'x-axis' })
+      await data.add(createTestVector(1), { id: 'v2', label: 'y-axis' })
+      await data.add(createTestVector(2), { id: 'v3', label: 'z-axis' })
 
       // Add some connections (verbs)
       await data.connect('v1', 'v2', 'related_to')
