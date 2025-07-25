@@ -229,4 +229,10 @@ export interface StorageAdapter {
    * @param size The new size of the HNSW index
    */
   updateHnswIndexSize(size: number): Promise<void>
+
+  /**
+   * Force an immediate flush of statistics to storage
+   * This ensures that any pending statistics updates are written to persistent storage
+   */
+  flushStatisticsToStorage(): Promise<void>
 }

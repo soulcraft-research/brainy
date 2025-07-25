@@ -1881,6 +1881,22 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     }
 
     /**
+     * Force an immediate flush of statistics to storage
+     * This ensures that any pending statistics updates are written to persistent storage
+     * @returns Promise that resolves when the statistics have been flushed
+     */
+    public async flushStatistics(): Promise<void> {
+        await this.ensureInitialized()
+
+        if (!this.storage) {
+            throw new Error('Storage not initialized')
+        }
+
+        // Call the flushStatisticsToStorage method on the storage adapter
+        await this.storage.flushStatisticsToStorage()
+    }
+
+    /**
      * Get statistics about the current state of the database
      * @param options Additional options for retrieving statistics
      * @returns Object containing counts of nouns, verbs, metadata entries, and HNSW index size
@@ -2649,6 +2665,16 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
      */
     public async shutDown(): Promise<void> {
         try {
+            // Flush statistics to ensure they're saved before shutting down
+            if (this.storage && this.isInitialized) {
+                try {
+                    await this.flushStatistics()
+                } catch (statsError) {
+                    console.warn('Failed to flush statistics during shutdown:', statsError)
+                    // Continue with shutdown even if statistics flush fails
+                }
+            }
+
             // Disconnect from remote server if connected
             if (this.isConnectedToRemoteServer()) {
                 await this.disconnectFromRemoteServer()
