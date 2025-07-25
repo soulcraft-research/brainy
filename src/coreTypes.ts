@@ -82,6 +82,11 @@ export interface GraphVerb extends HNSWNoun {
   verb?: string // Alias for type
   data?: Record<string, any> // Additional flexible data storage
   embedding?: Vector // Vector representation of the relationship
+  
+  // Timestamp and creator properties
+  createdAt?: { seconds: number, nanoseconds: number } // When the verb was created
+  updatedAt?: { seconds: number, nanoseconds: number } // When the verb was last updated
+  createdBy?: { augmentation: string, version: string } // Information about what created this verb
 }
 
 /**
