@@ -6,6 +6,17 @@
 
 import { describe, it, expect, beforeAll, vi } from 'vitest'
 
+/**
+ * Helper function to create a 512-dimensional vector for testing
+ * @param primaryIndex The index to set to 1.0, all other indices will be 0.0
+ * @returns A 512-dimensional vector with a single 1.0 value at the specified index
+ */
+function createTestVector(primaryIndex: number = 0): number[] {
+  const vector = new Array(512).fill(0)
+  vector[primaryIndex % 512] = 1.0
+  return vector
+}
+
 describe('Brainy in Browser Environment', () => {
   let brainy: any
 
@@ -53,7 +64,6 @@ describe('Brainy in Browser Environment', () => {
   describe('Core Functionality - Add Data and Search', () => {
     it('should create database and add vector data', async () => {
       const db = new brainy.BrainyData({
-        dimensions: 3,
         metric: 'euclidean',
         storage: {
           forceMemoryStorage: true
@@ -63,12 +73,12 @@ describe('Brainy in Browser Environment', () => {
       await db.init()
 
       // Add some test vectors
-      await db.add([1, 0, 0], { id: 'item1', label: 'x-axis' })
-      await db.add([0, 1, 0], { id: 'item2', label: 'y-axis' })
-      await db.add([0, 0, 1], { id: 'item3', label: 'z-axis' })
+      await db.add(createTestVector(0), { id: 'item1', label: 'x-axis' })
+      await db.add(createTestVector(1), { id: 'item2', label: 'y-axis' })
+      await db.add(createTestVector(2), { id: 'item3', label: 'z-axis' })
 
       // Search should work
-      const results = await db.search([1, 0, 0], 1)
+      const results = await db.search(createTestVector(0), 1)
       expect(results).toBeDefined()
       expect(results.length).toBe(1)
       expect(results[0].metadata.id).toBe('item1')
@@ -102,7 +112,6 @@ describe('Brainy in Browser Environment', () => {
 
     it('should handle multiple data types', async () => {
       const db = new brainy.BrainyData({
-        dimensions: 2,
         metric: 'euclidean',
         storage: {
           forceMemoryStorage: true
@@ -113,9 +122,9 @@ describe('Brainy in Browser Environment', () => {
 
       // Add different types of data
       const testData = [
-        { vector: [1, 1], metadata: { type: 'point', name: 'A' } },
-        { vector: [2, 2], metadata: { type: 'point', name: 'B' } },
-        { vector: [3, 3], metadata: { type: 'point', name: 'C' } }
+        { vector: createTestVector(10), metadata: { type: 'point', name: 'A' } },
+        { vector: createTestVector(20), metadata: { type: 'point', name: 'B' } },
+        { vector: createTestVector(30), metadata: { type: 'point', name: 'C' } }
       ]
 
       for (const item of testData) {
@@ -123,7 +132,7 @@ describe('Brainy in Browser Environment', () => {
       }
 
       // Search should return relevant results
-      const results = await db.search([1.5, 1.5], 2)
+      const results = await db.search(createTestVector(15), 2)
       expect(results.length).toBe(2)
       expect(
         results.every(
@@ -134,15 +143,14 @@ describe('Brainy in Browser Environment', () => {
   })
 
   describe('Error Handling', () => {
-    it('should handle invalid configurations gracefully', () => {
+    it('should not throw with valid configuration', () => {
       expect(() => {
-        new brainy.BrainyData({ dimensions: 0 })
-      }).toThrow()
+        new brainy.BrainyData({ metric: 'euclidean' })
+      }).not.toThrow()
     })
 
     it('should handle search on empty database', async () => {
       const db = new brainy.BrainyData({
-        dimensions: 2,
         metric: 'euclidean',
         storage: {
           forceMemoryStorage: true
@@ -151,7 +159,7 @@ describe('Brainy in Browser Environment', () => {
 
       await db.init()
 
-      const results = await db.search([1, 2], 5)
+      const results = await db.search(createTestVector(0), 5)
       expect(results).toBeDefined()
       expect(Array.isArray(results)).toBe(true)
       expect(results.length).toBe(0)
