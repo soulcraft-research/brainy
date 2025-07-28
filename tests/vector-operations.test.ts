@@ -1,6 +1,17 @@
 import { describe, it, expect } from 'vitest'
 import { euclideanDistance } from '../src/utils/distance.js'
 
+/**
+ * Helper function to create a 512-dimensional vector for testing
+ * @param primaryIndex The index to set to 1.0, all other indices will be 0.0
+ * @returns A 512-dimensional vector with a single 1.0 value at the specified index
+ */
+function createTestVector(primaryIndex: number = 0): number[] {
+  const vector = new Array(512).fill(0)
+  vector[primaryIndex % 512] = 1.0
+  return vector
+}
+
 describe('Vector Operations', () => {
   it('should load brainy library successfully', async () => {
     const brainy = await import('../dist/unified.js')
@@ -14,23 +25,21 @@ describe('Vector Operations', () => {
     const brainy = await import('../dist/unified.js')
 
     const db = new brainy.BrainyData({
-      dimensions: 3,
       distanceFunction: euclideanDistance
     })
 
     expect(db).toBeDefined()
-    expect(db.dimensions).toBe(3)
+    expect(db.dimensions).toBe(512)
 
     await db.init()
     // If we get here without throwing, initialization was successful
     expect(true).toBe(true)
   })
 
-  it('should handle simple 2D vector operations', async () => {
+  it('should handle simple vector operations', async () => {
     const brainy = await import('../dist/unified.js')
 
     const db = new brainy.BrainyData({
-      dimensions: 2,
       distanceFunction: euclideanDistance
     })
 
@@ -38,10 +47,11 @@ describe('Vector Operations', () => {
     await db.clear() // Clear any existing data
 
     // Add a simple vector
-    await db.add([1, 2], { id: 'test' })
+    const testVector = createTestVector(1)
+    await db.add(testVector, { id: 'test' })
 
     // Search for the same vector
-    const results = await db.search([1, 2], 1)
+    const results = await db.search(testVector, 1)
 
     expect(results).toBeDefined()
     expect(results.length).toBeGreaterThan(0)
@@ -52,7 +62,6 @@ describe('Vector Operations', () => {
     const brainy = await import('../dist/unified.js')
 
     const db = new brainy.BrainyData({
-      dimensions: 3,
       distanceFunction: euclideanDistance
     })
 
@@ -60,13 +69,17 @@ describe('Vector Operations', () => {
     await db.clear() // Clear any existing data
 
     // Add multiple vectors
-    await db.add([1, 0, 0], { id: 'vec1', type: 'unit' })
-    await db.add([0, 1, 0], { id: 'vec2', type: 'unit' })
-    await db.add([0, 0, 1], { id: 'vec3', type: 'unit' })
-    await db.add([0.5, 0.5, 0], { id: 'vec4', type: 'mixed' })
+    await db.add(createTestVector(0), { id: 'vec1', type: 'unit' })
+    await db.add(createTestVector(1), { id: 'vec2', type: 'unit' })
+    await db.add(createTestVector(2), { id: 'vec3', type: 'unit' })
+    
+    // Create a mixed vector with two non-zero elements
+    const mixedVector = createTestVector(3)
+    mixedVector[4] = 0.5
+    await db.add(mixedVector, { id: 'vec4', type: 'mixed' })
 
     // Search for multiple results
-    const results = await db.search([1, 0, 0], 3)
+    const results = await db.search(createTestVector(0), 3)
 
     expect(results).toBeDefined()
     expect(results.length).toBeGreaterThanOrEqual(1)

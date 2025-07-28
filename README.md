@@ -3,7 +3,7 @@
 <br/><br/>
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D24.4.0-brightgreen.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D24.4.1-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4.5-blue.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
@@ -69,15 +69,19 @@ configuration.
 Brainy offers specialized packages for different use cases:
 
 #### CLI Package
+
 ```bash
 npm install -g @soulcraft/brainy-cli
 ```
+
 Command-line interface for data management, bulk operations, and database administration.
 
 #### Web Service Package
+
 ```bash
 npm install @soulcraft/brainy-web-service
 ```
+
 REST API web service wrapper that provides HTTP endpoints for search operations and database queries.
 
 ## 🏁 Quick Start
@@ -487,6 +491,33 @@ const backupData = await db.backup()
 // Restore data into the database
 const restoreResult = await db.restore(backupData, {clearExisting: true})
 ```
+
+### Database Statistics
+
+Brainy provides a way to get statistics about the current state of the database:
+
+```typescript
+import {BrainyData, getStatistics} from '@soulcraft/brainy'
+
+// Create and initialize the database
+const db = new BrainyData()
+await db.init()
+
+// Get statistics using the standalone function
+const stats = await getStatistics(db)
+console.log(stats)
+// Output: { nounCount: 0, verbCount: 0, metadataCount: 0, hnswIndexSize: 0 }
+
+// Or using the instance method
+const instanceStats = await db.getStatistics()
+```
+
+The statistics include:
+
+- `nounCount`: Number of nouns (entities) in the database
+- `verbCount`: Number of verbs (relationships) in the database
+- `metadataCount`: Number of metadata entries
+- `hnswIndexSize`: Size of the HNSW index
 
 ### Working with Nouns (Entities)
 
@@ -1081,7 +1112,7 @@ The repository includes a comprehensive demo that showcases Brainy's main featur
     - **[Try the live demo](https://soulcraft-research.github.io/brainy/demo/index.html)** - Check out the
       interactive demo on
       GitHub Pages
-    - Or run it locally with `npm run demo` (see [demo instructions](README.demo.md) for details)
+    - Or run it locally with `npm run demo` (see [demo instructions](demo.md) for details)
     - To deploy your own version to GitHub Pages, use the GitHub Actions workflow in
       `.github/workflows/deploy-demo.yml`,
       which automatically deploys when pushing to the main branch or can be manually triggered

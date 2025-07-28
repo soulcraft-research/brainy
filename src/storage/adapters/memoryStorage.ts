@@ -3,18 +3,10 @@
  * In-memory storage adapter for environments where persistent storage is not available or needed
  */
 
-import { GraphVerb, HNSWNoun } from '../../coreTypes.js'
-import { BaseStorage } from '../baseStorage.js'
+import { GraphVerb, HNSWNoun, StatisticsData } from '../../coreTypes.js'
+import { BaseStorage, STATISTICS_KEY } from '../baseStorage.js'
 
-/**
- * Type alias for HNSWNoun to make the code more readable
- */
-type HNSWNode = HNSWNoun
-
-/**
- * Type alias for GraphVerb to make the code more readable
- */
-type Edge = GraphVerb
+// No type aliases needed - using the original types directly
 
 /**
  * In-memory storage adapter
@@ -22,9 +14,10 @@ type Edge = GraphVerb
  */
 export class MemoryStorage extends BaseStorage {
   // Single map of noun ID to noun
-  private nouns: Map<string, HNSWNode> = new Map()
-  private verbs: Map<string, Edge> = new Map()
+  private nouns: Map<string, HNSWNoun> = new Map()
+  private verbs: Map<string, GraphVerb> = new Map()
   private metadata: Map<string, any> = new Map()
+  private statistics: StatisticsData | null = null
 
   constructor() {
     super()
@@ -39,237 +32,270 @@ export class MemoryStorage extends BaseStorage {
   }
 
   /**
-   * Save a node to storage
+   * Save a noun to storage
    */
-  protected async saveNode(node: HNSWNode): Promise<void> {
+  protected async saveNoun_internal(noun: HNSWNoun): Promise<void> {
     // Create a deep copy to avoid reference issues
-    const nodeCopy: HNSWNode = {
-      id: node.id,
-      vector: [...node.vector],
+    const nounCopy: HNSWNoun = {
+      id: noun.id,
+      vector: [...noun.vector],
       connections: new Map()
     }
 
     // Copy connections
-    for (const [level, connections] of node.connections.entries()) {
-      nodeCopy.connections.set(level, new Set(connections))
+    for (const [level, connections] of noun.connections.entries()) {
+      nounCopy.connections.set(level, new Set(connections))
     }
 
-    // Save the node directly in the nouns map
-    this.nouns.set(node.id, nodeCopy)
+    // Save the noun directly in the nouns map
+    this.nouns.set(noun.id, nounCopy)
   }
 
   /**
-   * Get a node from storage
+   * Get a noun from storage
    */
-  protected async getNode(id: string): Promise<HNSWNode | null> {
-    // Get the node directly from the nouns map
-    const node = this.nouns.get(id)
+  protected async getNoun_internal(id: string): Promise<HNSWNoun | null> {
+    // Get the noun directly from the nouns map
+    const noun = this.nouns.get(id)
 
     // If not found, return null
-    if (!node) {
+    if (!noun) {
       return null
     }
 
     // Return a deep copy to avoid reference issues
-    const nodeCopy: HNSWNode = {
-      id: node.id,
-      vector: [...node.vector],
+    const nounCopy: HNSWNoun = {
+      id: noun.id,
+      vector: [...noun.vector],
       connections: new Map()
     }
 
     // Copy connections
-    for (const [level, connections] of node.connections.entries()) {
-      nodeCopy.connections.set(level, new Set(connections))
+    for (const [level, connections] of noun.connections.entries()) {
+      nounCopy.connections.set(level, new Set(connections))
     }
 
-    return nodeCopy
+    return nounCopy
   }
 
   /**
-   * Get all nodes from storage
+   * Get all nouns from storage
    */
-  protected async getAllNodes(): Promise<HNSWNode[]> {
-    const allNodes: HNSWNode[] = []
+  protected async getAllNouns_internal(): Promise<HNSWNoun[]> {
+    const allNouns: HNSWNoun[] = []
 
-    // Iterate through all nodes in the nouns map
-    for (const [nodeId, node] of this.nouns.entries()) {
+    // Iterate through all nouns in the nouns map
+    for (const [nounId, noun] of this.nouns.entries()) {
       // Return a deep copy to avoid reference issues
-      const nodeCopy: HNSWNode = {
-        id: node.id,
-        vector: [...node.vector],
+      const nounCopy: HNSWNoun = {
+        id: noun.id,
+        vector: [...noun.vector],
         connections: new Map()
       }
 
       // Copy connections
-      for (const [level, connections] of node.connections.entries()) {
-        nodeCopy.connections.set(level, new Set(connections))
+      for (const [level, connections] of noun.connections.entries()) {
+        nounCopy.connections.set(level, new Set(connections))
       }
 
-      allNodes.push(nodeCopy)
+      allNouns.push(nounCopy)
     }
 
-    return allNodes
+    return allNouns
   }
 
   /**
-   * Get nodes by noun type
+   * Get nouns by noun type
    * @param nounType The noun type to filter by
-   * @returns Promise that resolves to an array of nodes of the specified noun type
+   * @returns Promise that resolves to an array of nouns of the specified noun type
    */
-  protected async getNodesByNounType(nounType: string): Promise<HNSWNode[]> {
-    const nodes: HNSWNode[] = []
+  protected async getNounsByNounType_internal(nounType: string): Promise<HNSWNoun[]> {
+    const nouns: HNSWNoun[] = []
 
-    // Iterate through all nodes and filter by noun type using metadata
-    for (const [nodeId, node] of this.nouns.entries()) {
+    // Iterate through all nouns and filter by noun type using metadata
+    for (const [nounId, noun] of this.nouns.entries()) {
       // Get the metadata to check the noun type
-      const metadata = await this.getMetadata(nodeId)
+      const metadata = await this.getMetadata(nounId)
 
-      // Include the node if its noun type matches the requested type
+      // Include the noun if its noun type matches the requested type
       if (metadata && metadata.noun === nounType) {
         // Return a deep copy to avoid reference issues
-        const nodeCopy: HNSWNode = {
-          id: node.id,
-          vector: [...node.vector],
+        const nounCopy: HNSWNoun = {
+          id: noun.id,
+          vector: [...noun.vector],
           connections: new Map()
         }
 
         // Copy connections
-        for (const [level, connections] of node.connections.entries()) {
-          nodeCopy.connections.set(level, new Set(connections))
+        for (const [level, connections] of noun.connections.entries()) {
+          nounCopy.connections.set(level, new Set(connections))
         }
 
-        nodes.push(nodeCopy)
+        nouns.push(nounCopy)
       }
     }
 
-    return nodes
+    return nouns
   }
 
   /**
-   * Delete a node from storage
+   * Delete a noun from storage
    */
-  protected async deleteNode(id: string): Promise<void> {
-    // Delete the node directly from the nouns map
+  protected async deleteNoun_internal(id: string): Promise<void> {
     this.nouns.delete(id)
   }
 
   /**
-   * Save an edge to storage
+   * Save a verb to storage
    */
-  protected async saveEdge(edge: Edge): Promise<void> {
+  protected async saveVerb_internal(verb: GraphVerb): Promise<void> {
     // Create a deep copy to avoid reference issues
-    const edgeCopy: Edge = {
-      id: edge.id,
-      vector: [...edge.vector],
+    const verbCopy: GraphVerb = {
+      id: verb.id,
+      vector: [...verb.vector],
       connections: new Map(),
-      sourceId: edge.sourceId,
-      targetId: edge.targetId,
-      type: edge.type,
-      weight: edge.weight,
-      metadata: edge.metadata
+      sourceId: verb.sourceId,
+      targetId: verb.targetId,
+      type: verb.type,
+      weight: verb.weight,
+      metadata: verb.metadata
     }
 
     // Copy connections
-    for (const [level, connections] of edge.connections.entries()) {
-      edgeCopy.connections.set(level, new Set(connections))
+    for (const [level, connections] of verb.connections.entries()) {
+      verbCopy.connections.set(level, new Set(connections))
     }
 
-    // Save the edge directly in the verbs map
-    this.verbs.set(edge.id, edgeCopy)
+    // Save the verb directly in the verbs map
+    this.verbs.set(verb.id, verbCopy)
   }
 
   /**
-   * Get an edge from storage
+   * Get a verb from storage
    */
-  protected async getEdge(id: string): Promise<Edge | null> {
-    // Get the edge directly from the verbs map
-    const edge = this.verbs.get(id)
+  protected async getVerb_internal(id: string): Promise<GraphVerb | null> {
+    // Get the verb directly from the verbs map
+    const verb = this.verbs.get(id)
 
     // If not found, return null
-    if (!edge) {
+    if (!verb) {
       return null
     }
 
+    // Create default timestamp if not present
+    const defaultTimestamp = {
+      seconds: Math.floor(Date.now() / 1000),
+      nanoseconds: (Date.now() % 1000) * 1000000
+    }
+
+    // Create default createdBy if not present
+    const defaultCreatedBy = {
+      augmentation: 'unknown',
+      version: '1.0'
+    }
+
     // Return a deep copy to avoid reference issues
-    const edgeCopy: Edge = {
-      id: edge.id,
-      vector: [...edge.vector],
+    const verbCopy: GraphVerb = {
+      id: verb.id,
+      vector: [...verb.vector],
       connections: new Map(),
-      sourceId: edge.sourceId,
-      targetId: edge.targetId,
-      type: edge.type,
-      weight: edge.weight,
-      metadata: edge.metadata
+      sourceId: (verb.sourceId || verb.source || ""),
+      targetId: (verb.targetId || verb.target || ""),
+      source: (verb.sourceId || verb.source || ""),
+      target: (verb.targetId || verb.target || ""),
+      verb: verb.type || verb.verb,
+      weight: verb.weight,
+      metadata: verb.metadata,
+      createdAt: verb.createdAt || defaultTimestamp,
+      updatedAt: verb.updatedAt || defaultTimestamp,
+      createdBy: verb.createdBy || defaultCreatedBy
     }
 
     // Copy connections
-    for (const [level, connections] of edge.connections.entries()) {
-      edgeCopy.connections.set(level, new Set(connections))
+    for (const [level, connections] of verb.connections.entries()) {
+      verbCopy.connections.set(level, new Set(connections))
     }
 
-    return edgeCopy
+    return verbCopy
   }
 
   /**
-   * Get all edges from storage
+   * Get all verbs from storage
    */
-  protected async getAllEdges(): Promise<Edge[]> {
-    const allEdges: Edge[] = []
+  protected async getAllVerbs_internal(): Promise<GraphVerb[]> {
+    const allVerbs: GraphVerb[] = []
 
-    // Iterate through all edges in the verbs map
-    for (const [edgeId, edge] of this.verbs.entries()) {
+    // Iterate through all verbs in the verbs map
+    for (const [verbId, verb] of this.verbs.entries()) {
+      // Create default timestamp if not present
+      const defaultTimestamp = {
+        seconds: Math.floor(Date.now() / 1000),
+        nanoseconds: (Date.now() % 1000) * 1000000
+      }
+
+      // Create default createdBy if not present
+      const defaultCreatedBy = {
+        augmentation: 'unknown',
+        version: '1.0'
+      }
+
       // Return a deep copy to avoid reference issues
-      const edgeCopy: Edge = {
-        id: edge.id,
-        vector: [...edge.vector],
+      const verbCopy: GraphVerb = {
+        id: verb.id,
+        vector: [...verb.vector],
         connections: new Map(),
-        sourceId: edge.sourceId,
-        targetId: edge.targetId,
-        type: edge.type,
-        weight: edge.weight,
-        metadata: edge.metadata
+        sourceId: (verb.sourceId || verb.source || ""),
+        targetId: (verb.targetId || verb.target || ""),
+        source: (verb.sourceId || verb.source || ""),
+        target: (verb.targetId || verb.target || ""),
+        verb: verb.type || verb.verb,
+        weight: verb.weight,
+        metadata: verb.metadata,
+        createdAt: verb.createdAt || defaultTimestamp,
+        updatedAt: verb.updatedAt || defaultTimestamp,
+        createdBy: verb.createdBy || defaultCreatedBy
       }
 
       // Copy connections
-      for (const [level, connections] of edge.connections.entries()) {
-        edgeCopy.connections.set(level, new Set(connections))
+      for (const [level, connections] of verb.connections.entries()) {
+        verbCopy.connections.set(level, new Set(connections))
       }
 
-      allEdges.push(edgeCopy)
+      allVerbs.push(verbCopy)
     }
 
-    return allEdges
+    return allVerbs
   }
 
   /**
-   * Get edges by source
+   * Get verbs by source
    */
-  protected async getEdgesBySource(sourceId: string): Promise<Edge[]> {
-    const edges = await this.getAllEdges()
-    return edges.filter((edge) => edge.sourceId === sourceId)
+  protected async getVerbsBySource_internal(sourceId: string): Promise<GraphVerb[]> {
+    const allVerbs = await this.getAllVerbs_internal()
+    return allVerbs.filter((verb: GraphVerb) => (verb.sourceId || verb.source) === sourceId)
   }
 
   /**
-   * Get edges by target
+   * Get verbs by target
    */
-  protected async getEdgesByTarget(targetId: string): Promise<Edge[]> {
-    const edges = await this.getAllEdges()
-    return edges.filter((edge) => edge.targetId === targetId)
+  protected async getVerbsByTarget_internal(targetId: string): Promise<GraphVerb[]> {
+    const allVerbs = await this.getAllVerbs_internal()
+    return allVerbs.filter((verb: GraphVerb) => (verb.targetId || verb.target) === targetId)
   }
 
   /**
-   * Get edges by type
+   * Get verbs by type
    */
-  protected async getEdgesByType(type: string): Promise<Edge[]> {
-    const edges = await this.getAllEdges()
-    return edges.filter((edge) => edge.type === type)
+  protected async getVerbsByType_internal(type: string): Promise<GraphVerb[]> {
+    const allVerbs = await this.getAllVerbs_internal()
+    return allVerbs.filter((verb: GraphVerb) => (verb.type || verb.verb) === type)
   }
 
   /**
-   * Delete an edge from storage
+   * Delete a verb from storage
    */
-  protected async deleteEdge(id: string): Promise<void> {
-    // Delete the edge directly from the verbs map
+  protected async deleteVerb_internal(id: string): Promise<void> {
+    // Delete the verb directly from the verbs map
     this.verbs.delete(id)
   }
 
@@ -320,5 +346,46 @@ export class MemoryStorage extends BaseStorage {
         metadataCount: this.metadata.size
       }
     }
+  }
+
+  /**
+   * Save statistics data to storage
+   * @param statistics The statistics data to save
+   */
+  protected async saveStatisticsData(statistics: StatisticsData): Promise<void> {
+    // For memory storage, we just need to store the statistics in memory
+    // Create a deep copy to avoid reference issues
+    this.statistics = {
+      nounCount: {...statistics.nounCount},
+      verbCount: {...statistics.verbCount},
+      metadataCount: {...statistics.metadataCount},
+      hnswIndexSize: statistics.hnswIndexSize,
+      lastUpdated: statistics.lastUpdated
+    }
+    
+    // Since this is in-memory, there's no need for time-based partitioning
+    // or legacy file handling
+  }
+
+  /**
+   * Get statistics data from storage
+   * @returns Promise that resolves to the statistics data or null if not found
+   */
+  protected async getStatisticsData(): Promise<StatisticsData | null> {
+    if (!this.statistics) {
+      return null
+    }
+
+    // Return a deep copy to avoid reference issues
+    return {
+      nounCount: {...this.statistics.nounCount},
+      verbCount: {...this.statistics.verbCount},
+      metadataCount: {...this.statistics.metadataCount},
+      hnswIndexSize: this.statistics.hnswIndexSize,
+      lastUpdated: this.statistics.lastUpdated
+    }
+    
+    // Since this is in-memory, there's no need for fallback mechanisms
+    // to check multiple storage locations
   }
 }
