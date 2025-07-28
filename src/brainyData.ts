@@ -134,6 +134,37 @@ export interface BrainyDataConfig {
          */
         verbose?: boolean
     }
+
+    /**
+     * Real-time update configuration
+     * Controls how the database handles updates when data is added by external processes
+     */
+    realtimeUpdates?: {
+        /**
+         * Whether to enable automatic updates of the index and statistics
+         * When true, the database will periodically check for new data in storage
+         * Default: false
+         */
+        enabled?: boolean
+
+        /**
+         * The interval (in milliseconds) at which to check for updates
+         * Default: 30000 (30 seconds)
+         */
+        interval?: number
+
+        /**
+         * Whether to update statistics when checking for updates
+         * Default: true
+         */
+        updateStatistics?: boolean
+
+        /**
+         * Whether to update the index when checking for updates
+         * Default: true
+         */
+        updateIndex?: boolean
+    }
 }
 
 export class BrainyData<T = any> implements BrainyDataInterface<T> {
@@ -149,6 +180,17 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     private useOptimizedIndex: boolean = false
     private _dimensions: number
     private loggingConfig: BrainyDataConfig['logging'] = {verbose: true}
+    
+    // Real-time update properties
+    private realtimeUpdateConfig: Required<NonNullable<BrainyDataConfig['realtimeUpdates']>> = {
+        enabled: false,
+        interval: 30000, // 30 seconds
+        updateStatistics: true,
+        updateIndex: true
+    }
+    private updateTimerId: NodeJS.Timeout | null = null
+    private lastUpdateTime = 0
+    private lastKnownNounCount = 0
 
     // Remote server properties
     private remoteServerConfig: BrainyDataConfig['remoteServer'] | null = null
@@ -230,6 +272,14 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         if (config.remoteServer) {
             this.remoteServerConfig = config.remoteServer
         }
+
+        // Initialize real-time update configuration if provided
+        if (config.realtimeUpdates) {
+            this.realtimeUpdateConfig = {
+                ...this.realtimeUpdateConfig,
+                ...config.realtimeUpdates
+            }
+        }
     }
 
     /**
@@ -241,6 +291,189 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
             throw new Error(
                 'Cannot perform write operation: database is in read-only mode'
             )
+        }
+    }
+    
+    /**
+     * Start real-time updates if enabled in the configuration
+     * This will periodically check for new data in storage and update the in-memory index and statistics
+     */
+    private startRealtimeUpdates(): void {
+        // If real-time updates are not enabled, do nothing
+        if (!this.realtimeUpdateConfig.enabled) {
+            return
+        }
+        
+        // If the update timer is already running, do nothing
+        if (this.updateTimerId !== null) {
+            return
+        }
+        
+        // Set the initial last known noun count
+        this.getNounCount().then(count => {
+            this.lastKnownNounCount = count
+        }).catch(error => {
+            console.warn('Failed to get initial noun count for real-time updates:', error)
+        })
+        
+        // Start the update timer
+        this.updateTimerId = setInterval(() => {
+            this.checkForUpdates().catch(error => {
+                console.warn('Error during real-time update check:', error)
+            })
+        }, this.realtimeUpdateConfig.interval)
+        
+        if (this.loggingConfig?.verbose) {
+            console.log(`Real-time updates started with interval: ${this.realtimeUpdateConfig.interval}ms`)
+        }
+    }
+    
+    /**
+     * Stop real-time updates
+     */
+    private stopRealtimeUpdates(): void {
+        // If the update timer is not running, do nothing
+        if (this.updateTimerId === null) {
+            return
+        }
+        
+        // Stop the update timer
+        clearInterval(this.updateTimerId)
+        this.updateTimerId = null
+        
+        if (this.loggingConfig?.verbose) {
+            console.log('Real-time updates stopped')
+        }
+    }
+    
+    /**
+     * Manually check for updates in storage and update the in-memory index and statistics
+     * This can be called by the user to force an update check even if automatic updates are not enabled
+     */
+    public async checkForUpdatesNow(): Promise<void> {
+        await this.ensureInitialized()
+        return this.checkForUpdates()
+    }
+    
+    /**
+     * Enable real-time updates with the specified configuration
+     * @param config Configuration for real-time updates
+     */
+    public enableRealtimeUpdates(config?: Partial<BrainyDataConfig['realtimeUpdates']>): void {
+        // Update configuration if provided
+        if (config) {
+            this.realtimeUpdateConfig = {
+                ...this.realtimeUpdateConfig,
+                ...config
+            }
+        }
+        
+        // Enable updates
+        this.realtimeUpdateConfig.enabled = true
+        
+        // Start updates if initialized
+        if (this.isInitialized) {
+            this.startRealtimeUpdates()
+        }
+    }
+    
+    /**
+     * Disable real-time updates
+     */
+    public disableRealtimeUpdates(): void {
+        // Disable updates
+        this.realtimeUpdateConfig.enabled = false
+        
+        // Stop updates if running
+        this.stopRealtimeUpdates()
+    }
+    
+    /**
+     * Get the current real-time update configuration
+     * @returns The current real-time update configuration
+     */
+    public getRealtimeUpdateConfig(): Required<NonNullable<BrainyDataConfig['realtimeUpdates']>> {
+        return { ...this.realtimeUpdateConfig }
+    }
+    
+    /**
+     * Check for updates in storage and update the in-memory index and statistics if needed
+     * This is called periodically by the update timer when real-time updates are enabled
+     */
+    private async checkForUpdates(): Promise<void> {
+        // If the database is not initialized, do nothing
+        if (!this.isInitialized || !this.storage) {
+            return
+        }
+        
+        try {
+            // Record the current time
+            const startTime = Date.now()
+            
+            // Update statistics if enabled
+            if (this.realtimeUpdateConfig.updateStatistics) {
+                await this.storage.flushStatisticsToStorage()
+                // Clear the statistics cache to force a reload from storage
+                await this.getStatistics({ forceRefresh: true })
+            }
+            
+            // Update index if enabled
+            if (this.realtimeUpdateConfig.updateIndex) {
+                // Get the current noun count
+                const currentCount = await this.getNounCount()
+                
+                // If the noun count has changed, update the index
+                if (currentCount !== this.lastKnownNounCount) {
+                    // Get all nouns from storage
+                    const nouns = await this.storage.getAllNouns()
+                    
+                    // Get all nouns currently in the index
+                    const indexNouns = this.index.getNouns()
+                    const indexNounIds = new Set(indexNouns.keys())
+                    
+                    // Find nouns that are in storage but not in the index
+                    const newNouns = nouns.filter(noun => !indexNounIds.has(noun.id))
+                    
+                    // Add new nouns to the index
+                    for (const noun of newNouns) {
+                        // Check if the vector dimensions match the expected dimensions
+                        if (noun.vector.length !== this._dimensions) {
+                            console.warn(
+                                `Skipping noun ${noun.id} due to dimension mismatch: expected ${this._dimensions}, got ${noun.vector.length}`
+                            )
+                            continue
+                        }
+                        
+                        // Add to index
+                        await this.index.addItem({
+                            id: noun.id,
+                            vector: noun.vector
+                        })
+                        
+                        if (this.loggingConfig?.verbose) {
+                            console.log(`Added new noun ${noun.id} to index during real-time update`)
+                        }
+                    }
+                    
+                    // Update the last known noun count
+                    this.lastKnownNounCount = currentCount
+                    
+                    if (this.loggingConfig?.verbose && newNouns.length > 0) {
+                        console.log(`Real-time update: Added ${newNouns.length} new nouns to index`)
+                    }
+                }
+            }
+            
+            // Update the last update time
+            this.lastUpdateTime = Date.now()
+            
+            if (this.loggingConfig?.verbose) {
+                const duration = this.lastUpdateTime - startTime
+                console.log(`Real-time update completed in ${duration}ms`)
+            }
+        } catch (error) {
+            console.error('Failed to check for updates:', error)
+            // Don't rethrow the error to avoid disrupting the update timer
         }
     }
 
@@ -408,6 +641,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
             this.isInitialized = true
             this.isInitializing = false
+            
+            // Start real-time updates if enabled
+            this.startRealtimeUpdates()
         } catch (error) {
             console.error('Failed to initialize BrainyData:', error)
             this.isInitializing = false
@@ -1998,6 +2234,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
      */
     public async getStatistics(options: {
         service?: string | string[] // Filter statistics by service(s)
+        forceRefresh?: boolean // Force a refresh of statistics from storage
     } = {}): Promise<{
         nounCount: number
         verbCount: number
@@ -2025,6 +2262,11 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         await this.ensureInitialized()
 
         try {
+            // If forceRefresh is true, flush statistics to storage first
+            if (options.forceRefresh && this.storage) {
+                await this.storage.flushStatisticsToStorage()
+            }
+            
             // Get statistics from storage
             const stats = await this.storage!.getStatistics()
 
@@ -2808,6 +3050,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
      */
     public async shutDown(): Promise<void> {
         try {
+            // Stop real-time updates if they're running
+            this.stopRealtimeUpdates()
+            
             // Flush statistics to ensure they're saved before shutting down
             if (this.storage && this.isInitialized) {
                 try {
