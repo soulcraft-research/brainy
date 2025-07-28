@@ -26,16 +26,18 @@ export default defineConfig({
         FORCE_PATCHED_PLATFORM: 'true'
       }
     },
-    // Use a cleaner reporter focused on test results
+    // Use a comprehensive reporter that shows detailed test results
     reporters: [
       [
         'default',
         {
-          summary: false
+          summary: true,
+          reportSummary: true
         }
-      ]
+      ],
+      'verbose'
     ],
-    // Reduce noise in output
+    // Configure output for better visibility
     silent: false,
     // Configure error display for better readability
     bail: 0,
@@ -43,12 +45,14 @@ export default defineConfig({
     coverage: {
       enabled: false
     },
-    // Reduce verbosity of test output
+    // Show test statistics
     logHeapUsage: false,
-    // Only show failed tests in detail
-    hideSkippedTests: true,
-    // Reduce stack trace noise
-    printConsoleTrace: false,
+    // Show all tests for comprehensive reporting
+    hideSkippedTests: false,
+    // Show stack traces for better debugging
+    printConsoleTrace: true,
+    // Show test timing information
+    showTimer: true,
     // Filter out noisy console output more aggressively
     onConsoleLog: (log: string, type: 'stdout' | 'stderr'): false | void => {
       // Filter out all TensorFlow.js, model loading, and setup noise

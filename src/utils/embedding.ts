@@ -4,6 +4,7 @@
 
 import { EmbeddingFunction, EmbeddingModel, Vector } from '../coreTypes.js'
 import { executeInThread } from './workerUtils.js'
+import { isBrowser } from './environment.js'
 
 /**
  * TensorFlow Universal Sentence Encoder embedding model
@@ -40,9 +41,7 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
    */
   private addServerCompatibilityPolyfills(): void {
     // Apply in all non-browser environments (Node.js, serverless, server environments)
-    const isBrowserEnv =
-      typeof window !== 'undefined' && typeof document !== 'undefined'
-    if (isBrowserEnv) {
+    if (isBrowser()) {
       return // Browser environments don't need these polyfills
     }
 
@@ -270,7 +269,7 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
 
         // Try to import WebGL backend for GPU acceleration in browser environments
         try {
-          if (typeof window !== 'undefined') {
+          if (isBrowser()) {
             await import('@tensorflow/tfjs-backend-webgl')
             // Check if WebGL is available
             try {
@@ -577,8 +576,10 @@ function findUSELoadFunction(
 
 /**
  * Check if we're running in a test environment (standalone version)
+ * Uses the same logic as the class method to avoid duplication
  */
 function isTestEnvironment(): boolean {
+  // Use the same implementation as the class method
   // Safely check for Node.js environment first
   if (typeof process === 'undefined') {
     return false
