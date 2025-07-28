@@ -3,13 +3,14 @@
  * File system storage adapter for Node.js environments
  */
 
-import { GraphVerb, HNSWNoun } from '../../coreTypes.js'
+import { GraphVerb, HNSWNoun, StatisticsData } from '../../coreTypes.js'
 import {
   BaseStorage,
   NOUNS_DIR,
   VERBS_DIR,
   METADATA_DIR,
-  INDEX_DIR
+  INDEX_DIR,
+  STATISTICS_KEY
 } from '../baseStorage.js'
 
 // Type aliases for better readability
@@ -584,5 +585,107 @@ export class FileSystemStorage extends BaseStorage {
         details: { error: String(error) }
       }
     }
+  }
+
+  /**
+   * Implementation of abstract methods from BaseStorage
+   */
+
+  /**
+   * Save a noun to storage
+   */
+  protected async saveNoun_internal(noun: HNSWNoun): Promise<void> {
+    return this.saveNode(noun)
+  }
+
+  /**
+   * Get a noun from storage
+   */
+  protected async getNoun_internal(id: string): Promise<HNSWNoun | null> {
+    return this.getNode(id)
+  }
+
+  /**
+   * Get all nouns from storage
+   */
+  protected async getAllNouns_internal(): Promise<HNSWNoun[]> {
+    return this.getAllNodes()
+  }
+
+  /**
+   * Get nouns by noun type
+   */
+  protected async getNounsByNounType_internal(nounType: string): Promise<HNSWNoun[]> {
+    return this.getNodesByNounType(nounType)
+  }
+
+  /**
+   * Delete a noun from storage
+   */
+  protected async deleteNoun_internal(id: string): Promise<void> {
+    return this.deleteNode(id)
+  }
+
+  /**
+   * Save a verb to storage
+   */
+  protected async saveVerb_internal(verb: GraphVerb): Promise<void> {
+    return this.saveEdge(verb)
+  }
+
+  /**
+   * Get a verb from storage
+   */
+  protected async getVerb_internal(id: string): Promise<GraphVerb | null> {
+    return this.getEdge(id)
+  }
+
+  /**
+   * Get all verbs from storage
+   */
+  protected async getAllVerbs_internal(): Promise<GraphVerb[]> {
+    return this.getAllEdges()
+  }
+
+  /**
+   * Get verbs by source
+   */
+  protected async getVerbsBySource_internal(sourceId: string): Promise<GraphVerb[]> {
+    return this.getEdgesBySource(sourceId)
+  }
+
+  /**
+   * Get verbs by target
+   */
+  protected async getVerbsByTarget_internal(targetId: string): Promise<GraphVerb[]> {
+    return this.getEdgesByTarget(targetId)
+  }
+
+  /**
+   * Get verbs by type
+   */
+  protected async getVerbsByType_internal(type: string): Promise<GraphVerb[]> {
+    return this.getEdgesByType(type)
+  }
+
+  /**
+   * Delete a verb from storage
+   */
+  protected async deleteVerb_internal(id: string): Promise<void> {
+    return this.deleteEdge(id)
+  }
+
+  /**
+   * Save statistics data to storage
+   */
+  protected async saveStatisticsData(statistics: StatisticsData): Promise<void> {
+    await this.saveMetadata(STATISTICS_KEY, statistics)
+  }
+
+  /**
+   * Get statistics data from storage
+   */
+  protected async getStatisticsData(): Promise<StatisticsData | null> {
+    return this.getMetadata(STATISTICS_KEY)
   }
 }

@@ -35,15 +35,4 @@ declare global {
   interface WorkerGlobalScope {
     importTensorFlow?: () => Promise<any>
   }
-
-  // Declare types for the global object and globalThis
-  var global: {
-    util?: TensorFlowUtilObject
-    [key: string]: any
-  }
-
-  var globalThis: {
-    util?: TensorFlowUtilObject
-    [key: string]: any
-  }
 }

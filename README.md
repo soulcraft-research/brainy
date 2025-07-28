@@ -494,7 +494,7 @@ const restoreResult = await db.restore(backupData, {clearExisting: true})
 
 ### Database Statistics
 
-Brainy provides a way to get statistics about the current state of the database:
+Brainy provides a way to get statistics about the current state of the database. For detailed information about the statistics system, including implementation details, scalability improvements, and usage examples, see our [Statistics Guide](STATISTICS.md).
 
 ```typescript
 import {BrainyData, getStatistics} from '@soulcraft/brainy'
@@ -503,21 +503,11 @@ import {BrainyData, getStatistics} from '@soulcraft/brainy'
 const db = new BrainyData()
 await db.init()
 
-// Get statistics using the standalone function
-const stats = await getStatistics(db)
+// Get statistics using the instance method
+const stats = await db.getStatistics()
 console.log(stats)
-// Output: { nounCount: 0, verbCount: 0, metadataCount: 0, hnswIndexSize: 0 }
-
-// Or using the instance method
-const instanceStats = await db.getStatistics()
+// Output: { nounCount: 0, verbCount: 0, metadataCount: 0, hnswIndexSize: 0, serviceBreakdown: {...} }
 ```
-
-The statistics include:
-
-- `nounCount`: Number of nouns (entities) in the database
-- `verbCount`: Number of verbs (relationships) in the database
-- `metadataCount`: Number of metadata entries
-- `hnswIndexSize`: Size of the HNSW index
 
 ### Working with Nouns (Entities)
 
@@ -1317,12 +1307,13 @@ terabyte-scale data that can't fit entirely in memory, we provide several approa
 - **Distributed HNSW**: Sharding and partitioning across multiple machines
 - **Hybrid Solutions**: Combining quantization techniques with multi-tier architectures
 
-For detailed information on how to scale Brainy for large datasets, see our
-comprehensive [Scaling Strategy](scalingStrategy.md) document.
+For detailed information on how to scale Brainy for large datasets, vector dimension standardization, threading implementation, storage testing, and other technical topics, see our comprehensive [Technical Guides](TECHNICAL_GUIDES.md).
 
 ## Testing
 
-Brainy uses Vitest for testing. The project includes several test scripts:
+Brainy uses Vitest for testing. For detailed information about testing in Brainy, including test configuration, scripts, reporting tools, and best practices, see our [Testing Guide](TESTING.md).
+
+Here are some common test commands:
 
 ```bash
 # Run all tests
@@ -1331,22 +1322,9 @@ npm test
 # Run tests with comprehensive reporting
 npm run test:report
 
-# Run tests in watch mode
-npm test:watch
-
-# Run tests with UI
-npm test:ui
-
-# Run specific test suites
-npm run test:node
-npm run test:browser
-npm run test:core
-
 # Run tests with coverage
 npm run test:coverage
 ```
-
-The `test:report` script provides a comprehensive test report showing detailed information about all tests that were run, including test names, execution time, and pass/fail status.
 
 ## Contributing
 

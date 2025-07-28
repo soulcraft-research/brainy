@@ -26,16 +26,27 @@ export default defineConfig({
         FORCE_PATCHED_PLATFORM: 'true'
       }
     },
-    // Use a comprehensive reporter that shows detailed test results
+    // Configure reporters for different output formats
     reporters: [
+      // Default reporter for basic progress during test run
       [
         'default',
         {
           summary: true,
-          reportSummary: true
+          reportSummary: true,
+          // Show test titles for all tests
+          successfulTestOnly: false,
+          // Show a compact output
+          outputFile: false
         }
       ],
-      'verbose'
+      // JSON reporter for machine-readable output (can be used for CI/CD)
+      [
+        'json',
+        {
+          outputFile: './test-results.json'
+        }
+      ]
     ],
     // Configure output for better visibility
     silent: false,
@@ -45,52 +56,126 @@ export default defineConfig({
     coverage: {
       enabled: false
     },
-    // Show test statistics
+    // Don't show test statistics to reduce noise
     logHeapUsage: false,
-    // Show all tests for comprehensive reporting
-    hideSkippedTests: false,
-    // Show stack traces for better debugging
-    printConsoleTrace: true,
-    // Show test timing information
-    showTimer: true,
-    // Filter out noisy console output more aggressively
+    // Hide skipped tests to reduce noise
+    hideSkippedTests: true,
+    // Only show stack traces for failed tests
+    printConsoleTrace: false,
+    // Show test timing information in the summary
+    // showTimer: true,
+    // Aggressively filter out console output to only show test progress
     onConsoleLog: (log: string, type: 'stdout' | 'stderr'): false | void => {
-      // Filter out all TensorFlow.js, model loading, and setup noise
+      // For stdout, only allow critical error messages and test progress indicators
+      if (type === 'stdout') {
+        // Only allow through explicit test-related messages and critical errors
+        const allowedPatterns = [
+          'Error:',
+          'FAIL',
+          'PASS',
+          'WARNING:',
+          'test result',
+          'Test Files',
+          'Tests',
+          'Start at',
+          'Duration',
+          '✓',
+          '✗',
+          'running',
+          'suite'
+        ]
+
+        // If the log doesn't contain any allowed pattern, filter it out
+        if (!allowedPatterns.some((pattern) => log.includes(pattern))) {
+          return false
+        }
+      }
+
+      // For stderr, only show actual errors
+      if (
+        type === 'stderr' &&
+        !log.includes('Error:') &&
+        !log.includes('FAIL')
+      ) {
+        return false
+      }
+
+      // Expanded list of noise patterns to filter out
       const noisePatterns: string[] = [
-        'Brainy: Successfully patched TensorFlow.js PlatformNode',
-        'Applied TensorFlow.js patch via ES modules',
-        'Brainy running in Node.js environment',
-        'Pre-loading Universal Sentence Encoder model',
-        'Universal Sentence Encoder module structure',
-        'No default export',
-        'Using sentenceEncoderModule.load',
-        'Loading Universal Sentence Encoder model',
-        'Universal Sentence Encoder model loaded successfully',
-        'Using file system storage for Node.js environment',
-        'Using WebGL backend for TensorFlow.js',
-        'Platform node has already been set',
-        'Overwriting the platform with node',
-        'Brainy: Applying TensorFlow.js platform patch',
+        // Original patterns
+        'Brainy:',
+        'TensorFlow',
+        'Universal Sentence Encoder',
+        'Using file system storage',
+        'Using WebGL backend',
+        'Platform node',
         'The kernel',
         'for backend',
         'is already registered',
-        'Hi there 👋. Looks like you are running TensorFlow.js',
+        'Hi there 👋',
         'backend registration',
         'webgl',
         'cpu',
-        'Could not get context for WebGL version',
-        'Retrying Universal Sentence Encoder initialization',
+        'Could not get context',
+        'Retrying',
         'Skipping noun',
         'due to dimension mismatch',
-        'Retrying Universal Sentence Encoder model loading',
-        'Successfully loaded Universal Sentence Encoder with fallback method'
+        'Successfully loaded',
+        'model loaded',
+        'module structure',
+        'No default export',
+        'Using sentenceEncoderModule',
+        'Loading',
+        'Applying',
+        'Overwriting',
+        'Applied',
+        'running in Node.js environment',
+        'Pre-loading',
+        'has already been set',
+        // Additional patterns to filter out common console.log statements from tests
+        'Attempting to add',
+        'Successfully added',
+        'Test API server running',
+        'Text content not found',
+        'Searching for text',
+        'Expected ID:',
+        'Search returned',
+        'First result ID:',
+        'All result IDs:',
+        'Could not find result',
+        'Found result with matching ID:',
+        'console.log',
+        'console.info',
+        'console.debug'
       ]
 
       // Return false (don't show) if log contains any noise pattern
       if (noisePatterns.some((pattern) => log.includes(pattern))) {
         return false
       }
+
+      // Additional filtering for common debug output patterns
+      if (
+        log.includes('Searching') ||
+        log.includes('Found') ||
+        log.includes('Created') ||
+        log.includes('Loaded') ||
+        log.includes('Processing') ||
+        log.includes('Initializing') ||
+        log.includes('Starting') ||
+        log.includes('Completed') ||
+        log.includes('Finished')
+      ) {
+        return false
+      }
+
+      return undefined // Show the log if it passes all filters
     }
+
+    // Add a custom reporter configuration for a cleaner output
+    // outputDiffLines: 5, // Limit diff output lines for cleaner error reports
+    // outputFileMaxLines: 40, // Limit file output lines for cleaner error reports
+    // outputTruncateLength: 80 // Truncate long output lines
   },
   // Resolve configuration for proper module handling
   resolve: {

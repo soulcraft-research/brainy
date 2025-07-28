@@ -17,7 +17,14 @@
 import './setup.js'
 
 // Import environment detection functions
-import { isBrowser, isNode } from './utils/environment.js'
+import { 
+  isBrowser, 
+  isNode, 
+  isWebWorker, 
+  isThreadingAvailable, 
+  isThreadingAvailableAsync, 
+  areWorkerThreadsAvailable 
+} from './utils/environment.js'
 
 // Export environment information with lazy evaluation
 export const environment = {
@@ -29,6 +36,18 @@ export const environment = {
   },
   get isServerless() {
     return !isBrowser() && !isNode()
+  },
+  isWebWorker: function() {
+    return isWebWorker()
+  },
+  get isThreadingAvailable() {
+    return isThreadingAvailable()
+  },
+  isThreadingAvailableAsync: function() {
+    return isThreadingAvailableAsync()
+  },
+  areWorkerThreadsAvailable: function() {
+    return areWorkerThreadsAvailable()
   }
 }
 

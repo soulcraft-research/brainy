@@ -156,7 +156,10 @@ export class MemoryStorage extends BaseStorage {
       connections: new Map(),
       sourceId: verb.sourceId,
       targetId: verb.targetId,
-      type: verb.type,
+      source: verb.sourceId || verb.source,
+      target: verb.targetId || verb.target,
+      verb: verb.type || verb.verb,
+      type: verb.type || verb.verb,
       weight: verb.weight,
       metadata: verb.metadata
     }
@@ -204,6 +207,7 @@ export class MemoryStorage extends BaseStorage {
       source: (verb.sourceId || verb.source || ""),
       target: (verb.targetId || verb.target || ""),
       verb: verb.type || verb.verb,
+      type: verb.type || verb.verb, // Ensure type is also set
       weight: verb.weight,
       metadata: verb.metadata,
       createdAt: verb.createdAt || defaultTimestamp,
