@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { BrainyData } from '../dist/brainyData.js'
+import { BrainyData } from '../dist/unified.js'
 
 describe('Database Operations', () => {
   let db: BrainyData

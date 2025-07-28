@@ -155,7 +155,7 @@ export async function calculateDistancesBatch(
                 global.TextEncoder = util.TextEncoder
               }
               if (typeof global.TextDecoder === 'undefined') {
-                global.TextDecoder = util.TextDecoder
+                global.TextDecoder = util.TextDecoder as unknown as typeof TextDecoder
               }
             }
 

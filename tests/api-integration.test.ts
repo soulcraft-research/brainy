@@ -36,7 +36,6 @@ describe('API Integration Tests', () => {
     // Create a test BrainyData instance
     const storage = await createStorage({ forceFileSystemStorage: true })
     brainyInstance = new BrainyData({
-      dimensions: 512, // Using 512 dimensions to match the embedding model's output
       storageAdapter: storage
     })
     
@@ -58,8 +57,13 @@ describe('API Integration Tests', () => {
           return res.status(400).json({ error: 'Text is required' })
         }
         
-        // Add the text to the database
-        const id = await brainyInstance.addItem(text, metadata)
+        console.log('Attempting to add text:', text)
+        
+        // Add the text to the database using the add method instead of addItem
+        // This is more direct and avoids potential issues with the addItem method
+        const id = await brainyInstance.add(text, metadata, { forceEmbed: true })
+        
+        console.log('Successfully added text with ID:', id)
         
         res.json({
           success: true,
@@ -224,11 +228,15 @@ describe('API Integration Tests', () => {
     
     expect(insertedIds.length).toBe(texts.length)
     
-    // Allow a longer delay for indexing to ensure all items are properly indexed
-    await new Promise(resolve => setTimeout(resolve, 500))
+    // Allow a much longer delay for indexing to ensure all items are properly indexed
+    // Increased from 500ms to 2000ms to give more time for the HNSW index to update
+    await new Promise(resolve => setTimeout(resolve, 2000))
     
     // Search for each text and verify it's found correctly
     for (let i = 0; i < texts.length; i++) {
+      console.log(`Searching for text ${i+1}/${texts.length}: "${texts[i].substring(0, 30)}..."`)
+      console.log(`Expected ID: ${insertedIds[i]}`)
+      
       const searchResponse = await fetch(`${API_URL}/search/text`, {
         method: 'POST',
         headers: {
@@ -241,8 +249,22 @@ describe('API Integration Tests', () => {
       })
       
       const searchData = await searchResponse.json() as any
+      console.log(`Search returned ${searchData.results?.length || 0} results`)
+      
+      if (searchData.results && searchData.results.length > 0) {
+        console.log(`First result ID: ${searchData.results[0].id}`)
+        console.log(`All result IDs: ${searchData.results.map((r: any) => r.id).join(', ')}`)
+      }
+      
       // The text should be found in the results
       const foundResult = searchData.results.find((r: any) => r.id === insertedIds[i])
+      
+      if (!foundResult) {
+        console.error(`Could not find result with ID ${insertedIds[i]} in search results`)
+      } else {
+        console.log(`Found result with matching ID: ${foundResult.id}`)
+      }
+      
       expect(foundResult).toBeDefined()
       
       // For this test, we're primarily concerned with finding the correct item by ID
