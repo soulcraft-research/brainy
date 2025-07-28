@@ -23,14 +23,16 @@ import {
     euclideanDistance,
     cosineDistance,
     manhattanDistance,
-    dotProductDistance
+    dotProductDistance,
+    getStatistics
 } from './utils/index.js'
 
 export {
     euclideanDistance,
     cosineDistance,
     manhattanDistance,
-    dotProductDistance
+    dotProductDistance,
+    getStatistics
 }
 
 // Export embedding functionality

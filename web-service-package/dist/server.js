@@ -70,17 +70,54 @@ async function initializeBrainy() {
         const storageOptions = {
             requestPersistentStorage: true
         };
+        // Add AWS S3 configuration if environment variables are present
+        if (process.env.S3_BUCKET_NAME) {
+            storageOptions.s3Storage = {
+                bucketName: process.env.S3_BUCKET_NAME,
+                region: process.env.S3_REGION || process.env.AWS_REGION || 'us-east-1',
+                accessKeyId: process.env.S3_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID,
+                secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY,
+                sessionToken: process.env.S3_SESSION_TOKEN || process.env.AWS_SESSION_TOKEN
+            };
+        }
+        // Add Cloudflare R2 configuration if environment variables are present
+        if (process.env.R2_BUCKET_NAME) {
+            storageOptions.r2Storage = {
+                bucketName: process.env.R2_BUCKET_NAME,
+                accountId: process.env.R2_ACCOUNT_ID,
+                accessKeyId: process.env.R2_ACCESS_KEY_ID,
+                secretAccessKey: process.env.R2_SECRET_ACCESS_KEY
+            };
+        }
+        // Add Google Cloud Storage configuration if environment variables are present
+        if (process.env.GCS_BUCKET_NAME) {
+            storageOptions.gcsStorage = {
+                bucketName: process.env.GCS_BUCKET_NAME,
+                region: process.env.GCS_REGION,
+                endpoint: process.env.GCS_ENDPOINT,
+                accessKeyId: process.env.GCS_ACCESS_KEY_ID,
+                secretAccessKey: process.env.GCS_SECRET_ACCESS_KEY
+            };
+        }
         // Check if local storage is forced
         if (process.env.FORCE_LOCAL_STORAGE === 'true') {
             console.log('Forcing local filesystem storage (FORCE_LOCAL_STORAGE=true)');
             storageOptions.forceFileSystemStorage = true;
             // Set the data path for local storage
             if (DATA_PATH) {
-                // We'll need to import FileSystemStorage for forced local storage
+                // We'll need to import FileSystemStorage and path for forced local storage
                 const { FileSystemStorage } = await import('@soulcraft/brainy');
+                const path = await import('path');
+                // Create storage with explicit path handling to avoid race condition
+                const nounsDir = path.join(DATA_PATH, 'nouns');
+                const verbsDir = path.join(DATA_PATH, 'verbs');
+                const metadataDir = path.join(DATA_PATH, 'metadata');
+                const indexDir = path.join(DATA_PATH, 'index');
+                // Create a storage instance with pre-computed paths
                 const storage = new FileSystemStorage(DATA_PATH);
+                // Initialize the storage adapter before using it
+                await storage.init();
                 brainyInstance = new BrainyData({
-                    dimensions: 384, // Default dimensions, can be overridden
                     storageAdapter: storage,
                     distanceFunction: cosineDistance
                 });
@@ -90,7 +127,6 @@ async function initializeBrainy() {
         if (!brainyInstance) {
             const storage = await createStorage(storageOptions);
             brainyInstance = new BrainyData({
-                dimensions: 384, // Default dimensions, can be overridden
                 storageAdapter: storage,
                 distanceFunction: cosineDistance
             });

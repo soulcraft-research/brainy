@@ -34,7 +34,7 @@ export interface GraphNoun {
 }
 
 /**
- * Base interface for edges (verbs) in the graph
+ * Base interface for verbs in the graph
  * Represents relationships between nouns
  */
 export interface GraphVerb {
@@ -45,6 +45,7 @@ export interface GraphVerb {
   verb: VerbType // Type of relationship
   createdAt: Timestamp // When the verb was created
   updatedAt: Timestamp // When the verb was last updated
+  createdBy: CreatorMetadata // Information about what created this verb
   data?: Record<string, any> // Additional flexible data storage
   embedding?: number[] // Vector representation of the relationship
   confidence?: number // Confidence score (0-1)

@@ -3,19 +3,21 @@
  * Provides common functionality for all storage adapters
  */
 
-import { GraphVerb, HNSWNoun, StorageAdapter } from '../coreTypes.js'
+import { GraphVerb, HNSWNoun, StatisticsData } from '../coreTypes.js'
+import { BaseStorageAdapter } from './adapters/baseStorageAdapter.js'
 
 // Common directory/prefix names
 export const NOUNS_DIR = 'nouns'
 export const VERBS_DIR = 'verbs'
 export const METADATA_DIR = 'metadata'
 export const INDEX_DIR = 'index'
+export const STATISTICS_KEY = 'statistics'
 
 /**
  * Base storage adapter that implements common functionality
  * This is an abstract class that should be extended by specific storage adapters
  */
-export abstract class BaseStorage implements StorageAdapter {
+export abstract class BaseStorage extends BaseStorageAdapter {
   protected isInitialized = false
 
   /**
@@ -38,7 +40,7 @@ export abstract class BaseStorage implements StorageAdapter {
    */
   public async saveNoun(noun: HNSWNoun): Promise<void> {
     await this.ensureInitialized()
-    return this.saveNode(noun)
+    return this.saveNoun_internal(noun)
   }
 
   /**
@@ -46,7 +48,7 @@ export abstract class BaseStorage implements StorageAdapter {
    */
   public async getNoun(id: string): Promise<HNSWNoun | null> {
     await this.ensureInitialized()
-    return this.getNode(id)
+    return this.getNoun_internal(id)
   }
 
   /**
@@ -54,7 +56,7 @@ export abstract class BaseStorage implements StorageAdapter {
    */
   public async getAllNouns(): Promise<HNSWNoun[]> {
     await this.ensureInitialized()
-    return this.getAllNodes()
+    return this.getAllNouns_internal()
   }
 
   /**
@@ -64,7 +66,7 @@ export abstract class BaseStorage implements StorageAdapter {
    */
   public async getNounsByNounType(nounType: string): Promise<HNSWNoun[]> {
     await this.ensureInitialized()
-    return this.getNodesByNounType(nounType)
+    return this.getNounsByNounType_internal(nounType)
   }
 
   /**
@@ -72,7 +74,7 @@ export abstract class BaseStorage implements StorageAdapter {
    */
   public async deleteNoun(id: string): Promise<void> {
     await this.ensureInitialized()
-    return this.deleteNode(id)
+    return this.deleteNoun_internal(id)
   }
 
   /**
@@ -80,7 +82,7 @@ export abstract class BaseStorage implements StorageAdapter {
    */
   public async saveVerb(verb: GraphVerb): Promise<void> {
     await this.ensureInitialized()
-    return this.saveEdge(verb)
+    return this.saveVerb_internal(verb)
   }
 
   /**
@@ -88,7 +90,7 @@ export abstract class BaseStorage implements StorageAdapter {
    */
   public async getVerb(id: string): Promise<GraphVerb | null> {
     await this.ensureInitialized()
-    return this.getEdge(id)
+    return this.getVerb_internal(id)
   }
 
   /**
@@ -96,7 +98,7 @@ export abstract class BaseStorage implements StorageAdapter {
    */
   public async getAllVerbs(): Promise<GraphVerb[]> {
     await this.ensureInitialized()
-    return this.getAllEdges()
+    return this.getAllVerbs_internal()
   }
 
   /**
@@ -104,7 +106,7 @@ export abstract class BaseStorage implements StorageAdapter {
    */
   public async getVerbsBySource(sourceId: string): Promise<GraphVerb[]> {
     await this.ensureInitialized()
-    return this.getEdgesBySource(sourceId)
+    return this.getVerbsBySource_internal(sourceId)
   }
 
   /**
@@ -112,7 +114,7 @@ export abstract class BaseStorage implements StorageAdapter {
    */
   public async getVerbsByTarget(targetId: string): Promise<GraphVerb[]> {
     await this.ensureInitialized()
-    return this.getEdgesByTarget(targetId)
+    return this.getVerbsByTarget_internal(targetId)
   }
 
   /**
@@ -120,7 +122,7 @@ export abstract class BaseStorage implements StorageAdapter {
    */
   public async getVerbsByType(type: string): Promise<GraphVerb[]> {
     await this.ensureInitialized()
-    return this.getEdgesByType(type)
+    return this.getVerbsByType_internal(type)
   }
 
   /**
@@ -128,7 +130,7 @@ export abstract class BaseStorage implements StorageAdapter {
    */
   public async deleteVerb(id: string): Promise<void> {
     await this.ensureInitialized()
-    return this.deleteEdge(id)
+    return this.deleteVerb_internal(id)
   }
 
   /**
@@ -161,76 +163,76 @@ export abstract class BaseStorage implements StorageAdapter {
   public abstract getMetadata(id: string): Promise<any | null>
 
   /**
-   * Save a node to storage
+   * Save a noun to storage
    * This method should be implemented by each specific adapter
    */
-  protected abstract saveNode(node: HNSWNoun): Promise<void>
+  protected abstract saveNoun_internal(noun: HNSWNoun): Promise<void>
 
   /**
-   * Get a node from storage
+   * Get a noun from storage
    * This method should be implemented by each specific adapter
    */
-  protected abstract getNode(id: string): Promise<HNSWNoun | null>
+  protected abstract getNoun_internal(id: string): Promise<HNSWNoun | null>
 
   /**
-   * Get all nodes from storage
+   * Get all nouns from storage
    * This method should be implemented by each specific adapter
    */
-  protected abstract getAllNodes(): Promise<HNSWNoun[]>
+  protected abstract getAllNouns_internal(): Promise<HNSWNoun[]>
 
   /**
-   * Get nodes by noun type
+   * Get nouns by noun type
    * This method should be implemented by each specific adapter
    */
-  protected abstract getNodesByNounType(nounType: string): Promise<HNSWNoun[]>
+  protected abstract getNounsByNounType_internal(nounType: string): Promise<HNSWNoun[]>
 
   /**
-   * Delete a node from storage
+   * Delete a noun from storage
    * This method should be implemented by each specific adapter
    */
-  protected abstract deleteNode(id: string): Promise<void>
+  protected abstract deleteNoun_internal(id: string): Promise<void>
 
   /**
-   * Save an edge to storage
+   * Save a verb to storage
    * This method should be implemented by each specific adapter
    */
-  protected abstract saveEdge(edge: GraphVerb): Promise<void>
+  protected abstract saveVerb_internal(verb: GraphVerb): Promise<void>
 
   /**
-   * Get an edge from storage
+   * Get a verb from storage
    * This method should be implemented by each specific adapter
    */
-  protected abstract getEdge(id: string): Promise<GraphVerb | null>
+  protected abstract getVerb_internal(id: string): Promise<GraphVerb | null>
 
   /**
-   * Get all edges from storage
+   * Get all verbs from storage
    * This method should be implemented by each specific adapter
    */
-  protected abstract getAllEdges(): Promise<GraphVerb[]>
+  protected abstract getAllVerbs_internal(): Promise<GraphVerb[]>
 
   /**
-   * Get edges by source
+   * Get verbs by source
    * This method should be implemented by each specific adapter
    */
-  protected abstract getEdgesBySource(sourceId: string): Promise<GraphVerb[]>
+  protected abstract getVerbsBySource_internal(sourceId: string): Promise<GraphVerb[]>
 
   /**
-   * Get edges by target
+   * Get verbs by target
    * This method should be implemented by each specific adapter
    */
-  protected abstract getEdgesByTarget(targetId: string): Promise<GraphVerb[]>
+  protected abstract getVerbsByTarget_internal(targetId: string): Promise<GraphVerb[]>
 
   /**
-   * Get edges by type
+   * Get verbs by type
    * This method should be implemented by each specific adapter
    */
-  protected abstract getEdgesByType(type: string): Promise<GraphVerb[]>
+  protected abstract getVerbsByType_internal(type: string): Promise<GraphVerb[]>
 
   /**
-   * Delete an edge from storage
+   * Delete a verb from storage
    * This method should be implemented by each specific adapter
    */
-  protected abstract deleteEdge(id: string): Promise<void>
+  protected abstract deleteVerb_internal(id: string): Promise<void>
 
   /**
    * Helper method to convert a Map to a plain object for serialization
@@ -245,4 +247,18 @@ export abstract class BaseStorage implements StorageAdapter {
     }
     return obj
   }
+
+  /**
+   * Save statistics data to storage
+   * This method should be implemented by each specific adapter
+   * @param statistics The statistics data to save
+   */
+  protected abstract saveStatisticsData(statistics: StatisticsData): Promise<void>
+
+  /**
+   * Get statistics data from storage
+   * This method should be implemented by each specific adapter
+   * @returns Promise that resolves to the statistics data or null if not found
+   */
+  protected abstract getStatisticsData(): Promise<StatisticsData | null>
 }
