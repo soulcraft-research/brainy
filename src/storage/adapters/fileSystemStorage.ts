@@ -4,7 +4,13 @@
  */
 
 import { GraphVerb, HNSWNoun } from '../../coreTypes.js'
-import { BaseStorage, NOUNS_DIR, VERBS_DIR, METADATA_DIR, INDEX_DIR } from '../baseStorage.js'
+import {
+  BaseStorage,
+  NOUNS_DIR,
+  VERBS_DIR,
+  METADATA_DIR,
+  INDEX_DIR
+} from '../baseStorage.js'
 
 // Type aliases for better readability
 type HNSWNode = HNSWNoun
@@ -20,12 +26,14 @@ try {
   const fsPromise = import('fs')
   const pathPromise = import('path')
 
-  Promise.all([fsPromise, pathPromise]).then(([fsModule, pathModule]) => {
-    fs = fsModule
-    path = pathModule.default
-  }).catch(error => {
-    console.error('Failed to load Node.js modules:', error)
-  })
+  Promise.all([fsPromise, pathPromise])
+    .then(([fsModule, pathModule]) => {
+      fs = fsModule
+      path = pathModule.default
+    })
+    .catch((error) => {
+      console.error('Failed to load Node.js modules:', error)
+    })
 } catch (error) {
   console.error(
     'FileSystemStorage: Failed to load Node.js modules. This adapter is not supported in this environment.',
@@ -39,10 +47,10 @@ try {
  */
 export class FileSystemStorage extends BaseStorage {
   private rootDir: string
-  private nounsDir: string
-  private verbsDir: string
-  private metadataDir: string
-  private indexDir: string
+  private nounsDir!: string
+  private verbsDir!: string
+  private metadataDir!: string
+  private indexDir!: string
 
   /**
    * Initialize the storage adapter
@@ -51,10 +59,7 @@ export class FileSystemStorage extends BaseStorage {
   constructor(rootDirectory: string) {
     super()
     this.rootDir = rootDirectory
-    this.nounsDir = path.join(this.rootDir, NOUNS_DIR)
-    this.verbsDir = path.join(this.rootDir, VERBS_DIR)
-    this.metadataDir = path.join(this.rootDir, METADATA_DIR)
-    this.indexDir = path.join(this.rootDir, INDEX_DIR)
+    // Defer path operations until init() when path module is guaranteed to be loaded
   }
 
   /**
@@ -73,6 +78,12 @@ export class FileSystemStorage extends BaseStorage {
     }
 
     try {
+      // Initialize directory paths now that path module is loaded
+      this.nounsDir = path.join(this.rootDir, NOUNS_DIR)
+      this.verbsDir = path.join(this.rootDir, VERBS_DIR)
+      this.metadataDir = path.join(this.rootDir, METADATA_DIR)
+      this.indexDir = path.join(this.rootDir, INDEX_DIR)
+
       // Create the root directory if it doesn't exist
       await this.ensureDirectoryExists(this.rootDir)
 
@@ -124,7 +135,10 @@ export class FileSystemStorage extends BaseStorage {
     }
 
     const filePath = path.join(this.nounsDir, `${node.id}.json`)
-    await fs.promises.writeFile(filePath, JSON.stringify(serializableNode, null, 2))
+    await fs.promises.writeFile(
+      filePath,
+      JSON.stringify(serializableNode, null, 2)
+    )
   }
 
   /**
@@ -174,7 +188,9 @@ export class FileSystemStorage extends BaseStorage {
 
           // Convert serialized connections back to Map<number, Set<string>>
           const connections = new Map<number, Set<string>>()
-          for (const [level, nodeIds] of Object.entries(parsedNode.connections)) {
+          for (const [level, nodeIds] of Object.entries(
+            parsedNode.connections
+          )) {
             connections.set(Number(level), new Set(nodeIds as string[]))
           }
 
@@ -209,14 +225,16 @@ export class FileSystemStorage extends BaseStorage {
           const filePath = path.join(this.nounsDir, file)
           const data = await fs.promises.readFile(filePath, 'utf-8')
           const parsedNode = JSON.parse(data)
-          
+
           // Filter by noun type using metadata
           const nodeId = parsedNode.id
           const metadata = await this.getMetadata(nodeId)
           if (metadata && metadata.noun === nounType) {
             // Convert serialized connections back to Map<number, Set<string>>
             const connections = new Map<number, Set<string>>()
-            for (const [level, nodeIds] of Object.entries(parsedNode.connections)) {
+            for (const [level, nodeIds] of Object.entries(
+              parsedNode.connections
+            )) {
               connections.set(Number(level), new Set(nodeIds as string[]))
             }
 
@@ -269,7 +287,10 @@ export class FileSystemStorage extends BaseStorage {
     }
 
     const filePath = path.join(this.verbsDir, `${edge.id}.json`)
-    await fs.promises.writeFile(filePath, JSON.stringify(serializableEdge, null, 2))
+    await fs.promises.writeFile(
+      filePath,
+      JSON.stringify(serializableEdge, null, 2)
+    )
   }
 
   /**
@@ -324,7 +345,9 @@ export class FileSystemStorage extends BaseStorage {
 
           // Convert serialized connections back to Map<number, Set<string>>
           const connections = new Map<number, Set<string>>()
-          for (const [level, nodeIds] of Object.entries(parsedEdge.connections)) {
+          for (const [level, nodeIds] of Object.entries(
+            parsedEdge.connections
+          )) {
             connections.set(Number(level), new Set(nodeIds as string[]))
           }
 
@@ -489,7 +512,10 @@ export class FileSystemStorage extends BaseStorage {
           }
         } catch (error: any) {
           if (error.code !== 'ENOENT') {
-            console.error(`Error calculating size for directory ${dirPath}:`, error)
+            console.error(
+              `Error calculating size for directory ${dirPath}:`,
+              error
+            )
           }
         }
         return size
@@ -504,9 +530,15 @@ export class FileSystemStorage extends BaseStorage {
       totalSize = nounsDirSize + verbsDirSize + metadataDirSize + indexDirSize
 
       // Count files in each directory
-      const nounsCount = (await fs.promises.readdir(this.nounsDir)).filter((file: string) => file.endsWith('.json')).length
-      const verbsCount = (await fs.promises.readdir(this.verbsDir)).filter((file: string) => file.endsWith('.json')).length
-      const metadataCount = (await fs.promises.readdir(this.metadataDir)).filter((file: string) => file.endsWith('.json')).length
+      const nounsCount = (await fs.promises.readdir(this.nounsDir)).filter(
+        (file: string) => file.endsWith('.json')
+      ).length
+      const verbsCount = (await fs.promises.readdir(this.verbsDir)).filter(
+        (file: string) => file.endsWith('.json')
+      ).length
+      const metadataCount = (
+        await fs.promises.readdir(this.metadataDir)
+      ).filter((file: string) => file.endsWith('.json')).length
 
       // Count nouns by type using metadata
       const nounTypeCounts: Record<string, number> = {}
@@ -518,7 +550,8 @@ export class FileSystemStorage extends BaseStorage {
             const data = await fs.promises.readFile(filePath, 'utf-8')
             const metadata = JSON.parse(data)
             if (metadata.noun) {
-              nounTypeCounts[metadata.noun] = (nounTypeCounts[metadata.noun] || 0) + 1
+              nounTypeCounts[metadata.noun] =
+                (nounTypeCounts[metadata.noun] || 0) + 1
             }
           } catch (error) {
             console.error(`Error reading metadata file ${file}:`, error)

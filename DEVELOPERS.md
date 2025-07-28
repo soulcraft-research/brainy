@@ -62,6 +62,34 @@ Brainy uses a modern build system that optimizes for both Node.js and browser en
 
 ## Testing
 
+### Test Scripts
+
+Brainy provides several test scripts for different testing scenarios:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with comprehensive reporting
+npm run test:report
+
+# Run tests in watch mode
+npm test:watch
+
+# Run tests with UI
+npm test:ui
+
+# Run specific test suites
+npm run test:node
+npm run test:browser
+npm run test:core
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+The `test:report` script provides a comprehensive test report showing detailed information about all tests that were run, including test names, execution time, and pass/fail status.
+
 ### Testing Best Practices
 
 When developing and debugging Brainy, follow these testing guidelines:
@@ -86,6 +114,11 @@ When developing and debugging Brainy, follow these testing guidelines:
    - New feature tests should follow the existing naming convention
 
 5. **Cleanup**: Always clean up temporary files before committing. The vitest configuration already excludes `*.js` files in the root directory, but they should be deleted rather than left in the repository.
+
+6. **Test Reporting**: Use the comprehensive test reporting feature when you need detailed information about test execution:
+   - Run `npm run test:report` to get a verbose report of all tests
+   - The report includes test names, execution time, and pass/fail status
+   - This is especially useful for CI/CD pipelines and debugging test failures
 
 ### Testing All Environments
 

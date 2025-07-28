@@ -1289,6 +1289,34 @@ terabyte-scale data that can't fit entirely in memory, we provide several approa
 For detailed information on how to scale Brainy for large datasets, see our
 comprehensive [Scaling Strategy](scalingStrategy.md) document.
 
+## Testing
+
+Brainy uses Vitest for testing. The project includes several test scripts:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with comprehensive reporting
+npm run test:report
+
+# Run tests in watch mode
+npm test:watch
+
+# Run tests with UI
+npm test:ui
+
+# Run specific test suites
+npm run test:node
+npm run test:browser
+npm run test:core
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+The `test:report` script provides a comprehensive test report showing detailed information about all tests that were run, including test names, execution time, and pass/fail status.
+
 ## Contributing
 
 For detailed contribution guidelines, please see [CONTRIBUTING.md](CONTRIBUTING.md).
