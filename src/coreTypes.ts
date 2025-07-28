@@ -127,6 +127,18 @@ export interface StatisticsData {
   hnswIndexSize: number
   
   /**
+   * Operation counts
+   */
+  operations?: {
+    add: number
+    search: number
+    delete: number
+    update: number
+    relate: number
+    total: number
+  }
+  
+  /**
    * Last updated timestamp
    */
   lastUpdated: string

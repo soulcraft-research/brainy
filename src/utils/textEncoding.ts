@@ -3,15 +3,6 @@ import { isNode } from './environment.js'
 // This module must be run BEFORE any TensorFlow.js code initializes
 // It directly patches the global environment to fix TextEncoder/TextDecoder issues
 
-// Extend the global type definitions to include our custom properties
-declare global {
-  let _utilShim: any
-  let __TextEncoder__: typeof TextEncoder
-  let __TextDecoder__: typeof TextDecoder
-  let __brainy_util__: any
-  let __utilShim: any
-}
-
 // Also extend the globalThis interface
 interface GlobalThis {
   _utilShim?: any
@@ -101,10 +92,20 @@ if (typeof globalThis !== 'undefined' && isNode()) {
 
     // CRITICAL: Patch Float32Array to handle buffer alignment issues
     // This fixes the "byte length of Float32Array should be a multiple of 4" error
-    if (typeof global !== 'undefined') {
-      const originalFloat32Array = global.Float32Array
+    // Get the appropriate global object for the current environment
+    const globalObj = (() => {
+      if (typeof globalThis !== 'undefined') return globalThis
+      if (typeof global !== 'undefined') return global
+      if (typeof self !== 'undefined') return self
+      if (typeof window !== 'undefined') return window
+      return {} as any // Fallback for unknown environments
+    })()
 
-      global.Float32Array = class extends originalFloat32Array {
+    if (globalObj && globalObj.Float32Array) {
+      const originalFloat32Array = globalObj.Float32Array
+
+      // Create a patched Float32Array class that handles alignment issues
+      const PatchedFloat32Array = class extends originalFloat32Array {
         constructor(arg?: any, byteOffset?: number, length?: number) {
           if (arg instanceof ArrayBuffer) {
             // Ensure buffer is properly aligned for Float32Array (multiple of 4 bytes)
@@ -119,18 +120,24 @@ if (typeof globalThis !== 'undefined' && isNode()) {
               (arg.byteLength - alignedByteOffset) % 4 !== 0 &&
               length === undefined
             ) {
-              // Create a new aligned buffer if the original isn't properly aligned
-              const alignedByteLength =
-                Math.floor((arg.byteLength - alignedByteOffset) / 4) * 4
-              const alignedBuffer = new ArrayBuffer(alignedByteLength)
-              const sourceView = new Uint8Array(
-                arg,
-                alignedByteOffset,
-                alignedByteLength
-              )
-              const targetView = new Uint8Array(alignedBuffer)
-              targetView.set(sourceView)
-              super(alignedBuffer)
+              try {
+                // Create a new aligned buffer if the original isn't properly aligned
+                const alignedByteLength =
+                  Math.floor((arg.byteLength - alignedByteOffset) / 4) * 4
+                const alignedBuffer = new ArrayBuffer(alignedByteLength)
+                const sourceView = new Uint8Array(
+                  arg,
+                  alignedByteOffset,
+                  alignedByteLength
+                )
+                const targetView = new Uint8Array(alignedBuffer)
+                targetView.set(sourceView)
+                super(alignedBuffer)
+              } catch (error) {
+                // If alignment fails, try the original approach
+                console.warn('Float32Array alignment failed, using original constructor:', error)
+                super(arg, alignedByteOffset, alignedLength)
+              }
             } else {
               super(arg, alignedByteOffset, alignedLength)
             }
@@ -140,14 +147,22 @@ if (typeof globalThis !== 'undefined' && isNode()) {
         }
       } as any
 
-      // Preserve static methods and properties
-      Object.setPrototypeOf(global.Float32Array, originalFloat32Array)
-      Object.defineProperty(global.Float32Array, 'name', {
-        value: 'Float32Array'
-      })
-      Object.defineProperty(global.Float32Array, 'BYTES_PER_ELEMENT', {
-        value: 4
-      })
+      // Apply the patch to the global object
+      try {
+        // Preserve static methods and properties
+        Object.setPrototypeOf(PatchedFloat32Array, originalFloat32Array)
+        Object.defineProperty(PatchedFloat32Array, 'name', {
+          value: 'Float32Array'
+        })
+        Object.defineProperty(PatchedFloat32Array, 'BYTES_PER_ELEMENT', {
+          value: 4
+        })
+
+        // Replace the global Float32Array with our patched version
+        globalObj.Float32Array = PatchedFloat32Array
+      } catch (error) {
+        console.warn('Failed to patch Float32Array:', error)
+      }
     }
 
     // CRITICAL: Patch any empty util shims that bundlers might create

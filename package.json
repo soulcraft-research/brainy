@@ -75,7 +75,14 @@
     "test:coverage": "vitest run --coverage",
     "test:size": "vitest run tests/package-size-limit.test.ts",
     "test:all": "npm run build && vitest run",
-    "test:report": "vitest run --reporter verbose"
+    "test:report:json": "vitest run --reporter json",
+    "test:error-handling": "vitest run tests/error-handling.test.ts",
+    "test:edge-cases": "vitest run tests/edge-cases.test.ts",
+    "test:storage": "vitest run tests/storage-adapter-coverage.test.ts",
+    "test:environments": "vitest run tests/multi-environment.test.ts",
+    "test:specialized": "vitest run tests/specialized-scenarios.test.ts",
+    "test:performance": "vitest run tests/performance.test.ts",
+    "test:comprehensive": "npm run test:error-handling && npm run test:edge-cases && npm run test:storage && npm run test:environments && npm run test:specialized"
   },
   "keywords": [
     "vector-database",
@@ -152,6 +159,7 @@
     "@tensorflow/tfjs-converter": "^4.22.0",
     "@tensorflow/tfjs-core": "^4.22.0",
     "buffer": "^6.0.3",
+    "dotenv": "^16.4.5",
     "uuid": "^9.0.1"
   },
   "prettier": {
