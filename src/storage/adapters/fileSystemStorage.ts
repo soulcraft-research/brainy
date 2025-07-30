@@ -615,7 +615,9 @@ export class FileSystemStorage extends BaseStorage {
   /**
    * Get nouns by noun type
    */
-  protected async getNounsByNounType_internal(nounType: string): Promise<HNSWNoun[]> {
+  protected async getNounsByNounType_internal(
+    nounType: string
+  ): Promise<HNSWNoun[]> {
     return this.getNodesByNounType(nounType)
   }
 
@@ -650,14 +652,18 @@ export class FileSystemStorage extends BaseStorage {
   /**
    * Get verbs by source
    */
-  protected async getVerbsBySource_internal(sourceId: string): Promise<GraphVerb[]> {
+  protected async getVerbsBySource_internal(
+    sourceId: string
+  ): Promise<GraphVerb[]> {
     return this.getEdgesBySource(sourceId)
   }
 
   /**
    * Get verbs by target
    */
-  protected async getVerbsByTarget_internal(targetId: string): Promise<GraphVerb[]> {
+  protected async getVerbsByTarget_internal(
+    targetId: string
+  ): Promise<GraphVerb[]> {
     return this.getEdgesByTarget(targetId)
   }
 
@@ -678,7 +684,9 @@ export class FileSystemStorage extends BaseStorage {
   /**
    * Save statistics data to storage
    */
-  protected async saveStatisticsData(statistics: StatisticsData): Promise<void> {
+  protected async saveStatisticsData(
+    statistics: StatisticsData
+  ): Promise<void> {
     await this.saveMetadata(STATISTICS_KEY, statistics)
   }
 
