@@ -63,6 +63,7 @@ export interface HNSWNoun {
   id: string
   vector: Vector
   connections: Map<number, Set<string>> // level -> set of connected noun ids
+  metadata?: any // Optional metadata for the noun
 }
 
 /**
@@ -125,6 +126,21 @@ export interface StatisticsData {
    * Size of the HNSW index
    */
   hnswIndexSize: number
+  
+  /**
+   * Total number of nodes
+   */
+  totalNodes?: number
+  
+  /**
+   * Total number of edges
+   */
+  totalEdges?: number
+  
+  /**
+   * Total metadata count
+   */
+  totalMetadata?: number
   
   /**
    * Operation counts
@@ -247,4 +263,12 @@ export interface StorageAdapter {
    * This ensures that any pending statistics updates are written to persistent storage
    */
   flushStatisticsToStorage(): Promise<void>
+
+  /**
+   * Get changes since a specific timestamp
+   * @param timestamp The timestamp to get changes since
+   * @param limit Optional limit on the number of changes to return
+   * @returns Promise that resolves to an array of changes
+   */
+  getChangesSince?(timestamp: number, limit?: number): Promise<any[]>
 }

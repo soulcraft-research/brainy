@@ -174,15 +174,24 @@ const runStorageTests = (adapterName: string, createStorageAdapter: () => Promis
       // Clear the database
       await brainyInstance.clear()
       
+      // Debug: Check what's in the HNSW index after clear
+      const nounsInIndex = brainyInstance.index.getNouns()
+      if (nounsInIndex.size > 0) {
+        console.log(`HNSW index still has ${nounsInIndex.size} nouns after clear:`)
+        for (const [id, noun] of nounsInIndex) {
+          console.log(`  - ${id}: ${noun.text}`)
+        }
+      }
+      
       // Verify it's empty
-      let size = await brainyInstance.size()
+      let size = brainyInstance.size()
       expect(size).toBe(0)
       
       // Restore from backup
       await brainyInstance.restore(backup)
       
       // Verify data was restored
-      size = await brainyInstance.size()
+      size = brainyInstance.size()
       expect(size).toBe(2)
       
       // Verify specific items

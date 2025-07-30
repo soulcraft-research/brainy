@@ -52,6 +52,8 @@ export class FileSystemStorage extends BaseStorage {
   private verbsDir!: string
   private metadataDir!: string
   private indexDir!: string
+  private lockDir!: string
+  private activeLocks: Set<string> = new Set()
 
   /**
    * Initialize the storage adapter
@@ -84,6 +86,7 @@ export class FileSystemStorage extends BaseStorage {
       this.verbsDir = path.join(this.rootDir, VERBS_DIR)
       this.metadataDir = path.join(this.rootDir, METADATA_DIR)
       this.indexDir = path.join(this.rootDir, INDEX_DIR)
+      this.lockDir = path.join(this.rootDir, 'locks')
 
       // Create the root directory if it doesn't exist
       await this.ensureDirectoryExists(this.rootDir)
@@ -99,6 +102,9 @@ export class FileSystemStorage extends BaseStorage {
 
       // Create the index directory if it doesn't exist
       await this.ensureDirectoryExists(this.indexDir)
+
+      // Create the locks directory if it doesn't exist
+      await this.ensureDirectoryExists(this.lockDir)
 
       this.isInitialized = true
     } catch (error) {
@@ -682,12 +688,208 @@ export class FileSystemStorage extends BaseStorage {
   }
 
   /**
-   * Save statistics data to storage
+   * Acquire a file-based lock for coordinating operations across multiple processes
+   * @param lockKey The key to lock on
+   * @param ttl Time to live for the lock in milliseconds (default: 30 seconds)
+   * @returns Promise that resolves to true if lock was acquired, false otherwise
+   */
+  private async acquireLock(
+    lockKey: string,
+    ttl: number = 30000
+  ): Promise<boolean> {
+    await this.ensureInitialized()
+
+    const lockFile = path.join(this.lockDir, `${lockKey}.lock`)
+    const lockValue = `${Date.now()}_${Math.random()}_${process.pid || 'unknown'}`
+    const expiresAt = Date.now() + ttl
+
+    try {
+      // Check if lock file already exists and is still valid
+      try {
+        const lockData = await fs.promises.readFile(lockFile, 'utf-8')
+        const lockInfo = JSON.parse(lockData)
+
+        if (lockInfo.expiresAt > Date.now()) {
+          // Lock exists and is still valid
+          return false
+        }
+      } catch (error: any) {
+        // If file doesn't exist or can't be read, we can proceed to create the lock
+        if (error.code !== 'ENOENT') {
+          console.warn(`Error reading lock file ${lockFile}:`, error)
+        }
+      }
+
+      // Try to create the lock file
+      const lockInfo = {
+        lockValue,
+        expiresAt,
+        pid: process.pid || 'unknown',
+        timestamp: Date.now()
+      }
+
+      await fs.promises.writeFile(lockFile, JSON.stringify(lockInfo, null, 2))
+
+      // Add to active locks for cleanup
+      this.activeLocks.add(lockKey)
+
+      // Schedule automatic cleanup when lock expires
+      setTimeout(() => {
+        this.releaseLock(lockKey, lockValue).catch((error) => {
+          console.warn(`Failed to auto-release expired lock ${lockKey}:`, error)
+        })
+      }, ttl)
+
+      return true
+    } catch (error) {
+      console.warn(`Failed to acquire lock ${lockKey}:`, error)
+      return false
+    }
+  }
+
+  /**
+   * Release a file-based lock
+   * @param lockKey The key to unlock
+   * @param lockValue The value used when acquiring the lock (for verification)
+   * @returns Promise that resolves when lock is released
+   */
+  private async releaseLock(
+    lockKey: string,
+    lockValue?: string
+  ): Promise<void> {
+    await this.ensureInitialized()
+
+    const lockFile = path.join(this.lockDir, `${lockKey}.lock`)
+
+    try {
+      // If lockValue is provided, verify it matches before releasing
+      if (lockValue) {
+        try {
+          const lockData = await fs.promises.readFile(lockFile, 'utf-8')
+          const lockInfo = JSON.parse(lockData)
+
+          if (lockInfo.lockValue !== lockValue) {
+            // Lock was acquired by someone else, don't release it
+            return
+          }
+        } catch (error: any) {
+          // If lock file doesn't exist, that's fine
+          if (error.code === 'ENOENT') {
+            return
+          }
+          throw error
+        }
+      }
+
+      // Delete the lock file
+      await fs.promises.unlink(lockFile)
+
+      // Remove from active locks
+      this.activeLocks.delete(lockKey)
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') {
+        console.warn(`Failed to release lock ${lockKey}:`, error)
+      }
+    }
+  }
+
+  /**
+   * Clean up expired lock files
+   */
+  private async cleanupExpiredLocks(): Promise<void> {
+    await this.ensureInitialized()
+
+    try {
+      const lockFiles = await fs.promises.readdir(this.lockDir)
+      const now = Date.now()
+
+      for (const lockFile of lockFiles) {
+        if (!lockFile.endsWith('.lock')) continue
+
+        const lockPath = path.join(this.lockDir, lockFile)
+        try {
+          const lockData = await fs.promises.readFile(lockPath, 'utf-8')
+          const lockInfo = JSON.parse(lockData)
+
+          if (lockInfo.expiresAt <= now) {
+            await fs.promises.unlink(lockPath)
+            const lockKey = lockFile.replace('.lock', '')
+            this.activeLocks.delete(lockKey)
+          }
+        } catch (error) {
+          // If we can't read or parse the lock file, remove it
+          try {
+            await fs.promises.unlink(lockPath)
+          } catch (unlinkError) {
+            console.warn(
+              `Failed to cleanup invalid lock file ${lockPath}:`,
+              unlinkError
+            )
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to cleanup expired locks:', error)
+    }
+  }
+
+  /**
+   * Save statistics data to storage with file-based locking
    */
   protected async saveStatisticsData(
     statistics: StatisticsData
   ): Promise<void> {
-    await this.saveMetadata(STATISTICS_KEY, statistics)
+    const lockKey = 'statistics'
+    const lockAcquired = await this.acquireLock(lockKey, 10000) // 10 second timeout
+
+    if (!lockAcquired) {
+      console.warn(
+        'Failed to acquire lock for statistics update, proceeding without lock'
+      )
+    }
+
+    try {
+      // Get existing statistics to merge with new data
+      const existingStats = (await this.getMetadata(
+        STATISTICS_KEY
+      )) as StatisticsData | null
+
+      if (existingStats) {
+        // Merge statistics data
+        const mergedStats: StatisticsData = {
+          totalNodes: Math.max(
+            statistics.totalNodes || 0,
+            existingStats.totalNodes || 0
+          ),
+          totalEdges: Math.max(
+            statistics.totalEdges || 0,
+            existingStats.totalEdges || 0
+          ),
+          totalMetadata: Math.max(
+            statistics.totalMetadata || 0,
+            existingStats.totalMetadata || 0
+          ),
+          // Preserve any additional fields from existing stats
+          ...existingStats,
+          // Override with new values where provided
+          ...statistics,
+          // Always update lastUpdated to current time
+          lastUpdated: new Date().toISOString()
+        }
+        await this.saveMetadata(STATISTICS_KEY, mergedStats)
+      } else {
+        // No existing statistics, save new ones
+        const newStats: StatisticsData = {
+          ...statistics,
+          lastUpdated: new Date().toISOString()
+        }
+        await this.saveMetadata(STATISTICS_KEY, newStats)
+      }
+    } finally {
+      if (lockAcquired) {
+        await this.releaseLock(lockKey)
+      }
+    }
   }
 
   /**
