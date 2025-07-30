@@ -293,6 +293,9 @@ export class HNSWIndexOptimized extends HNSWIndex {
   private quantizedVectors: Map<string, number[]> = new Map()
   private memoryUsage: number = 0
   private vectorCount: number = 0
+  
+  // Thread safety for memory usage tracking
+  private memoryUpdateLock: Promise<void> = Promise.resolve()
 
   constructor(
     config: Partial<HNSWOptimizedConfig> = {},
@@ -322,6 +325,31 @@ export class HNSWIndexOptimized extends HNSWIndex {
   }
 
   /**
+   * Thread-safe method to update memory usage
+   * @param memoryDelta Change in memory usage (can be negative)
+   * @param vectorCountDelta Change in vector count (can be negative)
+   */
+  private async updateMemoryUsage(memoryDelta: number, vectorCountDelta: number): Promise<void> {
+    this.memoryUpdateLock = this.memoryUpdateLock.then(async () => {
+      this.memoryUsage = Math.max(0, this.memoryUsage + memoryDelta)
+      this.vectorCount = Math.max(0, this.vectorCount + vectorCountDelta)
+    })
+    await this.memoryUpdateLock
+  }
+
+  /**
+   * Thread-safe method to get current memory usage
+   * @returns Current memory usage and vector count
+   */
+  private async getMemoryUsageAsync(): Promise<{ memoryUsage: number; vectorCount: number }> {
+    await this.memoryUpdateLock
+    return {
+      memoryUsage: this.memoryUsage,
+      vectorCount: this.vectorCount
+    }
+  }
+
+  /**
    * Add a vector to the index
    * Uses product quantization if enabled and memory threshold is exceeded
    */
@@ -343,14 +371,14 @@ export class HNSWIndexOptimized extends HNSWIndex {
     const connectionsMemory = this.optimizedConfig.M * this.optimizedConfig.ml * 16 // Estimate for connections
     const totalMemory = vectorMemory + connectionsMemory
 
-    // Update memory usage estimate
-    this.memoryUsage += totalMemory
-    this.vectorCount++
+    // Update memory usage estimate (thread-safe)
+    await this.updateMemoryUsage(totalMemory, 1)
 
     // Check if we should switch to product quantization
+    const currentMemoryUsage = await this.getMemoryUsageAsync()
     if (
       this.useProductQuantization &&
-      this.memoryUsage > this.optimizedConfig.memoryThreshold! &&
+      currentMemoryUsage.memoryUsage > this.optimizedConfig.memoryThreshold! &&
       this.productQuantizer &&
       !this.productQuantizer.getDimension()
     ) {
@@ -445,14 +473,15 @@ export class HNSWIndexOptimized extends HNSWIndex {
       })
     }
 
-    // Update memory usage estimate
-    if (this.vectorCount > 0) {
-      this.memoryUsage = Math.max(
-        0,
-        this.memoryUsage - this.memoryUsage / this.vectorCount
-      )
-      this.vectorCount--
-    }
+    // Update memory usage estimate (async operation, but don't block removal)
+    this.getMemoryUsageAsync().then((currentMemoryUsage) => {
+      if (currentMemoryUsage.vectorCount > 0) {
+        const memoryPerVector = currentMemoryUsage.memoryUsage / currentMemoryUsage.vectorCount
+        this.updateMemoryUsage(-memoryPerVector, -1)
+      }
+    }).catch((error) => {
+      console.error('Failed to update memory usage after removal:', error)
+    })
 
     // Remove the item from the in-memory index
     return super.removeItem(id)
@@ -461,7 +490,7 @@ export class HNSWIndexOptimized extends HNSWIndex {
   /**
    * Clear the index
    */
-  public override clear(): void {
+  public override async clear(): Promise<void> {
     // Clear product quantization data
     if (this.useProductQuantization) {
       this.quantizedVectors.clear()
@@ -471,9 +500,9 @@ export class HNSWIndexOptimized extends HNSWIndex {
       )
     }
 
-    // Reset memory usage
-    this.memoryUsage = 0
-    this.vectorCount = 0
+    // Reset memory usage (thread-safe)
+    const currentMemoryUsage = await this.getMemoryUsageAsync()
+    await this.updateMemoryUsage(-currentMemoryUsage.memoryUsage, -currentMemoryUsage.vectorCount)
 
     // Clear the in-memory index
     super.clear()

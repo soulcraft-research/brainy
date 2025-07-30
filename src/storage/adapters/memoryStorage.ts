@@ -329,6 +329,7 @@ export class MemoryStorage extends BaseStorage {
     this.nouns.clear()
     this.verbs.clear()
     this.metadata.clear()
+    this.statistics = null
   }
 
   /**

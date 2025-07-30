@@ -46,6 +46,8 @@ export class OPFSStorage extends BaseStorage {
     private isPersistentRequested = false
     private isPersistentGranted = false
     private statistics: StatisticsData | null = null
+    private activeLocks: Set<string> = new Set()
+    private lockPrefix = 'opfs-lock-'
 
     constructor() {
         super()
@@ -826,20 +828,205 @@ export class OPFSStorage extends BaseStorage {
     }
 
     /**
-     * Save statistics data to storage
+     * Acquire a browser-based lock for coordinating operations across multiple tabs
+     * @param lockKey The key to lock on
+     * @param ttl Time to live for the lock in milliseconds (default: 30 seconds)
+     * @returns Promise that resolves to true if lock was acquired, false otherwise
+     */
+    private async acquireLock(lockKey: string, ttl: number = 30000): Promise<boolean> {
+        if (typeof localStorage === 'undefined') {
+            console.warn('localStorage not available, proceeding without lock')
+            return false
+        }
+        
+        const lockStorageKey = `${this.lockPrefix}${lockKey}`
+        const lockValue = `${Date.now()}_${Math.random()}_${window.location.href}`
+        const expiresAt = Date.now() + ttl
+        
+        try {
+            // Check if lock already exists and is still valid
+            const existingLock = localStorage.getItem(lockStorageKey)
+            if (existingLock) {
+                try {
+                    const lockInfo = JSON.parse(existingLock)
+                    if (lockInfo.expiresAt > Date.now()) {
+                        // Lock exists and is still valid
+                        return false
+                    }
+                } catch (error) {
+                    // Invalid lock data, we can proceed to create a new lock
+                    console.warn(`Invalid lock data for ${lockStorageKey}:`, error)
+                }
+            }
+            
+            // Try to create the lock
+            const lockInfo = {
+                lockValue,
+                expiresAt,
+                tabId: window.location.href,
+                timestamp: Date.now()
+            }
+            
+            localStorage.setItem(lockStorageKey, JSON.stringify(lockInfo))
+            
+            // Add to active locks for cleanup
+            this.activeLocks.add(lockKey)
+            
+            // Schedule automatic cleanup when lock expires
+            setTimeout(() => {
+                this.releaseLock(lockKey, lockValue).catch(error => {
+                    console.warn(`Failed to auto-release expired lock ${lockKey}:`, error)
+                })
+            }, ttl)
+            
+            return true
+        } catch (error) {
+            console.warn(`Failed to acquire lock ${lockKey}:`, error)
+            return false
+        }
+    }
+
+    /**
+     * Release a browser-based lock
+     * @param lockKey The key to unlock
+     * @param lockValue The value used when acquiring the lock (for verification)
+     * @returns Promise that resolves when lock is released
+     */
+    private async releaseLock(lockKey: string, lockValue?: string): Promise<void> {
+        if (typeof localStorage === 'undefined') {
+            return
+        }
+        
+        const lockStorageKey = `${this.lockPrefix}${lockKey}`
+        
+        try {
+            // If lockValue is provided, verify it matches before releasing
+            if (lockValue) {
+                const existingLock = localStorage.getItem(lockStorageKey)
+                if (existingLock) {
+                    try {
+                        const lockInfo = JSON.parse(existingLock)
+                        if (lockInfo.lockValue !== lockValue) {
+                            // Lock was acquired by someone else, don't release it
+                            return
+                        }
+                    } catch (error) {
+                        // Invalid lock data, remove it
+                        localStorage.removeItem(lockStorageKey)
+                        this.activeLocks.delete(lockKey)
+                        return
+                    }
+                }
+            }
+            
+            // Remove the lock
+            localStorage.removeItem(lockStorageKey)
+            
+            // Remove from active locks
+            this.activeLocks.delete(lockKey)
+        } catch (error) {
+            console.warn(`Failed to release lock ${lockKey}:`, error)
+        }
+    }
+
+    /**
+     * Clean up expired locks from localStorage
+     */
+    private async cleanupExpiredLocks(): Promise<void> {
+        if (typeof localStorage === 'undefined') {
+            return
+        }
+        
+        try {
+            const now = Date.now()
+            const keysToRemove: string[] = []
+            
+            // Iterate through localStorage to find expired locks
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i)
+                if (key && key.startsWith(this.lockPrefix)) {
+                    try {
+                        const lockData = localStorage.getItem(key)
+                        if (lockData) {
+                            const lockInfo = JSON.parse(lockData)
+                            if (lockInfo.expiresAt <= now) {
+                                keysToRemove.push(key)
+                                const lockKey = key.replace(this.lockPrefix, '')
+                                this.activeLocks.delete(lockKey)
+                            }
+                        }
+                    } catch (error) {
+                        // Invalid lock data, mark for removal
+                        keysToRemove.push(key)
+                    }
+                }
+            }
+            
+            // Remove expired locks
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key)
+            })
+            
+            if (keysToRemove.length > 0) {
+                console.log(`Cleaned up ${keysToRemove.length} expired locks`)
+            }
+        } catch (error) {
+            console.warn('Failed to cleanup expired locks:', error)
+        }
+    }
+
+    /**
+     * Save statistics data to storage with browser-based locking
      * @param statistics The statistics data to save
      */
     protected async saveStatisticsData(statistics: StatisticsData): Promise<void> {
-        // Create a deep copy to avoid reference issues
-        this.statistics = {
-            nounCount: {...statistics.nounCount},
-            verbCount: {...statistics.verbCount},
-            metadataCount: {...statistics.metadataCount},
-            hnswIndexSize: statistics.hnswIndexSize,
-            lastUpdated: statistics.lastUpdated
+        const lockKey = 'statistics'
+        const lockAcquired = await this.acquireLock(lockKey, 10000) // 10 second timeout
+        
+        if (!lockAcquired) {
+            console.warn('Failed to acquire lock for statistics update, proceeding without lock')
         }
-
+        
         try {
+            // Get existing statistics to merge with new data
+            const existingStats = await this.getStatisticsData()
+            
+            let mergedStats: StatisticsData
+            if (existingStats) {
+                // Merge statistics data
+                mergedStats = {
+                    nounCount: {
+                        ...existingStats.nounCount,
+                        ...statistics.nounCount
+                    },
+                    verbCount: {
+                        ...existingStats.verbCount,
+                        ...statistics.verbCount
+                    },
+                    metadataCount: {
+                        ...existingStats.metadataCount,
+                        ...statistics.metadataCount
+                    },
+                    hnswIndexSize: Math.max(statistics.hnswIndexSize || 0, existingStats.hnswIndexSize || 0),
+                    lastUpdated: new Date().toISOString()
+                }
+            } else {
+                // No existing statistics, use new ones
+                mergedStats = {
+                    ...statistics,
+                    lastUpdated: new Date().toISOString()
+                }
+            }
+            
+            // Create a deep copy to avoid reference issues
+            this.statistics = {
+                nounCount: {...mergedStats.nounCount},
+                verbCount: {...mergedStats.verbCount},
+                metadataCount: {...mergedStats.metadataCount},
+                hnswIndexSize: mergedStats.hnswIndexSize,
+                lastUpdated: mergedStats.lastUpdated
+            }
+
             // Ensure the root directory is initialized
             await this.ensureInitialized()
 
@@ -878,6 +1065,10 @@ export class OPFSStorage extends BaseStorage {
         } catch (error) {
             console.error('Failed to save statistics data:', error)
             throw new Error(`Failed to save statistics data: ${error}`)
+        } finally {
+            if (lockAcquired) {
+                await this.releaseLock(lockKey)
+            }
         }
     }
 
