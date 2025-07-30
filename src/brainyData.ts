@@ -136,6 +136,60 @@ export interface BrainyDataConfig {
     }
 
     /**
+     * Timeout configuration for async operations
+     * Controls how long operations wait before timing out
+     */
+    timeouts?: {
+        /**
+         * Timeout for get operations in milliseconds
+         * Default: 30000 (30 seconds)
+         */
+        get?: number
+
+        /**
+         * Timeout for add operations in milliseconds
+         * Default: 60000 (60 seconds)
+         */
+        add?: number
+
+        /**
+         * Timeout for delete operations in milliseconds
+         * Default: 30000 (30 seconds)
+         */
+        delete?: number
+    }
+
+    /**
+     * Retry policy configuration for failed operations
+     * Controls how operations are retried on failure
+     */
+    retryPolicy?: {
+        /**
+         * Maximum number of retry attempts
+         * Default: 3
+         */
+        maxRetries?: number
+
+        /**
+         * Initial delay between retries in milliseconds
+         * Default: 1000 (1 second)
+         */
+        initialDelay?: number
+
+        /**
+         * Maximum delay between retries in milliseconds
+         * Default: 10000 (10 seconds)
+         */
+        maxDelay?: number
+
+        /**
+         * Multiplier for exponential backoff
+         * Default: 2
+         */
+        backoffMultiplier?: number
+    }
+
+    /**
      * Real-time update configuration
      * Controls how the database handles updates when data is added by external processes
      */
@@ -180,6 +234,10 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     private useOptimizedIndex: boolean = false
     private _dimensions: number
     private loggingConfig: BrainyDataConfig['logging'] = {verbose: true}
+    
+    // Timeout and retry configuration
+    private timeoutConfig: BrainyDataConfig['timeouts'] = {}
+    private retryConfig: BrainyDataConfig['retryPolicy'] = {}
     
     // Real-time update properties
     private realtimeUpdateConfig: Required<NonNullable<BrainyDataConfig['realtimeUpdates']>> = {
@@ -267,6 +325,10 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
         // Store storage configuration for later use in init()
         this.storageConfig = config.storage || {}
+
+        // Store timeout and retry configuration
+        this.timeoutConfig = config.timeouts || {}
+        this.retryConfig = config.retryPolicy || {}
 
         // Store remote server configuration if provided
         if (config.remoteServer) {
