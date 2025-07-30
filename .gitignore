@@ -61,3 +61,15 @@ Thumbs.db
 /data/
 /cli-package/soulcraft-brainy-cli-*.tgz
 /web-service-package/node_modules/
+
+# Temporary test files created by AI agents
+test*.js
+test*.ts
+temp-test*.js
+temp-test*.ts
+reproduction*.js
+reproduction*.ts
+debug*.js
+debug*.ts
+/temp/
+/temp-tests/
