@@ -47,6 +47,8 @@ Thumbs.db
 /test-worker.js
 /test-node24-worker.js
 /test-results.json
+/tests/results/
+/tests/results/*.json
 
 # Generated files
 /encoded-image.html
