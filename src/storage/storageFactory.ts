@@ -9,6 +9,7 @@ import {OPFSStorage} from './adapters/opfsStorage.js'
 import {S3CompatibleStorage, R2Storage} from './adapters/s3CompatibleStorage.js'
 import {FileSystemStorage} from './adapters/fileSystemStorage.js'
 import {isBrowser} from '../utils/environment.js'
+import {OperationConfig} from '../utils/operationUtils.js'
 
 /**
  * Options for creating a storage adapter
@@ -165,6 +166,11 @@ export interface StorageOptions {
          */
         serviceType?: string
     }
+
+    /**
+     * Operation configuration for timeout and retry behavior
+     */
+    operationConfig?: OperationConfig
 }
 
 /**
@@ -238,7 +244,8 @@ export async function createStorage(
                         accessKeyId: options.s3Storage.accessKeyId,
                         secretAccessKey: options.s3Storage.secretAccessKey,
                         sessionToken: options.s3Storage.sessionToken,
-                        serviceType: 's3'
+                        serviceType: 's3',
+                        operationConfig: options.operationConfig
                     })
                 } else {
                     console.warn('S3 storage configuration is missing, falling back to memory storage')

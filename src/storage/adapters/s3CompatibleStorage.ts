@@ -6,6 +6,8 @@
 
 import {GraphVerb, HNSWNoun, StatisticsData} from '../../coreTypes.js'
 import {BaseStorage, NOUNS_DIR, VERBS_DIR, METADATA_DIR, INDEX_DIR, STATISTICS_KEY} from '../baseStorage.js'
+import {StorageOperationExecutors, OperationConfig} from '../../utils/operationUtils.js'
+import {BrainyError} from '../../errors/brainyError.js'
 
 // Type aliases for better readability
 type HNSWNode = HNSWNoun
@@ -76,6 +78,9 @@ export class S3CompatibleStorage extends BaseStorage {
     
     // Change log for efficient synchronization
     private changeLogPrefix: string = 'change-log/'
+    
+    // Operation executors for timeout and retry handling
+    private operationExecutors: StorageOperationExecutors
 
     /**
      * Initialize the storage adapter
@@ -90,6 +95,7 @@ export class S3CompatibleStorage extends BaseStorage {
         secretAccessKey: string
         sessionToken?: string
         serviceType?: string
+        operationConfig?: OperationConfig
     }) {
         super()
         this.bucketName = options.bucketName
@@ -100,6 +106,9 @@ export class S3CompatibleStorage extends BaseStorage {
         this.secretAccessKey = options.secretAccessKey
         this.sessionToken = options.sessionToken
         this.serviceType = options.serviceType || 's3'
+
+        // Initialize operation executors with timeout and retry configuration
+        this.operationExecutors = new StorageOperationExecutors(options.operationConfig)
 
         // Set up prefixes for different types of data
         this.nounPrefix = `${NOUNS_DIR}/`
@@ -938,61 +947,62 @@ export class S3CompatibleStorage extends BaseStorage {
     public async getMetadata(id: string): Promise<any | null> {
         await this.ensureInitialized()
 
-        try {
-            // Import the GetObjectCommand only when needed
-            const {GetObjectCommand} = await import('@aws-sdk/client-s3')
-
-            console.log(`Getting metadata for ${id} from bucket ${this.bucketName}`)
-            const key = `${this.metadataPrefix}${id}.json`
-            console.log(`Looking for metadata at key: ${key}`)
-
-            // Try to get the metadata from the metadata directory
-            const response = await this.s3Client!.send(
-                new GetObjectCommand({
-                    Bucket: this.bucketName,
-                    Key: key
-                })
-            )
-
-            // Check if response is null or undefined (can happen in mock implementations)
-            if (!response || !response.Body) {
-                console.log(`No metadata found for ${id}`)
-                return null
-            }
-
-            // Convert the response body to a string
-            const bodyContents = await response.Body.transformToString()
-            console.log(`Retrieved metadata body: ${bodyContents}`)
-
-            // Parse the JSON string
+        return this.operationExecutors.executeGet(async () => {
             try {
-                const parsedMetadata = JSON.parse(bodyContents)
-                console.log(`Successfully retrieved metadata for ${id}:`, parsedMetadata)
-                return parsedMetadata
-            } catch (parseError) {
-                console.error(`Failed to parse metadata for ${id}:`, parseError)
-                return null
-            }
-        } catch (error: any) {
-            // Check if this is a "NoSuchKey" error (object doesn't exist)
-            // In AWS SDK, this would be error.name === 'NoSuchKey'
-            // In our mock, we might get different error types
-            if (
-                error.name === 'NoSuchKey' ||
-                (error.message && (
-                    error.message.includes('NoSuchKey') ||
-                    error.message.includes('not found') ||
-                    error.message.includes('does not exist')
-                ))
-            ) {
-                console.log(`Metadata not found for ${id}`)
-                return null
-            }
+                // Import the GetObjectCommand only when needed
+                const {GetObjectCommand} = await import('@aws-sdk/client-s3')
 
-            // For other types of errors, log and re-throw
-            console.error(`Error getting metadata for ${id}:`, error)
-            throw error
-        }
+                console.log(`Getting metadata for ${id} from bucket ${this.bucketName}`)
+                const key = `${this.metadataPrefix}${id}.json`
+                console.log(`Looking for metadata at key: ${key}`)
+
+                // Try to get the metadata from the metadata directory
+                const response = await this.s3Client!.send(
+                    new GetObjectCommand({
+                        Bucket: this.bucketName,
+                        Key: key
+                    })
+                )
+
+                // Check if response is null or undefined (can happen in mock implementations)
+                if (!response || !response.Body) {
+                    console.log(`No metadata found for ${id}`)
+                    return null
+                }
+
+                // Convert the response body to a string
+                const bodyContents = await response.Body.transformToString()
+                console.log(`Retrieved metadata body: ${bodyContents}`)
+
+                // Parse the JSON string
+                try {
+                    const parsedMetadata = JSON.parse(bodyContents)
+                    console.log(`Successfully retrieved metadata for ${id}:`, parsedMetadata)
+                    return parsedMetadata
+                } catch (parseError) {
+                    console.error(`Failed to parse metadata for ${id}:`, parseError)
+                    return null
+                }
+            } catch (error: any) {
+                // Check if this is a "NoSuchKey" error (object doesn't exist)
+                // In AWS SDK, this would be error.name === 'NoSuchKey'
+                // In our mock, we might get different error types
+                if (
+                    error.name === 'NoSuchKey' ||
+                    (error.message && (
+                        error.message.includes('NoSuchKey') ||
+                        error.message.includes('not found') ||
+                        error.message.includes('does not exist')
+                    ))
+                ) {
+                    console.log(`Metadata not found for ${id}`)
+                    return null
+                }
+
+                // For other types of errors, convert to BrainyError for better classification
+                throw BrainyError.fromError(error, `getMetadata(${id})`)
+            }
+        }, `getMetadata(${id})`)
     }
 
     /**
