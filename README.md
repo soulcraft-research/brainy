@@ -598,6 +598,37 @@ await db.deleteVerb(verbId)
 
 ## Advanced Configuration
 
+### Database Modes
+
+Brainy supports special operational modes that restrict certain operations:
+
+```typescript
+import { BrainyData } from '@soulcraft/brainy'
+
+// Create and initialize the database
+const db = new BrainyData()
+await db.init()
+
+// Set the database to read-only mode (prevents write operations)
+db.setReadOnly(true)
+
+// Check if the database is in read-only mode
+const isReadOnly = db.isReadOnly() // Returns true
+
+// Set the database to write-only mode (prevents search operations)
+db.setWriteOnly(true)
+
+// Check if the database is in write-only mode
+const isWriteOnly = db.isWriteOnly() // Returns true
+
+// Reset to normal mode (allows both read and write operations)
+db.setReadOnly(false)
+db.setWriteOnly(false)
+```
+
+- **Read-Only Mode**: When enabled, prevents all write operations (add, update, delete). Useful for deployment scenarios where you want to prevent modifications to the database.
+- **Write-Only Mode**: When enabled, prevents all search operations. Useful for initial data loading or when you want to optimize for write performance.
+
 ### Embedding
 
 ```typescript
