@@ -1757,8 +1757,11 @@ export class S3CompatibleStorage extends BaseStorage {
                     return false
                 }
             } catch (error: any) {
-                // If HeadObject fails with NoSuchKey, the lock doesn't exist, which is good
-                if (error.name !== 'NoSuchKey' && !error.message?.includes('NoSuchKey')) {
+                // If HeadObject fails with NoSuchKey or NotFound, the lock doesn't exist, which is good
+                if (error.name !== 'NoSuchKey' && 
+                    !error.message?.includes('NoSuchKey') && 
+                    error.name !== 'NotFound' && 
+                    !error.message?.includes('NotFound')) {
                     throw error
                 }
             }
@@ -1826,7 +1829,10 @@ export class S3CompatibleStorage extends BaseStorage {
                     }
                 } catch (error: any) {
                     // If lock doesn't exist, that's fine
-                    if (error.name === 'NoSuchKey' || error.message?.includes('NoSuchKey')) {
+                    if (error.name === 'NoSuchKey' || 
+                        error.message?.includes('NoSuchKey') ||
+                        error.name === 'NotFound' || 
+                        error.message?.includes('NotFound')) {
                         return
                     }
                     throw error
