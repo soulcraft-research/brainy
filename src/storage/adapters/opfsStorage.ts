@@ -632,7 +632,8 @@ export class OPFSStorage extends BaseStorage {
         ): Promise<void> => {
             try {
                 for await (const [name, handle] of dirHandle.entries()) {
-                    await dirHandle.removeEntry(name)
+                    // Use recursive option to handle directories that may contain files
+                    await dirHandle.removeEntry(name, { recursive: true })
                 }
             } catch (error) {
                 console.error(`Error removing directory contents:`, error)
