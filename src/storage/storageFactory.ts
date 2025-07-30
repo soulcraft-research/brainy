@@ -6,8 +6,9 @@
 import {StorageAdapter} from '../coreTypes.js'
 import {MemoryStorage} from './adapters/memoryStorage.js'
 import {OPFSStorage} from './adapters/opfsStorage.js'
-import {FileSystemStorage} from './adapters/fileSystemStorage.js'
 import {S3CompatibleStorage, R2Storage} from './adapters/s3CompatibleStorage.js'
+import {FileSystemStorage} from './adapters/fileSystemStorage.js'
+import {isBrowser} from '../utils/environment.js'
 
 /**
  * Options for creating a storage adapter
@@ -182,7 +183,12 @@ export async function createStorage(
 
     // If file system storage is forced, use it regardless of other options
     if (options.forceFileSystemStorage) {
+        if (isBrowser()) {
+            console.warn('FileSystemStorage is not available in browser environments, falling back to memory storage')
+            return new MemoryStorage()
+        }
         console.log('Using file system storage (forced)')
+        const {FileSystemStorage} = await import('./adapters/fileSystemStorage.js')
         return new FileSystemStorage(options.rootDirectory || './brainy-data')
     }
 
@@ -213,9 +219,15 @@ export async function createStorage(
                 }
             }
 
-            case 'filesystem':
+            case 'filesystem': {
+                if (isBrowser()) {
+                    console.warn('FileSystemStorage is not available in browser environments, falling back to memory storage')
+                    return new MemoryStorage()
+                }
                 console.log('Using file system storage')
+                const {FileSystemStorage} = await import('./adapters/fileSystemStorage.js')
                 return new FileSystemStorage(options.rootDirectory || './brainy-data')
+            }
 
             case 's3':
                 if (options.s3Storage) {
