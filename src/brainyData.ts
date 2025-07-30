@@ -399,6 +399,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     /**
      * Check for updates in storage and update the in-memory index and statistics if needed
      * This is called periodically by the update timer when real-time updates are enabled
+     * Uses change log mechanism for efficient updates instead of full scans
      */
     private async checkForUpdates(): Promise<void> {
         // If the database is not initialized, do nothing
@@ -419,48 +420,12 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
             
             // Update index if enabled
             if (this.realtimeUpdateConfig.updateIndex) {
-                // Get the current noun count
-                const currentCount = await this.getNounCount()
-                
-                // If the noun count has changed, update the index
-                if (currentCount !== this.lastKnownNounCount) {
-                    // Get all nouns from storage
-                    const nouns = await this.storage.getAllNouns()
-                    
-                    // Get all nouns currently in the index
-                    const indexNouns = this.index.getNouns()
-                    const indexNounIds = new Set(indexNouns.keys())
-                    
-                    // Find nouns that are in storage but not in the index
-                    const newNouns = nouns.filter(noun => !indexNounIds.has(noun.id))
-                    
-                    // Add new nouns to the index
-                    for (const noun of newNouns) {
-                        // Check if the vector dimensions match the expected dimensions
-                        if (noun.vector.length !== this._dimensions) {
-                            console.warn(
-                                `Skipping noun ${noun.id} due to dimension mismatch: expected ${this._dimensions}, got ${noun.vector.length}`
-                            )
-                            continue
-                        }
-                        
-                        // Add to index
-                        await this.index.addItem({
-                            id: noun.id,
-                            vector: noun.vector
-                        })
-                        
-                        if (this.loggingConfig?.verbose) {
-                            console.log(`Added new noun ${noun.id} to index during real-time update`)
-                        }
-                    }
-                    
-                    // Update the last known noun count
-                    this.lastKnownNounCount = currentCount
-                    
-                    if (this.loggingConfig?.verbose && newNouns.length > 0) {
-                        console.log(`Real-time update: Added ${newNouns.length} new nouns to index`)
-                    }
+                // Use change log mechanism if available (for S3 and other distributed storage)
+                if (typeof this.storage.getChangesSince === 'function') {
+                    await this.applyChangesFromLog()
+                } else {
+                    // Fallback to the old method for storage adapters that don't support change logs
+                    await this.applyChangesFromFullScan()
                 }
             }
             
@@ -474,6 +439,142 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         } catch (error) {
             console.error('Failed to check for updates:', error)
             // Don't rethrow the error to avoid disrupting the update timer
+        }
+    }
+
+    /**
+     * Apply changes using the change log mechanism (efficient for distributed storage)
+     */
+    private async applyChangesFromLog(): Promise<void> {
+        if (!this.storage || typeof this.storage.getChangesSince !== 'function') {
+            return
+        }
+
+        try {
+            // Get changes since the last update
+            const changes = await this.storage.getChangesSince(this.lastUpdateTime, 1000) // Limit to 1000 changes per batch
+            
+            let addedCount = 0
+            let updatedCount = 0
+            let deletedCount = 0
+            
+            for (const change of changes) {
+                try {
+                    switch (change.operation) {
+                        case 'add':
+                        case 'update':
+                            if (change.entityType === 'noun' && change.data) {
+                                const noun = change.data as HNSWNoun
+                                
+                                // Check if the vector dimensions match the expected dimensions
+                                if (noun.vector.length !== this._dimensions) {
+                                    console.warn(
+                                        `Skipping noun ${noun.id} due to dimension mismatch: expected ${this._dimensions}, got ${noun.vector.length}`
+                                    )
+                                    continue
+                                }
+                                
+                                // Add or update in index
+                                await this.index.addItem({
+                                    id: noun.id,
+                                    vector: noun.vector
+                                })
+                                
+                                if (change.operation === 'add') {
+                                    addedCount++
+                                } else {
+                                    updatedCount++
+                                }
+                                
+                                if (this.loggingConfig?.verbose) {
+                                    console.log(`${change.operation === 'add' ? 'Added' : 'Updated'} noun ${noun.id} in index during real-time update`)
+                                }
+                            }
+                            break
+                            
+                        case 'delete':
+                            if (change.entityType === 'noun') {
+                                // Remove from index
+                                await this.index.removeItem(change.entityId)
+                                deletedCount++
+                                
+                                if (this.loggingConfig?.verbose) {
+                                    console.log(`Removed noun ${change.entityId} from index during real-time update`)
+                                }
+                            }
+                            break
+                    }
+                } catch (changeError) {
+                    console.error(`Failed to apply change ${change.operation} for ${change.entityType} ${change.entityId}:`, changeError)
+                    // Continue with other changes
+                }
+            }
+            
+            if (this.loggingConfig?.verbose && (addedCount > 0 || updatedCount > 0 || deletedCount > 0)) {
+                console.log(`Real-time update: Added ${addedCount}, updated ${updatedCount}, deleted ${deletedCount} nouns using change log`)
+            }
+            
+            // Update the last known noun count
+            this.lastKnownNounCount = await this.getNounCount()
+            
+        } catch (error) {
+            console.error('Failed to apply changes from log, falling back to full scan:', error)
+            // Fallback to full scan if change log fails
+            await this.applyChangesFromFullScan()
+        }
+    }
+
+    /**
+     * Apply changes using full scan method (fallback for storage adapters without change log support)
+     */
+    private async applyChangesFromFullScan(): Promise<void> {
+        try {
+            // Get the current noun count
+            const currentCount = await this.getNounCount()
+            
+            // If the noun count has changed, update the index
+            if (currentCount !== this.lastKnownNounCount) {
+                // Get all nouns from storage
+                const nouns = await this.storage!.getAllNouns()
+                
+                // Get all nouns currently in the index
+                const indexNouns = this.index.getNouns()
+                const indexNounIds = new Set(indexNouns.keys())
+                
+                // Find nouns that are in storage but not in the index
+                const newNouns = nouns.filter(noun => !indexNounIds.has(noun.id))
+                
+                // Add new nouns to the index
+                for (const noun of newNouns) {
+                    // Check if the vector dimensions match the expected dimensions
+                    if (noun.vector.length !== this._dimensions) {
+                        console.warn(
+                            `Skipping noun ${noun.id} due to dimension mismatch: expected ${this._dimensions}, got ${noun.vector.length}`
+                        )
+                        continue
+                    }
+                    
+                    // Add to index
+                    await this.index.addItem({
+                        id: noun.id,
+                        vector: noun.vector
+                    })
+                    
+                    if (this.loggingConfig?.verbose) {
+                        console.log(`Added new noun ${noun.id} to index during real-time update`)
+                    }
+                }
+                
+                // Update the last known noun count
+                this.lastKnownNounCount = currentCount
+                
+                if (this.loggingConfig?.verbose && newNouns.length > 0) {
+                    console.log(`Real-time update: Added ${newNouns.length} new nouns to index using full scan`)
+                }
+            }
+        } catch (error) {
+            console.error('Failed to apply changes from full scan:', error)
+            throw error
         }
     }
 
@@ -2168,7 +2269,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
         try {
             // Clear index
-            this.index.clear()
+            await this.index.clear()
 
             // Clear storage
             await this.storage!.clear()

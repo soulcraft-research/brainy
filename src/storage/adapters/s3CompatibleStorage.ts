@@ -11,6 +11,16 @@ import {BaseStorage, NOUNS_DIR, VERBS_DIR, METADATA_DIR, INDEX_DIR, STATISTICS_K
 type HNSWNode = HNSWNoun
 type Edge = GraphVerb
 
+// Change log entry interface for tracking data modifications
+interface ChangeLogEntry {
+    timestamp: number
+    operation: 'add' | 'update' | 'delete'
+    entityType: 'noun' | 'verb' | 'metadata'
+    entityId: string
+    data?: any
+    instanceId?: string
+}
+
 // Export R2Storage as an alias for S3CompatibleStorage
 export {S3CompatibleStorage as R2Storage}
 
@@ -59,6 +69,13 @@ export class S3CompatibleStorage extends BaseStorage {
 
     // Statistics caching for better performance
     protected statisticsCache: StatisticsData | null = null
+    
+    // Distributed locking for concurrent access control
+    private lockPrefix: string = 'locks/'
+    private activeLocks: Set<string> = new Set()
+    
+    // Change log for efficient synchronization
+    private changeLogPrefix: string = 'change-log/'
 
     /**
      * Initialize the storage adapter
@@ -191,6 +208,18 @@ export class S3CompatibleStorage extends BaseStorage {
             )
 
             console.log(`Node ${node.id} saved successfully:`, result)
+
+            // Log the change for efficient synchronization
+            await this.appendToChangeLog({
+                timestamp: Date.now(),
+                operation: 'add', // Could be 'update' if we track existing nodes
+                entityType: 'noun',
+                entityId: node.id,
+                data: {
+                    vector: node.vector,
+                    metadata: node.metadata
+                }
+            })
 
             // Verify the node was saved by trying to retrieve it
             const {GetObjectCommand} = await import('@aws-sdk/client-s3')
@@ -483,6 +512,14 @@ export class S3CompatibleStorage extends BaseStorage {
                     Key: `${this.nounPrefix}${id}.json`
                 })
             )
+
+            // Log the change for efficient synchronization
+            await this.appendToChangeLog({
+                timestamp: Date.now(),
+                operation: 'delete',
+                entityType: 'noun',
+                entityId: id
+            })
         } catch (error) {
             console.error(`Failed to delete node ${id}:`, error)
             throw new Error(`Failed to delete node ${id}: ${error}`)
@@ -523,6 +560,21 @@ export class S3CompatibleStorage extends BaseStorage {
                     ContentType: 'application/json'
                 })
             )
+
+            // Log the change for efficient synchronization
+            await this.appendToChangeLog({
+                timestamp: Date.now(),
+                operation: 'add', // Could be 'update' if we track existing edges
+                entityType: 'verb',
+                entityId: edge.id,
+                data: {
+                    sourceId: edge.sourceId || edge.source,
+                    targetId: edge.targetId || edge.target,
+                    type: edge.type || edge.verb,
+                    vector: edge.vector,
+                    metadata: edge.metadata
+                }
+            })
         } catch (error) {
             console.error(`Failed to save edge ${edge.id}:`, error)
             throw new Error(`Failed to save edge ${edge.id}: ${error}`)
@@ -802,6 +854,14 @@ export class S3CompatibleStorage extends BaseStorage {
                     Key: `${this.verbPrefix}${id}.json`
                 })
             )
+
+            // Log the change for efficient synchronization
+            await this.appendToChangeLog({
+                timestamp: Date.now(),
+                operation: 'delete',
+                entityType: 'verb',
+                entityId: id
+            })
         } catch (error) {
             console.error(`Failed to delete edge ${id}:`, error)
             throw new Error(`Failed to delete edge ${id}: ${error}`)
@@ -837,6 +897,15 @@ export class S3CompatibleStorage extends BaseStorage {
             )
 
             console.log(`Metadata for ${id} saved successfully:`, result)
+
+            // Log the change for efficient synchronization
+            await this.appendToChangeLog({
+                timestamp: Date.now(),
+                operation: 'add', // Could be 'update' if we track existing metadata
+                entityType: 'metadata',
+                entityId: id,
+                data: metadata
+            })
 
             // Verify the metadata was saved by trying to retrieve it
             const {GetObjectCommand} = await import('@aws-sdk/client-s3')
@@ -1209,7 +1278,7 @@ export class S3CompatibleStorage extends BaseStorage {
     }
 
     /**
-     * Flush statistics to storage
+     * Flush statistics to storage with distributed locking
      */
     protected async flushStatistics(): Promise<void> {
         // Clear the timer
@@ -1223,21 +1292,59 @@ export class S3CompatibleStorage extends BaseStorage {
             return
         }
 
+        const lockKey = 'statistics-flush'
+        const lockValue = `${Date.now()}_${Math.random()}_${process.pid || 'browser'}`
+        
+        // Try to acquire lock for statistics update
+        const lockAcquired = await this.acquireLock(lockKey, 15000) // 15 second timeout
+        
+        if (!lockAcquired) {
+            // Another instance is updating statistics, skip this flush
+            // but keep the modified flag so we'll try again later
+            console.log('Statistics flush skipped - another instance is updating')
+            return
+        }
+
         try {
-            // Import the PutObjectCommand only when needed
-            const {PutObjectCommand} = await import('@aws-sdk/client-s3')
+            // Re-check if statistics are still modified after acquiring lock
+            if (!this.statisticsModified || !this.statisticsCache) {
+                return
+            }
+
+            // Import the PutObjectCommand and GetObjectCommand only when needed
+            const {PutObjectCommand, GetObjectCommand} = await import('@aws-sdk/client-s3')
 
             // Get the current statistics key
             const key = this.getCurrentStatisticsKey()
-            const body = JSON.stringify(this.statisticsCache, null, 2)
+            
+            // Read current statistics from storage to merge with local changes
+            let currentStorageStats: StatisticsData | null = null
+            try {
+                currentStorageStats = await this.tryGetStatisticsFromKey(key)
+            } catch (error) {
+                // If we can't read current stats, proceed with local cache
+                console.warn('Could not read current statistics from storage, using local cache:', error)
+            }
+            
+            // Merge local statistics with storage statistics
+            let mergedStats = this.statisticsCache
+            if (currentStorageStats) {
+                mergedStats = this.mergeStatistics(currentStorageStats, this.statisticsCache)
+            }
+            
+            const body = JSON.stringify(mergedStats, null, 2)
 
-            // Save the statistics to S3-compatible storage
+            // Save the merged statistics to S3-compatible storage
             await this.s3Client!.send(
                 new PutObjectCommand({
                     Bucket: this.bucketName,
                     Key: key,
                     Body: body,
-                    ContentType: 'application/json'
+                    ContentType: 'application/json',
+                    Metadata: {
+                        'last-updated': Date.now().toString(),
+                        'updated-by': process.pid?.toString() || 'browser'
+                    }
                 })
             )
 
@@ -1245,6 +1352,9 @@ export class S3CompatibleStorage extends BaseStorage {
             this.lastStatisticsFlushTime = Date.now()
             // Reset the modified flag
             this.statisticsModified = false
+            
+            // Update local cache with merged data
+            this.statisticsCache = mergedStats
 
             // Also update the legacy key for backward compatibility, but less frequently
             // Only update it once every 10 flushes (approximately)
@@ -1264,6 +1374,43 @@ export class S3CompatibleStorage extends BaseStorage {
             // Mark as still modified so we'll try again later
             this.statisticsModified = true
             // Don't throw the error to avoid disrupting the application
+        } finally {
+            // Always release the lock
+            await this.releaseLock(lockKey, lockValue)
+        }
+    }
+
+    /**
+     * Merge statistics from storage with local statistics
+     * @param storageStats Statistics from storage
+     * @param localStats Local statistics to merge
+     * @returns Merged statistics data
+     */
+    private mergeStatistics(storageStats: StatisticsData, localStats: StatisticsData): StatisticsData {
+        // Merge noun counts by taking the maximum of each type
+        const mergedNounCount: Record<string, number> = { ...storageStats.nounCount }
+        for (const [type, count] of Object.entries(localStats.nounCount)) {
+            mergedNounCount[type] = Math.max(mergedNounCount[type] || 0, count)
+        }
+
+        // Merge verb counts by taking the maximum of each type
+        const mergedVerbCount: Record<string, number> = { ...storageStats.verbCount }
+        for (const [type, count] of Object.entries(localStats.verbCount)) {
+            mergedVerbCount[type] = Math.max(mergedVerbCount[type] || 0, count)
+        }
+
+        // Merge metadata counts by taking the maximum of each type
+        const mergedMetadataCount: Record<string, number> = { ...storageStats.metadataCount }
+        for (const [type, count] of Object.entries(localStats.metadataCount)) {
+            mergedMetadataCount[type] = Math.max(mergedMetadataCount[type] || 0, count)
+        }
+
+        return {
+            nounCount: mergedNounCount,
+            verbCount: mergedVerbCount,
+            metadataCount: mergedMetadataCount,
+            hnswIndexSize: Math.max(storageStats.hnswIndexSize, localStats.hnswIndexSize),
+            lastUpdated: new Date(Math.max(new Date(storageStats.lastUpdated).getTime(), new Date(localStats.lastUpdated).getTime())).toISOString()
         }
     }
 
@@ -1394,6 +1541,371 @@ export class S3CompatibleStorage extends BaseStorage {
 
             // For other errors, propagate them
             throw error
+        }
+    }
+
+    /**
+     * Append an entry to the change log for efficient synchronization
+     * @param entry The change log entry to append
+     */
+    private async appendToChangeLog(entry: ChangeLogEntry): Promise<void> {
+        try {
+            // Import the PutObjectCommand only when needed
+            const { PutObjectCommand } = await import('@aws-sdk/client-s3')
+            
+            // Create a unique key for this change log entry
+            const changeLogKey = `${this.changeLogPrefix}${entry.timestamp}-${Math.random().toString(36).substr(2, 9)}.json`
+            
+            // Add instance ID for tracking
+            const entryWithInstance = {
+                ...entry,
+                instanceId: process.pid?.toString() || 'browser'
+            }
+            
+            // Save the change log entry
+            await this.s3Client!.send(
+                new PutObjectCommand({
+                    Bucket: this.bucketName,
+                    Key: changeLogKey,
+                    Body: JSON.stringify(entryWithInstance),
+                    ContentType: 'application/json',
+                    Metadata: {
+                        'timestamp': entry.timestamp.toString(),
+                        'operation': entry.operation,
+                        'entity-type': entry.entityType,
+                        'entity-id': entry.entityId
+                    }
+                })
+            )
+        } catch (error) {
+            console.warn('Failed to append to change log:', error)
+            // Don't throw error to avoid disrupting main operations
+        }
+    }
+
+    /**
+     * Get changes from the change log since a specific timestamp
+     * @param sinceTimestamp Timestamp to get changes since
+     * @param maxEntries Maximum number of entries to return (default: 1000)
+     * @returns Array of change log entries
+     */
+    public async getChangesSince(sinceTimestamp: number, maxEntries: number = 1000): Promise<ChangeLogEntry[]> {
+        await this.ensureInitialized()
+        
+        try {
+            // Import the ListObjectsV2Command and GetObjectCommand only when needed
+            const { ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3')
+            
+            // List change log objects
+            const response = await this.s3Client!.send(
+                new ListObjectsV2Command({
+                    Bucket: this.bucketName,
+                    Prefix: this.changeLogPrefix,
+                    MaxKeys: maxEntries * 2 // Get more than needed to filter by timestamp
+                })
+            )
+            
+            if (!response.Contents) {
+                return []
+            }
+            
+            const changes: ChangeLogEntry[] = []
+            
+            // Process each change log entry
+            for (const object of response.Contents) {
+                if (!object.Key || changes.length >= maxEntries) break
+                
+                try {
+                    // Get the change log entry
+                    const getResponse = await this.s3Client!.send(
+                        new GetObjectCommand({
+                            Bucket: this.bucketName,
+                            Key: object.Key
+                        })
+                    )
+                    
+                    if (getResponse.Body) {
+                        const entryData = await getResponse.Body.transformToString()
+                        const entry: ChangeLogEntry = JSON.parse(entryData)
+                        
+                        // Only include entries newer than the specified timestamp
+                        if (entry.timestamp > sinceTimestamp) {
+                            changes.push(entry)
+                        }
+                    }
+                } catch (error) {
+                    console.warn(`Failed to read change log entry ${object.Key}:`, error)
+                    // Continue processing other entries
+                }
+            }
+            
+            // Sort by timestamp (oldest first)
+            changes.sort((a, b) => a.timestamp - b.timestamp)
+            
+            return changes.slice(0, maxEntries)
+        } catch (error) {
+            console.error('Failed to get changes from change log:', error)
+            return []
+        }
+    }
+
+    /**
+     * Clean up old change log entries to prevent unlimited growth
+     * @param olderThanTimestamp Remove entries older than this timestamp
+     */
+    public async cleanupOldChangeLogs(olderThanTimestamp: number): Promise<void> {
+        await this.ensureInitialized()
+        
+        try {
+            // Import the ListObjectsV2Command and DeleteObjectCommand only when needed
+            const { ListObjectsV2Command, DeleteObjectCommand } = await import('@aws-sdk/client-s3')
+            
+            // List change log objects
+            const response = await this.s3Client!.send(
+                new ListObjectsV2Command({
+                    Bucket: this.bucketName,
+                    Prefix: this.changeLogPrefix,
+                    MaxKeys: 1000
+                })
+            )
+            
+            if (!response.Contents) {
+                return
+            }
+            
+            const entriesToDelete: string[] = []
+            
+            // Check each change log entry for age
+            for (const object of response.Contents) {
+                if (!object.Key) continue
+                
+                // Extract timestamp from the key (format: change-log/timestamp-randomid.json)
+                const keyParts = object.Key.split('/')
+                if (keyParts.length >= 2) {
+                    const filename = keyParts[keyParts.length - 1]
+                    const timestampStr = filename.split('-')[0]
+                    const timestamp = parseInt(timestampStr)
+                    
+                    if (!isNaN(timestamp) && timestamp < olderThanTimestamp) {
+                        entriesToDelete.push(object.Key)
+                    }
+                }
+            }
+            
+            // Delete old entries
+            for (const key of entriesToDelete) {
+                try {
+                    await this.s3Client!.send(
+                        new DeleteObjectCommand({
+                            Bucket: this.bucketName,
+                            Key: key
+                        })
+                    )
+                } catch (error) {
+                    console.warn(`Failed to delete old change log entry ${key}:`, error)
+                }
+            }
+            
+            if (entriesToDelete.length > 0) {
+                console.log(`Cleaned up ${entriesToDelete.length} old change log entries`)
+            }
+        } catch (error) {
+            console.warn('Failed to cleanup old change logs:', error)
+        }
+    }
+
+    /**
+     * Acquire a distributed lock for coordinating operations across multiple instances
+     * @param lockKey The key to lock on
+     * @param ttl Time to live for the lock in milliseconds (default: 30 seconds)
+     * @returns Promise that resolves to true if lock was acquired, false otherwise
+     */
+    private async acquireLock(lockKey: string, ttl: number = 30000): Promise<boolean> {
+        await this.ensureInitialized()
+        
+        const lockObject = `${this.lockPrefix}${lockKey}`
+        const lockValue = `${Date.now()}_${Math.random()}_${process.pid || 'browser'}`
+        const expiresAt = Date.now() + ttl
+        
+        try {
+            // Import the PutObjectCommand and HeadObjectCommand only when needed
+            const { PutObjectCommand, HeadObjectCommand } = await import('@aws-sdk/client-s3')
+            
+            // First check if lock already exists and is still valid
+            try {
+                const headResponse = await this.s3Client!.send(
+                    new HeadObjectCommand({
+                        Bucket: this.bucketName,
+                        Key: lockObject
+                    })
+                )
+                
+                // Check if existing lock has expired
+                const existingExpiresAt = headResponse.Metadata?.['expires-at']
+                if (existingExpiresAt && parseInt(existingExpiresAt) > Date.now()) {
+                    // Lock exists and is still valid
+                    return false
+                }
+            } catch (error: any) {
+                // If HeadObject fails with NoSuchKey, the lock doesn't exist, which is good
+                if (error.name !== 'NoSuchKey' && !error.message?.includes('NoSuchKey')) {
+                    throw error
+                }
+            }
+            
+            // Try to create the lock
+            await this.s3Client!.send(
+                new PutObjectCommand({
+                    Bucket: this.bucketName,
+                    Key: lockObject,
+                    Body: lockValue,
+                    ContentType: 'text/plain',
+                    Metadata: {
+                        'expires-at': expiresAt.toString(),
+                        'lock-value': lockValue
+                    }
+                })
+            )
+            
+            // Add to active locks for cleanup
+            this.activeLocks.add(lockKey)
+            
+            // Schedule automatic cleanup when lock expires
+            setTimeout(() => {
+                this.releaseLock(lockKey, lockValue).catch(error => {
+                    console.warn(`Failed to auto-release expired lock ${lockKey}:`, error)
+                })
+            }, ttl)
+            
+            return true
+        } catch (error) {
+            console.warn(`Failed to acquire lock ${lockKey}:`, error)
+            return false
+        }
+    }
+
+    /**
+     * Release a distributed lock
+     * @param lockKey The key to unlock
+     * @param lockValue The value used when acquiring the lock (for verification)
+     * @returns Promise that resolves when lock is released
+     */
+    private async releaseLock(lockKey: string, lockValue?: string): Promise<void> {
+        await this.ensureInitialized()
+        
+        const lockObject = `${this.lockPrefix}${lockKey}`
+        
+        try {
+            // Import the DeleteObjectCommand and GetObjectCommand only when needed
+            const { DeleteObjectCommand, GetObjectCommand } = await import('@aws-sdk/client-s3')
+            
+            // If lockValue is provided, verify it matches before releasing
+            if (lockValue) {
+                try {
+                    const response = await this.s3Client!.send(
+                        new GetObjectCommand({
+                            Bucket: this.bucketName,
+                            Key: lockObject
+                        })
+                    )
+                    
+                    const existingValue = await response.Body?.transformToString()
+                    if (existingValue !== lockValue) {
+                        // Lock was acquired by someone else, don't release it
+                        return
+                    }
+                } catch (error: any) {
+                    // If lock doesn't exist, that's fine
+                    if (error.name === 'NoSuchKey' || error.message?.includes('NoSuchKey')) {
+                        return
+                    }
+                    throw error
+                }
+            }
+            
+            // Delete the lock object
+            await this.s3Client!.send(
+                new DeleteObjectCommand({
+                    Bucket: this.bucketName,
+                    Key: lockObject
+                })
+            )
+            
+            // Remove from active locks
+            this.activeLocks.delete(lockKey)
+        } catch (error) {
+            console.warn(`Failed to release lock ${lockKey}:`, error)
+        }
+    }
+
+    /**
+     * Clean up expired locks to prevent lock leakage
+     * This method should be called periodically
+     */
+    private async cleanupExpiredLocks(): Promise<void> {
+        await this.ensureInitialized()
+        
+        try {
+            // Import the ListObjectsV2Command and DeleteObjectCommand only when needed
+            const { ListObjectsV2Command, DeleteObjectCommand, HeadObjectCommand } = await import('@aws-sdk/client-s3')
+            
+            // List all lock objects
+            const response = await this.s3Client!.send(
+                new ListObjectsV2Command({
+                    Bucket: this.bucketName,
+                    Prefix: this.lockPrefix,
+                    MaxKeys: 1000
+                })
+            )
+            
+            if (!response.Contents) {
+                return
+            }
+            
+            const now = Date.now()
+            const expiredLocks: string[] = []
+            
+            // Check each lock for expiration
+            for (const object of response.Contents) {
+                if (!object.Key) continue
+                
+                try {
+                    const headResponse = await this.s3Client!.send(
+                        new HeadObjectCommand({
+                            Bucket: this.bucketName,
+                            Key: object.Key
+                        })
+                    )
+                    
+                    const expiresAt = headResponse.Metadata?.['expires-at']
+                    if (expiresAt && parseInt(expiresAt) < now) {
+                        expiredLocks.push(object.Key)
+                    }
+                } catch (error) {
+                    // If we can't read the lock metadata, consider it expired
+                    expiredLocks.push(object.Key)
+                }
+            }
+            
+            // Delete expired locks
+            for (const lockKey of expiredLocks) {
+                try {
+                    await this.s3Client!.send(
+                        new DeleteObjectCommand({
+                            Bucket: this.bucketName,
+                            Key: lockKey
+                        })
+                    )
+                } catch (error) {
+                    console.warn(`Failed to delete expired lock ${lockKey}:`, error)
+                }
+            }
+            
+            if (expiredLocks.length > 0) {
+                console.log(`Cleaned up ${expiredLocks.length} expired locks`)
+            }
+        } catch (error) {
+            console.warn('Failed to cleanup expired locks:', error)
         }
     }
 }
