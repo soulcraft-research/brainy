@@ -1,21 +1,14 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+### [0.27.1](https://github.com/soulcraft-research/brainy/compare/v0.27.0...v0.27.1) (2025-07-31)
 
-## [Unreleased]
-
-### Added
 
 ### Changed
-- Unified getNouns and getVerbs methods to improve code consistency
-- Removed deprecated warnings from getAllNouns, getAllVerbs, getVerbsBySource, getVerbsByTarget, and getVerbsByType
-- Implemented getAllNouns and getAllVerbs to use the paginated versions internally
-- Improved method documentation with clearer parameter and return type descriptions
 
-### Fixed
+* **changelog:** remove manual changelog update script ([72a649e](https://github.com/soulcraft-research/brainy/commit/72a649e174e7ada6ec7fee8c046bf233835cd8d8))
+* **versioning:** switch to standard-version for automated changelog generation ([1f6a70d](https://github.com/soulcraft-research/brainy/commit/1f6a70dbc52547aafe5761d9e03878d485c1ec26))
 
 ## [0.26.0] - 2025-07-30
 
