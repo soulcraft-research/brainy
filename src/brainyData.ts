@@ -1833,22 +1833,139 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     await this.ensureInitialized()
 
     try {
-      const nouns = this.index.getNouns()
-      const result: VectorDocument<T>[] = []
-
-      for (const [id, noun] of nouns.entries()) {
-        const metadata = await this.storage!.getMetadata(id)
-        result.push({
-          id,
-          vector: noun.vector,
-          metadata: metadata as T | undefined
-        })
-      }
-
-      return result
+      // Use getNouns with no pagination to get all nouns
+      const result = await this.getNouns({
+        pagination: {
+          limit: Number.MAX_SAFE_INTEGER // Request all nouns
+        }
+      })
+      
+      return result.items
     } catch (error) {
       console.error('Failed to get all nouns:', error)
       throw new Error(`Failed to get all nouns: ${error}`)
+    }
+  }
+  
+  /**
+   * Get nouns with pagination and filtering
+   * @param options Pagination and filtering options
+   * @returns Paginated result of vector documents
+   */
+  public async getNouns(options: {
+    pagination?: {
+      offset?: number
+      limit?: number
+      cursor?: string
+    }
+    filter?: {
+      nounType?: string | string[]
+      service?: string | string[]
+      metadata?: Record<string, any>
+    }
+  } = {}): Promise<{
+    items: VectorDocument<T>[]
+    totalCount?: number
+    hasMore: boolean
+    nextCursor?: string
+  }> {
+    await this.ensureInitialized()
+
+    try {
+      // First try to use the storage adapter's paginated method
+      try {
+        const result = await this.storage!.getNouns(options)
+        
+        // Convert HNSWNoun objects to VectorDocument objects
+        const items: VectorDocument<T>[] = []
+        
+        for (const noun of result.items) {
+          const metadata = await this.storage!.getMetadata(noun.id)
+          items.push({
+            id: noun.id,
+            vector: noun.vector,
+            metadata: metadata as T | undefined
+          })
+        }
+        
+        return {
+          items,
+          totalCount: result.totalCount,
+          hasMore: result.hasMore,
+          nextCursor: result.nextCursor
+        }
+      } catch (storageError) {
+        // If storage adapter doesn't support pagination, fall back to using the index's paginated method
+        console.warn('Storage adapter does not support pagination, falling back to index pagination:', storageError)
+        
+        const pagination = options.pagination || {}
+        const filter = options.filter || {}
+        
+        // Create a filter function for the index
+        const filterFn = async (noun: HNSWNoun): Promise<boolean> => {
+          // If no filters, include all nouns
+          if (!filter.nounType && !filter.service && !filter.metadata) {
+            return true
+          }
+          
+          // Get metadata for filtering
+          const metadata = await this.storage!.getMetadata(noun.id)
+          if (!metadata) return false
+          
+          // Filter by noun type
+          if (filter.nounType) {
+            const nounTypes = Array.isArray(filter.nounType) ? filter.nounType : [filter.nounType]
+            if (!nounTypes.includes(metadata.noun)) return false
+          }
+          
+          // Filter by service
+          if (filter.service && metadata.service) {
+            const services = Array.isArray(filter.service) ? filter.service : [filter.service]
+            if (!services.includes(metadata.service)) return false
+          }
+          
+          // Filter by metadata fields
+          if (filter.metadata) {
+            for (const [key, value] of Object.entries(filter.metadata)) {
+              if (metadata[key] !== value) return false
+            }
+          }
+          
+          return true
+        }
+        
+        // Get filtered nouns from the index
+        // Note: We can't use async filter directly with getNounsPaginated, so we'll filter after
+        const indexResult = this.index.getNounsPaginated({
+          offset: pagination.offset,
+          limit: pagination.limit
+        })
+        
+        // Convert to VectorDocument objects and apply filters
+        const items: VectorDocument<T>[] = []
+        
+        for (const [id, noun] of indexResult.items.entries()) {
+          // Apply filter
+          if (await filterFn(noun)) {
+            const metadata = await this.storage!.getMetadata(id)
+            items.push({
+              id,
+              vector: noun.vector,
+              metadata: metadata as T | undefined
+            })
+          }
+        }
+        
+        return {
+          items,
+          totalCount: indexResult.totalCount, // This is approximate since we filter after pagination
+          hasMore: indexResult.hasMore,
+          nextCursor: pagination.cursor // Just pass through the cursor
+        }
+      }
+    } catch (error) {
+      console.error('Failed to get nouns with pagination:', error)
+      throw new Error(`Failed to get nouns with pagination: ${error}`)
     }
   }
 
@@ -2341,26 +2458,84 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
   /**
    * Get all verbs
+   * @returns Array of all verbs
    */
   public async getAllVerbs(): Promise<GraphVerb[]> {
     await this.ensureInitialized()
 
     try {
-      return await this.storage!.getAllVerbs()
+      // Use getVerbs with no pagination to get all verbs
+      const result = await this.getVerbs({
+        pagination: {
+          limit: Number.MAX_SAFE_INTEGER // Request all verbs
+        }
+      })
+      
+      return result.items
     } catch (error) {
       console.error('Failed to get all verbs:', error)
       throw new Error(`Failed to get all verbs: ${error}`)
     }
   }
+  
+  /**
+   * Get verbs with pagination and filtering
+   * @param options Pagination and filtering options
+   * @returns Paginated result of verbs
+   */
+  public async getVerbs(options: {
+    pagination?: {
+      offset?: number
+      limit?: number
+      cursor?: string
+    }
+    filter?: {
+      verbType?: string | string[]
+      sourceId?: string | string[]
+      targetId?: string | string[]
+      service?: string | string[]
+      metadata?: Record<string, any>
+    }
+  } = {}): Promise<{
+    items: GraphVerb[]
+    totalCount?: number
+    hasMore: boolean
+    nextCursor?: string
+  }> {
+    await this.ensureInitialized()
+
+    try {
+      // Use the storage adapter's paginated method
+      const result = await this.storage!.getVerbs(options)
+      
+      return {
+        items: result.items,
+        totalCount: result.totalCount,
+        hasMore: result.hasMore,
+        nextCursor: result.nextCursor
+      }
+    } catch (error) {
+      console.error('Failed to get verbs with pagination:', error)
+      throw new Error(`Failed to get verbs with pagination: ${error}`)
+    }
+  }
 
   /**
    * Get verbs by source noun ID
+   * @param sourceId The ID of the source noun
+   * @returns Array of verbs originating from the specified source
    */
   public async getVerbsBySource(sourceId: string): Promise<GraphVerb[]> {
     await this.ensureInitialized()
 
     try {
-      return await this.storage!.getVerbsBySource(sourceId)
+      // Use getVerbs with sourceId filter
+      const result = await this.getVerbs({
+        filter: {
+          sourceId
+        }
+      })
+      return result.items
     } catch (error) {
       console.error(`Failed to get verbs by source ${sourceId}:`, error)
       throw new Error(`Failed to get verbs by source ${sourceId}: ${error}`)
@@ -2369,12 +2544,20 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
   /**
    * Get verbs by target noun ID
+   * @param targetId The ID of the target noun
+   * @returns Array of verbs targeting the specified noun
    */
   public async getVerbsByTarget(targetId: string): Promise<GraphVerb[]> {
     await this.ensureInitialized()
 
     try {
-      return await this.storage!.getVerbsByTarget(targetId)
+      // Use getVerbs with targetId filter
+      const result = await this.getVerbs({
+        filter: {
+          targetId
+        }
+      })
+      return result.items
     } catch (error) {
       console.error(`Failed to get verbs by target ${targetId}:`, error)
       throw new Error(`Failed to get verbs by target ${targetId}: ${error}`)
@@ -2383,12 +2566,20 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
   /**
    * Get verbs by type
+   * @param type The type of verb to retrieve
+   * @returns Array of verbs of the specified type
    */
   public async getVerbsByType(type: string): Promise<GraphVerb[]> {
     await this.ensureInitialized()
 
     try {
-      return await this.storage!.getVerbsByType(type)
+      // Use getVerbs with verbType filter
+      const result = await this.getVerbs({
+        filter: {
+          verbType: type
+        }
+      })
+      return result.items
     } catch (error) {
       console.error(`Failed to get verbs by type ${type}:`, error)
       throw new Error(`Failed to get verbs by type ${type}: ${error}`)
@@ -2467,24 +2658,64 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
    * @private
    */
   private async getNounCount(): Promise<number> {
-    // Get all verbs from storage
-    const allVerbs = await this.storage!.getAllVerbs()
-
-    // Create a set of verb IDs for faster lookup
-    const verbIds = new Set(allVerbs.map((verb) => verb.id))
-
-    // Get all nouns from the index
-    const nouns = this.index.getNouns()
-
-    // Count nouns that are not verbs
-    let nounCount = 0
-    for (const [id] of nouns.entries()) {
-      if (!verbIds.has(id)) {
-        nounCount++
+    // Use the storage statistics if available
+    try {
+      const stats = await this.storage!.getStatistics()
+      if (stats) {
+        // Calculate total noun count across all services
+        let totalNounCount = 0
+        for (const serviceCount of Object.values(stats.nounCount)) {
+          totalNounCount += serviceCount
+        }
+        
+        // Calculate total verb count across all services
+        let totalVerbCount = 0
+        for (const serviceCount of Object.values(stats.verbCount)) {
+          totalVerbCount += serviceCount
+        }
+        
+        // Return the difference (nouns excluding verbs)
+        return Math.max(0, totalNounCount - totalVerbCount)
       }
+    } catch (error) {
+      console.warn('Failed to get statistics for noun count, falling back to paginated counting:', error)
     }
-
-    return nounCount
+    
+    // Fallback: Use paginated queries to count nouns and verbs
+    let nounCount = 0
+    let verbCount = 0
+    
+    // Count all nouns using pagination
+    let hasMoreNouns = true
+    let offset = 0
+    const limit = 1000 // Use a larger limit for counting
+    
+    while (hasMoreNouns) {
+      const result = await this.storage!.getNouns({
+        pagination: { offset, limit }
+      })
+      
+      nounCount += result.items.length
+      hasMoreNouns = result.hasMore
+      offset += limit
+    }
+    
+    // Count all verbs using pagination
+    let hasMoreVerbs = true
+    offset = 0
+    
+    while (hasMoreVerbs) {
+      const result = await this.storage!.getVerbs({
+        pagination: { offset, limit }
+      })
+      
+      verbCount += result.items.length
+      hasMoreVerbs = result.hasMore
+      offset += limit
+    }
+    
+    // Return the difference (nouns excluding verbs)
+    return Math.max(0, nounCount - verbCount)
   }
 
   /**
@@ -2624,35 +2855,15 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         return result
       }
 
-      // If statistics are not available, fall back to calculating them on-demand
-      console.warn('Persistent statistics not available, calculating on-demand')
+      // If statistics are not available, return zeros instead of calculating on-demand
+      console.warn('Persistent statistics not available, returning zeros')
 
-      // Get all verbs from storage
-      const allVerbs = await this.storage!.getAllVerbs()
-      const verbCount = allVerbs.length
-
-      // Get the noun count using the helper method
-      const nounCount = await this.getNounCount()
-
-      // Count metadata entries by checking each noun for metadata
-      let metadataCount = 0
-      const nouns = this.index.getNouns()
-      for (const [id] of nouns.entries()) {
-        try {
-          const metadata = await this.storage!.getMetadata(id)
-          if (metadata !== null && metadata !== undefined) {
-            metadataCount++
-          }
-        } catch (error) {
-          // Ignore errors when checking individual metadata entries
-          // This could happen if metadata is corrupted or missing
-        }
-      }
-
-      // Get HNSW index size (excluding verbs)
-      // The HNSW index includes both nouns and verbs, but for statistics we want to report
-      // only the number of actual nouns (excluding verbs) to match the expected behavior in tests
-      const hnswIndexSize = nounCount
+      // Never use getVerbs and getNouns as fallback for getStatistics
+      // as it's too expensive with millions of potential entries
+      const nounCount = 0
+      const verbCount = 0
+      const metadataCount = 0
+      const hnswIndexSize = 0
 
       // Create default statistics
       const defaultStats = {
