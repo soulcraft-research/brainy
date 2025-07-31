@@ -401,27 +401,39 @@ describe('Specialized Scenarios Tests', () => {
     })
 
     it('should track database size', async () => {
-      // Add some data
-      await brainyInstance.add('size test 1')
-      await brainyInstance.add('size test 2')
+      // Add some data and store the IDs
+      const id1 = await brainyInstance.add('size test 1')
+      const id2 = await brainyInstance.add('size test 2')
+      console.log(`Added items with IDs: ${id1}, ${id2}`)
 
       // Get database size
       const size = await brainyInstance.size()
       expect(size).toBe(2)
+      console.log(`Initial size: ${size}`)
 
       // Add more data
-      await brainyInstance.add('size test 3')
+      const id3 = await brainyInstance.add('size test 3')
+      console.log(`Added third item with ID: ${id3}`)
 
       // Size should increase
       const newSize = await brainyInstance.size()
       expect(newSize).toBe(3)
+      console.log(`Size after adding third item: ${newSize}`)
 
-      // Instead of using getAllNouns which might not return the expected data,
-      // delete a specific item by ID that we know exists
-      await brainyInstance.delete('size test 3')
+      // Get all nouns to see what's in the index
+      const nouns = brainyInstance.index.getNouns()
+      console.log(`Nouns in index: ${nouns.size}`)
+      for (const [id, noun] of nouns.entries()) {
+        console.log(`Noun ${id}: text=${noun.text}`)
+      }
+
+      // Delete by actual ID instead of content
+      console.log(`Deleting item with ID: ${id3}`)
+      await brainyInstance.delete(id3)
 
       // Size should decrease
       const finalSize = await brainyInstance.size()
+      console.log(`Final size: ${finalSize}`)
       expect(finalSize).toBe(2)
     })
   })

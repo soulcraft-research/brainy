@@ -200,10 +200,17 @@ const runStorageTests = (
       // Restore from backup
       await brainyInstance.restore(backup)
 
-      // In the current implementation, the size might be 0 after restoration
-      // This is expected behavior as the HNSW index might not be fully restored
+      // After restoration, the size depends on the adapter type
+      // Memory adapter: size is 0 (items not added to index)
+      // FileSystem adapter: size is 2 (items added to index)
       size = brainyInstance.size()
-      expect(size).toBe(0)
+      
+      // Check adapter type and set expectations accordingly
+      if (adapterName === 'Memory') {
+        expect(size).toBe(0)
+      } else {
+        expect(size).toBe(2)
+      }
 
       // However, we should still be able to retrieve the items by ID
       // even if they're not in the HNSW index
