@@ -456,9 +456,55 @@ export class HNSWIndex {
 
   /**
    * Get all nouns in the index
+   * @deprecated Use getNounsPaginated() instead for better scalability
    */
   public getNouns(): Map<string, HNSWNoun> {
     return new Map(this.nouns)
+  }
+
+  /**
+   * Get nouns with pagination
+   * @param options Pagination options
+   * @returns Object containing paginated nouns and pagination info
+   */
+  public getNounsPaginated(
+    options: {
+      offset?: number
+      limit?: number
+      filter?: (noun: HNSWNoun) => boolean
+    } = {}
+  ): {
+    items: Map<string, HNSWNoun>
+    totalCount: number
+    hasMore: boolean
+  } {
+    const offset = options.offset || 0
+    const limit = options.limit || 100
+    const filter = options.filter || (() => true)
+
+    // Get all noun entries
+    const entries = [...this.nouns.entries()]
+
+    // Apply filter if provided
+    const filteredEntries = entries.filter(([_, noun]) => filter(noun))
+
+    // Get total count after filtering
+    const totalCount = filteredEntries.length
+
+    // Apply pagination
+    const paginatedEntries = filteredEntries.slice(offset, offset + limit)
+
+    // Check if there are more items
+    const hasMore = offset + limit < totalCount
+
+    // Create a new map with the paginated entries
+    const items = new Map(paginatedEntries)
+
+    return {
+      items,
+      totalCount,
+      hasMore
+    }
   }
 
   /**

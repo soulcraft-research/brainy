@@ -83,11 +83,11 @@ export interface GraphVerb extends HNSWNoun {
   verb?: string // Alias for type
   data?: Record<string, any> // Additional flexible data storage
   embedding?: Vector // Vector representation of the relationship
-  
+
   // Timestamp and creator properties
-  createdAt?: { seconds: number, nanoseconds: number } // When the verb was created
-  updatedAt?: { seconds: number, nanoseconds: number } // When the verb was last updated
-  createdBy?: { augmentation: string, version: string } // Information about what created this verb
+  createdAt?: { seconds: number; nanoseconds: number } // When the verb was created
+  updatedAt?: { seconds: number; nanoseconds: number } // When the verb was last updated
+  createdBy?: { augmentation: string; version: string } // Information about what created this verb
 }
 
 /**
@@ -111,37 +111,37 @@ export interface StatisticsData {
    * Count of nouns by service
    */
   nounCount: Record<string, number>
-  
+
   /**
    * Count of verbs by service
    */
   verbCount: Record<string, number>
-  
+
   /**
    * Count of metadata entries by service
    */
   metadataCount: Record<string, number>
-  
+
   /**
    * Size of the HNSW index
    */
   hnswIndexSize: number
-  
+
   /**
    * Total number of nodes
    */
   totalNodes?: number
-  
+
   /**
    * Total number of edges
    */
   totalEdges?: number
-  
+
   /**
    * Total metadata count
    */
   totalMetadata?: number
-  
+
   /**
    * Operation counts
    */
@@ -153,7 +153,7 @@ export interface StatisticsData {
     relate: number
     total: number
   }
-  
+
   /**
    * Last updated timestamp
    */
@@ -167,12 +167,41 @@ export interface StorageAdapter {
 
   getNoun(id: string): Promise<HNSWNoun | null>
 
+  /**
+   * Get all nouns from storage
+   * @deprecated Use getNouns() with pagination instead for better scalability
+   * @returns Promise that resolves to an array of all nouns
+   */
   getAllNouns(): Promise<HNSWNoun[]>
+
+  /**
+   * Get nouns with pagination and filtering
+   * @param options Pagination and filtering options
+   * @returns Promise that resolves to a paginated result of nouns
+   */
+  getNouns(options?: {
+    pagination?: {
+      offset?: number
+      limit?: number
+      cursor?: string
+    }
+    filter?: {
+      nounType?: string | string[]
+      service?: string | string[]
+      metadata?: Record<string, any>
+    }
+  }): Promise<{
+    items: HNSWNoun[]
+    totalCount?: number
+    hasMore: boolean
+    nextCursor?: string
+  }>
 
   /**
    * Get nouns by noun type
    * @param nounType The noun type to filter by
    * @returns Promise that resolves to an array of nouns of the specified noun type
+   * @deprecated Use getNouns() with filter.nounType instead
    */
   getNounsByNounType(nounType: string): Promise<HNSWNoun[]>
 
@@ -182,12 +211,60 @@ export interface StorageAdapter {
 
   getVerb(id: string): Promise<GraphVerb | null>
 
+  /**
+   * Get all verbs from storage
+   * @deprecated Use getVerbs() with pagination instead for better scalability
+   * @returns Promise that resolves to an array of all verbs
+   */
   getAllVerbs(): Promise<GraphVerb[]>
 
+  /**
+   * Get verbs with pagination and filtering
+   * @param options Pagination and filtering options
+   * @returns Promise that resolves to a paginated result of verbs
+   */
+  getVerbs(options?: {
+    pagination?: {
+      offset?: number
+      limit?: number
+      cursor?: string
+    }
+    filter?: {
+      verbType?: string | string[]
+      sourceId?: string | string[]
+      targetId?: string | string[]
+      service?: string | string[]
+      metadata?: Record<string, any>
+    }
+  }): Promise<{
+    items: GraphVerb[]
+    totalCount?: number
+    hasMore: boolean
+    nextCursor?: string
+  }>
+
+  /**
+   * Get verbs by source
+   * @param sourceId The source ID to filter by
+   * @returns Promise that resolves to an array of verbs with the specified source ID
+   * @deprecated Use getVerbs() with filter.sourceId instead
+   */
   getVerbsBySource(sourceId: string): Promise<GraphVerb[]>
 
+  /**
+   * Get verbs by target
+   * @param targetId The target ID to filter by
+   * @returns Promise that resolves to an array of verbs with the specified target ID
+   * @deprecated Use getVerbs() with filter.targetId instead
+   */
   getVerbsByTarget(targetId: string): Promise<GraphVerb[]>
 
+  /**
+   * Get verbs by type
+   * @param type The verb type to filter by
+   * @returns Promise that resolves to an array of verbs with the specified type
+   * @deprecated Use getVerbs() with filter.verbType instead
+   */
   getVerbsByType(type: string): Promise<GraphVerb[]>
 
   deleteVerb(id: string): Promise<void>
@@ -242,7 +319,11 @@ export interface StorageAdapter {
    * @param service The service that inserted the data
    * @param amount The amount to increment by (default: 1)
    */
-  incrementStatistic(type: 'noun' | 'verb' | 'metadata', service: string, amount?: number): Promise<void>
+  incrementStatistic(
+    type: 'noun' | 'verb' | 'metadata',
+    service: string,
+    amount?: number
+  ): Promise<void>
 
   /**
    * Decrement a statistic counter
@@ -250,7 +331,11 @@ export interface StorageAdapter {
    * @param service The service that inserted the data
    * @param amount The amount to decrement by (default: 1)
    */
-  decrementStatistic(type: 'noun' | 'verb' | 'metadata', service: string, amount?: number): Promise<void>
+  decrementStatistic(
+    type: 'noun' | 'verb' | 'metadata',
+    service: string,
+    amount?: number
+  ): Promise<void>
 
   /**
    * Update the HNSW index size statistic
