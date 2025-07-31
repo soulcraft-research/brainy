@@ -378,7 +378,17 @@ export type {
   Currency,
   Measurement
 }
-export { NounType, VerbType }
+// Export type utility functions
+import { getNounTypes, getVerbTypes, getNounTypeMap, getVerbTypeMap } from './utils/typeUtils.js'
+
+export { 
+  NounType, 
+  VerbType,
+  getNounTypes,
+  getVerbTypes,
+  getNounTypeMap,
+  getVerbTypeMap
+}
 
 // Export MCP (Model Control Protocol) components
 import {

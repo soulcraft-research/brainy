@@ -399,6 +399,45 @@ Connections between nouns (edges in the graph):
 - Verbs have types that define the relationship (RelatedTo, Controls, Contains, etc.)
 - Verbs can have their own metadata to describe the relationship
 
+### Type Utilities
+
+Brainy provides utility functions to access lists of noun and verb types:
+
+```typescript
+import { 
+  NounType, 
+  VerbType, 
+  getNounTypes, 
+  getVerbTypes, 
+  getNounTypeMap, 
+  getVerbTypeMap 
+} from '@soulcraft/brainy'
+
+// At development time:
+// Access specific types directly from the NounType and VerbType objects
+console.log(NounType.Person)        // 'person'
+console.log(VerbType.Contains)      // 'contains'
+
+// At runtime:
+// Get a list of all noun types
+const nounTypes = getNounTypes()    // ['person', 'organization', 'location', ...]
+
+// Get a list of all verb types
+const verbTypes = getVerbTypes()    // ['relatedTo', 'contains', 'partOf', ...]
+
+// Get a map of noun type keys to values
+const nounTypeMap = getNounTypeMap() // { Person: 'person', Organization: 'organization', ... }
+
+// Get a map of verb type keys to values
+const verbTypeMap = getVerbTypeMap() // { RelatedTo: 'relatedTo', Contains: 'contains', ... }
+```
+
+These utility functions make it easy to:
+- Get a complete list of available noun and verb types
+- Validate user input against valid types
+- Create dynamic UI components that display or select from available types
+- Map between type keys and their string values
+
 ## Command Line Interface
 
 Brainy includes a powerful CLI for managing your data. The CLI is available as a separate package
