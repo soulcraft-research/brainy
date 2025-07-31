@@ -59,22 +59,46 @@ For detailed implementation notes and technical summaries of previous versions, 
 
 ## How to Update This Changelog
 
-When making changes to the project:
+This project now uses [standard-version](https://github.com/conventional-changelog/standard-version) to automatically generate the changelog from commit messages.
 
-1. Add new entries under `[Unreleased]` section
-2. Use the following categories:
-   - `Added` for new features
-   - `Changed` for changes in existing functionality
-   - `Deprecated` for soon-to-be removed features
-   - `Removed` for now removed features
-   - `Fixed` for any bug fixes
-   - `Security` for vulnerability fixes
+### Commit Message Format
 
-3. When releasing a new version:
-   - Move unreleased changes to a new version section
-   - Update the version number and date
-   - Create a new empty `[Unreleased]` section
+Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification for your commit messages:
 
-4. Link to GitHub releases: `[0.26.0] - 2025-07-28` format
-5. Keep entries concise but informative for users
-6. Include technical details in a separate subsection if needed
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+Where `<type>` is one of:
+- `feat`: A new feature (maps to **Added** section)
+- `fix`: A bug fix (maps to **Fixed** section)
+- `chore`: Regular maintenance tasks (maps to **Changed** section)
+- `docs`: Documentation changes (maps to **Documentation** section)
+- `refactor`: Code changes that neither fix bugs nor add features (maps to **Changed** section)
+- `perf`: Performance improvements (maps to **Changed** section)
+
+### Examples:
+
+```
+feat(storage): add new file system adapter
+fix(hnsw): resolve index corruption on large datasets
+docs(readme): update installation instructions
+refactor(core): simplify graph traversal algorithm
+```
+
+### Releasing a New Version
+
+To release a new version:
+1. Ensure all changes are committed
+2. Run one of:
+   - `npm run release` (for patch version)
+   - `npm run release:patch` (same as above)
+   - `npm run release:minor` (for minor version)
+   - `npm run release:major` (for major version)
+3. Push changes with tags: `git push --follow-tags origin main`
+
+The changelog will be automatically updated based on your commit messages.
