@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.31.0](https://github.com/soulcraft-research/brainy/compare/v0.30.0...v0.31.0) (2025-07-31)
+
 ## [0.30.0](https://github.com/soulcraft-research/brainy/compare/v0.29.0...v0.30.0) (2025-07-31)
 
 ## [0.29.0](https://github.com/soulcraft-research/brainy/compare/v0.28.0...v0.29.0) (2025-07-31)
