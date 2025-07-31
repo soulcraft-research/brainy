@@ -11,21 +11,37 @@ import { StatisticsData, StorageAdapter } from '../../coreTypes.js'
 export abstract class BaseStorageAdapter implements StorageAdapter {
   // Abstract methods that must be implemented by subclasses
   abstract init(): Promise<void>
+
   abstract saveNoun(noun: any): Promise<void>
+
   abstract getNoun(id: string): Promise<any | null>
+
   abstract getAllNouns(): Promise<any[]>
+
   abstract getNounsByNounType(nounType: string): Promise<any[]>
+
   abstract deleteNoun(id: string): Promise<void>
+
   abstract saveVerb(verb: any): Promise<void>
+
   abstract getVerb(id: string): Promise<any | null>
+
   abstract getAllVerbs(): Promise<any[]>
+
   abstract getVerbsBySource(sourceId: string): Promise<any[]>
+
   abstract getVerbsByTarget(targetId: string): Promise<any[]>
+
   abstract getVerbsByType(type: string): Promise<any[]>
+
   abstract deleteVerb(id: string): Promise<void>
+
   abstract saveMetadata(id: string, metadata: any): Promise<void>
+
   abstract getMetadata(id: string): Promise<any | null>
+
   abstract clear(): Promise<void>
+
   abstract getStorageStatus(): Promise<{
     type: string
     used: number
@@ -33,26 +49,77 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
     details?: Record<string, any>
   }>
 
+  /**
+   * Get nouns with pagination and filtering
+   * @param options Pagination and filtering options
+   * @returns Promise that resolves to a paginated result of nouns
+   */
+  abstract getNouns(options?: {
+    pagination?: {
+      offset?: number
+      limit?: number
+      cursor?: string
+    }
+    filter?: {
+      nounType?: string | string[]
+      service?: string | string[]
+      metadata?: Record<string, any>
+    }
+  }): Promise<{
+    items: any[]
+    totalCount?: number
+    hasMore: boolean
+    nextCursor?: string
+  }>
+
+  /**
+   * Get verbs with pagination and filtering
+   * @param options Pagination and filtering options
+   * @returns Promise that resolves to a paginated result of verbs
+   */
+  abstract getVerbs(options?: {
+    pagination?: {
+      offset?: number
+      limit?: number
+      cursor?: string
+    }
+    filter?: {
+      verbType?: string | string[]
+      sourceId?: string | string[]
+      targetId?: string | string[]
+      service?: string | string[]
+      metadata?: Record<string, any>
+    }
+  }): Promise<{
+    items: any[]
+    totalCount?: number
+    hasMore: boolean
+    nextCursor?: string
+  }>
+
   // Statistics cache
   protected statisticsCache: StatisticsData | null = null
-  
+
   // Batch update timer ID
   protected statisticsBatchUpdateTimerId: NodeJS.Timeout | null = null
-  
+
   // Flag to indicate if statistics have been modified since last save
   protected statisticsModified = false
-  
+
   // Time of last statistics flush to storage
   protected lastStatisticsFlushTime = 0
-  
+
   // Minimum time between statistics flushes (5 seconds)
   protected readonly MIN_FLUSH_INTERVAL_MS = 5000
-  
+
   // Maximum time to wait before flushing statistics (30 seconds)
   protected readonly MAX_FLUSH_DELAY_MS = 30000
 
   // Statistics-specific methods that must be implemented by subclasses
-  protected abstract saveStatisticsData(statistics: StatisticsData): Promise<void>
+  protected abstract saveStatisticsData(
+    statistics: StatisticsData
+  ): Promise<void>
+
   protected abstract getStatisticsData(): Promise<StatisticsData | null>
 
   /**
@@ -62,13 +129,13 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
   async saveStatistics(statistics: StatisticsData): Promise<void> {
     // Update the cache with a deep copy to avoid reference issues
     this.statisticsCache = {
-      nounCount: {...statistics.nounCount},
-      verbCount: {...statistics.verbCount},
-      metadataCount: {...statistics.metadataCount},
+      nounCount: { ...statistics.nounCount },
+      verbCount: { ...statistics.verbCount },
+      metadataCount: { ...statistics.metadataCount },
       hnswIndexSize: statistics.hnswIndexSize,
       lastUpdated: statistics.lastUpdated
     }
-    
+
     // Schedule a batch update instead of saving immediately
     this.scheduleBatchUpdate()
   }
@@ -81,32 +148,32 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
     // If we have cached statistics, return a deep copy
     if (this.statisticsCache) {
       return {
-        nounCount: {...this.statisticsCache.nounCount},
-        verbCount: {...this.statisticsCache.verbCount},
-        metadataCount: {...this.statisticsCache.metadataCount},
+        nounCount: { ...this.statisticsCache.nounCount },
+        verbCount: { ...this.statisticsCache.verbCount },
+        metadataCount: { ...this.statisticsCache.metadataCount },
         hnswIndexSize: this.statisticsCache.hnswIndexSize,
         lastUpdated: this.statisticsCache.lastUpdated
       }
     }
-    
+
     // Otherwise, get from storage
     const statistics = await this.getStatisticsData()
-    
+
     // If we found statistics, update the cache
     if (statistics) {
       // Update the cache with a deep copy
       this.statisticsCache = {
-        nounCount: {...statistics.nounCount},
-        verbCount: {...statistics.verbCount},
-        metadataCount: {...statistics.metadataCount},
+        nounCount: { ...statistics.nounCount },
+        verbCount: { ...statistics.verbCount },
+        metadataCount: { ...statistics.metadataCount },
         hnswIndexSize: statistics.hnswIndexSize,
         lastUpdated: statistics.lastUpdated
       }
     }
-    
+
     return statistics
   }
-  
+
   /**
    * Schedule a batch update of statistics
    */
@@ -124,9 +191,10 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
     const timeSinceLastFlush = now - this.lastStatisticsFlushTime
 
     // If we've recently flushed, wait longer before the next flush
-    const delayMs = timeSinceLastFlush < this.MIN_FLUSH_INTERVAL_MS
-      ? this.MAX_FLUSH_DELAY_MS
-      : this.MIN_FLUSH_INTERVAL_MS
+    const delayMs =
+      timeSinceLastFlush < this.MIN_FLUSH_INTERVAL_MS
+        ? this.MAX_FLUSH_DELAY_MS
+        : this.MIN_FLUSH_INTERVAL_MS
 
     // Schedule the batch update
     this.statisticsBatchUpdateTimerId = setTimeout(() => {
@@ -183,12 +251,12 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
       if (!statistics) {
         statistics = this.createDefaultStatistics()
       }
-      
+
       // Update the cache
       this.statisticsCache = {
-        nounCount: {...statistics.nounCount},
-        verbCount: {...statistics.verbCount},
-        metadataCount: {...statistics.metadataCount},
+        nounCount: { ...statistics.nounCount },
+        verbCount: { ...statistics.verbCount },
+        metadataCount: { ...statistics.metadataCount },
         hnswIndexSize: statistics.hnswIndexSize,
         lastUpdated: statistics.lastUpdated
       }
@@ -229,12 +297,12 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
       if (!statistics) {
         statistics = this.createDefaultStatistics()
       }
-      
+
       // Update the cache
       this.statisticsCache = {
-        nounCount: {...statistics.nounCount},
-        verbCount: {...statistics.verbCount},
-        metadataCount: {...statistics.metadataCount},
+        nounCount: { ...statistics.nounCount },
+        verbCount: { ...statistics.verbCount },
+        metadataCount: { ...statistics.metadataCount },
         hnswIndexSize: statistics.hnswIndexSize,
         lastUpdated: statistics.lastUpdated
       }
@@ -269,12 +337,12 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
       if (!statistics) {
         statistics = this.createDefaultStatistics()
       }
-      
+
       // Update the cache
       this.statisticsCache = {
-        nounCount: {...statistics.nounCount},
-        verbCount: {...statistics.verbCount},
-        metadataCount: {...statistics.metadataCount},
+        nounCount: { ...statistics.nounCount },
+        verbCount: { ...statistics.verbCount },
+        metadataCount: { ...statistics.metadataCount },
         hnswIndexSize: statistics.hnswIndexSize,
         lastUpdated: statistics.lastUpdated
       }

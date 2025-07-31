@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Unified getNouns and getVerbs methods to improve code consistency
+- Removed deprecated warnings from getAllNouns, getAllVerbs, getVerbsBySource, getVerbsByTarget, and getVerbsByType
+- Implemented getAllNouns and getAllVerbs to use the paginated versions internally
+- Improved method documentation with clearer parameter and return type descriptions
 
 ### Fixed
 

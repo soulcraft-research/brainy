@@ -5,6 +5,7 @@
 
 import { GraphVerb, HNSWNoun, StatisticsData } from '../../coreTypes.js'
 import { BaseStorage, STATISTICS_KEY } from '../baseStorage.js'
+import { PaginatedResult } from '../../types/paginationTypes.js'
 
 // No type aliases needed - using the original types directly
 
@@ -105,37 +106,123 @@ export class MemoryStorage extends BaseStorage {
   }
 
   /**
+   * Get nouns with pagination and filtering
+   * @param options Pagination and filtering options
+   * @returns Promise that resolves to a paginated result of nouns
+   */
+  public async getNouns(options: {
+    pagination?: {
+      offset?: number
+      limit?: number
+      cursor?: string
+    }
+    filter?: {
+      nounType?: string | string[]
+      service?: string | string[]
+      metadata?: Record<string, any>
+    }
+  } = {}): Promise<PaginatedResult<HNSWNoun>> {
+    const pagination = options.pagination || {}
+    const filter = options.filter || {}
+    
+    // Default values
+    const offset = pagination.offset || 0
+    const limit = pagination.limit || 100
+    
+    // Convert string types to arrays for consistent handling
+    const nounTypes = filter.nounType 
+      ? Array.isArray(filter.nounType) ? filter.nounType : [filter.nounType]
+      : undefined
+    
+    const services = filter.service
+      ? Array.isArray(filter.service) ? filter.service : [filter.service]
+      : undefined
+    
+    // First, collect all noun IDs that match the filter criteria
+    const matchingIds: string[] = []
+    
+    // Iterate through all nouns to find matches
+    for (const [nounId, noun] of this.nouns.entries()) {
+      // Get the metadata to check filters
+      const metadata = await this.getMetadata(nounId)
+      if (!metadata) continue
+      
+      // Filter by noun type if specified
+      if (nounTypes && !nounTypes.includes(metadata.noun)) {
+        continue
+      }
+      
+      // Filter by service if specified
+      if (services && metadata.service && !services.includes(metadata.service)) {
+        continue
+      }
+      
+      // Filter by metadata fields if specified
+      if (filter.metadata) {
+        let metadataMatch = true
+        for (const [key, value] of Object.entries(filter.metadata)) {
+          if (metadata[key] !== value) {
+            metadataMatch = false
+            break
+          }
+        }
+        if (!metadataMatch) continue
+      }
+      
+      // If we got here, the noun matches all filters
+      matchingIds.push(nounId)
+    }
+    
+    // Calculate pagination
+    const totalCount = matchingIds.length
+    const paginatedIds = matchingIds.slice(offset, offset + limit)
+    const hasMore = offset + limit < totalCount
+    
+    // Create cursor for next page if there are more results
+    const nextCursor = hasMore ? `${offset + limit}` : undefined
+    
+    // Fetch the actual nouns for the current page
+    const items: HNSWNoun[] = []
+    for (const id of paginatedIds) {
+      const noun = this.nouns.get(id)
+      if (!noun) continue
+      
+      // Create a deep copy to avoid reference issues
+      const nounCopy: HNSWNoun = {
+        id: noun.id,
+        vector: [...noun.vector],
+        connections: new Map()
+      }
+      
+      // Copy connections
+      for (const [level, connections] of noun.connections.entries()) {
+        nounCopy.connections.set(level, new Set(connections))
+      }
+      
+      items.push(nounCopy)
+    }
+    
+    return {
+      items,
+      totalCount,
+      hasMore,
+      nextCursor
+    }
+  }
+
+  /**
    * Get nouns by noun type
    * @param nounType The noun type to filter by
    * @returns Promise that resolves to an array of nouns of the specified noun type
+   * @deprecated Use getNouns() with filter.nounType instead
    */
   protected async getNounsByNounType_internal(nounType: string): Promise<HNSWNoun[]> {
-    const nouns: HNSWNoun[] = []
-
-    // Iterate through all nouns and filter by noun type using metadata
-    for (const [nounId, noun] of this.nouns.entries()) {
-      // Get the metadata to check the noun type
-      const metadata = await this.getMetadata(nounId)
-
-      // Include the noun if its noun type matches the requested type
-      if (metadata && metadata.noun === nounType) {
-        // Return a deep copy to avoid reference issues
-        const nounCopy: HNSWNoun = {
-          id: noun.id,
-          vector: [...noun.vector],
-          connections: new Map()
-        }
-
-        // Copy connections
-        for (const [level, connections] of noun.connections.entries()) {
-          nounCopy.connections.set(level, new Set(connections))
-        }
-
-        nouns.push(nounCopy)
+    const result = await this.getNouns({
+      filter: {
+        nounType
       }
-    }
-
-    return nouns
+    })
+    return result.items
   }
 
   /**
@@ -272,27 +359,175 @@ export class MemoryStorage extends BaseStorage {
   }
 
   /**
+   * Get verbs with pagination and filtering
+   * @param options Pagination and filtering options
+   * @returns Promise that resolves to a paginated result of verbs
+   */
+  public async getVerbs(options: {
+    pagination?: {
+      offset?: number
+      limit?: number
+      cursor?: string
+    }
+    filter?: {
+      verbType?: string | string[]
+      sourceId?: string | string[]
+      targetId?: string | string[]
+      service?: string | string[]
+      metadata?: Record<string, any>
+    }
+  } = {}): Promise<PaginatedResult<GraphVerb>> {
+    const pagination = options.pagination || {}
+    const filter = options.filter || {}
+    
+    // Default values
+    const offset = pagination.offset || 0
+    const limit = pagination.limit || 100
+    
+    // Convert string types to arrays for consistent handling
+    const verbTypes = filter.verbType 
+      ? Array.isArray(filter.verbType) ? filter.verbType : [filter.verbType]
+      : undefined
+    
+    const sourceIds = filter.sourceId
+      ? Array.isArray(filter.sourceId) ? filter.sourceId : [filter.sourceId]
+      : undefined
+    
+    const targetIds = filter.targetId
+      ? Array.isArray(filter.targetId) ? filter.targetId : [filter.targetId]
+      : undefined
+    
+    const services = filter.service
+      ? Array.isArray(filter.service) ? filter.service : [filter.service]
+      : undefined
+    
+    // First, collect all verb IDs that match the filter criteria
+    const matchingIds: string[] = []
+    
+    // Iterate through all verbs to find matches
+    for (const [verbId, verb] of this.verbs.entries()) {
+      // Filter by verb type if specified
+      if (verbTypes && !verbTypes.includes(verb.type || verb.verb || '')) {
+        continue
+      }
+      
+      // Filter by source ID if specified
+      if (sourceIds && !sourceIds.includes(verb.sourceId || verb.source || '')) {
+        continue
+      }
+      
+      // Filter by target ID if specified
+      if (targetIds && !targetIds.includes(verb.targetId || verb.target || '')) {
+        continue
+      }
+      
+      // Filter by metadata fields if specified
+      if (filter.metadata && verb.metadata) {
+        let metadataMatch = true
+        for (const [key, value] of Object.entries(filter.metadata)) {
+          if (verb.metadata[key] !== value) {
+            metadataMatch = false
+            break
+          }
+        }
+        if (!metadataMatch) continue
+      }
+      
+      // Filter by service if specified
+      if (services && verb.metadata && verb.metadata.service && 
+          !services.includes(verb.metadata.service)) {
+        continue
+      }
+      
+      // If we got here, the verb matches all filters
+      matchingIds.push(verbId)
+    }
+    
+    // Calculate pagination
+    const totalCount = matchingIds.length
+    const paginatedIds = matchingIds.slice(offset, offset + limit)
+    const hasMore = offset + limit < totalCount
+    
+    // Create cursor for next page if there are more results
+    const nextCursor = hasMore ? `${offset + limit}` : undefined
+    
+    // Fetch the actual verbs for the current page
+    const items: GraphVerb[] = []
+    for (const id of paginatedIds) {
+      const verb = this.verbs.get(id)
+      if (!verb) continue
+      
+      // Create a deep copy to avoid reference issues
+      const verbCopy: GraphVerb = {
+        id: verb.id,
+        vector: [...verb.vector],
+        connections: new Map(),
+        sourceId: verb.sourceId || verb.source || '',
+        targetId: verb.targetId || verb.target || '',
+        source: verb.sourceId || verb.source || '',
+        target: verb.targetId || verb.target || '',
+        verb: verb.type || verb.verb,
+        type: verb.type || verb.verb,
+        weight: verb.weight,
+        metadata: verb.metadata ? JSON.parse(JSON.stringify(verb.metadata)) : undefined,
+        createdAt: verb.createdAt ? { ...verb.createdAt } : undefined,
+        updatedAt: verb.updatedAt ? { ...verb.updatedAt } : undefined,
+        createdBy: verb.createdBy ? { ...verb.createdBy } : undefined
+      }
+      
+      // Copy connections
+      for (const [level, connections] of verb.connections.entries()) {
+        verbCopy.connections.set(level, new Set(connections))
+      }
+      
+      items.push(verbCopy)
+    }
+    
+    return {
+      items,
+      totalCount,
+      hasMore,
+      nextCursor
+    }
+  }
+
+  /**
    * Get verbs by source
+   * @deprecated Use getVerbs() with filter.sourceId instead
    */
   protected async getVerbsBySource_internal(sourceId: string): Promise<GraphVerb[]> {
-    const allVerbs = await this.getAllVerbs_internal()
-    return allVerbs.filter((verb: GraphVerb) => (verb.sourceId || verb.source) === sourceId)
+    const result = await this.getVerbs({
+      filter: {
+        sourceId
+      }
+    })
+    return result.items
   }
 
   /**
    * Get verbs by target
+   * @deprecated Use getVerbs() with filter.targetId instead
    */
   protected async getVerbsByTarget_internal(targetId: string): Promise<GraphVerb[]> {
-    const allVerbs = await this.getAllVerbs_internal()
-    return allVerbs.filter((verb: GraphVerb) => (verb.targetId || verb.target) === targetId)
+    const result = await this.getVerbs({
+      filter: {
+        targetId
+      }
+    })
+    return result.items
   }
 
   /**
    * Get verbs by type
+   * @deprecated Use getVerbs() with filter.verbType instead
    */
   protected async getVerbsByType_internal(type: string): Promise<GraphVerb[]> {
-    const allVerbs = await this.getAllVerbs_internal()
-    return allVerbs.filter((verb: GraphVerb) => (verb.type || verb.verb) === type)
+    const result = await this.getVerbs({
+      filter: {
+        verbType: type
+      }
+    })
+    return result.items
   }
 
   /**
