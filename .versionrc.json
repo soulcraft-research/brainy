@@ -1,0 +1,22 @@
+{
+  "types": [
+    {"type": "feat", "section": "Added", "hidden": false},
+    {"type": "fix", "section": "Fixed", "hidden": false},
+    {"type": "chore", "section": "Changed", "hidden": false},
+    {"type": "docs", "section": "Documentation", "hidden": false},
+    {"type": "style", "section": "Changed", "hidden": true},
+    {"type": "refactor", "section": "Changed", "hidden": false},
+    {"type": "perf", "section": "Changed", "hidden": false},
+    {"type": "test", "section": "Tests", "hidden": true},
+    {"type": "build", "section": "Build System", "hidden": true},
+    {"type": "ci", "section": "Continuous Integration", "hidden": true}
+  ],
+  "releaseCommitMessageFormat": "chore(release): {{currentTag}} [skip ci]",
+  "commitUrlFormat": "https://github.com/soulcraft-research/brainy/commit/{{hash}}",
+  "compareUrlFormat": "https://github.com/soulcraft-research/brainy/compare/{{previousTag}}...{{currentTag}}",
+  "issueUrlFormat": "https://github.com/soulcraft-research/brainy/issues/{{id}}",
+  "userUrlFormat": "https://github.com/{{user}}",
+  "skip": {
+    "tag": false
+  }
+}
