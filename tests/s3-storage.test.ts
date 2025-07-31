@@ -373,4 +373,140 @@ describe('S3CompatibleStorage', () => {
     // Clean up
     await s3Storage.clear()
   })
+  
+  it('should handle change log functionality correctly with S3 storage', async () => {
+    // Create the bucket first using our mock
+    const createBucketCommand = new S3Commands.CreateBucketCommand({
+      Bucket: 'test-bucket'
+    })
+    await s3Mock.mockS3Client.send(createBucketCommand)
+    
+    // Create a new instance with our mocked environment
+    const s3Storage = new S3CompatibleStorage({
+      bucketName: 'test-bucket',
+      region: 'us-east-1',
+      accessKeyId: 'test-access-key',
+      secretAccessKey: 'test-secret-key',
+      serviceType: 's3'
+    })
+    
+    // Initialize the storage
+    await s3Storage.init()
+    
+    // Create test nouns that will generate change log entries
+    const testVector: Vector = [0.1, 0.2, 0.3, 0.4, 0.5]
+    
+    // Save first noun - should create a change log entry
+    const testNoun1 = {
+      id: 'test-noun-change-1',
+      vector: testVector,
+      connections: new Map()
+    }
+    await s3Storage.saveNoun(testNoun1)
+    
+    // Wait a bit to ensure timestamps are different
+    await new Promise(resolve => setTimeout(resolve, 10))
+    const firstTimestamp = Date.now()
+    
+    // Wait a bit more before creating second noun
+    await new Promise(resolve => setTimeout(resolve, 10))
+    
+    // Save second noun - should create another change log entry
+    const testNoun2 = {
+      id: 'test-noun-change-2',
+      vector: testVector,
+      connections: new Map()
+    }
+    await s3Storage.saveNoun(testNoun2)
+    
+    // Get changes since beginning of time
+    const allChanges = await s3Storage.getChangesSince(0)
+    
+    // Verify we have at least 2 changes (might be more due to initialization)
+    expect(allChanges.length).toBeGreaterThanOrEqual(2)
+    
+    // Verify the changes contain our noun operations
+    const nounChanges = allChanges.filter(c => 
+      c.entityType === 'noun' && 
+      (c.entityId === 'test-noun-change-1' || c.entityId === 'test-noun-change-2')
+    )
+    expect(nounChanges.length).toBe(2)
+    
+    // Get changes since first timestamp - should only include the second noun
+    const recentChanges = await s3Storage.getChangesSince(firstTimestamp)
+    const recentNounChanges = recentChanges.filter(c => 
+      c.entityType === 'noun' && c.entityId === 'test-noun-change-2'
+    )
+    expect(recentNounChanges.length).toBe(1)
+    
+    // Clean up
+    await s3Storage.clear()
+  })
+  
+  it('should handle change log functionality with getChangesSince', async () => {
+    // Create the bucket first using our mock
+    const createBucketCommand = new S3Commands.CreateBucketCommand({
+      Bucket: 'test-bucket'
+    })
+    await s3Mock.mockS3Client.send(createBucketCommand)
+    
+    // Create a new instance with our mocked environment
+    const s3Storage = new S3CompatibleStorage({
+      bucketName: 'test-bucket',
+      region: 'us-east-1',
+      accessKeyId: 'test-access-key',
+      secretAccessKey: 'test-secret-key',
+      serviceType: 's3'
+    })
+    
+    // Initialize the storage
+    await s3Storage.init()
+    
+    // Create test vector
+    const testVector: Vector = [0.1, 0.2, 0.3, 0.4, 0.5]
+    
+    // Create first noun (older entry)
+    const testNoun1 = {
+      id: 'test-noun-cleanup-1',
+      vector: testVector,
+      connections: new Map()
+    }
+    await s3Storage.saveNoun(testNoun1)
+    
+    // Record the timestamp after first noun
+    const oldTimestamp = Date.now()
+    
+    // Wait to ensure timestamps are different
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    // Create second noun (newer entry)
+    const testNoun2 = {
+      id: 'test-noun-cleanup-2',
+      vector: testVector,
+      connections: new Map()
+    }
+    await s3Storage.saveNoun(testNoun2)
+    
+    // Verify we have both change log entries
+    const allChanges = await s3Storage.getChangesSince(0)
+    const testNounChanges = allChanges.filter(c => 
+      c.entityType === 'noun' && 
+      (c.entityId === 'test-noun-cleanup-1' || c.entityId === 'test-noun-cleanup-2')
+    )
+    expect(testNounChanges.length).toBe(2)
+    
+    // Get changes since oldTimestamp - should only include the second noun
+    const recentChanges = await s3Storage.getChangesSince(oldTimestamp)
+    const recentNounChanges = recentChanges.filter(c => 
+      c.entityType === 'noun' && 
+      (c.entityId === 'test-noun-cleanup-1' || c.entityId === 'test-noun-cleanup-2')
+    )
+    
+    // Should only have the newer entry for test-noun-cleanup-2
+    expect(recentNounChanges.length).toBe(1)
+    expect(recentNounChanges[0].entityId).toBe('test-noun-cleanup-2')
+    
+    // Clean up
+    await s3Storage.clear()
+  })
 })
