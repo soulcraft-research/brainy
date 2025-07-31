@@ -1366,6 +1366,77 @@ see [DEVELOPERS.md](DEVELOPERS.md).
 
 We have a [Code of Conduct](CODE_OF_CONDUCT.md) that all contributors are expected to follow.
 
+## Release Workflow
+
+Brainy uses a streamlined release workflow that automates version updates, changelog generation, GitHub releases, and NPM deployment.
+
+### Automated Release Process
+
+The release workflow combines several steps into a single command:
+
+1. **Build the project** - Ensures the code compiles correctly
+2. **Run tests** - Verifies that all tests pass
+3. **Update version** - Bumps the version number (patch, minor, or major)
+4. **Generate changelog** - Automatically updates CHANGELOG.md with commit messages since the last release
+5. **Create GitHub release** - Creates a GitHub release with auto-generated notes
+6. **Publish to NPM** - Deploys the package to NPM
+
+### Release Commands
+
+Use one of the following commands to release a new version:
+
+```bash
+# Release with patch version update (0.0.x)
+npm run workflow:patch
+
+# Release with minor version update (0.x.0)
+npm run workflow:minor
+
+# Release with major version update (x.0.0)
+npm run workflow:major
+
+# Default workflow (same as patch)
+npm run workflow
+
+# Dry run (build, test, and simulate version update without making changes)
+npm run workflow:dry-run
+```
+
+### Commit Message Format
+
+For best results with automatic changelog generation, follow the [Conventional Commits](https://www.conventionalcommits.org/) specification for your commit messages:
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+Where `<type>` is one of:
+- `feat`: A new feature (maps to **Added** section)
+- `fix`: A bug fix (maps to **Fixed** section)
+- `chore`: Regular maintenance tasks (maps to **Changed** section)
+- `docs`: Documentation changes (maps to **Documentation** section)
+- `refactor`: Code changes that neither fix bugs nor add features (maps to **Changed** section)
+- `perf`: Performance improvements (maps to **Changed** section)
+
+### Manual Release Process
+
+If you need more control over the release process, you can use the individual commands:
+
+```bash
+# Update version and generate changelog
+npm run release:patch  # or release:minor, release:major
+
+# Create GitHub release
+npm run github-release
+
+# Publish to NPM
+npm publish
+```
+
 ## License
 
 [MIT](LICENSE)

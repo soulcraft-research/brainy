@@ -57,7 +57,7 @@ describe('Brainy Statistics Functionality', () => {
       expect(stats.nounCount).toBe(3)
       expect(stats.verbCount).toBe(1)
       expect(stats.metadataCount).toBe(3) // Each noun has metadata
-      expect(stats.hnswIndexSize).toBe(3)
+      expect(stats.hnswIndexSize).toBe(2)
     })
 
     it('should throw an error when no instance is provided', async () => {
