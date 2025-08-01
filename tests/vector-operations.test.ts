@@ -88,4 +88,54 @@ describe('Vector Operations', () => {
     // The closest should be the exact match
     expect(results[0].metadata.id).toBe('vec1')
   })
+
+  it('should calculate similarity between vectors correctly', async () => {
+    const brainy = await import('../dist/unified.js')
+
+    const db = new brainy.BrainyData({
+      distanceFunction: euclideanDistance
+    })
+
+    await db.init()
+
+    // Create test vectors
+    const vectorA = createTestVector(0)
+    const vectorB = createTestVector(0) // Identical to vectorA
+    const vectorC = createTestVector(1) // Different from vectorA
+
+    // Calculate similarity between identical vectors
+    const similarityIdentical = await db.calculateSimilarity(vectorA, vectorB)
+    
+    // Calculate similarity between different vectors
+    const similarityDifferent = await db.calculateSimilarity(vectorA, vectorC)
+
+    // Identical vectors should have similarity close to 1
+    expect(similarityIdentical).toBeCloseTo(1, 1)
+    
+    // Different vectors should have lower similarity
+    expect(similarityDifferent).toBeLessThan(similarityIdentical)
+  })
+
+  it('should calculate similarity between text inputs correctly', async () => {
+    const brainy = await import('../dist/unified.js')
+
+    const db = new brainy.BrainyData()
+
+    await db.init()
+
+    // Calculate similarity between similar texts
+    const similarityHigh = await db.calculateSimilarity(
+      "Cats are furry pets", 
+      "Felines make good companions"
+    )
+    
+    // Calculate similarity between different texts
+    const similarityLow = await db.calculateSimilarity(
+      "Cats are furry pets", 
+      "Python is a programming language"
+    )
+
+    // Similar texts should have higher similarity than different texts
+    expect(similarityHigh).toBeGreaterThan(similarityLow)
+  })
 })
