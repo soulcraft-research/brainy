@@ -1,0 +1,12 @@
+{
+  "name": "universal-sentence-encoder",
+  "version": "1.0.0",
+  "description": "Universal Sentence Encoder model for text embeddings",
+  "dimensions": 512,
+  "date": "2025-08-01T21:59:56.632Z",
+  "source": "tensorflow-models/universal-sentence-encoder",
+  "savedLocally": true,
+  "savedWith": "manual-embedding",
+  "embeddingSize": 512,
+  "approach": "tfhub-reference"
+}
