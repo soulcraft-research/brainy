@@ -58,7 +58,6 @@ All notable changes to this project will be documented in this file. See [standa
 
 For detailed implementation notes and technical summaries of previous versions, see:
 - `docs/technical/` - Technical documentation and analysis
-- `archive/` - Archived change logs and summaries
 
 ---
 

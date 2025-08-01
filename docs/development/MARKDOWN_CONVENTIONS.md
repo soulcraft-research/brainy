@@ -28,7 +28,7 @@ Use lowercase filenames for technical documentation and implementation details:
 - Architecture documentation
 - Specific feature documentation
 
-Examples: `scalingStrategy.md`, `statistics.md`
+Examples: `SCALING_STRATEGY.md`, `STATISTICS.md`
 
 ## Rationale
 
@@ -59,7 +59,7 @@ This convention makes it easy to distinguish between:
 
 ### Technical Documentation (Lowercase)
 
-- scalingStrategy.md
+- SCALING_STRATEGY.md
 - statistics.md
 - architecture.md
 - implementation-details.md
