@@ -53,9 +53,12 @@ export abstract class BaseStorage extends BaseStorageAdapter {
 
   /**
    * Get all nouns from storage
+   * @deprecated This method is deprecated and will be removed in a future version.
+   * It can cause memory issues with large datasets. Use getNouns() with pagination instead.
    */
   public async getAllNouns(): Promise<HNSWNoun[]> {
     await this.ensureInitialized()
+    console.warn('WARNING: getAllNouns() is deprecated and will be removed in a future version. Use getNouns() with pagination instead.')
     return this.getAllNouns_internal()
   }
 
@@ -95,9 +98,12 @@ export abstract class BaseStorage extends BaseStorageAdapter {
 
   /**
    * Get all verbs from storage
+   * @deprecated This method is deprecated and will be removed in a future version.
+   * It can cause memory issues with large datasets. Use getVerbs() with pagination instead.
    */
   public async getAllVerbs(): Promise<GraphVerb[]> {
     await this.ensureInitialized()
+    console.warn('WARNING: getAllVerbs() is deprecated and will be removed in a future version. Use getVerbs() with pagination instead.')
     return this.getAllVerbs_internal()
   }
 
@@ -124,7 +130,7 @@ export abstract class BaseStorage extends BaseStorageAdapter {
     await this.ensureInitialized()
     return this.getVerbsByType_internal(type)
   }
-  
+
   /**
    * Get nouns with pagination and filtering
    * @param options Pagination and filtering options
@@ -148,34 +154,39 @@ export abstract class BaseStorage extends BaseStorageAdapter {
     nextCursor?: string
   }> {
     await this.ensureInitialized()
-    
+
     // Set default pagination values
     const pagination = options?.pagination || {}
     const limit = pagination.limit || 100
     const offset = pagination.offset || 0
-    
+    const cursor = pagination.cursor
+
     // Optimize for common filter cases to avoid loading all nouns
     if (options?.filter) {
       // If filtering by nounType only, use the optimized method
-      if (options.filter.nounType && !options.filter.service && !options.filter.metadata) {
-        const nounType = Array.isArray(options.filter.nounType) 
-          ? options.filter.nounType[0] 
+      if (
+        options.filter.nounType &&
+        !options.filter.service &&
+        !options.filter.metadata
+      ) {
+        const nounType = Array.isArray(options.filter.nounType)
+          ? options.filter.nounType[0]
           : options.filter.nounType
-          
+
         // Get nouns by type directly
         const nounsByType = await this.getNounsByNounType_internal(nounType)
-        
+
         // Apply pagination
         const paginatedNouns = nounsByType.slice(offset, offset + limit)
         const hasMore = offset + limit < nounsByType.length
-        
+
         // Set next cursor if there are more items
         let nextCursor: string | undefined = undefined
         if (hasMore && paginatedNouns.length > 0) {
           const lastItem = paginatedNouns[paginatedNouns.length - 1]
           nextCursor = lastItem.id
         }
-        
+
         return {
           items: paginatedNouns,
           totalCount: nounsByType.length,
@@ -184,97 +195,147 @@ export abstract class BaseStorage extends BaseStorageAdapter {
         }
       }
     }
-    
-    // For more complex filtering or no filtering, we need to get all nouns
-    // but limit the number we load to avoid memory issues
-    const maxNouns = offset + limit + 1 // Get one extra to check if there are more
-    let allNouns: HNSWNoun[] = []
-    
+
+    // For more complex filtering or no filtering, use a paginated approach
+    // that avoids loading all nouns into memory at once
     try {
-      // Try to get only the nouns we need
-      allNouns = await this.getAllNouns_internal()
-      
-      // If we have too many nouns, truncate the array to avoid memory issues
-      if (allNouns.length > maxNouns * 10) {
-        console.warn(`Large number of nouns (${allNouns.length}), truncating to ${maxNouns * 10} for filtering`)
-        allNouns = allNouns.slice(0, maxNouns * 10)
+      // First, try to get a count of total nouns (if the adapter supports it)
+      let totalCount: number | undefined = undefined
+      try {
+        // This is an optional method that adapters may implement
+        if (typeof (this as any).countNouns === 'function') {
+          totalCount = await (this as any).countNouns(options?.filter)
+        }
+      } catch (countError) {
+        // Ignore errors from count method, it's optional
+        console.warn('Error getting noun count:', countError)
+      }
+
+      // Check if the adapter has a paginated method for getting nouns
+      if (typeof (this as any).getNounsWithPagination === 'function') {
+        // Use the adapter's paginated method
+        const result = await (this as any).getNounsWithPagination({
+          limit,
+          cursor,
+          filter: options?.filter
+        })
+
+        // Apply offset if needed (some adapters might not support offset)
+        const items = result.items.slice(offset)
+
+        return {
+          items,
+          totalCount: result.totalCount || totalCount,
+          hasMore: result.hasMore,
+          nextCursor: result.nextCursor
+        }
+      }
+
+      // If the adapter doesn't have a paginated method, fall back to the old approach
+      // but with a warning and a reasonable limit
+      console.warn(
+        'Storage adapter does not support pagination, falling back to loading all nouns. This may cause performance issues with large datasets.'
+      )
+
+      // Get nouns with a reasonable limit to avoid memory issues
+      const maxNouns = Math.min(offset + limit + 100, 1000) // Reasonable limit
+      let allNouns: HNSWNoun[] = []
+
+      try {
+        // Try to get only the nouns we need
+        allNouns = await this.getAllNouns_internal()
+
+        // If we have too many nouns, truncate the array to avoid memory issues
+        if (allNouns.length > maxNouns) {
+          console.warn(
+            `Large number of nouns (${allNouns.length}), truncating to ${maxNouns} for filtering`
+          )
+          allNouns = allNouns.slice(0, maxNouns)
+        }
+      } catch (error) {
+        console.error('Error getting all nouns:', error)
+        // Return empty result on error
+        return {
+          items: [],
+          totalCount: 0,
+          hasMore: false
+        }
+      }
+
+      // Apply filtering if needed
+      let filteredNouns = allNouns
+
+      if (options?.filter) {
+        // Filter by noun type
+        if (options.filter.nounType) {
+          const nounTypes = Array.isArray(options.filter.nounType)
+            ? options.filter.nounType
+            : [options.filter.nounType]
+
+          filteredNouns = filteredNouns.filter((noun) => {
+            // HNSWNoun doesn't have a type property directly, check metadata
+            const nounType = noun.metadata?.type
+            return typeof nounType === 'string' && nounTypes.includes(nounType)
+          })
+        }
+
+        // Filter by service
+        if (options.filter.service) {
+          const services = Array.isArray(options.filter.service)
+            ? options.filter.service
+            : [options.filter.service]
+
+          filteredNouns = filteredNouns.filter((noun) => {
+            // HNSWNoun doesn't have a service property directly, check metadata
+            const service = noun.metadata?.service
+            return typeof service === 'string' && services.includes(service)
+          })
+        }
+
+        // Filter by metadata
+        if (options.filter.metadata) {
+          const metadataFilter = options.filter.metadata
+          filteredNouns = filteredNouns.filter((noun) => {
+            if (!noun.metadata) return false
+
+            // Check if all metadata keys match
+            return Object.entries(metadataFilter).every(
+              ([key, value]) => noun.metadata && noun.metadata[key] === value
+            )
+          })
+        }
+      }
+
+      // Get total count before pagination
+      totalCount = totalCount || filteredNouns.length
+
+      // Apply pagination
+      const paginatedNouns = filteredNouns.slice(offset, offset + limit)
+      const hasMore = offset + limit < filteredNouns.length || filteredNouns.length >= maxNouns
+
+      // Set next cursor if there are more items
+      let nextCursor: string | undefined = undefined
+      if (hasMore && paginatedNouns.length > 0) {
+        const lastItem = paginatedNouns[paginatedNouns.length - 1]
+        nextCursor = lastItem.id
+      }
+
+      return {
+        items: paginatedNouns,
+        totalCount,
+        hasMore,
+        nextCursor
       }
     } catch (error) {
-      console.error('Error getting all nouns:', error)
-      // Return empty result on error
+      console.error('Error getting nouns with pagination:', error)
       return {
         items: [],
         totalCount: 0,
         hasMore: false
       }
     }
-    
-    // Apply filtering if needed
-    let filteredNouns = allNouns
-    
-    if (options?.filter) {
-      // Filter by noun type
-      if (options.filter.nounType) {
-        const nounTypes = Array.isArray(options.filter.nounType) 
-          ? options.filter.nounType 
-          : [options.filter.nounType]
-        
-        filteredNouns = filteredNouns.filter(noun => {
-          // HNSWNoun doesn't have a type property directly, check metadata
-          const nounType = noun.metadata?.type
-          return typeof nounType === 'string' && nounTypes.includes(nounType)
-        })
-      }
-      
-      // Filter by service
-      if (options.filter.service) {
-        const services = Array.isArray(options.filter.service) 
-          ? options.filter.service 
-          : [options.filter.service]
-        
-        filteredNouns = filteredNouns.filter(noun => {
-          // HNSWNoun doesn't have a service property directly, check metadata
-          const service = noun.metadata?.service
-          return typeof service === 'string' && services.includes(service)
-        })
-      }
-      
-      // Filter by metadata
-      if (options.filter.metadata) {
-        const metadataFilter = options.filter.metadata
-        filteredNouns = filteredNouns.filter(noun => {
-          if (!noun.metadata) return false
-          
-          // Check if all metadata keys match
-          return Object.entries(metadataFilter).every(([key, value]) => 
-            noun.metadata && noun.metadata[key] === value
-          )
-        })
-      }
-    }
-    
-    // Get total count before pagination
-    const totalCount = filteredNouns.length
-    
-    // Apply pagination
-    const paginatedNouns = filteredNouns.slice(offset, offset + limit)
-    const hasMore = offset + limit < totalCount
-    
-    // Set next cursor if there are more items
-    let nextCursor: string | undefined = undefined
-    if (hasMore && paginatedNouns.length > 0) {
-      const lastItem = paginatedNouns[paginatedNouns.length - 1]
-      nextCursor = lastItem.id
-    }
-    
-    return {
-      items: paginatedNouns,
-      totalCount,
-      hasMore,
-      nextCursor
-    }
   }
-  
+
   /**
    * Get verbs with pagination and filtering
    * @param options Pagination and filtering options
@@ -300,37 +361,41 @@ export abstract class BaseStorage extends BaseStorageAdapter {
     nextCursor?: string
   }> {
     await this.ensureInitialized()
-    
+
     // Set default pagination values
     const pagination = options?.pagination || {}
     const limit = pagination.limit || 100
     const offset = pagination.offset || 0
-    
+    const cursor = pagination.cursor
+
     // Optimize for common filter cases to avoid loading all verbs
     if (options?.filter) {
       // If filtering by sourceId only, use the optimized method
-      if (options.filter.sourceId && !options.filter.verbType && 
-          !options.filter.targetId && !options.filter.service && 
-          !options.filter.metadata) {
-        
-        const sourceId = Array.isArray(options.filter.sourceId) 
-          ? options.filter.sourceId[0] 
+      if (
+        options.filter.sourceId &&
+        !options.filter.verbType &&
+        !options.filter.targetId &&
+        !options.filter.service &&
+        !options.filter.metadata
+      ) {
+        const sourceId = Array.isArray(options.filter.sourceId)
+          ? options.filter.sourceId[0]
           : options.filter.sourceId
-          
+
         // Get verbs by source directly
         const verbsBySource = await this.getVerbsBySource_internal(sourceId)
-        
+
         // Apply pagination
         const paginatedVerbs = verbsBySource.slice(offset, offset + limit)
         const hasMore = offset + limit < verbsBySource.length
-        
+
         // Set next cursor if there are more items
         let nextCursor: string | undefined = undefined
         if (hasMore && paginatedVerbs.length > 0) {
           const lastItem = paginatedVerbs[paginatedVerbs.length - 1]
           nextCursor = lastItem.id
         }
-        
+
         return {
           items: paginatedVerbs,
           totalCount: verbsBySource.length,
@@ -338,30 +403,33 @@ export abstract class BaseStorage extends BaseStorageAdapter {
           nextCursor
         }
       }
-      
+
       // If filtering by targetId only, use the optimized method
-      if (options.filter.targetId && !options.filter.verbType && 
-          !options.filter.sourceId && !options.filter.service && 
-          !options.filter.metadata) {
-        
-        const targetId = Array.isArray(options.filter.targetId) 
-          ? options.filter.targetId[0] 
+      if (
+        options.filter.targetId &&
+        !options.filter.verbType &&
+        !options.filter.sourceId &&
+        !options.filter.service &&
+        !options.filter.metadata
+      ) {
+        const targetId = Array.isArray(options.filter.targetId)
+          ? options.filter.targetId[0]
           : options.filter.targetId
-          
+
         // Get verbs by target directly
         const verbsByTarget = await this.getVerbsByTarget_internal(targetId)
-        
+
         // Apply pagination
         const paginatedVerbs = verbsByTarget.slice(offset, offset + limit)
         const hasMore = offset + limit < verbsByTarget.length
-        
+
         // Set next cursor if there are more items
         let nextCursor: string | undefined = undefined
         if (hasMore && paginatedVerbs.length > 0) {
           const lastItem = paginatedVerbs[paginatedVerbs.length - 1]
           nextCursor = lastItem.id
         }
-        
+
         return {
           items: paginatedVerbs,
           totalCount: verbsByTarget.length,
@@ -369,30 +437,33 @@ export abstract class BaseStorage extends BaseStorageAdapter {
           nextCursor
         }
       }
-      
+
       // If filtering by verbType only, use the optimized method
-      if (options.filter.verbType && !options.filter.sourceId && 
-          !options.filter.targetId && !options.filter.service && 
-          !options.filter.metadata) {
-        
-        const verbType = Array.isArray(options.filter.verbType) 
-          ? options.filter.verbType[0] 
+      if (
+        options.filter.verbType &&
+        !options.filter.sourceId &&
+        !options.filter.targetId &&
+        !options.filter.service &&
+        !options.filter.metadata
+      ) {
+        const verbType = Array.isArray(options.filter.verbType)
+          ? options.filter.verbType[0]
           : options.filter.verbType
-          
+
         // Get verbs by type directly
         const verbsByType = await this.getVerbsByType_internal(verbType)
-        
+
         // Apply pagination
         const paginatedVerbs = verbsByType.slice(offset, offset + limit)
         const hasMore = offset + limit < verbsByType.length
-        
+
         // Set next cursor if there are more items
         let nextCursor: string | undefined = undefined
         if (hasMore && paginatedVerbs.length > 0) {
           const lastItem = paginatedVerbs[paginatedVerbs.length - 1]
           nextCursor = lastItem.id
         }
-        
+
         return {
           items: paginatedVerbs,
           totalCount: verbsByType.length,
@@ -401,114 +472,166 @@ export abstract class BaseStorage extends BaseStorageAdapter {
         }
       }
     }
-    
-    // For more complex filtering or no filtering, we need to get all verbs
-    // but limit the number we load to avoid memory issues
-    const maxVerbs = offset + limit + 1 // Get one extra to check if there are more
-    let allVerbs: GraphVerb[] = []
-    
+
+    // For more complex filtering or no filtering, use a paginated approach
+    // that avoids loading all verbs into memory at once
     try {
-      // Try to get only the verbs we need
-      allVerbs = await this.getAllVerbs_internal()
-      
-      // If we have too many verbs, truncate the array to avoid memory issues
-      if (allVerbs.length > maxVerbs * 10) {
-        console.warn(`Large number of verbs (${allVerbs.length}), truncating to ${maxVerbs * 10} for filtering`)
-        allVerbs = allVerbs.slice(0, maxVerbs * 10)
+      // First, try to get a count of total verbs (if the adapter supports it)
+      let totalCount: number | undefined = undefined
+      try {
+        // This is an optional method that adapters may implement
+        if (typeof (this as any).countVerbs === 'function') {
+          totalCount = await (this as any).countVerbs(options?.filter)
+        }
+      } catch (countError) {
+        // Ignore errors from count method, it's optional
+        console.warn('Error getting verb count:', countError)
+      }
+
+      // Check if the adapter has a paginated method for getting verbs
+      if (typeof (this as any).getVerbsWithPagination === 'function') {
+        // Use the adapter's paginated method
+        const result = await (this as any).getVerbsWithPagination({
+          limit,
+          cursor,
+          filter: options?.filter
+        })
+
+        // Apply offset if needed (some adapters might not support offset)
+        const items = result.items.slice(offset)
+
+        return {
+          items,
+          totalCount: result.totalCount || totalCount,
+          hasMore: result.hasMore,
+          nextCursor: result.nextCursor
+        }
+      }
+
+      // If the adapter doesn't have a paginated method, fall back to the old approach
+      // but with a warning and a reasonable limit
+      console.warn(
+        'Storage adapter does not support pagination, falling back to loading all verbs. This may cause performance issues with large datasets.'
+      )
+
+      // Get verbs with a reasonable limit to avoid memory issues
+      const maxVerbs = Math.min(offset + limit + 100, 1000) // Reasonable limit
+      let allVerbs: GraphVerb[] = []
+
+      try {
+        // Try to get only the verbs we need
+        allVerbs = await this.getAllVerbs_internal()
+
+        // If we have too many verbs, truncate the array to avoid memory issues
+        if (allVerbs.length > maxVerbs) {
+          console.warn(
+            `Large number of verbs (${allVerbs.length}), truncating to ${maxVerbs} for filtering`
+          )
+          allVerbs = allVerbs.slice(0, maxVerbs)
+        }
+      } catch (error) {
+        console.error('Error getting all verbs:', error)
+        // Return empty result on error
+        return {
+          items: [],
+          totalCount: 0,
+          hasMore: false
+        }
+      }
+
+      // Apply filtering if needed
+      let filteredVerbs = allVerbs
+
+      if (options?.filter) {
+        // Filter by verb type
+        if (options.filter.verbType) {
+          const verbTypes = Array.isArray(options.filter.verbType)
+            ? options.filter.verbType
+            : [options.filter.verbType]
+
+          filteredVerbs = filteredVerbs.filter(
+            (verb) => verb.type !== undefined && verbTypes.includes(verb.type)
+          )
+        }
+
+        // Filter by source ID
+        if (options.filter.sourceId) {
+          const sourceIds = Array.isArray(options.filter.sourceId)
+            ? options.filter.sourceId
+            : [options.filter.sourceId]
+
+          filteredVerbs = filteredVerbs.filter(
+            (verb) =>
+              verb.sourceId !== undefined && sourceIds.includes(verb.sourceId)
+          )
+        }
+
+        // Filter by target ID
+        if (options.filter.targetId) {
+          const targetIds = Array.isArray(options.filter.targetId)
+            ? options.filter.targetId
+            : [options.filter.targetId]
+
+          filteredVerbs = filteredVerbs.filter(
+            (verb) =>
+              verb.targetId !== undefined && targetIds.includes(verb.targetId)
+          )
+        }
+
+        // Filter by service
+        if (options.filter.service) {
+          const services = Array.isArray(options.filter.service)
+            ? options.filter.service
+            : [options.filter.service]
+
+          filteredVerbs = filteredVerbs.filter((verb) => {
+            // GraphVerb doesn't have a service property directly, check metadata
+            const service = verb.metadata?.service
+            return typeof service === 'string' && services.includes(service)
+          })
+        }
+
+        // Filter by metadata
+        if (options.filter.metadata) {
+          const metadataFilter = options.filter.metadata
+          filteredVerbs = filteredVerbs.filter((verb) => {
+            if (!verb.metadata) return false
+
+            // Check if all metadata keys match
+            return Object.entries(metadataFilter).every(
+              ([key, value]) => verb.metadata && verb.metadata[key] === value
+            )
+          })
+        }
+      }
+
+      // Get total count before pagination
+      totalCount = totalCount || filteredVerbs.length
+
+      // Apply pagination
+      const paginatedVerbs = filteredVerbs.slice(offset, offset + limit)
+      const hasMore = offset + limit < filteredVerbs.length || filteredVerbs.length >= maxVerbs
+
+      // Set next cursor if there are more items
+      let nextCursor: string | undefined = undefined
+      if (hasMore && paginatedVerbs.length > 0) {
+        const lastItem = paginatedVerbs[paginatedVerbs.length - 1]
+        nextCursor = lastItem.id
+      }
+
+      return {
+        items: paginatedVerbs,
+        totalCount,
+        hasMore,
+        nextCursor
       }
     } catch (error) {
-      console.error('Error getting all verbs:', error)
-      // Return empty result on error
+      console.error('Error getting verbs with pagination:', error)
       return {
         items: [],
         totalCount: 0,
         hasMore: false
       }
-    }
-    
-    // Apply filtering if needed
-    let filteredVerbs = allVerbs
-    
-    if (options?.filter) {
-      // Filter by verb type
-      if (options.filter.verbType) {
-        const verbTypes = Array.isArray(options.filter.verbType) 
-          ? options.filter.verbType 
-          : [options.filter.verbType]
-        
-        filteredVerbs = filteredVerbs.filter(verb => 
-          verb.type !== undefined && verbTypes.includes(verb.type)
-        )
-      }
-      
-      // Filter by source ID
-      if (options.filter.sourceId) {
-        const sourceIds = Array.isArray(options.filter.sourceId) 
-          ? options.filter.sourceId 
-          : [options.filter.sourceId]
-        
-        filteredVerbs = filteredVerbs.filter(verb => 
-          verb.sourceId !== undefined && sourceIds.includes(verb.sourceId)
-        )
-      }
-      
-      // Filter by target ID
-      if (options.filter.targetId) {
-        const targetIds = Array.isArray(options.filter.targetId) 
-          ? options.filter.targetId 
-          : [options.filter.targetId]
-        
-        filteredVerbs = filteredVerbs.filter(verb => 
-          verb.targetId !== undefined && targetIds.includes(verb.targetId)
-        )
-      }
-      
-      // Filter by service
-      if (options.filter.service) {
-        const services = Array.isArray(options.filter.service) 
-          ? options.filter.service 
-          : [options.filter.service]
-        
-        filteredVerbs = filteredVerbs.filter(verb => {
-          // GraphVerb doesn't have a service property directly, check metadata
-          const service = verb.metadata?.service
-          return typeof service === 'string' && services.includes(service)
-        })
-      }
-      
-      // Filter by metadata
-      if (options.filter.metadata) {
-        const metadataFilter = options.filter.metadata
-        filteredVerbs = filteredVerbs.filter(verb => {
-          if (!verb.metadata) return false
-          
-          // Check if all metadata keys match
-          return Object.entries(metadataFilter).every(([key, value]) => 
-            verb.metadata && verb.metadata[key] === value
-          )
-        })
-      }
-    }
-    
-    // Get total count before pagination
-    const totalCount = filteredVerbs.length
-    
-    // Apply pagination
-    const paginatedVerbs = filteredVerbs.slice(offset, offset + limit)
-    const hasMore = offset + limit < totalCount
-    
-    // Set next cursor if there are more items
-    let nextCursor: string | undefined = undefined
-    if (hasMore && paginatedVerbs.length > 0) {
-      const lastItem = paginatedVerbs[paginatedVerbs.length - 1]
-      nextCursor = lastItem.id
-    }
-    
-    return {
-      items: paginatedVerbs,
-      totalCount,
-      hasMore,
-      nextCursor
     }
   }
 
@@ -571,7 +694,9 @@ export abstract class BaseStorage extends BaseStorageAdapter {
    * Get nouns by noun type
    * This method should be implemented by each specific adapter
    */
-  protected abstract getNounsByNounType_internal(nounType: string): Promise<HNSWNoun[]>
+  protected abstract getNounsByNounType_internal(
+    nounType: string
+  ): Promise<HNSWNoun[]>
 
   /**
    * Delete a noun from storage
@@ -601,13 +726,17 @@ export abstract class BaseStorage extends BaseStorageAdapter {
    * Get verbs by source
    * This method should be implemented by each specific adapter
    */
-  protected abstract getVerbsBySource_internal(sourceId: string): Promise<GraphVerb[]>
+  protected abstract getVerbsBySource_internal(
+    sourceId: string
+  ): Promise<GraphVerb[]>
 
   /**
    * Get verbs by target
    * This method should be implemented by each specific adapter
    */
-  protected abstract getVerbsByTarget_internal(targetId: string): Promise<GraphVerb[]>
+  protected abstract getVerbsByTarget_internal(
+    targetId: string
+  ): Promise<GraphVerb[]>
 
   /**
    * Get verbs by type
@@ -640,7 +769,9 @@ export abstract class BaseStorage extends BaseStorageAdapter {
    * This method should be implemented by each specific adapter
    * @param statistics The statistics data to save
    */
-  protected abstract saveStatisticsData(statistics: StatisticsData): Promise<void>
+  protected abstract saveStatisticsData(
+    statistics: StatisticsData
+  ): Promise<void>
 
   /**
    * Get statistics data from storage
