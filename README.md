@@ -734,7 +734,7 @@ const vector = await db.embed("Some text to convert to a vector")
 
 // Calculate similarity between two texts or vectors
 const similarity = await db.calculateSimilarity(
-  "Cats are furry pets", 
+  "Cats are furry pets",
   "Felines make good companions"
 )
 console.log(`Similarity score: ${similarity}`) // Higher value means more similar
@@ -1681,10 +1681,10 @@ If you need more control over the release process, you can use the individual co
 
 ```bash
 # Update version and generate changelog
-npm run release:patch  # or release:minor, release:major
+npm run _release:patch  # or _release:minor, _release:major
 
 # Create GitHub release
-npm run github-release
+npm run _github-release
 
 # Publish to NPM
 npm publish
