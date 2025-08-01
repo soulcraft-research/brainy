@@ -98,6 +98,15 @@ export interface BrainyDataConfig {
     }
     forceFileSystemStorage?: boolean
     forceMemoryStorage?: boolean
+    cacheConfig?: {
+      hotCacheMaxSize?: number
+      hotCacheEvictionThreshold?: number
+      warmCacheTTL?: number
+      batchSize?: number
+      autoTune?: boolean
+      autoTuneInterval?: number
+      readOnly?: boolean
+    }
   }
 
   /**
@@ -242,6 +251,82 @@ export interface BrainyDataConfig {
      */
     updateIndex?: boolean
   }
+
+  /**
+   * Cache configuration for optimizing search performance
+   * Controls how the system caches data for faster access
+   * Particularly important for large datasets in S3 or other remote storage
+   */
+  cache?: {
+    /**
+     * Whether to enable auto-tuning of cache parameters
+     * When true, the system will automatically adjust cache sizes based on usage patterns
+     * Default: true
+     */
+    autoTune?: boolean
+
+    /**
+     * The interval (in milliseconds) at which to auto-tune cache parameters
+     * Only applies when autoTune is true
+     * Default: 60000 (60 seconds)
+     */
+    autoTuneInterval?: number
+
+    /**
+     * Maximum size of the hot cache (most frequently accessed items)
+     * If provided, overrides the automatically detected optimal size
+     * For large datasets, consider values between 5000-50000 depending on available memory
+     */
+    hotCacheMaxSize?: number
+
+    /**
+     * Threshold at which to start evicting items from the hot cache
+     * Expressed as a fraction of hotCacheMaxSize (0.0 to 1.0)
+     * Default: 0.8 (start evicting when cache is 80% full)
+     */
+    hotCacheEvictionThreshold?: number
+
+    /**
+     * Time-to-live for items in the warm cache in milliseconds
+     * Default: 3600000 (1 hour)
+     */
+    warmCacheTTL?: number
+
+    /**
+     * Batch size for operations like prefetching
+     * Larger values improve throughput but use more memory
+     * For S3 or remote storage with large datasets, consider values between 50-200
+     */
+    batchSize?: number
+
+    /**
+     * Read-only mode specific optimizations
+     * These settings are only applied when readOnly is true
+     */
+    readOnlyMode?: {
+      /**
+       * Maximum size of the hot cache in read-only mode
+       * In read-only mode, larger cache sizes can be used since there are no write operations
+       * For large datasets, consider values between 10000-100000 depending on available memory
+       */
+      hotCacheMaxSize?: number
+
+      /**
+       * Batch size for operations in read-only mode
+       * Larger values improve throughput in read-only mode
+       * For S3 or remote storage with large datasets, consider values between 100-300
+       */
+      batchSize?: number
+
+      /**
+       * Prefetch strategy for read-only mode
+       * Controls how aggressively the system prefetches data
+       * Options: 'conservative', 'moderate', 'aggressive'
+       * Default: 'moderate'
+       */
+      prefetchStrategy?: 'conservative' | 'moderate' | 'aggressive'
+    }
+  }
 }
 
 export class BrainyData<T = any> implements BrainyDataInterface<T> {
@@ -263,6 +348,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   // Timeout and retry configuration
   private timeoutConfig: BrainyDataConfig['timeouts'] = {}
   private retryConfig: BrainyDataConfig['retryPolicy'] = {}
+  
+  // Cache configuration
+  private cacheConfig: BrainyDataConfig['cache']
 
   // Real-time update properties
   private realtimeUpdateConfig: Required<
@@ -384,6 +472,31 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       this.realtimeUpdateConfig = {
         ...this.realtimeUpdateConfig,
         ...config.realtimeUpdates
+      }
+    }
+    
+    // Initialize cache configuration with intelligent defaults
+    // These defaults are automatically tuned based on environment and dataset size
+    this.cacheConfig = {
+      // Enable auto-tuning by default for optimal performance
+      autoTune: true,
+      
+      // Set auto-tune interval to 1 minute for faster initial optimization
+      // This is especially important for large datasets
+      autoTuneInterval: 60000, // 1 minute
+      
+      // Read-only mode specific optimizations
+      readOnlyMode: {
+        // Use aggressive prefetching in read-only mode for better performance
+        prefetchStrategy: 'aggressive'
+      }
+    }
+    
+    // Override defaults with user-provided configuration if available
+    if (config.cache) {
+      this.cacheConfig = {
+        ...this.cacheConfig,
+        ...config.cache
       }
     }
   }
@@ -839,6 +952,15 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         let storageOptions = {
           ...this.storageConfig,
           requestPersistentStorage: this.requestPersistentStorage
+        }
+        
+        // Add cache configuration if provided
+        if (this.cacheConfig) {
+          storageOptions.cacheConfig = {
+            ...this.cacheConfig,
+            // Pass read-only flag to optimize cache behavior
+            readOnly: this.readOnly
+          }
         }
 
         // Ensure s3Storage has all required fields if it's provided

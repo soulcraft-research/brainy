@@ -171,6 +171,57 @@ export interface StorageOptions {
      * Operation configuration for timeout and retry behavior
      */
     operationConfig?: OperationConfig
+
+    /**
+     * Cache configuration for optimizing data access
+     * Particularly important for S3 and other remote storage
+     */
+    cacheConfig?: {
+        /**
+         * Maximum size of the hot cache (most frequently accessed items)
+         * For large datasets, consider values between 5000-50000 depending on available memory
+         */
+        hotCacheMaxSize?: number
+
+        /**
+         * Threshold at which to start evicting items from the hot cache
+         * Expressed as a fraction of hotCacheMaxSize (0.0 to 1.0)
+         * Default: 0.8 (start evicting when cache is 80% full)
+         */
+        hotCacheEvictionThreshold?: number
+
+        /**
+         * Time-to-live for items in the warm cache in milliseconds
+         * Default: 3600000 (1 hour)
+         */
+        warmCacheTTL?: number
+
+        /**
+         * Batch size for operations like prefetching
+         * Larger values improve throughput but use more memory
+         */
+        batchSize?: number
+
+        /**
+         * Whether to enable auto-tuning of cache parameters
+         * When true, the system will automatically adjust cache sizes based on usage patterns
+         * Default: true
+         */
+        autoTune?: boolean
+
+        /**
+         * The interval (in milliseconds) at which to auto-tune cache parameters
+         * Only applies when autoTune is true
+         * Default: 60000 (1 minute)
+         */
+        autoTuneInterval?: number
+
+        /**
+         * Whether the storage is in read-only mode
+         * This affects cache sizing and prefetching strategies
+         */
+        readOnly?: boolean
+    }
 }
 
 /**
@@ -245,7 +296,8 @@ export async function createStorage(
                         secretAccessKey: options.s3Storage.secretAccessKey,
                         sessionToken: options.s3Storage.sessionToken,
                         serviceType: 's3',
-                        operationConfig: options.operationConfig
+                        operationConfig: options.operationConfig,
+                        cacheConfig: options.cacheConfig
                     })
                 } else {
                     console.warn('S3 storage configuration is missing, falling back to memory storage')
@@ -260,7 +312,8 @@ export async function createStorage(
                         accountId: options.r2Storage.accountId,
                         accessKeyId: options.r2Storage.accessKeyId,
                         secretAccessKey: options.r2Storage.secretAccessKey,
-                        serviceType: 'r2'
+                        serviceType: 'r2',
+                        cacheConfig: options.cacheConfig
                     })
                 } else {
                     console.warn('R2 storage configuration is missing, falling back to memory storage')
@@ -276,7 +329,8 @@ export async function createStorage(
                         endpoint: options.gcsStorage.endpoint || 'https://storage.googleapis.com',
                         accessKeyId: options.gcsStorage.accessKeyId,
                         secretAccessKey: options.gcsStorage.secretAccessKey,
-                        serviceType: 'gcs'
+                        serviceType: 'gcs',
+                        cacheConfig: options.cacheConfig
                     })
                 } else {
                     console.warn('GCS storage configuration is missing, falling back to memory storage')
@@ -298,7 +352,8 @@ export async function createStorage(
             endpoint: options.customS3Storage.endpoint,
             accessKeyId: options.customS3Storage.accessKeyId,
             secretAccessKey: options.customS3Storage.secretAccessKey,
-            serviceType: options.customS3Storage.serviceType || 'custom'
+            serviceType: options.customS3Storage.serviceType || 'custom',
+            cacheConfig: options.cacheConfig
         })
     }
 
@@ -310,7 +365,8 @@ export async function createStorage(
             accountId: options.r2Storage.accountId,
             accessKeyId: options.r2Storage.accessKeyId,
             secretAccessKey: options.r2Storage.secretAccessKey,
-            serviceType: 'r2'
+            serviceType: 'r2',
+            cacheConfig: options.cacheConfig
         })
     }
 
@@ -323,7 +379,8 @@ export async function createStorage(
             accessKeyId: options.s3Storage.accessKeyId,
             secretAccessKey: options.s3Storage.secretAccessKey,
             sessionToken: options.s3Storage.sessionToken,
-            serviceType: 's3'
+            serviceType: 's3',
+            cacheConfig: options.cacheConfig
         })
     }
 
@@ -336,7 +393,8 @@ export async function createStorage(
             endpoint: options.gcsStorage.endpoint || 'https://storage.googleapis.com',
             accessKeyId: options.gcsStorage.accessKeyId,
             secretAccessKey: options.gcsStorage.secretAccessKey,
-            serviceType: 'gcs'
+            serviceType: 'gcs',
+            cacheConfig: options.cacheConfig
         })
     }
 
