@@ -44,6 +44,12 @@ interface CacheStats {
   evictions: number
   size: number
   maxSize: number
+  hotCacheSize: number
+  warmCacheSize: number
+  hotCacheHits: number
+  hotCacheMisses: number
+  warmCacheHits: number
+  warmCacheMisses: number
 }
 
 // Environment detection for storage selection
@@ -75,7 +81,13 @@ export class CacheManager<T extends HNSWNode | Edge> {
     misses: 0,
     evictions: 0,
     size: 0,
-    maxSize: 0
+    maxSize: 0,
+    hotCacheSize: 0,
+    warmCacheSize: 0,
+    hotCacheHits: 0,
+    hotCacheMisses: 0,
+    warmCacheHits: 0,
+    warmCacheMisses: 0
   }
   
   // Environment and storage configuration
@@ -109,6 +121,32 @@ export class CacheManager<T extends HNSWNode | Edge> {
     warmStorage?: any
     coldStorage?: any
     readOnly?: boolean
+    environmentConfig?: {
+      node?: {
+        hotCacheMaxSize?: number
+        hotCacheEvictionThreshold?: number
+        warmCacheTTL?: number
+        batchSize?: number
+      },
+      browser?: {
+        hotCacheMaxSize?: number
+        hotCacheEvictionThreshold?: number
+        warmCacheTTL?: number
+        batchSize?: number
+      },
+      worker?: {
+        hotCacheMaxSize?: number
+        hotCacheEvictionThreshold?: number
+        warmCacheTTL?: number
+        batchSize?: number
+      },
+      [key: string]: {
+        hotCacheMaxSize?: number
+        hotCacheEvictionThreshold?: number
+        warmCacheTTL?: number
+        batchSize?: number
+      } | undefined
+    }
   }
   
   /**
@@ -124,6 +162,32 @@ export class CacheManager<T extends HNSWNode | Edge> {
     warmStorage?: any
     coldStorage?: any
     readOnly?: boolean
+    environmentConfig?: {
+      node?: {
+        hotCacheMaxSize?: number
+        hotCacheEvictionThreshold?: number
+        warmCacheTTL?: number
+        batchSize?: number
+      },
+      browser?: {
+        hotCacheMaxSize?: number
+        hotCacheEvictionThreshold?: number
+        warmCacheTTL?: number
+        batchSize?: number
+      },
+      worker?: {
+        hotCacheMaxSize?: number
+        hotCacheEvictionThreshold?: number
+        warmCacheTTL?: number
+        batchSize?: number
+      },
+      [key: string]: {
+        hotCacheMaxSize?: number
+        hotCacheEvictionThreshold?: number
+        warmCacheTTL?: number
+        batchSize?: number
+      } | undefined
+    }
   } = {}) {
     // Store options for later reference
     this.options = options
@@ -142,11 +206,14 @@ export class CacheManager<T extends HNSWNode | Edge> {
     // Set auto-tuning flag
     this.autoTune = options.autoTune !== undefined ? options.autoTune : true
     
-    // Set default values or use provided values
-    this.hotCacheMaxSize = options.hotCacheMaxSize || this.detectOptimalCacheSize()
-    this.hotCacheEvictionThreshold = options.hotCacheEvictionThreshold || 0.8
-    this.warmCacheTTL = options.warmCacheTTL || 24 * 60 * 60 * 1000 // 24 hours
-    this.batchSize = options.batchSize || 10
+    // Get environment-specific configuration if available
+    const envConfig = options.environmentConfig?.[Environment[this.environment].toLowerCase()]
+    
+    // Set default values or use environment-specific values or global values
+    this.hotCacheMaxSize = envConfig?.hotCacheMaxSize || options.hotCacheMaxSize || this.detectOptimalCacheSize()
+    this.hotCacheEvictionThreshold = envConfig?.hotCacheEvictionThreshold || options.hotCacheEvictionThreshold || 0.8
+    this.warmCacheTTL = envConfig?.warmCacheTTL || options.warmCacheTTL || 24 * 60 * 60 * 1000 // 24 hours
+    this.batchSize = envConfig?.batchSize || options.batchSize || 10
     
     // If auto-tuning is enabled, perform initial tuning
     if (this.autoTune) {
@@ -209,14 +276,13 @@ export class CacheManager<T extends HNSWNode | Edge> {
       // In Node.js, use available system memory with enhanced allocation
       if (this.environment === Environment.NODE) {
         try {
-          // Use dynamic import to avoid ESLint warning
-          const getOS = () => {
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            return require('os')
-          }
-          const os = getOS()
-          const totalMemory = os.totalmem()
-          const freeMemory = os.freemem()
+          // For ES module compatibility, we'll use a fixed default value
+          // since we can't use dynamic imports in a synchronous function
+          
+          // Use conservative defaults that don't require OS module
+          // These values are reasonable for most systems
+          const estimatedTotalMemory = 8 * 1024 * 1024 * 1024  // Assume 8GB total
+          const estimatedFreeMemory = 4 * 1024 * 1024 * 1024   // Assume 4GB free
           
           // Estimate average entry size (in bytes)
           // This is a conservative estimate for complex objects with vectors
@@ -241,7 +307,7 @@ export class CacheManager<T extends HNSWNode | Edge> {
           
           // Calculate optimal size based on adjusted percentage
           const optimalSize = Math.max(
-            Math.floor(freeMemory * memoryPercentage / ESTIMATED_BYTES_PER_ENTRY),
+            Math.floor(estimatedFreeMemory * memoryPercentage / ESTIMATED_BYTES_PER_ENTRY),
             1000
           )
           
@@ -308,6 +374,167 @@ export class CacheManager<T extends HNSWNode | Edge> {
   }
   
   /**
+   * Async version of detectOptimalCacheSize that uses dynamic imports
+   * to access system information in Node.js environments
+   * 
+   * This method provides more accurate memory detection by using
+   * the OS module's dynamic import in Node.js environments
+   */
+  private async detectOptimalCacheSizeAsync(): Promise<number> {
+    try {
+      // Default to a conservative value
+      const defaultSize = 1000
+      
+      // Get the total dataset size if available
+      const totalItems = this.storageStatistics ? 
+        (this.storageStatistics.totalNodes || 0) + (this.storageStatistics.totalEdges || 0) : 0
+      
+      // Determine if we're dealing with a large dataset (>100K items)
+      const isLargeDataset = totalItems > 100000
+      
+      // Check if we're in read-only mode (from parent BrainyData instance)
+      const isReadOnly = this.options?.readOnly || false
+      
+      // Get memory information based on environment
+      const memoryInfo = await this.detectAvailableMemory()
+      
+      // If memory detection failed, use the synchronous method
+      if (!memoryInfo) {
+        return this.detectOptimalCacheSize()
+      }
+      
+      // Estimate average entry size (in bytes)
+      // This is a conservative estimate for complex objects with vectors
+      const ESTIMATED_BYTES_PER_ENTRY = 1024 // 1KB per entry
+      
+      // Base memory percentage - 10% by default
+      let memoryPercentage = 0.1
+      
+      // Adjust based on operating mode and dataset size
+      if (isReadOnly) {
+        // In read-only mode, we can use more memory for caching
+        memoryPercentage = 0.25 // 25% of free memory
+        
+        // For large datasets in read-only mode, be even more aggressive
+        if (isLargeDataset) {
+          memoryPercentage = 0.4 // 40% of free memory
+        }
+      } else if (isLargeDataset) {
+        // For large datasets in normal mode, increase slightly
+        memoryPercentage = 0.15 // 15% of free memory
+      }
+      
+      // Calculate optimal size based on adjusted percentage
+      const optimalSize = Math.max(
+        Math.floor(memoryInfo.freeMemory * memoryPercentage / ESTIMATED_BYTES_PER_ENTRY),
+        1000
+      )
+      
+      // If we know the total dataset size, cap at a reasonable percentage
+      if (totalItems > 0) {
+        // In read-only mode, we can cache a larger percentage
+        const maxPercentage = isReadOnly ? 0.5 : 0.3
+        const maxItems = Math.ceil(totalItems * maxPercentage)
+        
+        // Return the smaller of the two to avoid excessive memory usage
+        return Math.min(optimalSize, maxItems)
+      }
+      
+      return optimalSize
+    } catch (error) {
+      console.warn('Error detecting optimal cache size asynchronously:', error)
+      return 1000 // Conservative default
+    }
+  }
+  
+  /**
+   * Detects available memory across different environments
+   * 
+   * This method uses different techniques to detect memory in:
+   * - Node.js: Uses the OS module with dynamic import
+   * - Browser: Uses performance.memory or navigator.deviceMemory
+   * - Worker: Uses performance.memory if available
+   * 
+   * @returns An object with totalMemory and freeMemory in bytes, or null if detection fails
+   */
+  private async detectAvailableMemory(): Promise<{ totalMemory: number, freeMemory: number } | null> {
+    try {
+      // Node.js environment
+      if (this.environment === Environment.NODE) {
+        try {
+          // Use dynamic import for OS module
+          const os = await import('os')
+          
+          // Get actual system memory information
+          const totalMemory = os.totalmem()
+          const freeMemory = os.freemem()
+          
+          return { totalMemory, freeMemory }
+        } catch (error) {
+          console.warn('Failed to detect memory in Node.js environment:', error)
+        }
+      }
+      
+      // Browser environment
+      if (this.environment === Environment.BROWSER) {
+        // Try using performance.memory (Chrome only)
+        if (performance && (performance as any).memory) {
+          const memoryInfo = (performance as any).memory
+          
+          // jsHeapSizeLimit is the maximum size of the heap
+          // totalJSHeapSize is the currently allocated heap size
+          // usedJSHeapSize is the amount of heap currently being used
+          const totalMemory = memoryInfo.jsHeapSizeLimit || 0
+          const usedMemory = memoryInfo.usedJSHeapSize || 0
+          const freeMemory = Math.max(totalMemory - usedMemory, 0)
+          
+          return { totalMemory, freeMemory }
+        }
+        
+        // Try using navigator.deviceMemory as fallback
+        if (navigator.deviceMemory) {
+          // deviceMemory is in GB, convert to bytes
+          const totalMemory = navigator.deviceMemory * 1024 * 1024 * 1024
+          // Assume 50% is free
+          const freeMemory = totalMemory * 0.5
+          
+          return { totalMemory, freeMemory }
+        }
+      }
+      
+      // Worker environment
+      if (this.environment === Environment.WORKER) {
+        // Try using performance.memory if available (Chrome workers)
+        if (performance && (performance as any).memory) {
+          const memoryInfo = (performance as any).memory
+          
+          const totalMemory = memoryInfo.jsHeapSizeLimit || 0
+          const usedMemory = memoryInfo.usedJSHeapSize || 0
+          const freeMemory = Math.max(totalMemory - usedMemory, 0)
+          
+          return { totalMemory, freeMemory }
+        }
+        
+        // For workers, use a conservative estimate
+        // Assume 2GB total memory with 1GB free
+        return {
+          totalMemory: 2 * 1024 * 1024 * 1024,
+          freeMemory: 1 * 1024 * 1024 * 1024
+        }
+      }
+      
+      // If all detection methods fail, use conservative defaults
+      return {
+        totalMemory: 8 * 1024 * 1024 * 1024,  // Assume 8GB total
+        freeMemory: 4 * 1024 * 1024 * 1024    // Assume 4GB free
+      }
+    } catch (error) {
+      console.warn('Memory detection failed:', error)
+      return null
+    }
+  }
+  
+  /**
    * Tune cache parameters based on statistics and environment
    * This method is called periodically if auto-tuning is enabled
    * 
@@ -339,17 +566,20 @@ export class CacheManager<T extends HNSWNode | Edge> {
         this.storageStatistics = await this.coldStorage.getStatistics()
       }
       
-      // Tune hot cache size
-      this.tuneHotCacheSize()
+      // Get cache statistics for adaptive tuning
+      const cacheStats = this.getStats()
       
-      // Tune eviction threshold
-      this.tuneEvictionThreshold()
+      // Use the async version of tuneHotCacheSize which uses detectOptimalCacheSizeAsync
+      await this.tuneHotCacheSize()
       
-      // Tune warm cache TTL
-      this.tuneWarmCacheTTL()
+      // Tune eviction threshold based on hit/miss ratio
+      this.tuneEvictionThreshold(cacheStats)
       
-      // Tune batch size
-      this.tuneBatchSize()
+      // Tune warm cache TTL based on access patterns
+      this.tuneWarmCacheTTL(cacheStats)
+      
+      // Tune batch size based on access patterns and storage type
+      this.tuneBatchSize(cacheStats)
       
       // Log tuned parameters if debug is enabled
       if (process.env.DEBUG) {
@@ -357,7 +587,15 @@ export class CacheManager<T extends HNSWNode | Edge> {
           hotCacheMaxSize: this.hotCacheMaxSize,
           hotCacheEvictionThreshold: this.hotCacheEvictionThreshold,
           warmCacheTTL: this.warmCacheTTL,
-          batchSize: this.batchSize
+          batchSize: this.batchSize,
+          cacheStats: {
+            hotCacheSize: cacheStats.hotCacheSize,
+            warmCacheSize: cacheStats.warmCacheSize,
+            hotCacheHits: cacheStats.hotCacheHits,
+            hotCacheMisses: cacheStats.hotCacheMisses,
+            warmCacheHits: cacheStats.warmCacheHits,
+            warmCacheMisses: cacheStats.warmCacheMisses
+          }
         })
       }
     } catch (error) {
@@ -382,9 +620,9 @@ export class CacheManager<T extends HNSWNode | Edge> {
    * - For read-only mode, prioritize cache size over eviction speed
    * - Dynamically adjust based on hit/miss ratio and query patterns
    */
-  private tuneHotCacheSize(): void {
-    // Start with the base size from environment detection
-    let optimalSize = this.detectOptimalCacheSize()
+  private async tuneHotCacheSize(): Promise<void> {
+    // Use the async version to get more accurate memory information
+    let optimalSize = await this.detectOptimalCacheSizeAsync()
     
     // Check if we're in read-only mode
     const isReadOnly = this.options?.readOnly || false
@@ -511,6 +749,7 @@ export class CacheManager<T extends HNSWNode | Edge> {
    * It is tuned based on:
    * 1. Cache hit/miss ratio
    * 2. Operation patterns (read-heavy vs. write-heavy workloads)
+   * 3. Memory pressure and available resources
    * 
    * Algorithm:
    * - Start with a default threshold of 0.8 (80% of max size)
@@ -518,24 +757,30 @@ export class CacheManager<T extends HNSWNode | Edge> {
    * - For low hit ratios, decrease the threshold to evict items more aggressively
    * - For read-heavy workloads, use a higher threshold
    * - For write-heavy workloads, use a lower threshold
+   * - Under memory pressure, use a lower threshold to conserve resources
+   * 
+   * @param cacheStats Optional cache statistics for more adaptive tuning
    */
-  private tuneEvictionThreshold(): void {
+  private tuneEvictionThreshold(cacheStats?: CacheStats): void {
     // Default threshold
     let threshold = 0.8
     
+    // Use provided cache stats or internal stats
+    const stats = cacheStats || this.getStats()
+    
     // Adjust based on hit/miss ratio if we have enough data
-    const totalAccesses = this.stats.hits + this.stats.misses
-    if (totalAccesses > 100) {
-      const hitRatio = this.stats.hits / totalAccesses
+    const totalHotAccesses = stats.hotCacheHits + stats.hotCacheMisses
+    if (totalHotAccesses > 100) {
+      const hotHitRatio = stats.hotCacheHits / totalHotAccesses
       
       // If hit ratio is high, we can use a higher threshold
       // If hit ratio is low, we should use a lower threshold to evict more aggressively
-      if (hitRatio > 0.8) {
+      if (hotHitRatio > 0.8) {
         // High hit ratio, increase threshold (up to 0.9)
-        threshold = Math.min(0.9, 0.8 + (hitRatio - 0.8))
-      } else if (hitRatio < 0.5) {
+        threshold = Math.min(0.9, 0.8 + (hotHitRatio - 0.8) * 0.5)
+      } else if (hotHitRatio < 0.5) {
         // Low hit ratio, decrease threshold (down to 0.6)
-        threshold = Math.max(0.6, 0.8 - (0.5 - hitRatio))
+        threshold = Math.max(0.6, 0.8 - (0.5 - hotHitRatio) * 0.5)
       }
     }
     
@@ -564,6 +809,24 @@ export class CacheManager<T extends HNSWNode | Edge> {
       }
     }
     
+    // Check memory pressure - if hot cache is growing too fast relative to hits,
+    // reduce the threshold to conserve memory
+    if (stats.hotCacheSize > 0 && totalHotAccesses > 0) {
+      const sizeToAccessRatio = stats.hotCacheSize / totalHotAccesses
+      
+      // If the ratio is high, it means we're caching a lot but not getting many hits
+      if (sizeToAccessRatio > 10) {
+        // Reduce threshold more aggressively under high memory pressure
+        threshold = Math.max(0.5, threshold - 0.1)
+      }
+    }
+    
+    // If we're in read-only mode, we can be more aggressive with caching
+    const isReadOnly = this.options?.readOnly || false
+    if (isReadOnly) {
+      threshold = Math.min(0.95, threshold + 0.05)
+    }
+    
     // Update the eviction threshold
     this.hotCacheEvictionThreshold = threshold
   }
@@ -574,15 +837,42 @@ export class CacheManager<T extends HNSWNode | Edge> {
    * The warm cache TTL determines how long items remain in the warm cache.
    * It is tuned based on:
    * 1. Update frequency from operation statistics
+   * 2. Warm cache hit/miss ratio
+   * 3. Access patterns and frequency
+   * 4. Available storage resources
    * 
    * Algorithm:
    * - Start with a default TTL of 24 hours
    * - For frequently updated data, use a shorter TTL
    * - For rarely updated data, use a longer TTL
+   * - For frequently accessed data, use a longer TTL
+   * - For rarely accessed data, use a shorter TTL
+   * - Under storage pressure, use a shorter TTL
+   * 
+   * @param cacheStats Optional cache statistics for more adaptive tuning
    */
-  private tuneWarmCacheTTL(): void {
+  private tuneWarmCacheTTL(cacheStats?: CacheStats): void {
     // Default TTL (24 hours)
     let ttl = 24 * 60 * 60 * 1000
+    
+    // Use provided cache stats or internal stats
+    const stats = cacheStats || this.getStats()
+    
+    // Adjust based on warm cache hit/miss ratio if we have enough data
+    const totalWarmAccesses = stats.warmCacheHits + stats.warmCacheMisses
+    if (totalWarmAccesses > 50) {
+      const warmHitRatio = stats.warmCacheHits / totalWarmAccesses
+      
+      // If warm cache hit ratio is high, items in warm cache are useful
+      // so we should keep them longer
+      if (warmHitRatio > 0.7) {
+        // High hit ratio, increase TTL (up to 36 hours)
+        ttl = Math.min(36 * 60 * 60 * 1000, ttl * (1 + (warmHitRatio - 0.7)))
+      } else if (warmHitRatio < 0.3) {
+        // Low hit ratio, decrease TTL (down to 12 hours)
+        ttl = Math.max(12 * 60 * 60 * 1000, ttl * (0.8 - (0.3 - warmHitRatio)))
+      }
+    }
     
     // If we have storage statistics with operation counts, adjust based on update frequency
     if (this.storageStatistics && this.storageStatistics.operations) {
@@ -597,12 +887,29 @@ export class CacheManager<T extends HNSWNode | Edge> {
         // For rarely updated data, use longer TTL
         if (updateRatio > 0.3) {
           // Frequently updated, decrease TTL (down to 6 hours)
-          ttl = Math.max(6 * 60 * 60 * 1000, ttl * (1 - updateRatio))
+          ttl = Math.max(6 * 60 * 60 * 1000, ttl * (1 - updateRatio * 0.5))
         } else if (updateRatio < 0.1) {
           // Rarely updated, increase TTL (up to 48 hours)
-          ttl = Math.min(48 * 60 * 60 * 1000, ttl * (1.5 - updateRatio))
+          ttl = Math.min(48 * 60 * 60 * 1000, ttl * (1.2 - updateRatio))
         }
       }
+    }
+    
+    // Check warm cache size relative to hot cache size
+    // If warm cache is much larger than hot cache, reduce TTL to prevent excessive storage use
+    if (stats.warmCacheSize > 0 && stats.hotCacheSize > 0) {
+      const warmToHotRatio = stats.warmCacheSize / stats.hotCacheSize
+      
+      if (warmToHotRatio > 5) {
+        // Warm cache is much larger than hot cache, reduce TTL
+        ttl = Math.max(6 * 60 * 60 * 1000, ttl * (0.9 - Math.min(0.3, (warmToHotRatio - 5) / 20)))
+      }
+    }
+    
+    // If we're in read-only mode, we can use a longer TTL
+    const isReadOnly = this.options?.readOnly || false
+    if (isReadOnly) {
+      ttl = Math.min(72 * 60 * 60 * 1000, ttl * 1.5)
     }
     
     // Update the warm cache TTL
@@ -621,6 +928,7 @@ export class CacheManager<T extends HNSWNode | Edge> {
    * 5. Operating mode (read-only vs. read-write)
    * 6. Storage type (S3, filesystem, memory)
    * 7. Dataset size
+   * 8. Cache efficiency and access patterns
    * 
    * Enhanced algorithm:
    * - Start with a default based on the environment
@@ -628,10 +936,16 @@ export class CacheManager<T extends HNSWNode | Edge> {
    * - For read-only mode, use larger batches to improve throughput
    * - Dynamically adjust based on network latency and throughput
    * - Balance between memory usage and performance
+   * - Adapt to cache hit/miss patterns
+   * 
+   * @param cacheStats Optional cache statistics for more adaptive tuning
    */
-  private tuneBatchSize(): void {
+  private tuneBatchSize(cacheStats?: CacheStats): void {
     // Default batch size
     let batchSize = 10
+    
+    // Use provided cache stats or internal stats
+    const stats = cacheStats || this.getStats()
     
     // Check if we're in read-only mode
     const isReadOnly = this.options?.readOnly || false
@@ -688,6 +1002,39 @@ export class CacheManager<T extends HNSWNode | Edge> {
       batchSize = isReadOnly ? 20 : 15
     }
     
+    // Adjust based on cache hit/miss ratios
+    const totalHotAccesses = stats.hotCacheHits + stats.hotCacheMisses
+    const totalWarmAccesses = stats.warmCacheHits + stats.warmCacheMisses
+    
+    if (totalHotAccesses > 100) {
+      const hotHitRatio = stats.hotCacheHits / totalHotAccesses
+      
+      // If hot cache hit ratio is high, we're effectively using the cache
+      // so we can use larger batches for better throughput
+      if (hotHitRatio > 0.8) {
+        // High hit ratio, increase batch size
+        batchSize = Math.min(batchSize * 1.5, isRemoteStorage ? 250 : 150)
+      } else if (hotHitRatio < 0.4) {
+        // Low hit ratio, we might be fetching too much at once
+        // Reduce batch size to be more selective
+        batchSize = Math.max(5, batchSize * 0.8)
+      }
+    }
+    
+    if (totalWarmAccesses > 50) {
+      const warmHitRatio = stats.warmCacheHits / totalWarmAccesses
+      
+      // If warm cache hit ratio is high, prefetching is effective
+      // so we can use larger batches
+      if (warmHitRatio > 0.7) {
+        // High warm hit ratio, increase batch size
+        batchSize = Math.min(batchSize * 1.3, isRemoteStorage ? 200 : 120)
+      } else if (warmHitRatio < 0.3) {
+        // Low warm hit ratio, reduce batch size
+        batchSize = Math.max(5, batchSize * 0.9)
+      }
+    }
+    
     // If we have storage statistics with operation counts, adjust based on operation patterns
     if (this.storageStatistics && this.storageStatistics.operations) {
       const ops = this.storageStatistics.operations
@@ -721,10 +1068,20 @@ export class CacheManager<T extends HNSWNode | Edge> {
       }
     }
     
-    // Adjust based on hit/miss ratio if we have enough data
-    const totalAccesses = this.stats.hits + this.stats.misses
+    // Check if we're experiencing memory pressure
+    if (stats.hotCacheSize > 0 && this.hotCacheMaxSize > 0) {
+      const cacheUtilization = stats.hotCacheSize / this.hotCacheMaxSize
+      
+      // If cache utilization is high, reduce batch size to avoid memory pressure
+      if (cacheUtilization > 0.85) {
+        batchSize = Math.max(5, Math.floor(batchSize * 0.8))
+      }
+    }
+    
+    // Adjust based on overall hit/miss ratio if we have enough data
+    const totalAccesses = stats.hotCacheHits + stats.hotCacheMisses + stats.warmCacheHits + stats.warmCacheMisses
     if (totalAccesses > 100) {
-      const hitRatio = this.stats.hits / totalAccesses
+      const hitRatio = (stats.hotCacheHits + stats.warmCacheHits) / totalAccesses
       
       // Base adjustment factors
       let increaseFactorForLowHitRatio = isRemoteStorage ? 1.5 : 1.2
@@ -774,8 +1131,8 @@ export class CacheManager<T extends HNSWNode | Edge> {
     
     batchSize = Math.min(maxBatchSize, batchSize)
     
-    // Update the batch size
-    this.batchSize = batchSize
+    // Update the batch size with the adaptively tuned value
+    this.batchSize = Math.round(batchSize)
   }
   
   /**
@@ -1081,7 +1438,13 @@ export class CacheManager<T extends HNSWNode | Edge> {
       misses: 0,
       evictions: 0,
       size: 0,
-      maxSize: this.hotCacheMaxSize
+      maxSize: this.hotCacheMaxSize,
+      hotCacheSize: 0,
+      warmCacheSize: 0,
+      hotCacheHits: 0,
+      hotCacheMisses: 0,
+      warmCacheHits: 0,
+      warmCacheMisses: 0
     }
   }
   
