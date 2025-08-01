@@ -27,6 +27,7 @@ it gets - learning from your data to provide increasingly relevant results and c
 
 - **Run Everywhere** - Works in browsers, Node.js, serverless functions, and containers
 - **Vector Search** - Find semantically similar content using embeddings
+- **Advanced JSON Document Search** - Search within specific fields of JSON documents with field prioritization and service-based field standardization
 - **Graph Relationships** - Connect data with meaningful relationships
 - **Streaming Pipeline** - Process data in real-time as it flows through the system
 - **Extensible Augmentations** - Customize and extend functionality with pluggable components
@@ -592,6 +593,38 @@ const textResults = await db.searchText("query text", numResults)
 
 // Search by noun type
 const thingNouns = await db.searchByNounTypes([NounType.Thing], numResults)
+
+// Search within specific fields of JSON documents
+const fieldResults = await db.search("Acme Corporation", 10, {
+  searchField: "company"
+})
+
+// Search using standard field names across different services
+const titleResults = await db.searchByStandardField("title", "climate change", 10)
+const authorResults = await db.searchByStandardField("author", "johndoe", 10, {
+  services: ["github", "reddit"]
+})
+```
+
+### Field Standardization and Service Tracking
+
+Brainy automatically tracks field names from JSON documents and associates them with the service that inserted the data. This enables powerful cross-service search capabilities:
+
+```typescript
+// Get all available field names organized by service
+const fieldNames = await db.getAvailableFieldNames()
+// Example output: { "github": ["repository.name", "issue.title"], "reddit": ["title", "selftext"] }
+
+// Get standard field mappings
+const standardMappings = await db.getStandardFieldMappings()
+// Example output: { "title": { "github": ["repository.name"], "reddit": ["title"] } }
+```
+
+When adding data, specify the service name to ensure proper field tracking:
+
+```typescript
+// Add data with service name
+await db.add(jsonData, metadata, { service: "github" })
 ```
 
 ### Working with Verbs (Relationships)

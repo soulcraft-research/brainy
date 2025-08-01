@@ -156,6 +156,18 @@ export interface StatisticsData {
   }
 
   /**
+   * Field names available for searching, organized by service
+   * This helps users understand what fields are available from different data sources
+   */
+  fieldNames?: Record<string, string[]>
+
+  /**
+   * Standard field mappings for common field names across services
+   * Maps standard field names to the actual field names used by each service
+   */
+  standardFieldMappings?: Record<string, Record<string, string[]>>
+
+  /**
    * Last updated timestamp
    */
   lastUpdated: string
@@ -349,6 +361,25 @@ export interface StorageAdapter {
    * This ensures that any pending statistics updates are written to persistent storage
    */
   flushStatisticsToStorage(): Promise<void>
+
+  /**
+   * Track field names from a JSON document
+   * @param jsonDocument The JSON document to extract field names from
+   * @param service The service that inserted the data
+   */
+  trackFieldNames(jsonDocument: any, service: string): Promise<void>
+
+  /**
+   * Get available field names by service
+   * @returns Record of field names by service
+   */
+  getAvailableFieldNames(): Promise<Record<string, string[]>>
+
+  /**
+   * Get standard field mappings
+   * @returns Record of standard field mappings
+   */
+  getStandardFieldMappings(): Promise<Record<string, Record<string, string[]>>>
 
   /**
    * Get changes since a specific timestamp
