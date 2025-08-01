@@ -4,6 +4,7 @@
  */
 
 import { StatisticsData, StorageAdapter } from '../../coreTypes.js'
+import { extractFieldNamesFromJson, mapToStandardField } from '../../utils/fieldNameTracking.js'
 
 /**
  * Base class for storage adapters that implements statistics tracking
@@ -373,6 +374,124 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
   }
 
   /**
+   * Track field names from a JSON document
+   * @param jsonDocument The JSON document to extract field names from
+   * @param service The service that inserted the data
+   */
+  async trackFieldNames(jsonDocument: any, service: string): Promise<void> {
+    // Skip if not a JSON object
+    if (typeof jsonDocument !== 'object' || jsonDocument === null || Array.isArray(jsonDocument)) {
+      return
+    }
+
+    // Get current statistics from cache or storage
+    let statistics = this.statisticsCache
+    if (!statistics) {
+      statistics = await this.getStatisticsData()
+      if (!statistics) {
+        statistics = this.createDefaultStatistics()
+      }
+
+      // Update the cache
+      this.statisticsCache = {
+        ...statistics,
+        nounCount: { ...statistics.nounCount },
+        verbCount: { ...statistics.verbCount },
+        metadataCount: { ...statistics.metadataCount },
+        fieldNames: { ...statistics.fieldNames },
+        standardFieldMappings: { ...statistics.standardFieldMappings }
+      }
+    }
+
+    // Ensure fieldNames exists
+    if (!this.statisticsCache!.fieldNames) {
+      this.statisticsCache!.fieldNames = {}
+    }
+
+    // Ensure standardFieldMappings exists
+    if (!this.statisticsCache!.standardFieldMappings) {
+      this.statisticsCache!.standardFieldMappings = {}
+    }
+
+    // Extract field names from the JSON document
+    const fieldNames = extractFieldNamesFromJson(jsonDocument)
+
+    // Initialize service entry if it doesn't exist
+    if (!this.statisticsCache!.fieldNames[service]) {
+      this.statisticsCache!.fieldNames[service] = []
+    }
+
+    // Add new field names to the service's list
+    for (const fieldName of fieldNames) {
+      if (!this.statisticsCache!.fieldNames[service].includes(fieldName)) {
+        this.statisticsCache!.fieldNames[service].push(fieldName)
+      }
+
+      // Map to standard field if possible
+      const standardField = mapToStandardField(fieldName)
+      if (standardField) {
+        // Initialize standard field entry if it doesn't exist
+        if (!this.statisticsCache!.standardFieldMappings[standardField]) {
+          this.statisticsCache!.standardFieldMappings[standardField] = {}
+        }
+
+        // Initialize service entry if it doesn't exist
+        if (!this.statisticsCache!.standardFieldMappings[standardField][service]) {
+          this.statisticsCache!.standardFieldMappings[standardField][service] = []
+        }
+
+        // Add field name to standard field mapping if not already there
+        if (!this.statisticsCache!.standardFieldMappings[standardField][service].includes(fieldName)) {
+          this.statisticsCache!.standardFieldMappings[standardField][service].push(fieldName)
+        }
+      }
+    }
+
+    // Update timestamp
+    this.statisticsCache!.lastUpdated = new Date().toISOString()
+
+    // Schedule a batch update
+    this.statisticsModified = true
+    this.scheduleBatchUpdate()
+  }
+
+  /**
+   * Get available field names by service
+   * @returns Record of field names by service
+   */
+  async getAvailableFieldNames(): Promise<Record<string, string[]>> {
+    // Get current statistics from cache or storage
+    let statistics = this.statisticsCache
+    if (!statistics) {
+      statistics = await this.getStatisticsData()
+      if (!statistics) {
+        return {}
+      }
+    }
+
+    // Return field names by service
+    return statistics.fieldNames || {}
+  }
+
+  /**
+   * Get standard field mappings
+   * @returns Record of standard field mappings
+   */
+  async getStandardFieldMappings(): Promise<Record<string, Record<string, string[]>>> {
+    // Get current statistics from cache or storage
+    let statistics = this.statisticsCache
+    if (!statistics) {
+      statistics = await this.getStatisticsData()
+      if (!statistics) {
+        return {}
+      }
+    }
+
+    // Return standard field mappings
+    return statistics.standardFieldMappings || {}
+  }
+
+  /**
    * Create default statistics data
    * @returns Default statistics data
    */
@@ -382,6 +501,8 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
       verbCount: {},
       metadataCount: {},
       hnswIndexSize: 0,
+      fieldNames: {},
+      standardFieldMappings: {},
       lastUpdated: new Date().toISOString()
     }
   }
