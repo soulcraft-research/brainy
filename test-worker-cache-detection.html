@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brainy Cache Detection Worker Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #results {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .log {
+            color: #333;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Brainy Cache Detection Worker Test</h1>
+    <p>This page tests if Brainy's cache detection works properly in Web Worker environments.</p>
+    
+    <button id="runTest">Run Test</button>
+    
+    <div id="results">
+        <p>Test results will appear here...</p>
+    </div>
+
+    <script type="module">
+        document.getElementById('runTest').addEventListener('click', () => {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Starting worker test...</p>';
+            
+            try {
+                // Create a blob URL for the worker script
+                const workerScript = `
+                    // Worker script for testing cache detection
+                    import { BrainyData } from './dist/unified.js';
+                    
+                    // Listen for messages from the main thread
+                    self.onmessage = async (event) => {
+                        if (event.data === 'start-test') {
+                            try {
+                                self.postMessage({ type: 'log', message: 'Creating BrainyData instance...' });
+                                
+                                const brainy = new BrainyData();
+                                
+                                self.postMessage({ type: 'log', message: 'BrainyData instance created successfully!' });
+                                
+                                // Initialize to make sure all components are created
+                                await brainy.init();
+                                
+                                self.postMessage({ type: 'log', message: 'BrainyData initialized successfully!' });
+                                
+                                // Add a simple item to verify everything works
+                                const id = await brainy.add("Test item for worker cache detection");
+                                
+                                self.postMessage({ type: 'log', message: \`Added test item with ID: \${id}\` });
+                                
+                                self.postMessage({ 
+                                    type: 'success', 
+                                    message: 'Test completed successfully! Cache detection works in worker environment.' 
+                                });
+                            } catch (error) {
+                                self.postMessage({ 
+                                    type: 'error', 
+                                    message: \`Error during test: \${error.message}\`,
+                                    stack: error.stack
+                                });
+                            }
+                        }
+                    };
+                    
+                    // Notify that the worker is ready
+                    self.postMessage({ type: 'ready' });
+                `;
+                
+                const blob = new Blob([workerScript], { type: 'application/javascript' });
+                const workerUrl = URL.createObjectURL(blob);
+                
+                // Create the worker
+                const worker = new Worker(workerUrl, { type: 'module' });
+                
+                // Handle messages from the worker
+                worker.onmessage = (event) => {
+                    const data = event.data;
+                    
+                    if (data.type === 'ready') {
+                        resultsDiv.innerHTML += '<p class="log">Worker is ready. Starting test...</p>';
+                        worker.postMessage('start-test');
+                    } else if (data.type === 'log') {
+                        resultsDiv.innerHTML += `<p class="log">[Worker] ${data.message}</p>`;
+                    } else if (data.type === 'success') {
+                        resultsDiv.innerHTML += `<p class="success">✅ ${data.message}</p>`;
+                    } else if (data.type === 'error') {
+                        resultsDiv.innerHTML += `<p class="error">❌ ${data.message}</p>`;
+                        if (data.stack) {
+                            resultsDiv.innerHTML += `<p class="error">Stack trace: ${data.stack}</p>`;
+                        }
+                    }
+                };
+                
+                // Handle worker errors
+                worker.onerror = (error) => {
+                    resultsDiv.innerHTML += `<p class="error">❌ Worker error: ${error.message}</p>`;
+                };
+            } catch (error) {
+                resultsDiv.innerHTML += `<p class="error">❌ Error creating worker: ${error.message}</p>`;
+                console.error('Error creating worker:', error);
+            }
+        });
+    </script>
+</body>
+</html>
