@@ -56,6 +56,13 @@ export interface BrainyDataConfig {
   hnsw?: Partial<HNSWOptimizedConfig>
 
   /**
+   * Default service name to use for all operations
+   * When specified, this service name will be used for all operations
+   * that don't explicitly provide a service name
+   */
+  defaultService?: string
+
+  /**
    * Distance function to use for similarity calculations
    */
   distanceFunction?: DistanceFunction
@@ -344,6 +351,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   private useOptimizedIndex: boolean = false
   private _dimensions: number
   private loggingConfig: BrainyDataConfig['logging'] = { verbose: true }
+  private defaultService: string = 'default'
 
   // Timeout and retry configuration
   private timeoutConfig: BrainyDataConfig['timeouts'] = {}
@@ -453,6 +461,11 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     // Validate that readOnly and writeOnly are not both true
     if (this.readOnly && this.writeOnly) {
       throw new Error('Database cannot be both read-only and write-only')
+    }
+
+    // Set default service name if provided
+    if (config.defaultService) {
+      this.defaultService = config.defaultService
     }
 
     // Store storage configuration for later use in init()
@@ -873,7 +886,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   }
 
   /**
-   * Get the service name from options or fallback to current augmentation
+   * Get the service name from options or fallback to default service
    * This provides a consistent way to handle service names across all methods
    * @param options Options object that may contain a service property
    * @returns The service name to use for operations
@@ -882,7 +895,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     if (options?.service) {
       return options.service
     }
-    return this.getCurrentAugmentation()
+    // Use the default service name specified during initialization
+    // This simplifies service identification by allowing it to be specified once
+    return this.defaultService
   }
 
   /**
@@ -2377,7 +2392,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         }
 
         // Get the service that's updating the metadata
-        const service = options.service || this.getCurrentAugmentation()
+        const service = this.getServiceName(options)
         const graphNoun = metadata as unknown as GraphNoun
 
         // Preserve existing createdBy and createdAt if they exist
@@ -2424,7 +2439,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       await this.storage!.saveMetadata(id, metadata)
 
       // Track metadata statistics
-      const service = options.service || this.getCurrentAugmentation()
+      const service = this.getServiceName(options)
       await this.storage!.incrementStatistic('metadata', service)
 
       return true
@@ -2534,7 +2549,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           const placeholderVector = new Array(this._dimensions).fill(0)
 
           // Add metadata if provided
-          const service = options.service || this.getCurrentAugmentation()
+          const service = this.getServiceName(options)
           const now = new Date()
           const timestamp = {
             seconds: Math.floor(now.getTime() / 1000),
@@ -2576,7 +2591,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           const placeholderVector = new Array(this._dimensions).fill(0)
 
           // Add metadata if provided
-          const service = options.service || this.getCurrentAugmentation()
+          const service = this.getServiceName(options)
           const now = new Date()
           const timestamp = {
             seconds: Math.floor(now.getTime() / 1000),
@@ -2685,7 +2700,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       // Note: We're no longer validating against VerbType enum to allow custom relationship types
 
       // Get service name from options or current augmentation
-      const service = options.service || this.getCurrentAugmentation()
+      const service = this.getServiceName(options)
 
       // Create timestamp for creation/update time
       const now = new Date()
@@ -3268,6 +3283,78 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     } catch (error) {
       console.error('Failed to embed data:', error)
       throw new Error(`Failed to embed data: ${error}`)
+    }
+  }
+
+  /**
+   * Calculate similarity between two vectors or between two pieces of text/data
+   * This method allows clients to directly calculate similarity scores between items
+   * without needing to add them to the database
+   *
+   * @param a First vector or text/data to compare
+   * @param b Second vector or text/data to compare
+   * @param options Additional options
+   * @returns A promise that resolves to the similarity score (higher means more similar)
+   */
+  public async calculateSimilarity(
+    a: Vector | string | string[],
+    b: Vector | string | string[],
+    options: {
+      forceEmbed?: boolean // Force using the embedding function even if input is a vector
+      distanceFunction?: DistanceFunction // Optional custom distance function
+    } = {}
+  ): Promise<number> {
+    await this.ensureInitialized()
+
+    try {
+      // Convert inputs to vectors if needed
+      let vectorA: Vector
+      let vectorB: Vector
+
+      // Process first input
+      if (
+        Array.isArray(a) &&
+        a.every((item) => typeof item === 'number') &&
+        !options.forceEmbed
+      ) {
+        // Input is already a vector
+        vectorA = a
+      } else {
+        // Input needs to be vectorized
+        try {
+          vectorA = await this.embeddingFunction(a)
+        } catch (embedError) {
+          throw new Error(`Failed to vectorize first input: ${embedError}`)
+        }
+      }
+
+      // Process second input
+      if (
+        Array.isArray(b) &&
+        b.every((item) => typeof item === 'number') &&
+        !options.forceEmbed
+      ) {
+        // Input is already a vector
+        vectorB = b
+      } else {
+        // Input needs to be vectorized
+        try {
+          vectorB = await this.embeddingFunction(b)
+        } catch (embedError) {
+          throw new Error(`Failed to vectorize second input: ${embedError}`)
+        }
+      }
+
+      // Calculate distance using the specified or default distance function
+      const distanceFunction = options.distanceFunction || this.distanceFunction
+      const distance = distanceFunction(vectorA, vectorB)
+
+      // Convert distance to similarity score (1 - distance for cosine)
+      // Higher value means more similar
+      return 1 - distance
+    } catch (error) {
+      console.error('Failed to calculate similarity:', error)
+      throw new Error(`Failed to calculate similarity: ${error}`)
     }
   }
 
