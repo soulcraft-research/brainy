@@ -1,6 +1,6 @@
 {
-  "name": "@soulcraft/brainy-models-package",
-  "version": "0.0.0",
+  "name": "@soulcraft/brainy-models",
+  "version": "0.1.0",
   "description": "Pre-bundled TensorFlow models for maximum reliability with Brainy vector database",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -28,7 +28,8 @@
     "_workflow:minor": "node scripts/release-workflow.js minor",
     "_workflow:major": "node scripts/release-workflow.js major",
     "_workflow:dry-run": "npm run build && npm test && npm run _release:dry-run",
-    "_deploy": "npm run build && npm publish"
+    "_deploy": "npm run build && npm publish",
+    "release:minor": "npm run _release:minor"
   },
   "keywords": [
     "tensorflow",
