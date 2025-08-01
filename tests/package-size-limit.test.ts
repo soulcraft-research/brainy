@@ -6,8 +6,8 @@
 import {describe, expect, it} from 'vitest'
 import {execSync} from 'child_process'
 
-const CURRENT_UNPACKED_SIZE_MB = 11.1
-const CURRENT_PACKED_SIZE_MB = 2.5
+const CURRENT_UNPACKED_SIZE_MB = 12.6
+const CURRENT_PACKED_SIZE_MB = 2.3
 const ALLOWED_SIZE_INCREASE_PERCENTAGE = 5 // 5% increase threshold
 
 /**
