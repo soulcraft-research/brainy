@@ -1,6 +1,6 @@
 {
-  "name": "@soulcraft/brainy-models",
-  "version": "1.0.0",
+  "name": "@soulcraft/brainy-models-package",
+  "version": "0.0.0",
   "description": "Pre-bundled TensorFlow models for maximum reliability with Brainy vector database",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -12,11 +12,23 @@
   "scripts": {
     "prebuild": "npm run download-models",
     "build": "tsc",
-    "download-models": "node scripts/download-full-models.js",
-    "compress-models": "node scripts/compress-models.js",
     "test": "node test/test-models.js",
     "prepare": "npm run build",
-    "pack": "npm pack"
+    "download-models": "node scripts/download-full-models.js",
+    "compress-models": "node scripts/compress-models.js",
+    "_pack": "npm pack",
+    "_release": "standard-version",
+    "_release:patch": "standard-version --release-as patch",
+    "_release:minor": "standard-version --release-as minor",
+    "_release:major": "standard-version --release-as major",
+    "_release:dry-run": "standard-version --dry-run",
+    "_github-release": "node scripts/create-github-release.js",
+    "_workflow": "node scripts/release-workflow.js",
+    "_workflow:patch": "node scripts/release-workflow.js patch",
+    "_workflow:minor": "node scripts/release-workflow.js minor",
+    "_workflow:major": "node scripts/release-workflow.js major",
+    "_workflow:dry-run": "npm run build && npm test && npm run _release:dry-run",
+    "_deploy": "npm run build && npm publish"
   },
   "keywords": [
     "tensorflow",
@@ -50,13 +62,14 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@tensorflow/tfjs": "^4.22.0",
-    "@tensorflow/tfjs-node": "^4.22.0",
-    "@tensorflow-models/universal-sentence-encoder": "^1.3.3"
+    "@tensorflow-models/universal-sentence-encoder": "^1.3.3",
+    "@tensorflow/tfjs": "^4.23.0-rc.0",
+    "@tensorflow/tfjs-node": "^4.23.0-rc.0"
   },
   "devDependencies": {
-    "typescript": "^5.4.5",
-    "@types/node": "^20.11.30"
+    "@types/node": "^20.11.30",
+    "standard-version": "^9.5.0",
+    "typescript": "^5.4.5"
   },
   "peerDependencies": {
     "@soulcraft/brainy": ">=0.33.0"
