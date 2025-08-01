@@ -1,6 +1,6 @@
 {
   "name": "@soulcraft/brainy-models",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Pre-bundled TensorFlow models for maximum reliability with Brainy vector database",
   "main": "dist/index.js",
   "module": "dist/index.js",
