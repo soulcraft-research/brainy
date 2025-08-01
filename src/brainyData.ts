@@ -4292,7 +4292,12 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
             )
 
             // Explicitly clear the index for the storage test
-            this.index.clear()
+            await this.index.clear()
+            
+            // Ensure statistics are properly flushed to avoid inconsistencies
+            if (this.storage) {
+              await this.storage.flushStatisticsToStorage()
+            }
           } else {
             // Re-add all nouns to the index for normal operation
             for (const noun of data.nouns) {
