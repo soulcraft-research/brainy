@@ -56,4 +56,4 @@ This script:
 
 The Universal Sentence Encoder model produces 512-dimensional vectors by default. This is now the standard dimension for all vectors in Brainy, ensuring consistency across all operations.
 
-For more information about the dimension mismatch issue and its resolution, see `DIMENSION_MISMATCH_SUMMARY.md`.
+This standardization resolves dimension mismatch issues that could previously cause search functionality to break.

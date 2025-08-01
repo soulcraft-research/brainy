@@ -18,39 +18,36 @@ The documentation has been reorganized from 29 scattered markdown files at the r
 ```
 docs/
 ├── technical/           # Technical documentation and analysis
-│   ├── concurrency-analysis.md
-│   ├── storage-concurrency-analysis.md
-│   ├── threading.md
-│   ├── statistics.md
-│   ├── testing.md
-│   ├── vitest-improvements.md
-│   ├── realtime-updates.md
-│   ├── metadata-handling.md
-│   ├── vector-dimension-standardization.md
-│   ├── use-model-loading-explanation.md
-│   ├── dimension-mismatch-summary.md
-│   ├── storage-testing.md
-│   ├── technical-guides.md
-│   └── concurrency-implementation-summary.md
+│   ├── CONCURRENCY_ANALYSIS.md
+│   ├── STORAGE_CONCURRENCY_ANALYSIS.md
+│   ├── THREADING.md
+│   ├── STATISTICS.md
+│   ├── TESTING.md
+│   ├── VITEST_IMPROVEMENTS.md
+│   ├── REALTIME_UPDATES.md
+│   ├── METADATA_HANDLING.md
+│   ├── VECTOR_DIMENSION_STANDARDIZATION.md
+│   ├── USE_MODEL_LOADING_EXPLANATION.md
+│   ├── STORAGE_TESTING.md
+│   ├── TECHNICAL_GUIDES.md
+│   ├── ENVIRONMENT_TESTING.md
+│   └── SCALING_STRATEGY.md
 ├── development/         # Development and contributor documentation
-│   ├── developers.md
-│   ├── documentation-standards.md
-│   ├── markdown-conventions.md
-│   ├── expected-test-messages.md
-│   └── pretty-test-reporter.md
+│   ├── DEVELOPERS.md
+│   ├── DOCUMENTATION_STANDARDS.md
+│   ├── MARKDOWN_CONVENTIONS.md
+│   ├── EXPECTED_TEST_MESSAGES.md
+│   └── PRETTY_TEST_REPORTER.md
 └── guides/             # User guides and migration documentation
-    └── production-migration-guide.md
+    ├── cache-configuration.md
+    ├── hnsw-field-search.md
+    ├── json-document-search.md
+    ├── model-management.md
+    ├── optional-model-bundling.md
+    ├── production-migration-guide.md
+    └── service-identification.md
 ```
 
-### Archive Directory
-```
-archive/                # Archived and temporary files
-├── changes.md          # Old detailed changelog
-├── changes-summary.md  # Old changelog summary
-├── demo.md            # Demo documentation
-├── fix-documentation.md # Temporary fix notes
-└── test-issue-summary.md # Test issue summary
-```
 
 ## CHANGELOG.md Management
 
@@ -86,12 +83,12 @@ The CHANGELOG.md is automatically used for:
 
 ## Benefits of New Structure
 
-1. **Clean Root Directory**: Reduced from 29 to 4 essential markdown files
-2. **Better Organization**: Logical categorization of documentation
+1. **Clean Root Directory**: Only 4 essential markdown files at root level
+2. **Better Organization**: Logical categorization of documentation in docs/ subdirectories
 3. **GitHub Compliance**: Follows GitHub and NPM best practices
 4. **Automated Maintenance**: Changelog updates are automated
 5. **Easy Navigation**: Clear directory structure for different doc types
-6. **Historical Preservation**: Old documentation archived, not lost
+6. **Reduced Clutter**: Temporary and outdated files have been removed
 
 ## Workflow for Contributors
 
@@ -99,7 +96,7 @@ The CHANGELOG.md is automatically used for:
 1. **Technical docs** → `docs/technical/`
 2. **Development docs** → `docs/development/`
 3. **User guides** → `docs/guides/`
-4. **Temporary files** → `archive/` (if needed)
+4. **Temporary files** → Should be avoided; use issues or PRs for temporary documentation
 
 ### Making Changes
 1. Add changes to `[Unreleased]` section in `CHANGELOG.md`
@@ -115,9 +112,10 @@ The CHANGELOG.md is automatically used for:
 
 ## Migration Notes
 
-- All technical documentation moved to `docs/technical/`
-- Development documentation moved to `docs/development/`
-- Old changelog files archived in `archive/`
+- All technical documentation organized in `docs/technical/`
+- Development documentation organized in `docs/development/`
+- User guides organized in `docs/guides/`
+- Temporary summary files and archived content have been cleaned up
 - Links in existing documentation may need updates
 - New automation ensures changelog stays current
 
