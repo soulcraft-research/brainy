@@ -18,10 +18,14 @@ const nodeModuleShims = () => {
         'path',
         'util',
         'child_process',
+        'url',
+        'os',
         'node:fs',
         'node:path',
         'node:util',
-        'node:child_process'
+        'node:child_process',
+        'node:url',
+        'node:os'
       ]
 
       if (nodeBuiltins.includes(source)) {
@@ -64,6 +68,61 @@ const types = {
 export default { TextEncoder, TextDecoder, types };
 export { TextEncoder, TextDecoder, types };
 export const promises = {};
+          `
+        }
+
+        // Special handling for url module
+        if (moduleName === 'url' || moduleName === 'node:url') {
+          return `
+// URL shim for browser environments
+const fileURLToPath = (url) => {
+  if (typeof url === 'string') {
+    // Simple conversion for file:// URLs
+    if (url.startsWith('file://')) {
+      return url.slice(7); // Remove 'file://' prefix
+    }
+    return url;
+  }
+  return url.pathname || url.toString();
+};
+
+const pathToFileURL = (path) => {
+  return new URL('file://' + path);
+};
+
+export default { fileURLToPath, pathToFileURL };
+export { fileURLToPath, pathToFileURL };
+          `
+        }
+
+        // Special handling for os module
+        if (moduleName === 'os' || moduleName === 'node:os') {
+          return `
+// OS shim for browser environments
+const totalmem = () => {
+  // Return a reasonable default for browser environments (8GB)
+  return 8 * 1024 * 1024 * 1024;
+};
+
+const freemem = () => {
+  // Return a reasonable default for browser environments (4GB)
+  return 4 * 1024 * 1024 * 1024;
+};
+
+const platform = () => {
+  if (typeof navigator !== 'undefined') {
+    return navigator.platform.toLowerCase().includes('win') ? 'win32' : 
+           navigator.platform.toLowerCase().includes('mac') ? 'darwin' : 'linux';
+  }
+  return 'linux';
+};
+
+const arch = () => {
+  return 'x64'; // Default architecture for browser
+};
+
+export default { totalmem, freemem, platform, arch };
+export { totalmem, freemem, platform, arch };
           `
         }
 
