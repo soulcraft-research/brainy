@@ -108,6 +108,14 @@ export interface BrainyDataConfig {
   readOnly?: boolean
 
   /**
+   * Enable lazy loading in read-only mode
+   * When true and in read-only mode, the index is not fully loaded during initialization
+   * Nodes are loaded on-demand during search operations
+   * This improves startup performance for large datasets
+   */
+  lazyLoadInReadOnlyMode?: boolean
+
+  /**
    * Set the database to write-only mode
    * When true, the index is not loaded into memory and search operations will throw an error
    * This is useful for data ingestion scenarios where only write operations are needed
@@ -241,6 +249,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   private distanceFunction: DistanceFunction
   private requestPersistentStorage: boolean
   private readOnly: boolean
+  private lazyLoadInReadOnlyMode: boolean
   private writeOnly: boolean
   private storageConfig: BrainyDataConfig['storage'] = {}
   private useOptimizedIndex: boolean = false
@@ -303,8 +312,14 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     this.distanceFunction = config.distanceFunction || cosineDistance
 
     // Always use the optimized HNSW index implementation
+    // Configure HNSW with disk-based storage when a storage adapter is provided
+    const hnswConfig = config.hnsw || {}
+    if (config.storageAdapter) {
+      hnswConfig.useDiskBasedIndex = true
+    }
+    
     this.index = new HNSWIndexOptimized(
-      config.hnsw || {},
+      hnswConfig,
       this.distanceFunction,
       config.storageAdapter || null
     )
@@ -336,6 +351,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
     // Set read-only flag
     this.readOnly = config.readOnly || false
+
+    // Set lazy loading in read-only mode flag
+    this.lazyLoadInReadOnlyMode = config.lazyLoadInReadOnlyMode || false
 
     // Set write-only flag
     this.writeOnly = config.writeOnly || false
@@ -842,6 +860,16 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         if (this.loggingConfig?.verbose) {
           console.log('Database is in write-only mode, skipping index loading')
         }
+      } else if (this.readOnly && this.lazyLoadInReadOnlyMode) {
+        // In read-only mode with lazy loading enabled, skip loading all nouns initially
+        if (this.loggingConfig?.verbose) {
+          console.log(
+            'Database is in read-only mode with lazy loading enabled, skipping initial full load'
+          )
+        }
+
+        // Just initialize an empty index
+        this.index.clear()
       } else {
         // Load all nouns from storage
         const nouns: HNSWNoun[] = await this.storage!.getAllNouns()
@@ -1440,6 +1468,46 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
       // If no noun types specified, search all nouns
       if (!nounTypes || nounTypes.length === 0) {
+        // Check if we're in readonly mode with lazy loading and the index is empty
+        const indexSize = this.index.getNouns().size
+        if (this.readOnly && this.lazyLoadInReadOnlyMode && indexSize === 0) {
+          if (this.loggingConfig?.verbose) {
+            console.log(
+              'Lazy loading mode: Index is empty, loading nodes for search...'
+            )
+          }
+
+          // In lazy loading mode, we need to load some nodes to search
+          // Instead of loading all nodes, we'll load a subset of nodes
+          // Since we don't have a specialized method to get top nodes for a query,
+          // we'll load a limited number of nodes from storage
+          const nouns = await this.storage!.getAllNouns()
+          const limitedNouns = nouns.slice(0, Math.min(nouns.length, k * 10)) // Get 10x more nodes than needed
+
+          // Add these nodes to the index
+          for (const node of limitedNouns) {
+            // Check if the vector dimensions match the expected dimensions
+            if (node.vector.length !== this._dimensions) {
+              console.warn(
+                `Skipping node ${node.id} due to dimension mismatch: expected ${this._dimensions}, got ${node.vector.length}`
+              )
+              continue
+            }
+
+            // Add to index
+            await this.index.addItem({
+              id: node.id,
+              vector: node.vector
+            })
+          }
+
+          if (this.loggingConfig?.verbose) {
+            console.log(
+              `Lazy loading mode: Added ${limitedNouns.length} nodes to index for search`
+            )
+          }
+        }
+
         // Search in the index
         const results = await this.index.search(queryVector, k)
 
@@ -1839,31 +1907,33 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           limit: Number.MAX_SAFE_INTEGER // Request all nouns
         }
       })
-      
+
       return result.items
     } catch (error) {
       console.error('Failed to get all nouns:', error)
       throw new Error(`Failed to get all nouns: ${error}`)
     }
   }
-  
+
   /**
    * Get nouns with pagination and filtering
    * @param options Pagination and filtering options
    * @returns Paginated result of vector documents
    */
-  public async getNouns(options: {
-    pagination?: {
-      offset?: number
-      limit?: number
-      cursor?: string
-    }
-    filter?: {
-      nounType?: string | string[]
-      service?: string | string[]
-      metadata?: Record<string, any>
-    }
-  } = {}): Promise<{
+  public async getNouns(
+    options: {
+      pagination?: {
+        offset?: number
+        limit?: number
+        cursor?: string
+      }
+      filter?: {
+        nounType?: string | string[]
+        service?: string | string[]
+        metadata?: Record<string, any>
+      }
+    } = {}
+  ): Promise<{
     items: VectorDocument<T>[]
     totalCount?: number
     hasMore: boolean
@@ -1875,10 +1945,10 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       // First try to use the storage adapter's paginated method
       try {
         const result = await this.storage!.getNouns(options)
-        
+
         // Convert HNSWNoun objects to VectorDocument objects
         const items: VectorDocument<T>[] = []
-        
+
         for (const noun of result.items) {
           const metadata = await this.storage!.getMetadata(noun.id)
           items.push({
@@ -1887,7 +1957,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
             metadata: metadata as T | undefined
           })
         }
-        
+
         return {
           items,
           totalCount: result.totalCount,
@@ -1896,54 +1966,61 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         }
       } catch (storageError) {
         // If storage adapter doesn't support pagination, fall back to using the index's paginated method
-        console.warn('Storage adapter does not support pagination, falling back to index pagination:', storageError)
-        
+        console.warn(
+          'Storage adapter does not support pagination, falling back to index pagination:',
+          storageError
+        )
+
         const pagination = options.pagination || {}
         const filter = options.filter || {}
-        
+
         // Create a filter function for the index
         const filterFn = async (noun: HNSWNoun): Promise<boolean> => {
           // If no filters, include all nouns
           if (!filter.nounType && !filter.service && !filter.metadata) {
             return true
           }
-          
+
           // Get metadata for filtering
           const metadata = await this.storage!.getMetadata(noun.id)
           if (!metadata) return false
-          
+
           // Filter by noun type
           if (filter.nounType) {
-            const nounTypes = Array.isArray(filter.nounType) ? filter.nounType : [filter.nounType]
+            const nounTypes = Array.isArray(filter.nounType)
+              ? filter.nounType
+              : [filter.nounType]
             if (!nounTypes.includes(metadata.noun)) return false
           }
-          
+
           // Filter by service
           if (filter.service && metadata.service) {
-            const services = Array.isArray(filter.service) ? filter.service : [filter.service]
+            const services = Array.isArray(filter.service)
+              ? filter.service
+              : [filter.service]
             if (!services.includes(metadata.service)) return false
           }
-          
+
           // Filter by metadata fields
           if (filter.metadata) {
             for (const [key, value] of Object.entries(filter.metadata)) {
               if (metadata[key] !== value) return false
             }
           }
-          
+
           return true
         }
-        
+
         // Get filtered nouns from the index
         // Note: We can't use async filter directly with getNounsPaginated, so we'll filter after
         const indexResult = this.index.getNounsPaginated({
           offset: pagination.offset,
           limit: pagination.limit
         })
-        
+
         // Convert to VectorDocument objects and apply filters
         const items: VectorDocument<T>[] = []
-        
+
         for (const [id, noun] of indexResult.items.entries()) {
           // Apply filter
           if (await filterFn(noun)) {
@@ -1955,7 +2032,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
             })
           }
         }
-        
+
         return {
           items,
           totalCount: indexResult.totalCount, // This is approximate since we filter after pagination
@@ -1995,15 +2072,17 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       // Check if the id is actually content text rather than an ID
       // This handles cases where tests or users pass content text instead of IDs
       let actualId = id
-      
+
       console.log(`Delete called with ID: ${id}`)
       console.log(`Index has ID directly: ${this.index.getNouns().has(id)}`)
-      
+
       if (!this.index.getNouns().has(id)) {
         console.log(`Looking for noun with text content: ${id}`)
         // Try to find a noun with matching text content
         for (const [nounId, noun] of this.index.getNouns().entries()) {
-          console.log(`Checking noun ${nounId}: text=${noun.metadata?.text || 'undefined'}`)
+          console.log(
+            `Checking noun ${nounId}: text=${noun.metadata?.text || 'undefined'}`
+          )
           if (noun.metadata?.text === id) {
             actualId = nounId
             console.log(`Found matching noun with ID: ${actualId}`)
@@ -2490,33 +2569,35 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           limit: Number.MAX_SAFE_INTEGER // Request all verbs
         }
       })
-      
+
       return result.items
     } catch (error) {
       console.error('Failed to get all verbs:', error)
       throw new Error(`Failed to get all verbs: ${error}`)
     }
   }
-  
+
   /**
    * Get verbs with pagination and filtering
    * @param options Pagination and filtering options
    * @returns Paginated result of verbs
    */
-  public async getVerbs(options: {
-    pagination?: {
-      offset?: number
-      limit?: number
-      cursor?: string
-    }
-    filter?: {
-      verbType?: string | string[]
-      sourceId?: string | string[]
-      targetId?: string | string[]
-      service?: string | string[]
-      metadata?: Record<string, any>
-    }
-  } = {}): Promise<{
+  public async getVerbs(
+    options: {
+      pagination?: {
+        offset?: number
+        limit?: number
+        cursor?: string
+      }
+      filter?: {
+        verbType?: string | string[]
+        sourceId?: string | string[]
+        targetId?: string | string[]
+        service?: string | string[]
+        metadata?: Record<string, any>
+      }
+    } = {}
+  ): Promise<{
     items: GraphVerb[]
     totalCount?: number
     hasMore: boolean
@@ -2527,7 +2608,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     try {
       // Use the storage adapter's paginated method
       const result = await this.storage!.getVerbs(options)
-      
+
       return {
         items: result.items,
         totalCount: result.totalCount,
@@ -2687,53 +2768,56 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         for (const serviceCount of Object.values(stats.nounCount)) {
           totalNounCount += serviceCount
         }
-        
+
         // Calculate total verb count across all services
         let totalVerbCount = 0
         for (const serviceCount of Object.values(stats.verbCount)) {
           totalVerbCount += serviceCount
         }
-        
+
         // Return the difference (nouns excluding verbs)
         return Math.max(0, totalNounCount - totalVerbCount)
       }
     } catch (error) {
-      console.warn('Failed to get statistics for noun count, falling back to paginated counting:', error)
+      console.warn(
+        'Failed to get statistics for noun count, falling back to paginated counting:',
+        error
+      )
     }
-    
+
     // Fallback: Use paginated queries to count nouns and verbs
     let nounCount = 0
     let verbCount = 0
-    
+
     // Count all nouns using pagination
     let hasMoreNouns = true
     let offset = 0
     const limit = 1000 // Use a larger limit for counting
-    
+
     while (hasMoreNouns) {
       const result = await this.storage!.getNouns({
         pagination: { offset, limit }
       })
-      
+
       nounCount += result.items.length
       hasMoreNouns = result.hasMore
       offset += limit
     }
-    
+
     // Count all verbs using pagination
     let hasMoreVerbs = true
     offset = 0
-    
+
     while (hasMoreVerbs) {
       const result = await this.storage!.getVerbs({
         pagination: { offset, limit }
       })
-      
+
       verbCount += result.items.length
       hasMoreVerbs = result.hasMore
       offset += limit
     }
-    
+
     // Return the difference (nouns excluding verbs)
     return Math.max(0, nounCount - verbCount)
   }
@@ -3878,8 +3962,14 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
           // Create a new index with the restored configuration
           // Always use the optimized implementation for consistency
+          // Configure HNSW with disk-based storage when a storage adapter is provided
+          const hnswConfig = data.hnswIndex.config || {}
+          if (this.storage) {
+            hnswConfig.useDiskBasedIndex = true
+          }
+          
           this.index = new HNSWIndexOptimized(
-            data.hnswIndex.config,
+            hnswConfig,
             this.distanceFunction,
             this.storage
           )
@@ -3889,19 +3979,23 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           // after restoration, as specified in the test expectation
           // This is a special case for the test, in a real application we would
           // re-add all nouns to the index
-          const isTestEnvironment = process.env.NODE_ENV === 'test' || process.env.VITEST
-          const isStorageTest = data.nouns.some(noun => 
-            noun.metadata && 
-            typeof noun.metadata === 'object' && 
-            'text' in noun.metadata && 
-            typeof noun.metadata.text === 'string' &&
-            noun.metadata.text.includes('backup test')
+          const isTestEnvironment =
+            process.env.NODE_ENV === 'test' || process.env.VITEST
+          const isStorageTest = data.nouns.some(
+            (noun) =>
+              noun.metadata &&
+              typeof noun.metadata === 'object' &&
+              'text' in noun.metadata &&
+              typeof noun.metadata.text === 'string' &&
+              noun.metadata.text.includes('backup test')
           )
 
           if (isTestEnvironment && isStorageTest) {
             // Don't re-add nouns to the index for the storage test
-            console.log('Test environment detected, skipping HNSW index reconstruction')
-            
+            console.log(
+              'Test environment detected, skipping HNSW index reconstruction'
+            )
+
             // Explicitly clear the index for the storage test
             this.index.clear()
           } else {

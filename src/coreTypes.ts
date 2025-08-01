@@ -98,6 +98,7 @@ export interface HNSWConfig {
   efConstruction: number // Size of the dynamic candidate list during construction
   efSearch: number // Size of the dynamic candidate list during search
   ml: number // Maximum level
+  useDiskBasedIndex?: boolean // Whether to use disk-based index
 }
 
 /**
