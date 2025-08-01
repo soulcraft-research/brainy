@@ -1503,14 +1503,81 @@ Write-only mode prevents all search operations and is optimized for initial data
 
 ### Performance Tuning Parameters
 
-Brainy offers several configuration options for performance tuning:
+Brainy offers comprehensive configuration options for performance tuning, with enhanced support for large datasets in S3 or other remote storage. **All configuration is optional** - the system automatically detects the optimal settings based on your environment, dataset size, and usage patterns.
+
+#### Intelligent Defaults
+
+Brainy uses intelligent defaults that automatically adapt to your environment:
+
+- **Environment Detection**: Automatically detects whether you're running in Node.js, browser, or worker environment
+- **Memory-Aware Caching**: Adjusts cache sizes based on available system memory
+- **Dataset Size Adaptation**: Tunes parameters based on the size of your dataset
+- **Usage Pattern Optimization**: Adjusts to read-heavy vs. write-heavy workloads
+- **Storage Type Awareness**: Optimizes for local vs. remote storage (S3, R2, etc.)
+- **Operating Mode Specialization**: Special optimizations for read-only and write-only modes
+
+#### Cache Configuration (Optional)
+
+You can override any of these automatically tuned parameters if needed:
 
 - **Hot Cache Size**: Control the maximum number of items to keep in memory.
+  - For large datasets (>100K items), consider values between 5,000-50,000 depending on available memory.
+  - In read-only mode, larger values (10,000-100,000) can be used for better performance.
+  
 - **Eviction Threshold**: Set the threshold at which cache eviction begins (default: 0.8 or 80% of max size).
-- **Warm Cache TTL**: Set the time-to-live for items in the warm cache (default: 24 hours).
-- **Batch Size**: Control the number of items to process in a single batch for operations like prefetching (default: 10).
+  - For write-heavy workloads, lower values (0.6-0.7) may improve performance.
+  - For read-heavy workloads, higher values (0.8-0.9) are recommended.
 
-These improvements make Brainy more efficient, scalable, and adaptable to different environments and usage patterns.
+- **Warm Cache TTL**: Set the time-to-live for items in the warm cache (default: 3600000 ms or 1 hour).
+  - For frequently changing data, shorter TTLs are recommended.
+  - For relatively static data, longer TTLs improve performance.
+
+- **Batch Size**: Control the number of items to process in a single batch for operations like prefetching.
+  - For S3 or remote storage with large datasets, larger values (50-200) significantly improve throughput.
+  - In read-only mode with remote storage, even larger values (100-300) can be used.
+
+#### Auto-Tuning (Enabled by Default)
+
+- **Auto-Tune**: Enable or disable automatic tuning of cache parameters based on usage patterns (default: true).
+- **Auto-Tune Interval**: Set how frequently the system adjusts cache parameters (default: 60000 ms or 1 minute).
+
+#### Read-Only Mode Optimizations (Automatic)
+
+Read-only mode includes special optimizations for search performance that are automatically applied:
+
+- **Larger Cache Sizes**: Automatically uses more memory for caching (up to 40% of free memory for large datasets).
+- **Aggressive Prefetching**: Loads more data in each batch to reduce the number of storage requests.
+- **Prefetch Strategy**: Defaults to 'aggressive' prefetching strategy in read-only mode.
+
+#### Example Configuration for Large S3 Datasets
+
+```javascript
+const brainy = new BrainyData({
+  readOnly: true,
+  lazyLoadInReadOnlyMode: true,
+  storage: {
+    type: 's3',
+    s3Storage: {
+      bucketName: 'your-bucket',
+      accessKeyId: 'your-access-key',
+      secretAccessKey: 'your-secret-key',
+      region: 'your-region'
+    }
+  },
+  cache: {
+    hotCacheMaxSize: 20000,
+    hotCacheEvictionThreshold: 0.85,
+    batchSize: 100,
+    readOnlyMode: {
+      hotCacheMaxSize: 50000,
+      batchSize: 200,
+      prefetchStrategy: 'aggressive'
+    }
+  }
+});
+```
+
+These configuration options make Brainy more efficient, scalable, and adaptable to different environments and usage patterns, especially for large datasets in cloud storage.
 
 ## Testing
 
