@@ -15,6 +15,14 @@ declare module '@soulcraft/brainy' {
     search(query: string, limit?: number, options?: any): Promise<any[]>
 
     searchText(query: string, limit?: number, options?: any): Promise<any[]>
+    
+    embed(data: string | string[]): Promise<number[]>
+    
+    calculateSimilarity(
+      a: number[] | string | string[],
+      b: number[] | string | string[],
+      options?: { forceEmbed?: boolean, distanceFunction?: any }
+    ): Promise<number>
 
     addVerb(
       sourceId: string,

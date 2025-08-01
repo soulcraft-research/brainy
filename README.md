@@ -731,6 +731,25 @@ await threadedDb.init()
 
 // Directly embed text to vectors
 const vector = await db.embed("Some text to convert to a vector")
+
+// Calculate similarity between two texts or vectors
+const similarity = await db.calculateSimilarity(
+  "Cats are furry pets", 
+  "Felines make good companions"
+)
+console.log(`Similarity score: ${similarity}`) // Higher value means more similar
+
+// Calculate similarity with custom options
+const vectorA = await db.embed("First text")
+const vectorB = await db.embed("Second text")
+const customSimilarity = await db.calculateSimilarity(
+  vectorA, // Can use pre-computed vectors
+  vectorB,
+  {
+    forceEmbed: false, // Skip embedding if inputs are already vectors
+    distanceFunction: cosineDistance // Optional custom distance function
+  }
+)
 ```
 
 The threaded embedding function runs in a separate thread (Web Worker in browsers, Worker Thread in Node.js) to improve
