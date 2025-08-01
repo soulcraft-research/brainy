@@ -11,6 +11,19 @@ import { readFileSync, existsSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
+/**
+ * Helper function to safely extract error message from unknown error type
+ */
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+  if (typeof error === 'string') {
+    return error
+  }
+  return String(error)
+}
+
 // Get the package directory
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -90,7 +103,7 @@ export class BundledUniversalSentenceEncoder {
       }
 
     } catch (error) {
-      throw new Error(`Failed to load bundled model: ${error.message}`)
+      throw new Error(`Failed to load bundled model: ${getErrorMessage(error)}`)
     }
   }
 
@@ -114,7 +127,7 @@ export class BundledUniversalSentenceEncoder {
       
       return embeddings
     } catch (error) {
-      throw new Error(`Failed to generate embeddings: ${error.message}`)
+      throw new Error(`Failed to generate embeddings: ${getErrorMessage(error)}`)
     }
   }
 
@@ -173,6 +186,7 @@ export class BundledUniversalSentenceEncoder {
 export class ModelCompressor {
   /**
    * Compress model weights using quantization
+   * Note: TensorFlow.js doesn't currently support model quantization
    */
   static async quantizeModel(
     modelPath: string, 
@@ -187,23 +201,23 @@ export class ModelCompressor {
       
       console.log(`🗜️ Quantizing model to ${dtype}...`)
       
-      // Note: TensorFlow.js doesn't have built-in quantization yet,
-      // but we can implement basic weight compression
-      const modelArtifacts = await model.serialize()
-      
-      // Save the compressed model
-      await tf.io.fileSystem(outputPath).save(modelArtifacts)
-      
-      console.log(`✅ Compressed model saved to: ${outputPath}`)
+      // TensorFlow.js doesn't have built-in quantization or model serialization APIs yet
+      // This is a placeholder implementation that acknowledges the limitation
+      console.warn('⚠️ Model quantization is not yet supported in TensorFlow.js')
+      console.log(`📋 Model loaded successfully from: ${modelPath}`)
+      console.log(`📋 Target output path: ${outputPath}`)
+      console.log(`📋 Target dtype: ${dtype}`)
       
       model.dispose()
+      
+      throw new Error('Model quantization is not yet supported in TensorFlow.js. This feature requires server-side processing with TensorFlow Python.')
     } catch (error) {
-      throw new Error(`Failed to compress model: ${error.message}`)
+      throw new Error(`Failed to compress model: ${getErrorMessage(error)}`)
     }
   }
 
   /**
-   * Get model size information
+   * Get model size information by reading files from disk
    */
   static async getModelSize(modelPath: string): Promise<{
     totalSize: number
@@ -211,14 +225,33 @@ export class ModelCompressor {
     modelJsonSize: number
   }> {
     try {
+      // Load model to verify it's valid
       const model = await tf.loadGraphModel(`file://${modelPath}`)
-      const artifacts = await model.serialize()
-      
-      const weightsSize = artifacts.weightData?.byteLength || 0
-      const modelJsonSize = JSON.stringify(artifacts.modelTopology).length
-      const totalSize = weightsSize + modelJsonSize
-      
       model.dispose()
+      
+      // Get model.json size
+      const modelJsonSize = existsSync(modelPath) ? readFileSync(modelPath).length : 0
+      
+      // Calculate weights size by reading weight files
+      let weightsSize = 0
+      const modelDir = dirname(modelPath)
+      
+      // Read model.json to get weight file names
+      if (existsSync(modelPath)) {
+        const modelJson = JSON.parse(readFileSync(modelPath, 'utf8'))
+        if (modelJson.weightsManifest) {
+          for (const manifest of modelJson.weightsManifest) {
+            for (const path of manifest.paths) {
+              const weightFilePath = join(modelDir, path)
+              if (existsSync(weightFilePath)) {
+                weightsSize += readFileSync(weightFilePath).length
+              }
+            }
+          }
+        }
+      }
+      
+      const totalSize = weightsSize + modelJsonSize
       
       return {
         totalSize,
@@ -226,7 +259,7 @@ export class ModelCompressor {
         modelJsonSize
       }
     } catch (error) {
-      throw new Error(`Failed to get model size: ${error.message}`)
+      throw new Error(`Failed to get model size: ${getErrorMessage(error)}`)
     }
   }
 }

@@ -40,40 +40,69 @@ console.log('for offline use and maximum reliability.\n')
 /**
  * Download a file from URL to local path
  */
-async function downloadFile(url, filePath) {
+async function downloadFile(url, filePath, maxRedirects = 5) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(filePath)
     
-    https.get(url, (response) => {
-      if (response.statusCode !== 200) {
-        reject(new Error(`Failed to download ${url}: ${response.statusCode}`))
-        return
-      }
-      
-      const totalSize = parseInt(response.headers['content-length'] || '0')
-      let downloadedSize = 0
-      
-      response.on('data', (chunk) => {
-        downloadedSize += chunk.length
-        if (totalSize > 0) {
-          const progress = ((downloadedSize / totalSize) * 100).toFixed(1)
-          process.stdout.write(`\r📥 Downloading: ${progress}% (${downloadedSize}/${totalSize} bytes)`)
+    const handleRequest = (requestUrl, redirectCount = 0) => {
+      https.get(requestUrl, (response) => {
+        // Handle redirects
+        if (response.statusCode >= 300 && response.statusCode < 400) {
+          if (redirectCount >= maxRedirects) {
+            reject(new Error(`Too many redirects (${redirectCount}) for ${url}`))
+            return
+          }
+          
+          const location = response.headers.location
+          if (!location) {
+            reject(new Error(`Redirect response without location header for ${url}`))
+            return
+          }
+          
+          // Handle relative redirects
+          const redirectUrl = location.startsWith('http') ? location : new URL(location, requestUrl).href
+          console.log(`📍 Following redirect ${redirectCount + 1}: ${redirectUrl}`)
+          
+          // Close the current file stream and start over with the redirect URL
+          file.close()
+          fs.unlink(filePath, () => {}) // Delete partial file
+          
+          // Recursively handle the redirect
+          return downloadFile(redirectUrl, filePath, maxRedirects).then(resolve).catch(reject)
         }
-      })
-      
-      response.pipe(file)
-      
-      file.on('finish', () => {
-        file.close()
-        console.log(`\n✅ Downloaded: ${path.basename(filePath)}`)
-        resolve()
-      })
-      
-      file.on('error', (err) => {
-        fs.unlink(filePath, () => {}) // Delete partial file
-        reject(err)
-      })
-    }).on('error', reject)
+        
+        if (response.statusCode !== 200) {
+          reject(new Error(`Failed to download ${url}: ${response.statusCode}`))
+          return
+        }
+        
+        const totalSize = parseInt(response.headers['content-length'] || '0')
+        let downloadedSize = 0
+        
+        response.on('data', (chunk) => {
+          downloadedSize += chunk.length
+          if (totalSize > 0) {
+            const progress = ((downloadedSize / totalSize) * 100).toFixed(1)
+            process.stdout.write(`\r📥 Downloading: ${progress}% (${downloadedSize}/${totalSize} bytes)`)
+          }
+        })
+        
+        response.pipe(file)
+        
+        file.on('finish', () => {
+          file.close()
+          console.log(`\n✅ Downloaded: ${path.basename(filePath)}`)
+          resolve()
+        })
+        
+        file.on('error', (err) => {
+          fs.unlink(filePath, () => {}) // Delete partial file
+          reject(err)
+        })
+      }).on('error', reject)
+    }
+    
+    handleRequest(url)
   })
 }
 
@@ -95,10 +124,11 @@ async function downloadFullModel() {
     console.log(`✅ Model test passed - embedding dimensions: ${testArray[0].length}`)
     testEmbedding.dispose()
     
-    // The Universal Sentence Encoder model URL
-    const modelBaseUrl = 'https://tfhub.dev/tensorflow/tfjs-model/universal-sentence-encoder/1/default/1'
+    // The Universal Sentence Encoder model URL (using Google Cloud Storage which still works)
+    const modelBaseUrl = 'https://storage.googleapis.com/tfjs-models/savedmodel/universal_sentence_encoder'
     
     console.log('📦 Downloading model files...')
+    console.log('Using Google Cloud Storage URLs (TensorFlow Hub URLs are deprecated)...')
     
     // Download model.json
     const modelJsonUrl = `${modelBaseUrl}/model.json`
@@ -161,7 +191,6 @@ async function downloadFullModel() {
     console.log('✅ Offline model loads successfully')
     
     // Clean up
-    model.dispose()
     offlineModel.dispose()
     
     console.log('\n✨ Full model bundling completed successfully!')
