@@ -42,6 +42,10 @@ import {
 } from './types/augmentations.js'
 import { BrainyDataInterface } from './types/brainyDataInterface.js'
 import { augmentationPipeline } from './augmentationPipeline.js'
+import {
+  prepareJsonForVectorization,
+  extractFieldFromJson
+} from './utils/jsonProcessing.js'
 
 export interface BrainyDataConfig {
   /**
@@ -317,7 +321,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     if (config.storageAdapter) {
       hnswConfig.useDiskBasedIndex = true
     }
-    
+
     this.index = new HNSWIndexOptimized(
       hnswConfig,
       this.distanceFunction,
@@ -756,6 +760,19 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   }
 
   /**
+   * Get the service name from options or fallback to current augmentation
+   * This provides a consistent way to handle service names across all methods
+   * @param options Options object that may contain a service property
+   * @returns The service name to use for operations
+   */
+  private getServiceName(options?: { service?: string }): string {
+    if (options?.service) {
+      return options.service
+    }
+    return this.getCurrentAugmentation()
+  }
+
+  /**
    * Initialize the database
    * Loads existing data from storage if available
    */
@@ -1000,7 +1017,35 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       } else {
         // Input needs to be vectorized
         try {
-          vector = await this.embeddingFunction(vectorOrData)
+          // Check if input is a JSON object and process it specially
+          if (
+            typeof vectorOrData === 'object' &&
+            vectorOrData !== null &&
+            !Array.isArray(vectorOrData)
+          ) {
+            // Process JSON object for better vectorization
+            const preparedText = prepareJsonForVectorization(vectorOrData, {
+              // Prioritize common name/title fields if they exist
+              priorityFields: [
+                'name',
+                'title',
+                'company',
+                'organization',
+                'description',
+                'summary'
+              ]
+            })
+            vector = await this.embeddingFunction(preparedText)
+
+            // Track field names for this JSON document
+            const service = this.getServiceName(options)
+            if (this.storage) {
+              await this.storage.trackFieldNames(vectorOrData, service)
+            }
+          } else {
+            // Use standard embedding for non-JSON data
+            vector = await this.embeddingFunction(vectorOrData)
+          }
         } catch (embedError) {
           throw new Error(`Failed to vectorize data: ${embedError}`)
         }
@@ -1039,7 +1084,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       await this.storage!.saveNoun(noun)
 
       // Track noun statistics
-      const service = options.service || this.getCurrentAugmentation()
+      const service = this.getServiceName(options)
       await this.storage!.incrementStatistic('noun', service)
 
       // Save metadata if provided and not empty
@@ -1107,8 +1152,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           await this.storage!.saveMetadata(id, metadataToSave)
 
           // Track metadata statistics
-          const metadataService =
-            options.service || this.getCurrentAugmentation()
+          const metadataService = this.getServiceName(options)
           await this.storage!.incrementStatistic('metadata', metadataService)
         }
       }
@@ -1629,6 +1673,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       searchConnectedNouns?: boolean // Whether to search for nouns connected by verbs
       verbDirection?: 'outgoing' | 'incoming' | 'both' // Direction of verbs to consider when searching connected nouns
       service?: string // Filter results by the service that created the data
+      searchField?: string // Optional specific field to search within JSON documents
     } = {}
   ): Promise<SearchResult<T>[]> {
     // Validate input is not null or undefined
@@ -1707,6 +1752,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       nounTypes?: string[] // Optional array of noun types to search within
       includeVerbs?: boolean // Whether to include associated GraphVerbs in the results
       service?: string // Filter results by the service that created the data
+      searchField?: string // Optional specific field to search within JSON documents
+      priorityFields?: string[] // Fields to prioritize when searching JSON documents
     } = {}
   ): Promise<SearchResult<T>[]> {
     if (!this.isInitialized) {
@@ -1717,11 +1764,48 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
     // Check if database is in write-only mode
     this.checkWriteOnly()
-    // If input is a string and not a vector, automatically vectorize it
+    // Process the query input for vectorization
     let queryToUse = queryVectorOrData
+
+    // Handle string queries
     if (typeof queryVectorOrData === 'string' && !options.forceEmbed) {
       queryToUse = await this.embed(queryVectorOrData)
       options.forceEmbed = false // Already embedded, don't force again
+    }
+    // Handle JSON object queries with special processing
+    else if (
+      typeof queryVectorOrData === 'object' &&
+      queryVectorOrData !== null &&
+      !Array.isArray(queryVectorOrData) &&
+      !options.forceEmbed
+    ) {
+      // If searching within a specific field
+      if (options.searchField) {
+        // Extract text from the specific field
+        const fieldText = extractFieldFromJson(
+          queryVectorOrData,
+          options.searchField
+        )
+        if (fieldText) {
+          queryToUse = await this.embeddingFunction(fieldText)
+          options.forceEmbed = false // Already embedded, don't force again
+        }
+      }
+      // Otherwise process the entire object with priority fields
+      else {
+        const preparedText = prepareJsonForVectorization(queryVectorOrData, {
+          priorityFields: options.priorityFields || [
+            'name',
+            'title',
+            'company',
+            'organization',
+            'description',
+            'summary'
+          ]
+        })
+        queryToUse = await this.embeddingFunction(preparedText)
+        options.forceEmbed = false // Already embedded, don't force again
+      }
     }
 
     // If noun types are specified, use searchByNounTypes
@@ -2101,7 +2185,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       await this.storage!.deleteNoun(actualId)
 
       // Track deletion statistics
-      const service = options.service || 'default'
+      const service = this.getServiceName(options)
       await this.storage!.decrementStatistic('noun', service)
 
       // Try to remove metadata (ignore errors)
@@ -2528,7 +2612,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       await this.storage!.saveVerb(verb)
 
       // Track verb statistics
-      const serviceForStats = options.service || 'default'
+      const serviceForStats = this.getServiceName(options)
       await this.storage!.incrementStatistic('verb', serviceForStats)
 
       // Update HNSW index size (excluding verbs)
@@ -2715,7 +2799,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       await this.storage!.deleteVerb(id)
 
       // Track deletion statistics
-      const service = options.service || 'default'
+      const service = this.getServiceName(options)
       await this.storage!.decrementStatistic('verb', service)
 
       return true
@@ -3373,6 +3457,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       includeVerbs?: boolean // Whether to include associated GraphVerbs in the results
       storeResults?: boolean // Whether to store the results in the local database (default: true)
       service?: string // Filter results by the service that created the data
+      searchField?: string // Optional specific field to search within JSON documents
     } = {}
   ): Promise<SearchResult<T>[]> {
     await this.ensureInitialized()
@@ -3438,6 +3523,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       includeVerbs?: boolean // Whether to include associated GraphVerbs in the results
       localFirst?: boolean // Whether to search local first (default: true)
       service?: string // Filter results by the service that created the data
+      searchField?: string // Optional specific field to search within JSON documents
     } = {}
   ): Promise<SearchResult<T>[]> {
     await this.ensureInitialized()
@@ -3967,7 +4053,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           if (this.storage) {
             hnswConfig.useDiskBasedIndex = true
           }
-          
+
           this.index = new HNSWIndexOptimized(
             hnswConfig,
             this.distanceFunction,
@@ -4163,6 +4249,109 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       console.error('Failed to generate random graph:', error)
       throw new Error(`Failed to generate random graph: ${error}`)
     }
+  }
+
+  /**
+   * Get available field names by service
+   * This helps users understand what fields are available for searching from different data sources
+   * @returns Record of field names by service
+   */
+  public async getAvailableFieldNames(): Promise<Record<string, string[]>> {
+    await this.ensureInitialized()
+
+    if (!this.storage) {
+      return {}
+    }
+
+    return this.storage.getAvailableFieldNames()
+  }
+
+  /**
+   * Get standard field mappings
+   * This helps users understand how fields from different services map to standard field names
+   * @returns Record of standard field mappings
+   */
+  public async getStandardFieldMappings(): Promise<
+    Record<string, Record<string, string[]>>
+  > {
+    await this.ensureInitialized()
+
+    if (!this.storage) {
+      return {}
+    }
+
+    return this.storage.getStandardFieldMappings()
+  }
+
+  /**
+   * Search using a standard field name
+   * This allows searching across multiple services using a standardized field name
+   * @param standardField The standard field name to search in
+   * @param searchTerm The term to search for
+   * @param k Number of results to return
+   * @param options Additional search options
+   * @returns Array of search results
+   */
+  public async searchByStandardField(
+    standardField: string,
+    searchTerm: string,
+    k: number = 10,
+    options: {
+      services?: string[]
+      includeVerbs?: boolean
+      searchMode?: 'local' | 'remote' | 'combined'
+    } = {}
+  ): Promise<SearchResult<T>[]> {
+    await this.ensureInitialized()
+
+    // Check if database is in write-only mode
+    this.checkWriteOnly()
+
+    // Get standard field mappings
+    const standardFieldMappings = await this.getStandardFieldMappings()
+
+    // If the standard field doesn't exist, return empty results
+    if (!standardFieldMappings[standardField]) {
+      return []
+    }
+
+    // Filter by services if specified
+    let serviceFieldMappings = standardFieldMappings[standardField]
+    if (options.services && options.services.length > 0) {
+      const filteredMappings: Record<string, string[]> = {}
+      for (const service of options.services) {
+        if (serviceFieldMappings[service]) {
+          filteredMappings[service] = serviceFieldMappings[service]
+        }
+      }
+      serviceFieldMappings = filteredMappings
+    }
+
+    // If no mappings after filtering, return empty results
+    if (Object.keys(serviceFieldMappings).length === 0) {
+      return []
+    }
+
+    // Search in each service's fields and combine results
+    const allResults: SearchResult<T>[] = []
+
+    for (const [service, fieldNames] of Object.entries(serviceFieldMappings)) {
+      for (const fieldName of fieldNames) {
+        // Search using the specific field name for this service
+        const results = await this.search(searchTerm, k, {
+          searchField: fieldName,
+          service,
+          includeVerbs: options.includeVerbs,
+          searchMode: options.searchMode
+        })
+
+        // Add results to the combined list
+        allResults.push(...results)
+      }
+    }
+
+    // Sort by score and limit to k results
+    return allResults.sort((a, b) => b.score - a.score).slice(0, k)
   }
 }
 
