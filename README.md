@@ -1621,7 +1621,7 @@ patterns, especially for large datasets in cloud storage.
 ## Testing
 
 Brainy uses Vitest for testing. For detailed information about testing in Brainy, including test configuration, scripts,
-reporting tools, and best practices, see our [Testing Guide](TESTING.md).
+reporting tools, and best practices, see our [Testing Guide](docs/technical/TESTING.md).
 
 Here are some common test commands:
 
