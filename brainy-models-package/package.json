@@ -1,0 +1,64 @@
+{
+  "name": "@soulcraft/brainy-models",
+  "version": "1.0.0",
+  "description": "Pre-bundled TensorFlow models for maximum reliability with Brainy vector database",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "prebuild": "npm run download-models",
+    "build": "tsc",
+    "download-models": "node scripts/download-full-models.js",
+    "compress-models": "node scripts/compress-models.js",
+    "test": "node test/test-models.js",
+    "prepare": "npm run build",
+    "pack": "npm pack"
+  },
+  "keywords": [
+    "tensorflow",
+    "models",
+    "universal-sentence-encoder",
+    "embeddings",
+    "brainy",
+    "vector-database",
+    "offline",
+    "bundled"
+  ],
+  "author": "David Snelling (david@soulcraft.com)",
+  "license": "MIT",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://github.com/soulcraft-research/brainy",
+  "bugs": {
+    "url": "https://github.com/soulcraft-research/brainy/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/soulcraft-research/brainy.git",
+    "directory": "brainy-models-package"
+  },
+  "files": [
+    "dist/",
+    "models/",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-node": "^4.22.0",
+    "@tensorflow-models/universal-sentence-encoder": "^1.3.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "@types/node": "^20.11.30"
+  },
+  "peerDependencies": {
+    "@soulcraft/brainy": ">=0.33.0"
+  }
+}
