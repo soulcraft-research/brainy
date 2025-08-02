@@ -2907,7 +2907,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         nanoseconds: (now.getTime() % 1000) * 1000000
       }
 
-      // Create verb
+      // Create verb data (without metadata fields)
       const verb: GraphVerb = {
         id,
         vector: verbVector,
@@ -2918,14 +2918,18 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         target: targetId,
         verb: verbType as VerbType,
         type: verbType, // Set the type property to match the verb type
-        weight: options.weight,
-        metadata: options.metadata,
+        weight: options.weight
+      }
+
+      // Create verb metadata separately
+      const verbMetadata = {
         createdAt: timestamp,
         updatedAt: timestamp,
         createdBy: {
           augmentation: service,
           version: '1.0' // TODO: Get actual version from augmentation
-        }
+        },
+        data: options.metadata // Store the original metadata in the data field
       }
 
       // Add to index

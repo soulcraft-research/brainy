@@ -10,6 +10,8 @@ import { BaseStorageAdapter } from './adapters/baseStorageAdapter.js'
 export const NOUNS_DIR = 'nouns'
 export const VERBS_DIR = 'verbs'
 export const METADATA_DIR = 'metadata'
+export const NOUN_METADATA_DIR = 'noun-metadata'
+export const VERB_METADATA_DIR = 'verb-metadata'
 export const INDEX_DIR = 'index'
 export const STATISTICS_KEY = 'statistics'
 
@@ -671,6 +673,30 @@ export abstract class BaseStorage extends BaseStorageAdapter {
    * This method should be implemented by each specific adapter
    */
   public abstract getMetadata(id: string): Promise<any | null>
+
+  /**
+   * Save noun metadata to storage
+   * This method should be implemented by each specific adapter
+   */
+  public abstract saveNounMetadata(id: string, metadata: any): Promise<void>
+
+  /**
+   * Get noun metadata from storage
+   * This method should be implemented by each specific adapter
+   */
+  public abstract getNounMetadata(id: string): Promise<any | null>
+
+  /**
+   * Save verb metadata to storage
+   * This method should be implemented by each specific adapter
+   */
+  public abstract saveVerbMetadata(id: string, metadata: any): Promise<void>
+
+  /**
+   * Get verb metadata from storage
+   * This method should be implemented by each specific adapter
+   */
+  public abstract getVerbMetadata(id: string): Promise<any | null>
 
   /**
    * Save a noun to storage
