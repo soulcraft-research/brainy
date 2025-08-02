@@ -54,7 +54,9 @@ function executeStep(command, description, cwd = packageDir) {
     return true
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.error(`❌ Error during ${description.toLowerCase()}: ${error.message}`)
+    console.error(
+      `❌ Error during ${description.toLowerCase()}: ${error.message}`
+    )
     return false
   }
 }
@@ -62,7 +64,9 @@ function executeStep(command, description, cwd = packageDir) {
 // Main workflow
 async function runReleaseWorkflow() {
   // eslint-disable-next-line no-console
-  console.log(`\n=== Starting @soulcraft/brainy-models-package Release Workflow (${versionType}) ===\n`)
+  console.log(
+    `\n=== Starting @soulcraft/brainy-models-package Release Workflow (${versionType}) ===\n`
+  )
 
   // Step 1: Build the project
   if (!executeStep('npm run build', 'Building brainy-models-package')) {
@@ -73,45 +77,56 @@ async function runReleaseWorkflow() {
   // Step 2: Run tests to ensure everything is working
   if (!executeStep('npm test', 'Running tests')) {
     // eslint-disable-next-line no-console
-    console.warn('⚠️ Tests failed. This might indicate issues with the release.')
-    
+    console.warn(
+      '⚠️ Tests failed. This might indicate issues with the release.'
+    )
+
     // Ask the user if they want to continue despite test failures
     // eslint-disable-next-line no-console
-    console.log('\n⚠️ Do you want to continue with the release process despite test failures? (y/N)')
-    
+    console.log(
+      '\n⚠️ Do you want to continue with the release process despite test failures? (y/N)'
+    )
+
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout
     })
-    
-    const response = await new Promise(resolve => {
-      rl.question('', answer => {
+
+    const response = await new Promise((resolve) => {
+      rl.question('', (answer) => {
         rl.close()
         resolve(answer.toLowerCase())
       })
     })
-    
+
     if (response !== 'y' && response !== 'yes') {
       // eslint-disable-next-line no-console
       console.error('Release process aborted due to test failures.')
       // eslint-disable-next-line no-process-exit
       process.exit(1)
     }
-    
+
     // eslint-disable-next-line no-console
     console.log('Continuing with release process despite test failures...')
   }
 
   // Step 3: Update version and generate changelog
-  if (!executeStep(`npm run release:${versionType}`, `Updating version (${versionType}) and generating changelog`)) {
+  if (
+    !executeStep(
+      `npm run release:${versionType}`,
+      `Updating version (${versionType}) and generating changelog`
+    )
+  ) {
     // eslint-disable-next-line no-process-exit
     process.exit(1)
   }
 
   // Step 4: Create GitHub release
-  if (!executeStep('npm run github-release', 'Creating GitHub release')) {
+  if (!executeStep('npm run _github-release', 'Creating GitHub release')) {
     // eslint-disable-next-line no-console
-    console.log('Warning: GitHub release creation failed, but continuing with deployment...')
+    console.log(
+      'Warning: GitHub release creation failed, but continuing with deployment...'
+    )
   }
 
   // Step 5: Publish to NPM
@@ -126,7 +141,9 @@ async function runReleaseWorkflow() {
   const newVersion = packageJson.version
 
   // eslint-disable-next-line no-console
-  console.log(`\n🎉 @soulcraft/brainy-models-package v${newVersion} release completed successfully! 🎉\n`)
+  console.log(
+    `\n🎉 @soulcraft/brainy-models-package v${newVersion} release completed successfully! 🎉\n`
+  )
   // eslint-disable-next-line no-console
   console.log('Summary of actions:')
   // eslint-disable-next-line no-console
@@ -140,11 +157,13 @@ async function runReleaseWorkflow() {
   // eslint-disable-next-line no-console
   console.log(`- Package published to NPM as @soulcraft/brainy-models-package`)
   // eslint-disable-next-line no-console
-  console.log('\nThank you for using the brainy-models-package release workflow!\n')
+  console.log(
+    '\nThank you for using the brainy-models-package release workflow!\n'
+  )
 }
 
 // Run the workflow
-runReleaseWorkflow().catch(error => {
+runReleaseWorkflow().catch((error) => {
   // eslint-disable-next-line no-console
   console.error('Unexpected error during release workflow:', error)
   // eslint-disable-next-line no-process-exit

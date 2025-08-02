@@ -1,12 +1,21 @@
-# @soulcraft/brainy-models
+<div align="center">
+<img src="../brainy.png" alt="Brainy Logo" width="200"/>
+<br/><br/>
 
-Pre-bundled TensorFlow models for maximum reliability with Brainy vector database.
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](../LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.4.5-blue.svg)](https://www.typescriptlang.org/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](../CONTRIBUTING.md)
 
-## Overview
+**Pre-bundled TensorFlow models for maximum reliability with Brainy vector database**
+
+</div>
+
+## ✨ Overview
 
 This package provides offline access to the Universal Sentence Encoder model, eliminating network dependencies and ensuring consistent performance. It's designed as an optional companion to the main `@soulcraft/brainy` package for applications requiring maximum reliability.
 
-## Features
+### 🚀 Key Features
 
 - 🔒 **Maximum Reliability**: Fully offline model loading with zero network dependencies
 - 📦 **Pre-bundled Models**: Complete Universal Sentence Encoder model (~25MB) included
@@ -15,7 +24,7 @@ This package provides offline access to the Universal Sentence Encoder model, el
 - 🛠️ **Easy Integration**: Drop-in replacement for online model loading
 - 📊 **Comprehensive Metrics**: Detailed model information and performance statistics
 
-## Installation
+## 🔧 Installation
 
 ```bash
 npm install @soulcraft/brainy-models
@@ -26,7 +35,7 @@ npm install @soulcraft/brainy-models
 - Node.js >= 18.0.0
 - `@soulcraft/brainy` >= 0.33.0
 
-## Quick Start
+## 🏁 Quick Start
 
 ### Basic Usage
 
@@ -88,7 +97,7 @@ await encoder.load()
 const embeddings = await encoder.embedToArrays(['Sample text'])
 ```
 
-## API Reference
+## 📚 API Reference
 
 ### BundledUniversalSentenceEncoder
 
@@ -221,7 +230,7 @@ const models = utils.listAvailableModels()
 console.log('Available models:', models)
 ```
 
-## Model Variants
+## 🎯 Model Variants
 
 The package includes multiple model variants optimized for different use cases:
 
@@ -243,7 +252,7 @@ The package includes multiple model variants optimized for different use cases:
 - **Memory**: Low
 - **Speed**: Medium
 
-## Scripts
+## ⚙️ Scripts
 
 The package includes several utility scripts:
 
@@ -271,7 +280,7 @@ Verify model functionality:
 npm test
 ```
 
-## Development
+## 🔨 Development
 
 ### Building the Package
 
@@ -291,7 +300,7 @@ npm test
 npm run pack
 ```
 
-## Comparison with Online Loading
+## ⚖️ Comparison with Online Loading
 
 | Feature | Online Loading | Bundled Models |
 |---------|----------------|----------------|
@@ -302,7 +311,7 @@ npm run pack
 | **Network required** | Yes (first time) | No |
 | **Offline support** | Limited | Complete |
 
-## Use Cases
+## 💡 Use Cases
 
 ### When to Use Bundled Models
 
@@ -319,7 +328,7 @@ npm run pack
 - ✅ Environments with reliable internet connectivity
 - ✅ Applications that rarely use embeddings
 
-## Troubleshooting
+## 🔧 Troubleshooting
 
 ### Model Not Found Error
 
@@ -351,15 +360,15 @@ For optimal performance:
 2. **Speed-critical**: Use original float32 models
 3. **Balanced**: Use float16 compressed models
 
-## License
+## 📄 License
 
 MIT
 
-## Contributing
+## 🤝 Contributing
 
 Contributions are welcome! Please see the main [Brainy repository](https://github.com/soulcraft-research/brainy) for contribution guidelines.
 
-## Support
+## 💬 Support
 
 For issues and questions:
 - [GitHub Issues](https://github.com/soulcraft-research/brainy/issues)

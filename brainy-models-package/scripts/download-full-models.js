@@ -138,6 +138,13 @@ async function downloadFullModel() {
     // Read the model.json to get the weights manifest
     const modelJson = JSON.parse(fs.readFileSync(modelJsonPath, 'utf8'))
     
+    // Add the required "format" field for TensorFlow.js compatibility
+    if (!modelJson.format) {
+      modelJson.format = 'tfjs-graph-model'
+      fs.writeFileSync(modelJsonPath, JSON.stringify(modelJson, null, 2))
+      console.log('✅ Added "format" field to model.json for TensorFlow.js compatibility')
+    }
+    
     // Download all weight files
     if (modelJson.weightsManifest) {
       for (const manifest of modelJson.weightsManifest) {
