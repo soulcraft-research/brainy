@@ -12,6 +12,7 @@ examples/
 .idea/
 cloud-wrapper/
 scripts/
+dev/
 
 # Configuration files
 .eslintrc
