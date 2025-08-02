@@ -528,12 +528,13 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
   /**
    * Check if the database is in write-only mode and throw an error if it is
-   * @throws Error if the database is in write-only mode
+   * @param allowExistenceChecks If true, allows existence checks (get operations) in write-only mode
+   * @throws Error if the database is in write-only mode and operation is not allowed
    */
-  private checkWriteOnly(): void {
-    if (this.writeOnly) {
+  private checkWriteOnly(allowExistenceChecks: boolean = false): void {
+    if (this.writeOnly && !allowExistenceChecks) {
       throw new Error(
-        'Cannot perform search operation: database is in write-only mode'
+        'Cannot perform search operation: database is in write-only mode. Use get() for existence checks.'
       )
     }
   }
@@ -1207,14 +1208,66 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           ? (metadata as any).id
           : uuidv4())
 
-      // Add to index
-      await this.index.addItem({ id, vector })
+      // Check for existing noun (both write-only and normal modes)
+      let existingNoun: HNSWNoun | undefined
+      if (options.id) {
+        try {
+          if (this.writeOnly) {
+            // In write-only mode, check storage directly
+            existingNoun = await this.storage!.getNoun(options.id) ?? undefined
+          } else {
+            // In normal mode, check index first, then storage
+            existingNoun = this.index.getNouns().get(options.id)
+            if (!existingNoun) {
+              existingNoun = await this.storage!.getNoun(options.id) ?? undefined
+            }
+          }
 
-      // Get the noun from the index
-      const noun = this.index.getNouns().get(id)
+          if (existingNoun) {
+            // Check if existing noun is a placeholder
+            const existingMetadata = await this.storage!.getMetadata(options.id)
+            const isPlaceholder = existingMetadata && 
+              typeof existingMetadata === 'object' && 
+              (existingMetadata as any).isPlaceholder
 
-      if (!noun) {
-        throw new Error(`Failed to retrieve newly created noun with ID ${id}`)
+            if (isPlaceholder) {
+              // Replace placeholder with real data
+              if (this.loggingConfig?.verbose) {
+                console.log(`Replacing placeholder noun ${options.id} with real data`)
+              }
+            } else {
+              // Real noun already exists, update it
+              if (this.loggingConfig?.verbose) {
+                console.log(`Updating existing noun ${options.id}`)
+              }
+            }
+          }
+        } catch (storageError) {
+          // Item doesn't exist, continue with add operation
+        }
+      }
+
+      let noun: HNSWNoun
+
+      // In write-only mode, skip index operations since index is not loaded
+      if (this.writeOnly) {
+        // Create noun object directly without adding to index
+        noun = {
+          id,
+          vector,
+          connections: new Map(),
+          metadata: undefined // Will be set separately
+        }
+      } else {
+        // Normal mode: Add to index first
+        await this.index.addItem({ id, vector })
+
+        // Get the noun from the index
+        const indexNoun = this.index.getNouns().get(id)
+        if (!indexNoun) {
+          throw new Error(`Failed to retrieve newly created noun with ID ${id}`)
+        }
+        noun = indexNoun
       }
 
       // Save noun to storage
@@ -1965,6 +2018,16 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       })
     }
 
+    // Filter out placeholder nouns from search results
+    searchResults = searchResults.filter(result => {
+      if (result.metadata && typeof result.metadata === 'object') {
+        const metadata = result.metadata as Record<string, any>
+        // Exclude placeholder nouns from search results
+        return !metadata.isPlaceholder
+      }
+      return true
+    })
+
     // If includeVerbs is true, retrieve associated GraphVerbs for each result
     if (options.includeVerbs && this.storage) {
       for (const result of searchResults) {
@@ -2079,8 +2142,31 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     await this.ensureInitialized()
 
     try {
-      // Get noun from index
-      const noun = this.index.getNouns().get(id)
+      let noun: HNSWNoun | undefined
+
+      // In write-only mode, query storage directly since index is not loaded
+      if (this.writeOnly) {
+        try {
+          noun = await this.storage!.getNoun(id) ?? undefined
+        } catch (storageError) {
+          // If storage lookup fails, return null (noun doesn't exist)
+          return null
+        }
+      } else {
+        // Normal mode: Get noun from index first
+        noun = this.index.getNouns().get(id)
+        
+        // If not found in index, fallback to storage (for race conditions)
+        if (!noun && this.storage) {
+          try {
+            noun = await this.storage.getNoun(id) ?? undefined
+          } catch (storageError) {
+            // Storage lookup failed, noun doesn't exist
+            return null
+          }
+        }
+      }
+
       if (!noun) {
         return null
       }
@@ -2504,6 +2590,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
    *   - id: Optional ID to use instead of generating a new one
    *   - autoCreateMissingNouns: Automatically create missing nouns if they don't exist
    *   - missingNounMetadata: Metadata to use when auto-creating missing nouns
+   *   - writeOnlyMode: Skip noun existence checks for high-speed streaming (creates placeholder nouns)
    *
    * @returns The ID of the added verb
    *
@@ -2522,6 +2609,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       autoCreateMissingNouns?: boolean // Automatically create missing nouns
       missingNounMetadata?: any // Metadata to use when auto-creating missing nouns
       service?: string // The service that is inserting the data
+      writeOnlyMode?: boolean // Skip noun existence checks for high-speed streaming
     } = {}
   ): Promise<string> {
     await this.ensureInitialized()
@@ -2538,9 +2626,119 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     }
 
     try {
-      // Check if source and target nouns exist
-      let sourceNoun = this.index.getNouns().get(sourceId)
-      let targetNoun = this.index.getNouns().get(targetId)
+      let sourceNoun: HNSWNoun | undefined
+      let targetNoun: HNSWNoun | undefined
+
+      // In write-only mode, create placeholder nouns without checking existence
+      if (options.writeOnlyMode) {
+        // Create placeholder nouns for high-speed streaming
+        const service = this.getServiceName(options)
+        const now = new Date()
+        const timestamp = {
+          seconds: Math.floor(now.getTime() / 1000),
+          nanoseconds: (now.getTime() % 1000) * 1000000
+        }
+
+        // Create placeholder source noun
+        const sourcePlaceholderVector = new Array(this._dimensions).fill(0)
+        const sourceMetadata = options.missingNounMetadata || {
+          autoCreated: true,
+          writeOnlyMode: true,
+          isPlaceholder: true, // Mark as placeholder to exclude from search results
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          noun: NounType.Concept,
+          createdBy: {
+            augmentation: service,
+            version: '1.0'
+          }
+        }
+
+        sourceNoun = {
+          id: sourceId,
+          vector: sourcePlaceholderVector,
+          connections: new Map(),
+          metadata: sourceMetadata
+        }
+
+        // Create placeholder target noun
+        const targetPlaceholderVector = new Array(this._dimensions).fill(0)
+        const targetMetadata = options.missingNounMetadata || {
+          autoCreated: true,
+          writeOnlyMode: true,
+          isPlaceholder: true, // Mark as placeholder to exclude from search results
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          noun: NounType.Concept,
+          createdBy: {
+            augmentation: service,
+            version: '1.0'
+          }
+        }
+
+        targetNoun = {
+          id: targetId,
+          vector: targetPlaceholderVector,
+          connections: new Map(),
+          metadata: targetMetadata
+        }
+
+        // Save placeholder nouns to storage (but skip indexing for speed)
+        if (this.storage) {
+          try {
+            await this.storage.saveNoun(sourceNoun)
+            await this.storage.saveNoun(targetNoun)
+          } catch (storageError) {
+            console.warn(
+              `Failed to save placeholder nouns in write-only mode:`,
+              storageError
+            )
+          }
+        }
+      } else {
+        // Normal mode: Check if source and target nouns exist in index first
+        sourceNoun = this.index.getNouns().get(sourceId)
+        targetNoun = this.index.getNouns().get(targetId)
+
+        // If not found in index, check storage directly (fallback for race conditions)
+        if (!sourceNoun && this.storage) {
+          try {
+            const storageNoun = await this.storage.getNoun(sourceId)
+            if (storageNoun) {
+              // Found in storage but not in index - this indicates indexing delay
+              sourceNoun = storageNoun
+              console.warn(
+                `Found source noun ${sourceId} in storage but not in index - possible indexing delay`
+              )
+            }
+          } catch (storageError) {
+            // Storage lookup failed, continue with normal flow
+            console.debug(
+              `Storage lookup failed for source noun ${sourceId}:`,
+              storageError
+            )
+          }
+        }
+
+        if (!targetNoun && this.storage) {
+          try {
+            const storageNoun = await this.storage.getNoun(targetId)
+            if (storageNoun) {
+              // Found in storage but not in index - this indicates indexing delay
+              targetNoun = storageNoun
+              console.warn(
+                `Found target noun ${targetId} in storage but not in index - possible indexing delay`
+              )
+            }
+          } catch (storageError) {
+            // Storage lookup failed, continue with normal flow
+            console.debug(
+              `Storage lookup failed for target noun ${targetId}:`,
+              storageError
+            )
+          }
+        }
+      }
 
       // Auto-create missing nouns if option is enabled
       if (!sourceNoun && options.autoCreateMissingNouns) {
@@ -4299,8 +4497,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
             if (this.storage) {
               // Update the statistics to match the actual number of items (2 for the test)
               await this.storage.saveStatistics({
-                nounCount: { 'test': data.nouns.length },
-                verbCount: { 'test': data.verbs.length },
+                nounCount: { test: data.nouns.length },
+                verbCount: { test: data.verbs.length },
                 metadataCount: {},
                 hnswIndexSize: 0,
                 lastUpdated: new Date().toISOString()
