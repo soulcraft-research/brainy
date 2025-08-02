@@ -9,6 +9,8 @@ import {
   NOUNS_DIR,
   VERBS_DIR,
   METADATA_DIR,
+  NOUN_METADATA_DIR,
+  VERB_METADATA_DIR,
   INDEX_DIR,
   STATISTICS_KEY
 } from '../baseStorage.js'
@@ -53,6 +55,8 @@ export class FileSystemStorage extends BaseStorage {
   private nounsDir!: string
   private verbsDir!: string
   private metadataDir!: string
+  private nounMetadataDir!: string
+  private verbMetadataDir!: string
   private indexDir!: string
   private lockDir!: string
   private activeLocks: Set<string> = new Set()
@@ -98,6 +102,8 @@ export class FileSystemStorage extends BaseStorage {
       this.nounsDir = path.join(this.rootDir, NOUNS_DIR)
       this.verbsDir = path.join(this.rootDir, VERBS_DIR)
       this.metadataDir = path.join(this.rootDir, METADATA_DIR)
+      this.nounMetadataDir = path.join(this.rootDir, NOUN_METADATA_DIR)
+      this.verbMetadataDir = path.join(this.rootDir, VERB_METADATA_DIR)
       this.indexDir = path.join(this.rootDir, INDEX_DIR)
       this.lockDir = path.join(this.rootDir, 'locks')
 
@@ -112,6 +118,12 @@ export class FileSystemStorage extends BaseStorage {
 
       // Create the metadata directory if it doesn't exist
       await this.ensureDirectoryExists(this.metadataDir)
+
+      // Create the noun metadata directory if it doesn't exist
+      await this.ensureDirectoryExists(this.nounMetadataDir)
+
+      // Create the verb metadata directory if it doesn't exist
+      await this.ensureDirectoryExists(this.verbMetadataDir)
 
       // Create the index directory if it doesn't exist
       await this.ensureDirectoryExists(this.indexDir)
@@ -461,6 +473,62 @@ export class FileSystemStorage extends BaseStorage {
   }
 
   /**
+   * Save noun metadata to storage
+   */
+  public async saveNounMetadata(id: string, metadata: any): Promise<void> {
+    await this.ensureInitialized()
+
+    const filePath = path.join(this.nounMetadataDir, `${id}.json`)
+    await fs.promises.writeFile(filePath, JSON.stringify(metadata, null, 2))
+  }
+
+  /**
+   * Get noun metadata from storage
+   */
+  public async getNounMetadata(id: string): Promise<any | null> {
+    await this.ensureInitialized()
+
+    const filePath = path.join(this.nounMetadataDir, `${id}.json`)
+    try {
+      const data = await fs.promises.readFile(filePath, 'utf-8')
+      return JSON.parse(data)
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') {
+        console.error(`Error reading noun metadata ${id}:`, error)
+      }
+      return null
+    }
+  }
+
+  /**
+   * Save verb metadata to storage
+   */
+  public async saveVerbMetadata(id: string, metadata: any): Promise<void> {
+    await this.ensureInitialized()
+
+    const filePath = path.join(this.verbMetadataDir, `${id}.json`)
+    await fs.promises.writeFile(filePath, JSON.stringify(metadata, null, 2))
+  }
+
+  /**
+   * Get verb metadata from storage
+   */
+  public async getVerbMetadata(id: string): Promise<any | null> {
+    await this.ensureInitialized()
+
+    const filePath = path.join(this.verbMetadataDir, `${id}.json`)
+    try {
+      const data = await fs.promises.readFile(filePath, 'utf-8')
+      return JSON.parse(data)
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') {
+        console.error(`Error reading verb metadata ${id}:`, error)
+      }
+      return null
+    }
+  }
+
+  /**
    * Clear all data from storage
    */
   public async clear(): Promise<void> {
@@ -502,6 +570,12 @@ export class FileSystemStorage extends BaseStorage {
 
     // Remove all files in the metadata directory
     await removeDirectoryContents(this.metadataDir)
+
+    // Remove all files in the noun metadata directory
+    await removeDirectoryContents(this.nounMetadataDir)
+
+    // Remove all files in the verb metadata directory
+    await removeDirectoryContents(this.verbMetadataDir)
 
     // Remove all files in the index directory
     await removeDirectoryContents(this.indexDir)
