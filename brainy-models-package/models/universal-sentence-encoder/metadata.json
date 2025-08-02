@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Complete Universal Sentence Encoder model bundled for offline use",
   "dimensions": 512,
-  "downloadDate": "2025-08-01T23:20:17.338Z",
+  "downloadDate": "2025-08-02T00:28:52.947Z",
   "source": "tensorflow-models/universal-sentence-encoder",
   "approach": "full-bundle",
   "modelUrl": "https://storage.googleapis.com/tfjs-models/savedmodel/universal_sentence_encoder",

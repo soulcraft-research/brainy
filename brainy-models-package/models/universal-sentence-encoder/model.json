@@ -7178,5 +7178,6 @@
         }
       ]
     }
-  ]
+  ],
+  "format": "tfjs-graph-model"
 }
