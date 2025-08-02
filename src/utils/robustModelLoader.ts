@@ -11,6 +11,10 @@
 
 import { EmbeddingModel } from '../coreTypes.js'
 
+// Import the findUSELoadFunction from embedding.ts
+// We need to access it directly since it's not exported
+// For now, we'll implement a similar function locally
+
 export interface ModelLoadOptions {
   /** Maximum number of retry attempts */
   maxRetries?: number
@@ -181,6 +185,9 @@ export class RobustModelLoader {
         // Look for bundled model in multiple possible locations
         const possiblePaths = [
           path.join(__dirname, '..', '..', 'models', 'bundled', 'universal-sentence-encoder'),
+          path.join(__dirname, '..', '..', 'brainy-models-package', 'models', 'universal-sentence-encoder'),
+          path.join(process.cwd(), 'brainy-models-package', 'models', 'universal-sentence-encoder'),
+          path.join(__dirname, '..', '..', 'node_modules', '@soulcraft', 'brainy-models', 'models', 'universal-sentence-encoder'),
           path.join(__dirname, '..', '..', 'node_modules', '@soulcraft', 'brainy-models', 'universal-sentence-encoder'),
           path.join(process.cwd(), 'node_modules', '@soulcraft', 'brainy-models', 'universal-sentence-encoder')
         ]
@@ -192,7 +199,31 @@ export class RobustModelLoader {
             
             // Load TensorFlow.js if not already loaded
             const tf = await import('@tensorflow/tfjs')
-            const model = await tf.loadLayersModel(`file://${modelJsonPath}`)
+            
+            // Read the model.json to check the format
+            const modelJsonContent = JSON.parse(fs.readFileSync(modelJsonPath, 'utf8'))
+            
+            // Ensure the format field exists for TensorFlow.js compatibility
+            if (!modelJsonContent.format) {
+              modelJsonContent.format = 'tfjs-graph-model'
+              try {
+                fs.writeFileSync(modelJsonPath, JSON.stringify(modelJsonContent, null, 2))
+                this.log(`✅ Added missing "format" field to model.json for TensorFlow.js compatibility`)
+              } catch (writeError) {
+                this.log(`⚠️ Could not write format field to model.json: ${writeError}`)
+              }
+            }
+            
+            const modelFormat = modelJsonContent.format || 'tfjs-graph-model'
+            
+            let model
+            if (modelFormat === 'tfjs-graph-model') {
+              // Use loadGraphModel for graph models
+              model = await tf.loadGraphModel(`file://${modelJsonPath}`)
+            } else {
+              // Use loadLayersModel for layers models (default)
+              model = await tf.loadLayersModel(`file://${modelJsonPath}`)
+            }
             
             // Return a wrapper that matches the Universal Sentence Encoder interface
             return this.createModelWrapper(model)

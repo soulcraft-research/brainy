@@ -20,6 +20,7 @@ type Edge = GraphVerb
 // Node.js modules - dynamically imported to avoid issues in browser environments
 let fs: any
 let path: any
+let moduleLoadingPromise: Promise<void> | null = null
 
 // Try to load Node.js modules
 try {
@@ -27,13 +28,14 @@ try {
   const fsPromise = import('fs')
   const pathPromise = import('path')
 
-  Promise.all([fsPromise, pathPromise])
+  moduleLoadingPromise = Promise.all([fsPromise, pathPromise])
     .then(([fsModule, pathModule]) => {
       fs = fsModule
       path = pathModule.default
     })
     .catch((error) => {
       console.error('Failed to load Node.js modules:', error)
+      throw error
     })
 } catch (error) {
   console.error(
@@ -71,6 +73,17 @@ export class FileSystemStorage extends BaseStorage {
   public async init(): Promise<void> {
     if (this.isInitialized) {
       return
+    }
+
+    // Wait for module loading to complete
+    if (moduleLoadingPromise) {
+      try {
+        await moduleLoadingPromise
+      } catch (error) {
+        throw new Error(
+          'FileSystemStorage requires a Node.js environment, but `fs` and `path` modules could not be loaded.'
+        )
+      }
     }
 
     // Check if Node.js modules are available
@@ -453,6 +466,12 @@ export class FileSystemStorage extends BaseStorage {
   public async clear(): Promise<void> {
     await this.ensureInitialized()
 
+    // Check if fs module is available
+    if (!fs || !fs.promises) {
+      console.warn('FileSystemStorage.clear: fs module not available, skipping clear operation')
+      return
+    }
+
     // Helper function to remove all files in a directory
     const removeDirectoryContents = async (dirPath: string): Promise<void> => {
       try {
@@ -498,6 +517,27 @@ export class FileSystemStorage extends BaseStorage {
     details?: Record<string, any>
   }> {
     await this.ensureInitialized()
+
+    // Check if fs module is available
+    if (!fs || !fs.promises) {
+      console.warn('FileSystemStorage.getStorageStatus: fs module not available, returning default values')
+      return {
+        type: 'filesystem',
+        used: 0,
+        quota: null,
+        details: {
+          nounsCount: 0,
+          verbsCount: 0,
+          metadataCount: 0,
+          directorySizes: {
+            nouns: 0,
+            verbs: 0,
+            metadata: 0,
+            index: 0
+          }
+        }
+      }
+    }
 
     try {
       // Calculate the total size of all files in the storage directories
