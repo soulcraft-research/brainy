@@ -28,8 +28,7 @@
     "_workflow:minor": "node scripts/release-workflow.js minor",
     "_workflow:major": "node scripts/release-workflow.js major",
     "_workflow:dry-run": "npm run build && npm test && npm run _release:dry-run",
-    "_deploy": "npm run build && npm publish",
-    "release:minor": "npm run _release:minor"
+    "_deploy": "npm run build && npm publish"
   },
   "keywords": [
     "tensorflow",
