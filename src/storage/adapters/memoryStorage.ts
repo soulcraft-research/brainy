@@ -18,6 +18,8 @@ export class MemoryStorage extends BaseStorage {
   private nouns: Map<string, HNSWNoun> = new Map()
   private verbs: Map<string, GraphVerb> = new Map()
   private metadata: Map<string, any> = new Map()
+  private nounMetadata: Map<string, any> = new Map()
+  private verbMetadata: Map<string, any> = new Map()
   private statistics: StatisticsData | null = null
 
   constructor() {
@@ -558,12 +560,52 @@ export class MemoryStorage extends BaseStorage {
   }
 
   /**
+   * Save noun metadata to storage
+   */
+  public async saveNounMetadata(id: string, metadata: any): Promise<void> {
+    this.nounMetadata.set(id, JSON.parse(JSON.stringify(metadata)))
+  }
+
+  /**
+   * Get noun metadata from storage
+   */
+  public async getNounMetadata(id: string): Promise<any | null> {
+    const metadata = this.nounMetadata.get(id)
+    if (!metadata) {
+      return null
+    }
+
+    return JSON.parse(JSON.stringify(metadata))
+  }
+
+  /**
+   * Save verb metadata to storage
+   */
+  public async saveVerbMetadata(id: string, metadata: any): Promise<void> {
+    this.verbMetadata.set(id, JSON.parse(JSON.stringify(metadata)))
+  }
+
+  /**
+   * Get verb metadata from storage
+   */
+  public async getVerbMetadata(id: string): Promise<any | null> {
+    const metadata = this.verbMetadata.get(id)
+    if (!metadata) {
+      return null
+    }
+
+    return JSON.parse(JSON.stringify(metadata))
+  }
+
+  /**
    * Clear all data from storage
    */
   public async clear(): Promise<void> {
     this.nouns.clear()
     this.verbs.clear()
     this.metadata.clear()
+    this.nounMetadata.clear()
+    this.verbMetadata.clear()
     this.statistics = null
   }
 
