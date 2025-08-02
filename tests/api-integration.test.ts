@@ -1,19 +1,19 @@
 /**
  * API Integration Tests
- * 
+ *
  * Purpose:
  * This test suite verifies the end-to-end functionality of the Brainy API, specifically:
  * 1. Text insertion via the API
  * 2. Vector embedding generation from text
  * 3. Search functionality using the generated embeddings
  * 4. HNSW index correctness for vector similarity search
- * 
+ *
  * The tests confirm that:
  * - The API can successfully insert text and generate embeddings
  * - The search functionality can find inserted text
  * - There are no vector dimension mismatches
  * - The HNSW index is working correctly for similarity search
- * 
+ *
  * These tests are critical for ensuring the core functionality of the vector database
  * is working correctly in a real-world API scenario.
  */
@@ -30,25 +30,25 @@ const TEST_TEXT = `This is a unique test text for API integration testing ${Date
 describe('API Integration Tests', () => {
   let server: any
   let brainyInstance: any
-  
+
   // Start a test server before running tests
-  beforeAll(async () => { 
+  beforeAll(async () => {
     // Create a test BrainyData instance
     const storage = await createStorage({ forceFileSystemStorage: true })
     brainyInstance = new BrainyData({
       storageAdapter: storage
     })
-    
+
     await brainyInstance.init()
-    
+
     // Clear any existing data to ensure a clean test environment
     await brainyInstance.clear()
-    
+
     // Import express and start a test server
     const express = await import('express')
     const app = express.default()
     app.use(express.json({ limit: '10mb' }))
-    
+
     // Add endpoint for inserting text
     app.post('/api/insert', async (req, res) => {
       try {
@@ -56,15 +56,17 @@ describe('API Integration Tests', () => {
         if (!text) {
           return res.status(400).json({ error: 'Text is required' })
         }
-        
+
         console.log('Attempting to add text:', text)
-        
+
         // Add the text to the database using the add method instead of addItem
         // This is more direct and avoids potential issues with the addItem method
-        const id = await brainyInstance.add(text, metadata, { forceEmbed: true })
-        
+        const id = await brainyInstance.add(text, metadata, {
+          forceEmbed: true
+        })
+
         console.log('Successfully added text with ID:', id)
-        
+
         res.json({
           success: true,
           id,
@@ -79,7 +81,7 @@ describe('API Integration Tests', () => {
         })
       }
     })
-    
+
     // Add endpoint for searching text
     app.post('/api/search/text', async (req, res) => {
       try {
@@ -87,9 +89,9 @@ describe('API Integration Tests', () => {
         if (!query) {
           return res.status(400).json({ error: 'Query is required' })
         }
-        
+
         const results = await brainyInstance.searchText(query, k)
-        
+
         res.json({
           results,
           query: {
@@ -105,7 +107,7 @@ describe('API Integration Tests', () => {
         })
       }
     })
-    
+
     // Start the server
     return new Promise((resolve) => {
       server = app.listen(API_PORT, () => {
@@ -114,7 +116,7 @@ describe('API Integration Tests', () => {
       })
     })
   })
-  
+
   // Clean up after tests
   afterAll(async () => {
     // Close the server
@@ -125,14 +127,14 @@ describe('API Integration Tests', () => {
         })
       })
     }
-    
+
     // Clean up the database
     if (brainyInstance) {
       await brainyInstance.clear()
       await brainyInstance.shutDown()
     }
   })
-  
+
   it('should insert text and then find it via search', async () => {
     // Insert text
     const insertResponse = await fetch(`${API_URL}/insert`, {
@@ -148,16 +150,16 @@ describe('API Integration Tests', () => {
         }
       })
     })
-    
+
     expect(insertResponse.status).toBe(200)
-    const insertData = await insertResponse.json() as any
+    const insertData = (await insertResponse.json()) as any
     expect(insertData.success).toBe(true)
     expect(insertData.id).toBeDefined()
     expect(insertData.text).toBe(TEST_TEXT)
-    
+
     // Allow a longer delay for indexing to ensure the item is properly indexed
-    await new Promise(resolve => setTimeout(resolve, 500))
-    
+    await new Promise((resolve) => setTimeout(resolve, 500))
+
     // Search for the inserted text
     const searchResponse = await fetch(`${API_URL}/search/text`, {
       method: 'POST',
@@ -169,21 +171,21 @@ describe('API Integration Tests', () => {
         k: 5
       })
     })
-    
+
     expect(searchResponse.status).toBe(200)
-    const searchData = await searchResponse.json() as any
+    const searchData = (await searchResponse.json()) as any
     // Removed detailed logging to reduce output
     expect(searchData.results).toBeDefined()
     expect(searchData.results.length).toBeGreaterThan(0)
-    
+
     // The first result should be our inserted text with high similarity
     const firstResult = searchData.results[0]
     // For this test, we're primarily concerned with finding the correct item by ID
     // The score/similarity/distance might vary based on the implementation
-    
+
     // Verify that the ID matches, which confirms the search is working
     expect(firstResult.id).toBe(insertData.id)
-    
+
     // Verify the text content matches if it exists in metadata
     if (firstResult.metadata?.text) {
       expect(firstResult.metadata.text).toBe(TEST_TEXT)
@@ -194,7 +196,7 @@ describe('API Integration Tests', () => {
       expect(true).toBe(true) // Pass this test for now
     }
   })
-  
+
   it('should handle vector mismatches and HNSW index correctly', async () => {
     // Insert multiple texts to test HNSW index
     const texts = [
@@ -204,7 +206,7 @@ describe('API Integration Tests', () => {
       `Test vector HNSW index ${Date.now()} - item 4`,
       `Test vector HNSW index ${Date.now()} - item 5`
     ]
-    
+
     // Insert all texts
     const insertedIds: any[] = []
     for (const text of texts) {
@@ -221,22 +223,24 @@ describe('API Integration Tests', () => {
           }
         })
       })
-      
-      const data = await response.json() as any
+
+      const data = (await response.json()) as any
       insertedIds.push(data.id)
     }
-    
+
     expect(insertedIds.length).toBe(texts.length)
-    
+
     // Allow a much longer delay for indexing to ensure all items are properly indexed
     // Increased from 500ms to 2000ms to give more time for the HNSW index to update
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+
     // Search for each text and verify it's found correctly
     for (let i = 0; i < texts.length; i++) {
-      console.log(`Searching for text ${i+1}/${texts.length}: "${texts[i].substring(0, 30)}..."`)
+      console.log(
+        `Searching for text ${i + 1}/${texts.length}: "${texts[i].substring(0, 30)}..."`
+      )
       console.log(`Expected ID: ${insertedIds[i]}`)
-      
+
       const searchResponse = await fetch(`${API_URL}/search/text`, {
         method: 'POST',
         headers: {
@@ -247,29 +251,35 @@ describe('API Integration Tests', () => {
           k: 10
         })
       })
-      
-      const searchData = await searchResponse.json() as any
+
+      const searchData = (await searchResponse.json()) as any
       console.log(`Search returned ${searchData.results?.length || 0} results`)
-      
+
       if (searchData.results && searchData.results.length > 0) {
         console.log(`First result ID: ${searchData.results[0].id}`)
-        console.log(`All result IDs: ${searchData.results.map((r: any) => r.id).join(', ')}`)
+        console.log(
+          `All result IDs: ${searchData.results.map((r: any) => r.id).join(', ')}`
+        )
       }
-      
+
       // The text should be found in the results
-      const foundResult = searchData.results.find((r: any) => r.id === insertedIds[i])
-      
+      const foundResult = searchData.results.find(
+        (r: any) => r.id === insertedIds[i]
+      )
+
       if (!foundResult) {
-        console.error(`Could not find result with ID ${insertedIds[i]} in search results`)
+        console.error(
+          `Could not find result with ID ${insertedIds[i]} in search results`
+        )
       } else {
         console.log(`Found result with matching ID: ${foundResult.id}`)
       }
-      
+
       expect(foundResult).toBeDefined()
-      
+
       // For this test, we're primarily concerned with finding the correct item by ID
       // The score/similarity/distance might vary based on the implementation
-      
+
       // We'll just verify that the ID matches, which confirms the search is working
       expect(foundResult.id).toBe(insertedIds[i])
     }
