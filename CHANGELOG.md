@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.34.0](https://github.com/soulcraft-research/brainy/compare/v0.1.0...v0.34.0) (2025-08-02)
+
+
+### Changed
+
+* **release:** 0.2.0 [skip ci] ([c9ca141](https://github.com/soulcraft-research/brainy/commit/c9ca14146ba5376812823185e55fc8b38be3785c))
+* **release:** 0.3.0 [skip ci] ([437360c](https://github.com/soulcraft-research/brainy/commit/437360c2570632204cf951001aa7a0228479255d))
+* **release:** 0.4.0 [skip ci] ([be3a108](https://github.com/soulcraft-research/brainy/commit/be3a108971f0407dd526e355bd9b8e6083575f50))
+* **release:** 0.5.0 ([a05ebb5](https://github.com/soulcraft-research/brainy/commit/a05ebb5ef44084974d544e84b67f37b1ac26a1de))
+* **release:** 0.6.0 ([26cb41a](https://github.com/soulcraft-research/brainy/commit/26cb41ae9459555ec1f16d672f514d0dd2f41a85))
+* **release:** 0.7.0 ([153abe8](https://github.com/soulcraft-research/brainy/commit/153abe8fcda1559f7ee796184e4d5e4f3c2fc833))
+
 ## [0.33.0](https://github.com/soulcraft-research/brainy/compare/v0.32.0...v0.33.0) (2025-08-01)
 
 ## [0.32.0](https://github.com/soulcraft-research/brainy/compare/v0.31.0...v0.32.0) (2025-08-01)
