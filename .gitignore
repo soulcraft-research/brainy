@@ -70,3 +70,4 @@ debug*.ts
 /temp/
 /temp-tests/
 /brainy-models-package/node_modules/
+/CLAUDE.md
