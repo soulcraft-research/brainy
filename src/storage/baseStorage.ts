@@ -3,7 +3,7 @@
  * Provides common functionality for all storage adapters
  */
 
-import { GraphVerb, HNSWNoun, StatisticsData } from '../coreTypes.js'
+import { GraphVerb, HNSWNoun, HNSWVerb, StatisticsData } from '../coreTypes.js'
 import { BaseStorageAdapter } from './adapters/baseStorageAdapter.js'
 
 // Common directory/prefix names
@@ -87,7 +87,34 @@ export abstract class BaseStorage extends BaseStorageAdapter {
    */
   public async saveVerb(verb: GraphVerb): Promise<void> {
     await this.ensureInitialized()
-    return this.saveVerb_internal(verb)
+    
+    // Extract the lightweight HNSWVerb data
+    const hnswVerb: HNSWVerb = {
+      id: verb.id,
+      vector: verb.vector,
+      connections: verb.connections || new Map()
+    }
+    
+    // Extract and save the metadata separately
+    const metadata = {
+      sourceId: verb.sourceId || verb.source,
+      targetId: verb.targetId || verb.target,
+      source: verb.source || verb.sourceId,
+      target: verb.target || verb.targetId,
+      type: verb.type || verb.verb,
+      verb: verb.verb || verb.type,
+      weight: verb.weight,
+      metadata: verb.metadata,
+      data: verb.data,
+      createdAt: verb.createdAt,
+      updatedAt: verb.updatedAt,
+      createdBy: verb.createdBy,
+      embedding: verb.embedding
+    }
+    
+    // Save both the HNSWVerb and metadata
+    await this.saveVerb_internal(hnswVerb)
+    await this.saveVerbMetadata(verb.id, metadata)
   }
 
   /**
@@ -95,7 +122,56 @@ export abstract class BaseStorage extends BaseStorageAdapter {
    */
   public async getVerb(id: string): Promise<GraphVerb | null> {
     await this.ensureInitialized()
-    return this.getVerb_internal(id)
+    const hnswVerb = await this.getVerb_internal(id)
+    if (!hnswVerb) {
+      return null
+    }
+    return this.convertHNSWVerbToGraphVerb(hnswVerb)
+  }
+
+  /**
+   * Convert HNSWVerb to GraphVerb by combining with metadata
+   */
+  protected async convertHNSWVerbToGraphVerb(hnswVerb: HNSWVerb): Promise<GraphVerb | null> {
+    try {
+      const metadata = await this.getVerbMetadata(hnswVerb.id)
+      if (!metadata) {
+        return null
+      }
+
+      // Create default timestamp if not present
+      const defaultTimestamp = {
+        seconds: Math.floor(Date.now() / 1000),
+        nanoseconds: (Date.now() % 1000) * 1000000
+      }
+
+      // Create default createdBy if not present
+      const defaultCreatedBy = {
+        augmentation: 'unknown',
+        version: '1.0'
+      }
+
+      return {
+        id: hnswVerb.id,
+        vector: hnswVerb.vector,
+        sourceId: metadata.sourceId,
+        targetId: metadata.targetId,
+        source: metadata.source,
+        target: metadata.target,
+        verb: metadata.verb,
+        type: metadata.type,
+        weight: metadata.weight || 1.0,
+        metadata: metadata.metadata || {},
+        createdAt: metadata.createdAt || defaultTimestamp,
+        updatedAt: metadata.updatedAt || defaultTimestamp,
+        createdBy: metadata.createdBy || defaultCreatedBy,
+        data: metadata.data,
+        embedding: hnswVerb.vector
+      }
+    } catch (error) {
+      console.error(`Failed to convert HNSWVerb to GraphVerb for ${hnswVerb.id}:`, error)
+      return null
+    }
   }
 
   /**
@@ -106,7 +182,18 @@ export abstract class BaseStorage extends BaseStorageAdapter {
   public async getAllVerbs(): Promise<GraphVerb[]> {
     await this.ensureInitialized()
     console.warn('WARNING: getAllVerbs() is deprecated and will be removed in a future version. Use getVerbs() with pagination instead.')
-    return this.getAllVerbs_internal()
+    
+    const hnswVerbs = await this.getAllVerbs_internal()
+    const graphVerbs: GraphVerb[] = []
+    
+    for (const hnswVerb of hnswVerbs) {
+      const graphVerb = await this.convertHNSWVerbToGraphVerb(hnswVerb)
+      if (graphVerb) {
+        graphVerbs.push(graphVerb)
+      }
+    }
+    
+    return graphVerbs
   }
 
   /**
@@ -114,7 +201,12 @@ export abstract class BaseStorage extends BaseStorageAdapter {
    */
   public async getVerbsBySource(sourceId: string): Promise<GraphVerb[]> {
     await this.ensureInitialized()
-    return this.getVerbsBySource_internal(sourceId)
+    
+    // Get all verbs and filter by source
+    const allVerbs = await this.getAllVerbs()
+    return allVerbs.filter(verb => 
+      verb.sourceId === sourceId || verb.source === sourceId
+    )
   }
 
   /**
@@ -122,7 +214,12 @@ export abstract class BaseStorage extends BaseStorageAdapter {
    */
   public async getVerbsByTarget(targetId: string): Promise<GraphVerb[]> {
     await this.ensureInitialized()
-    return this.getVerbsByTarget_internal(targetId)
+    
+    // Get all verbs and filter by target
+    const allVerbs = await this.getAllVerbs()
+    return allVerbs.filter(verb => 
+      verb.targetId === targetId || verb.target === targetId
+    )
   }
 
   /**
@@ -130,7 +227,12 @@ export abstract class BaseStorage extends BaseStorageAdapter {
    */
   public async getVerbsByType(type: string): Promise<GraphVerb[]> {
     await this.ensureInitialized()
-    return this.getVerbsByType_internal(type)
+    
+    // Get all verbs and filter by type
+    const allVerbs = await this.getAllVerbs()
+    return allVerbs.filter(verb => 
+      verb.type === type || verb.verb === type
+    )
   }
 
   /**
@@ -522,7 +624,7 @@ export abstract class BaseStorage extends BaseStorageAdapter {
 
       try {
         // Try to get only the verbs we need
-        allVerbs = await this.getAllVerbs_internal()
+        allVerbs = await this.getAllVerbs()
 
         // If we have too many verbs, truncate the array to avoid memory issues
         if (allVerbs.length > maxVerbs) {
@@ -734,19 +836,19 @@ export abstract class BaseStorage extends BaseStorageAdapter {
    * Save a verb to storage
    * This method should be implemented by each specific adapter
    */
-  protected abstract saveVerb_internal(verb: GraphVerb): Promise<void>
+  protected abstract saveVerb_internal(verb: HNSWVerb): Promise<void>
 
   /**
    * Get a verb from storage
    * This method should be implemented by each specific adapter
    */
-  protected abstract getVerb_internal(id: string): Promise<GraphVerb | null>
+  protected abstract getVerb_internal(id: string): Promise<HNSWVerb | null>
 
   /**
    * Get all verbs from storage
    * This method should be implemented by each specific adapter
    */
-  protected abstract getAllVerbs_internal(): Promise<GraphVerb[]>
+  protected abstract getAllVerbs_internal(): Promise<HNSWVerb[]>
 
   /**
    * Get verbs by source

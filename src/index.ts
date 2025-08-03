@@ -250,6 +250,7 @@ import type {
   EmbeddingFunction,
   EmbeddingModel,
   HNSWNoun,
+  HNSWVerb,
   HNSWConfig,
   StorageAdapter
 } from './coreTypes.js'
@@ -271,6 +272,7 @@ export type {
   EmbeddingFunction,
   EmbeddingModel,
   HNSWNoun,
+  HNSWVerb,
   HNSWConfig,
   HNSWOptimizedConfig,
   StorageAdapter

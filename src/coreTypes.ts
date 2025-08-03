@@ -67,12 +67,25 @@ export interface HNSWNoun {
 }
 
 /**
- * Verb representing a relationship between nouns
- * Extends HNSWNoun to allow verbs to be first-class entities in the data model
+ * Lightweight verb for HNSW index storage
+ * Contains only essential data needed for vector operations
  */
-export interface GraphVerb extends HNSWNoun {
+export interface HNSWVerb {
+  id: string
+  vector: Vector
+  connections: Map<number, Set<string>> // level -> set of connected verb ids
+}
+
+/**
+ * Verb representing a relationship between nouns
+ * Stored separately from HNSW index for lightweight performance
+ */
+export interface GraphVerb {
+  id: string // Unique identifier for the verb
   sourceId: string // ID of the source noun
   targetId: string // ID of the target noun
+  vector: Vector // Vector representation of the relationship
+  connections?: Map<number, Set<string>> // Optional connections from HNSW index
   type?: string // Optional type of the relationship
   weight?: number // Optional weight of the relationship
   metadata?: any // Optional metadata for the verb
@@ -82,7 +95,7 @@ export interface GraphVerb extends HNSWNoun {
   target?: string // Alias for targetId
   verb?: string // Alias for type
   data?: Record<string, any> // Additional flexible data storage
-  embedding?: Vector // Vector representation of the relationship
+  embedding?: Vector // Alias for vector
 
   // Timestamp and creator properties
   createdAt?: { seconds: number; nanoseconds: number } // When the verb was created
@@ -285,6 +298,21 @@ export interface StorageAdapter {
   saveMetadata(id: string, metadata: any): Promise<void>
 
   getMetadata(id: string): Promise<any | null>
+
+  /**
+   * Save verb metadata to storage
+   * @param id The ID of the verb
+   * @param metadata The metadata to save
+   * @returns Promise that resolves when the metadata is saved
+   */
+  saveVerbMetadata(id: string, metadata: any): Promise<void>
+
+  /**
+   * Get verb metadata from storage
+   * @param id The ID of the verb
+   * @returns Promise that resolves to the metadata or null if not found
+   */
+  getVerbMetadata(id: string): Promise<any | null>
 
   clear(): Promise<void>
 
