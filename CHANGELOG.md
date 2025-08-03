@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.36.0](https://github.com/soulcraft-research/brainy/compare/v0.35.0...v0.36.0) (2025-08-03)
+
+
+### Changed
+
+* add CLAUDE.md to .gitignore ([4c0b920](https://github.com/soulcraft-research/brainy/commit/4c0b9200c5304cb5bb4c888bf057927095012c55))
+
+
+### Documentation
+
+* add guidelines for Conventional Commit format and structured commit messages ([f9a8595](https://github.com/soulcraft-research/brainy/commit/f9a859587802dfd294b2eaeefcf251f75a460db4))
+
+
+### Added
+
+* add verb and noun metadata handling in storage adapters ([9778f1b](https://github.com/soulcraft-research/brainy/commit/9778f1bbf46de06bb71d87333f3861210558024e))
+* refactor verb storage to use HNSWVerb for improved performance ([75ccf0f](https://github.com/soulcraft-research/brainy/commit/75ccf0f7472f94cc7a76a9b64b377fb7bdc02624))
+
 ## [0.35.0](https://github.com/soulcraft-research/brainy/compare/v0.34.0...v0.35.0) (2025-08-02)
 
 ## [0.34.0](https://github.com/soulcraft-research/brainy/compare/v0.1.0...v0.34.0) (2025-08-02)
