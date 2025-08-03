@@ -17,7 +17,6 @@ export default defineConfig({
       'dist/**',
       'scripts/**',
       'examples/**',
-      'cli-package/**',
       '*.js' // Exclude old JS test files in root
     ],
     // Add environment options to help with TextEncoder issues
