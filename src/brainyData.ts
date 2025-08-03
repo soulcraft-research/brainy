@@ -13,6 +13,7 @@ import { createStorage } from './storage/storageFactory.js'
 import {
   DistanceFunction,
   GraphVerb,
+  HNSWVerb,
   EmbeddingFunction,
   HNSWConfig,
   HNSWNoun,
@@ -2907,22 +2908,22 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         nanoseconds: (now.getTime() % 1000) * 1000000
       }
 
-      // Create verb data (without metadata fields)
-      const verb: GraphVerb = {
+      // Create lightweight verb for HNSW index storage
+      const hnswVerb: HNSWVerb = {
         id,
         vector: verbVector,
-        connections: new Map(),
+        connections: new Map()
+      }
+
+      // Create complete verb metadata separately
+      const verbMetadata = {
         sourceId: sourceId,
         targetId: targetId,
         source: sourceId,
         target: targetId,
         verb: verbType as VerbType,
         type: verbType, // Set the type property to match the verb type
-        weight: options.weight
-      }
-
-      // Create verb metadata separately
-      const verbMetadata = {
+        weight: options.weight,
         createdAt: timestamp,
         updatedAt: timestamp,
         createdBy: {
@@ -2945,10 +2946,30 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       }
 
       // Update verb connections from index
-      verb.connections = indexNoun.connections
+      hnswVerb.connections = indexNoun.connections
 
-      // Save verb to storage
-      await this.storage!.saveVerb(verb)
+      // Combine HNSWVerb and metadata into a GraphVerb for storage
+      const fullVerb: GraphVerb = {
+        id: hnswVerb.id,
+        vector: hnswVerb.vector,
+        connections: hnswVerb.connections,
+        sourceId: verbMetadata.sourceId,
+        targetId: verbMetadata.targetId,
+        source: verbMetadata.source,
+        target: verbMetadata.target,
+        verb: verbMetadata.verb,
+        type: verbMetadata.type,
+        weight: verbMetadata.weight,
+        createdAt: verbMetadata.createdAt,
+        updatedAt: verbMetadata.updatedAt,
+        createdBy: verbMetadata.createdBy,
+        metadata: verbMetadata.data,
+        data: verbMetadata.data,
+        embedding: hnswVerb.vector
+      }
+
+      // Save the complete verb (BaseStorage will handle the separation)
+      await this.storage!.saveVerb(fullVerb)
 
       // Track verb statistics
       const serviceForStats = this.getServiceName(options)
@@ -2971,7 +2992,44 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     await this.ensureInitialized()
 
     try {
-      return await this.storage!.getVerb(id)
+      // Get the lightweight verb from storage
+      const hnswVerb = await this.storage!.getVerb(id)
+      if (!hnswVerb) {
+        return null
+      }
+
+      // Get the verb metadata
+      const metadata = await this.storage!.getVerbMetadata(id)
+      if (!metadata) {
+        console.warn(`Verb ${id} found but no metadata - creating minimal GraphVerb`)
+        // Return minimal GraphVerb if metadata is missing
+        return {
+          id: hnswVerb.id,
+          vector: hnswVerb.vector,
+          sourceId: '',
+          targetId: ''
+        }
+      }
+
+      // Combine into a complete GraphVerb
+      const graphVerb: GraphVerb = {
+        id: hnswVerb.id,
+        vector: hnswVerb.vector,
+        sourceId: metadata.sourceId,
+        targetId: metadata.targetId,
+        source: metadata.source,
+        target: metadata.target,
+        verb: metadata.verb,
+        type: metadata.type,
+        weight: metadata.weight,
+        createdAt: metadata.createdAt,
+        updatedAt: metadata.updatedAt,
+        createdBy: metadata.createdBy,
+        data: metadata.data,
+        metadata: metadata.data // Alias for backward compatibility
+      }
+
+      return graphVerb
     } catch (error) {
       console.error(`Failed to get verb ${id}:`, error)
       throw new Error(`Failed to get verb ${id}: ${error}`)
@@ -2986,14 +3044,37 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     await this.ensureInitialized()
 
     try {
-      // Use getVerbs with no pagination to get all verbs
-      const result = await this.getVerbs({
-        pagination: {
-          limit: Number.MAX_SAFE_INTEGER // Request all verbs
+      // Get all lightweight verbs from storage
+      const hnswVerbs = await this.storage!.getAllVerbs()
+      
+      // Convert each HNSWVerb to GraphVerb by loading metadata
+      const graphVerbs: GraphVerb[] = []
+      for (const hnswVerb of hnswVerbs) {
+        const metadata = await this.storage!.getVerbMetadata(hnswVerb.id)
+        if (metadata) {
+          const graphVerb: GraphVerb = {
+            id: hnswVerb.id,
+            vector: hnswVerb.vector,
+            sourceId: metadata.sourceId,
+            targetId: metadata.targetId,
+            source: metadata.source,
+            target: metadata.target,
+            verb: metadata.verb,
+            type: metadata.type,
+            weight: metadata.weight,
+            createdAt: metadata.createdAt,
+            updatedAt: metadata.updatedAt,
+            createdBy: metadata.createdBy,
+            data: metadata.data,
+            metadata: metadata.data // Alias for backward compatibility
+          }
+          graphVerbs.push(graphVerb)
+        } else {
+          console.warn(`Verb ${hnswVerb.id} found but no metadata - skipping`)
         }
-      })
-
-      return result.items
+      }
+      
+      return graphVerbs
     } catch (error) {
       console.error('Failed to get all verbs:', error)
       throw new Error(`Failed to get all verbs: ${error}`)

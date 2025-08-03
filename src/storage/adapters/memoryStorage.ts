@@ -3,7 +3,7 @@
  * In-memory storage adapter for environments where persistent storage is not available or needed
  */
 
-import { GraphVerb, HNSWNoun, StatisticsData } from '../../coreTypes.js'
+import { GraphVerb, HNSWNoun, HNSWVerb, StatisticsData } from '../../coreTypes.js'
 import { BaseStorage, STATISTICS_KEY } from '../baseStorage.js'
 import { PaginatedResult } from '../../types/paginationTypes.js'
 
@@ -16,7 +16,7 @@ import { PaginatedResult } from '../../types/paginationTypes.js'
 export class MemoryStorage extends BaseStorage {
   // Single map of noun ID to noun
   private nouns: Map<string, HNSWNoun> = new Map()
-  private verbs: Map<string, GraphVerb> = new Map()
+  private verbs: Map<string, HNSWVerb> = new Map()
   private metadata: Map<string, any> = new Map()
   private nounMetadata: Map<string, any> = new Map()
   private verbMetadata: Map<string, any> = new Map()
@@ -237,20 +237,12 @@ export class MemoryStorage extends BaseStorage {
   /**
    * Save a verb to storage
    */
-  protected async saveVerb_internal(verb: GraphVerb): Promise<void> {
+  protected async saveVerb_internal(verb: HNSWVerb): Promise<void> {
     // Create a deep copy to avoid reference issues
-    const verbCopy: GraphVerb = {
+    const verbCopy: HNSWVerb = {
       id: verb.id,
       vector: [...verb.vector],
-      connections: new Map(),
-      sourceId: verb.sourceId,
-      targetId: verb.targetId,
-      source: verb.sourceId || verb.source,
-      target: verb.targetId || verb.target,
-      verb: verb.type || verb.verb,
-      type: verb.type || verb.verb,
-      weight: verb.weight,
-      metadata: verb.metadata
+      connections: new Map()
     }
 
     // Copy connections
@@ -265,7 +257,7 @@ export class MemoryStorage extends BaseStorage {
   /**
    * Get a verb from storage
    */
-  protected async getVerb_internal(id: string): Promise<GraphVerb | null> {
+  protected async getVerb_internal(id: string): Promise<HNSWVerb | null> {
     // Get the verb directly from the verbs map
     const verb = this.verbs.get(id)
 
@@ -286,22 +278,11 @@ export class MemoryStorage extends BaseStorage {
       version: '1.0'
     }
 
-    // Return a deep copy to avoid reference issues
-    const verbCopy: GraphVerb = {
+    // Return a deep copy of the HNSWVerb
+    const verbCopy: HNSWVerb = {
       id: verb.id,
       vector: [...verb.vector],
-      connections: new Map(),
-      sourceId: (verb.sourceId || verb.source || ""),
-      targetId: (verb.targetId || verb.target || ""),
-      source: (verb.sourceId || verb.source || ""),
-      target: (verb.targetId || verb.target || ""),
-      verb: verb.type || verb.verb,
-      type: verb.type || verb.verb, // Ensure type is also set
-      weight: verb.weight,
-      metadata: verb.metadata,
-      createdAt: verb.createdAt || defaultTimestamp,
-      updatedAt: verb.updatedAt || defaultTimestamp,
-      createdBy: verb.createdBy || defaultCreatedBy
+      connections: new Map()
     }
 
     // Copy connections
@@ -315,38 +296,16 @@ export class MemoryStorage extends BaseStorage {
   /**
    * Get all verbs from storage
    */
-  protected async getAllVerbs_internal(): Promise<GraphVerb[]> {
-    const allVerbs: GraphVerb[] = []
+  protected async getAllVerbs_internal(): Promise<HNSWVerb[]> {
+    const allVerbs: HNSWVerb[] = []
 
     // Iterate through all verbs in the verbs map
     for (const [verbId, verb] of this.verbs.entries()) {
-      // Create default timestamp if not present
-      const defaultTimestamp = {
-        seconds: Math.floor(Date.now() / 1000),
-        nanoseconds: (Date.now() % 1000) * 1000000
-      }
-
-      // Create default createdBy if not present
-      const defaultCreatedBy = {
-        augmentation: 'unknown',
-        version: '1.0'
-      }
-
-      // Return a deep copy to avoid reference issues
-      const verbCopy: GraphVerb = {
+      // Create a deep copy of the HNSWVerb
+      const verbCopy: HNSWVerb = {
         id: verb.id,
         vector: [...verb.vector],
-        connections: new Map(),
-        sourceId: (verb.sourceId || verb.source || ""),
-        targetId: (verb.targetId || verb.target || ""),
-        source: (verb.sourceId || verb.source || ""),
-        target: (verb.targetId || verb.target || ""),
-        verb: verb.type || verb.verb,
-        weight: verb.weight,
-        metadata: verb.metadata,
-        createdAt: verb.createdAt || defaultTimestamp,
-        updatedAt: verb.updatedAt || defaultTimestamp,
-        createdBy: verb.createdBy || defaultCreatedBy
+        connections: new Map()
       }
 
       // Copy connections
@@ -407,27 +366,30 @@ export class MemoryStorage extends BaseStorage {
     const matchingIds: string[] = []
     
     // Iterate through all verbs to find matches
-    for (const [verbId, verb] of this.verbs.entries()) {
+    for (const [verbId, hnswVerb] of this.verbs.entries()) {
+      // Get the metadata for this verb to do filtering
+      const metadata = this.verbMetadata.get(verbId)
+      
       // Filter by verb type if specified
-      if (verbTypes && !verbTypes.includes(verb.type || verb.verb || '')) {
+      if (verbTypes && metadata && !verbTypes.includes(metadata.type || metadata.verb || '')) {
         continue
       }
       
       // Filter by source ID if specified
-      if (sourceIds && !sourceIds.includes(verb.sourceId || verb.source || '')) {
+      if (sourceIds && metadata && !sourceIds.includes(metadata.sourceId || metadata.source || '')) {
         continue
       }
       
       // Filter by target ID if specified
-      if (targetIds && !targetIds.includes(verb.targetId || verb.target || '')) {
+      if (targetIds && metadata && !targetIds.includes(metadata.targetId || metadata.target || '')) {
         continue
       }
       
       // Filter by metadata fields if specified
-      if (filter.metadata && verb.metadata) {
+      if (filter.metadata && metadata && metadata.data) {
         let metadataMatch = true
         for (const [key, value] of Object.entries(filter.metadata)) {
-          if (verb.metadata[key] !== value) {
+          if (metadata.data[key] !== value) {
             metadataMatch = false
             break
           }
@@ -436,8 +398,8 @@ export class MemoryStorage extends BaseStorage {
       }
       
       // Filter by service if specified
-      if (services && verb.metadata && verb.metadata.service && 
-          !services.includes(verb.metadata.service)) {
+      if (services && metadata && metadata.createdBy && metadata.createdBy.augmentation && 
+          !services.includes(metadata.createdBy.augmentation)) {
         continue
       }
       
@@ -456,33 +418,42 @@ export class MemoryStorage extends BaseStorage {
     // Fetch the actual verbs for the current page
     const items: GraphVerb[] = []
     for (const id of paginatedIds) {
-      const verb = this.verbs.get(id)
-      if (!verb) continue
+      const hnswVerb = this.verbs.get(id)
+      const metadata = this.verbMetadata.get(id)
       
-      // Create a deep copy to avoid reference issues
-      const verbCopy: GraphVerb = {
-        id: verb.id,
-        vector: [...verb.vector],
-        connections: new Map(),
-        sourceId: verb.sourceId || verb.source || '',
-        targetId: verb.targetId || verb.target || '',
-        source: verb.sourceId || verb.source || '',
-        target: verb.targetId || verb.target || '',
-        verb: verb.type || verb.verb,
-        type: verb.type || verb.verb,
-        weight: verb.weight,
-        metadata: verb.metadata ? JSON.parse(JSON.stringify(verb.metadata)) : undefined,
-        createdAt: verb.createdAt ? { ...verb.createdAt } : undefined,
-        updatedAt: verb.updatedAt ? { ...verb.updatedAt } : undefined,
-        createdBy: verb.createdBy ? { ...verb.createdBy } : undefined
+      if (!hnswVerb) continue
+      
+      if (!metadata) {
+        console.warn(`Verb ${id} found but no metadata - creating minimal GraphVerb`)
+        // Return minimal GraphVerb if metadata is missing
+        items.push({
+          id: hnswVerb.id,
+          vector: hnswVerb.vector,
+          sourceId: '',
+          targetId: ''
+        })
+        continue
       }
       
-      // Copy connections
-      for (const [level, connections] of verb.connections.entries()) {
-        verbCopy.connections.set(level, new Set(connections))
+      // Create a complete GraphVerb by combining HNSWVerb with metadata
+      const graphVerb: GraphVerb = {
+        id: hnswVerb.id,
+        vector: [...hnswVerb.vector],
+        sourceId: metadata.sourceId,
+        targetId: metadata.targetId,
+        source: metadata.source,
+        target: metadata.target,
+        verb: metadata.verb,
+        type: metadata.type,
+        weight: metadata.weight,
+        createdAt: metadata.createdAt,
+        updatedAt: metadata.updatedAt,
+        createdBy: metadata.createdBy,
+        data: metadata.data,
+        metadata: metadata.data // Alias for backward compatibility
       }
       
-      items.push(verbCopy)
+      items.push(graphVerb)
     }
     
     return {
