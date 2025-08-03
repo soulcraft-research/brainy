@@ -36,7 +36,7 @@ interface DistributedSearchConfig {
 }
 
 // Search coordination strategies
-enum SearchStrategy {
+export enum SearchStrategy {
   BROADCAST = 'broadcast', // Search all partitions
   SELECTIVE = 'selective', // Search subset of partitions
   ADAPTIVE = 'adaptive',   // Dynamically adjust based on results
@@ -388,12 +388,17 @@ export class DistributedSearchSystem {
       const startTime = Date.now()
 
       // Execute in thread (simplified - would need proper worker setup)
-      const results = await executeInThread(async () => {
+      const searchFunction = `
         return partitionedIndex.search(
           task.queryVector,
           task.k,
           { partitionIds: [task.partitionId] }
         )
+      `
+      const results = await executeInThread<Array<[string, number]>>(searchFunction, {
+        queryVector: task.queryVector,
+        k: task.k,
+        partitionId: task.partitionId
       })
 
       const searchTime = Date.now() - startTime
@@ -402,9 +407,9 @@ export class DistributedSearchSystem {
 
       return {
         partitionId: task.partitionId,
-        results: results || [],
+        results: results || [] as Array<[string, number]>,
         searchTime,
-        nodesVisited: results?.length || 0
+        nodesVisited: results ? results.length : 0
       }
 
     } finally {

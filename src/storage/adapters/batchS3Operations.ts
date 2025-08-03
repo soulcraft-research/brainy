@@ -196,7 +196,7 @@ export class BatchS3Operations {
 
       if (listResponse.Contents) {
         // Filter objects that match our requested IDs
-        const matchingObjects = listResponse.Contents.filter(obj => {
+        const matchingObjects = listResponse.Contents.filter((obj: any) => {
           if (!obj.Key) return false
           const id = obj.Key.replace(prefix, '').replace('.json', '')
           return idSet.has(id)
@@ -205,7 +205,7 @@ export class BatchS3Operations {
         // Batch retrieve matching objects
         const semaphore = new Semaphore(this.options.maxConcurrency!)
         
-        const retrievalPromises = matchingObjects.map(async (obj) => {
+        const retrievalPromises = matchingObjects.map(async (obj: any) => {
           if (!obj.Key) return
 
           await semaphore.acquire()

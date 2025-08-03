@@ -103,11 +103,13 @@ export class ReadOnlyOptimizations {
         break
         
       case CompressionType.GZIP:
-        compressedData = await this.gzipCompress(new Float32Array(vector).buffer)
+        const gzipBuffer = new Float32Array(vector).buffer
+        compressedData = await this.gzipCompress(gzipBuffer.slice(0))
         break
         
       case CompressionType.BROTLI:
-        compressedData = await this.brotliCompress(new Float32Array(vector).buffer)
+        const brotliBuffer = new Float32Array(vector).buffer
+        compressedData = await this.brotliCompress(brotliBuffer.slice(0))
         break
         
       case CompressionType.HYBRID:
@@ -117,7 +119,8 @@ export class ReadOnlyOptimizations {
         break
         
       default:
-        compressedData = new Float32Array(vector).buffer
+        const defaultBuffer = new Float32Array(vector).buffer
+        compressedData = defaultBuffer.slice(0)
         break
     }
 

@@ -71,6 +71,7 @@ export class OptimizedHNSWIndex extends HNSWIndex {
       efConstruction: 400, // Better build quality
       efSearch: 100, // Dynamic - will be tuned
       ml: 24, // Deeper hierarchy
+      useDiskBasedIndex: false, // Added missing property
       dynamicParameterTuning: true,
       targetSearchLatency: 100, // 100ms target
       targetRecall: 0.95, // 95% recall target
