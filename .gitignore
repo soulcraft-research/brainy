@@ -53,14 +53,10 @@ Thumbs.db
 # Generated files
 /encoded-image.html
 /encoded-image.txt
-/cli-package/dist/
-/cli-package/node_modules/
 /npm
 /rollup
 /soulcraft-brainy-*.tgz
 /data/
-/cli-package/soulcraft-brainy-cli-*.tgz
-/web-service-package/node_modules/
 
 # Temporary test files created by AI agents
 test*.js
