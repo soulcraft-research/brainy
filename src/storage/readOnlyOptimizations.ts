@@ -374,11 +374,11 @@ export class ReadOnlyOptimizations {
     // Apply metadata compression
     switch (this.config.compression.metadataCompression) {
       case CompressionType.GZIP:
-        return this.gzipCompress(data.buffer.slice(0))
+        return this.gzipCompress(data.buffer.slice(0) as ArrayBuffer)
       case CompressionType.BROTLI:
-        return this.brotliCompress(data.buffer.slice(0))
+        return this.brotliCompress(data.buffer.slice(0) as ArrayBuffer)
       default:
-        return data.buffer.slice(0)
+        return data.buffer.slice(0) as ArrayBuffer
     }
   }
 
