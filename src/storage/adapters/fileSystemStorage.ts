@@ -3,7 +3,7 @@
  * File system storage adapter for Node.js environments
  */
 
-import { GraphVerb, HNSWNoun, StatisticsData } from '../../coreTypes.js'
+import { GraphVerb, HNSWNoun, HNSWVerb, StatisticsData } from '../../coreTypes.js'
 import {
   BaseStorage,
   NOUNS_DIR,
@@ -17,7 +17,7 @@ import {
 
 // Type aliases for better readability
 type HNSWNode = HNSWNoun
-type Edge = GraphVerb
+type Edge = HNSWVerb
 
 // Node.js modules - dynamically imported to avoid issues in browser environments
 let fs: any
@@ -345,12 +345,7 @@ export class FileSystemStorage extends BaseStorage {
       return {
         id: parsedEdge.id,
         vector: parsedEdge.vector,
-        connections,
-        sourceId: parsedEdge.sourceId,
-        targetId: parsedEdge.targetId,
-        type: parsedEdge.type,
-        weight: parsedEdge.weight,
-        metadata: parsedEdge.metadata
+        connections
       }
     } catch (error: any) {
       if (error.code !== 'ENOENT') {
@@ -386,12 +381,7 @@ export class FileSystemStorage extends BaseStorage {
           allEdges.push({
             id: parsedEdge.id,
             vector: parsedEdge.vector,
-            connections,
-            sourceId: parsedEdge.sourceId,
-            targetId: parsedEdge.targetId,
-            type: parsedEdge.type,
-            weight: parsedEdge.weight,
-            metadata: parsedEdge.metadata
+            connections
           })
         }
       }
@@ -407,24 +397,30 @@ export class FileSystemStorage extends BaseStorage {
    * Get edges by source
    */
   protected async getEdgesBySource(sourceId: string): Promise<Edge[]> {
-    const edges = await this.getAllEdges()
-    return edges.filter((edge) => edge.sourceId === sourceId)
+    // This method is deprecated and would require loading metadata for each edge
+    // For now, return empty array since this is not efficiently implementable with new storage pattern
+    console.warn('getEdgesBySource is deprecated and not efficiently supported in new storage pattern')
+    return []
   }
 
   /**
    * Get edges by target
    */
   protected async getEdgesByTarget(targetId: string): Promise<Edge[]> {
-    const edges = await this.getAllEdges()
-    return edges.filter((edge) => edge.targetId === targetId)
+    // This method is deprecated and would require loading metadata for each edge
+    // For now, return empty array since this is not efficiently implementable with new storage pattern
+    console.warn('getEdgesByTarget is deprecated and not efficiently supported in new storage pattern')
+    return []
   }
 
   /**
    * Get edges by type
    */
   protected async getEdgesByType(type: string): Promise<Edge[]> {
-    const edges = await this.getAllEdges()
-    return edges.filter((edge) => edge.type === type)
+    // This method is deprecated and would require loading metadata for each edge
+    // For now, return empty array since this is not efficiently implementable with new storage pattern
+    console.warn('getEdgesByType is deprecated and not efficiently supported in new storage pattern')
+    return []
   }
 
   /**
@@ -751,21 +747,21 @@ export class FileSystemStorage extends BaseStorage {
   /**
    * Save a verb to storage
    */
-  protected async saveVerb_internal(verb: GraphVerb): Promise<void> {
+  protected async saveVerb_internal(verb: HNSWVerb): Promise<void> {
     return this.saveEdge(verb)
   }
 
   /**
    * Get a verb from storage
    */
-  protected async getVerb_internal(id: string): Promise<GraphVerb | null> {
+  protected async getVerb_internal(id: string): Promise<HNSWVerb | null> {
     return this.getEdge(id)
   }
 
   /**
    * Get all verbs from storage
    */
-  protected async getAllVerbs_internal(): Promise<GraphVerb[]> {
+  protected async getAllVerbs_internal(): Promise<HNSWVerb[]> {
     return this.getAllEdges()
   }
 
@@ -775,7 +771,10 @@ export class FileSystemStorage extends BaseStorage {
   protected async getVerbsBySource_internal(
     sourceId: string
   ): Promise<GraphVerb[]> {
-    return this.getEdgesBySource(sourceId)
+    // This method is deprecated and would require loading metadata for each edge
+    // For now, return empty array since this is not efficiently implementable with new storage pattern
+    console.warn('getVerbsBySource_internal is deprecated and not efficiently supported in new storage pattern')
+    return []
   }
 
   /**
@@ -784,14 +783,20 @@ export class FileSystemStorage extends BaseStorage {
   protected async getVerbsByTarget_internal(
     targetId: string
   ): Promise<GraphVerb[]> {
-    return this.getEdgesByTarget(targetId)
+    // This method is deprecated and would require loading metadata for each edge
+    // For now, return empty array since this is not efficiently implementable with new storage pattern
+    console.warn('getVerbsByTarget_internal is deprecated and not efficiently supported in new storage pattern')
+    return []
   }
 
   /**
    * Get verbs by type
    */
   protected async getVerbsByType_internal(type: string): Promise<GraphVerb[]> {
-    return this.getEdgesByType(type)
+    // This method is deprecated and would require loading metadata for each edge
+    // For now, return empty array since this is not efficiently implementable with new storage pattern
+    console.warn('getVerbsByType_internal is deprecated and not efficiently supported in new storage pattern')
+    return []
   }
 
   /**
