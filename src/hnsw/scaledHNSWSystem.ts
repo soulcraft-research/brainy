@@ -63,15 +63,16 @@ export class ScaledHNSWSystem {
 
   constructor(config: ScaledHNSWConfig) {
     this.config = {
-      expectedDatasetSize: 100000,
-      maxMemoryUsage: 4 * 1024 * 1024 * 1024, // 4GB default
-      targetSearchLatency: 100, // 100ms default
       enablePartitioning: true,
       enableCompression: true,
       enableDistributedSearch: true,
       enablePredictiveCaching: true,
       readOnlyMode: false,
-      ...config
+      ...config,
+      // Set defaults only if not provided
+      expectedDatasetSize: config.expectedDatasetSize || 100000,
+      maxMemoryUsage: config.maxMemoryUsage || (4 * 1024 * 1024 * 1024),
+      targetSearchLatency: config.targetSearchLatency || 100
     }
 
     this.initializeOptimizedSystem()
@@ -126,7 +127,7 @@ export class ScaledHNSWSystem {
         hotCacheMaxSize: optimizedConfig.hotCacheSize,
         warmCacheMaxSize: optimizedConfig.warmCacheSize,
         prefetchEnabled: true,
-        prefetchStrategy: 'hybrid',
+        prefetchStrategy: 'hybrid' as any, // Type casting for enum compatibility
         prefetchBatchSize: 50
       })
       
@@ -140,9 +141,9 @@ export class ScaledHNSWSystem {
     if (this.config.readOnlyMode && this.config.enableCompression) {
       this.readOnlyOptimizations = new ReadOnlyOptimizations({
         compression: {
-          vectorCompression: 'quantization',
-          metadataCompression: 'gzip',
-          quantizationType: 'scalar',
+          vectorCompression: 'quantization' as any,
+          metadataCompression: 'gzip' as any,
+          quantizationType: 'scalar' as any,
           quantizationBits: 8
         },
         segmentSize: optimizedConfig.segmentSize,
