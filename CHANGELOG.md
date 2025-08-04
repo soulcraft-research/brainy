@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.38.0](https://github.com/soulcraft-research/brainy/compare/v0.37.0...v0.38.0) (2025-08-04)
+
+
+### Documentation
+
+* add distributed deployment architecture and enhancement proposals ([4bb7a9f](https://github.com/soulcraft-research/brainy/commit/4bb7a9f431edaf85e782144057d77b4b20b16b44))
+* add revised distributed implementation plan with practical phases ([e3978e5](https://github.com/soulcraft-research/brainy/commit/e3978e570dcee9b9c7757e75d3fe2c2f55cd99e4))
+* streamline README for better readability and user engagement ([2492fe4](https://github.com/soulcraft-research/brainy/commit/2492fe4f30099dc1b9f9cf0e435b83d5ffc34dce))
+
+
+### Added
+
+* **distributed:** add distributed mode with multi-instance coordination ([8e4b0ef](https://github.com/soulcraft-research/brainy/commit/8e4b0ef7d8b9c3a4de2b776adc25da3c0a7fc971))
+* **docs:** add S3 migration guide for optimized data transfer strategies ([7b4c779](https://github.com/soulcraft-research/brainy/commit/7b4c7794f3a587e2038452ab0d2c908272cf9556))
+* **safety:** enhance claude-commit with mandatory review and safety features ([c20cc39](https://github.com/soulcraft-research/brainy/commit/c20cc392620ebded69732c62a07295dc212de001))
+* **tools:** add claude-commit AI-powered git commit tool ([d05e320](https://github.com/soulcraft-research/brainy/commit/d05e320a52486c5b5620869940df5b7330fa1067))
+* **tools:** propagate safety features to all projects ([8854b37](https://github.com/soulcraft-research/brainy/commit/8854b3735fac75e695e76ec62edde2160c065f55))
+
 ## [0.37.0](https://github.com/soulcraft-research/brainy/compare/v0.36.0...v0.37.0) (2025-08-04)
 
 
