@@ -67,6 +67,14 @@ Continuous performance learning and optimization.
 - Usage pattern recognition
 - Self-optimization algorithms
 
+### 🗄️ [S3 Migration Guide](s3-migration-guide.md)
+Complete guide for migrating existing data to optimized system.
+
+- Migration strategies for shared S3 buckets
+- Zero-downtime migration options
+- Namespace isolation techniques
+- Rollback and verification procedures
+
 ## 📊 Performance Impact Overview
 
 | Optimization | Performance Gain | Memory Reduction | Setup Complexity |
