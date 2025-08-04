@@ -47,6 +47,14 @@ import {
   prepareJsonForVectorization,
   extractFieldFromJson
 } from './utils/jsonProcessing.js'
+import { DistributedConfig } from './types/distributedTypes.js'
+import {
+  DistributedConfigManager,
+  HashPartitioner,
+  OperationalModeFactory,
+  DomainDetector,
+  HealthMonitor
+} from './distributed/index.js'
 
 export interface BrainyDataConfig {
   /**
@@ -261,6 +269,12 @@ export interface BrainyDataConfig {
   }
 
   /**
+   * Distributed mode configuration
+   * Enables coordination across multiple Brainy instances
+   */
+  distributed?: DistributedConfig | boolean
+  
+  /**
    * Cache configuration for optimizing search performance
    * Controls how the system caches data for faster access
    * Particularly important for large datasets in S3 or other remote storage
@@ -378,6 +392,14 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   private remoteServerConfig: BrainyDataConfig['remoteServer'] | null = null
   private serverSearchConduit: ServerSearchConduitAugmentation | null = null
   private serverConnection: WebSocketConnection | null = null
+  
+  // Distributed mode properties
+  private distributedConfig: DistributedConfig | null = null
+  private configManager: DistributedConfigManager | null = null
+  private partitioner: HashPartitioner | null = null
+  private operationalMode: any = null
+  private domainDetector: DomainDetector | null = null
+  private healthMonitor: HealthMonitor | null = null
 
   /**
    * Get the vector dimensions
@@ -511,6 +533,19 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       this.cacheConfig = {
         ...this.cacheConfig,
         ...config.cache
+      }
+    }
+    
+    // Store distributed configuration
+    if (config.distributed) {
+      if (typeof config.distributed === 'boolean') {
+        // Auto-mode enabled
+        this.distributedConfig = {
+          enabled: true
+        }
+      } else {
+        // Explicit configuration
+        this.distributedConfig = config.distributed
       }
     }
   }
@@ -1005,6 +1040,11 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
       // Initialize storage
       await this.storage!.init()
+      
+      // Initialize distributed mode if configured
+      if (this.distributedConfig) {
+        await this.initializeDistributedMode()
+      }
 
       // If using optimized index, set the storage adapter
       if (this.useOptimizedIndex && this.index instanceof HNSWIndexOptimized) {
@@ -1076,6 +1116,113 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     }
   }
 
+  /**
+   * Initialize distributed mode
+   * Sets up configuration management, partitioning, and operational modes
+   */
+  private async initializeDistributedMode(): Promise<void> {
+    if (!this.storage) {
+      throw new Error('Storage must be initialized before distributed mode')
+    }
+    
+    // Create configuration manager with mode hints
+    this.configManager = new DistributedConfigManager(
+      this.storage,
+      this.distributedConfig || undefined,
+      { readOnly: this.readOnly, writeOnly: this.writeOnly }
+    )
+    
+    // Initialize configuration
+    const sharedConfig = await this.configManager.initialize()
+    
+    // Create partitioner based on strategy
+    if (sharedConfig.settings.partitionStrategy === 'hash') {
+      this.partitioner = new HashPartitioner(sharedConfig)
+    } else {
+      // Default to hash partitioner for now
+      this.partitioner = new HashPartitioner(sharedConfig)
+    }
+    
+    // Create operational mode based on role
+    const role = this.configManager.getRole()
+    this.operationalMode = OperationalModeFactory.createMode(role)
+    
+    // Validate that role matches the configured mode
+    // Don't override explicitly set readOnly/writeOnly
+    if (role === 'reader' && !this.readOnly) {
+      console.warn('Distributed role is "reader" but readOnly is not set. Setting readOnly=true for consistency.')
+      this.readOnly = true
+      this.writeOnly = false
+    } else if (role === 'writer' && !this.writeOnly) {
+      console.warn('Distributed role is "writer" but writeOnly is not set. Setting writeOnly=true for consistency.')
+      this.readOnly = false
+      this.writeOnly = true
+    } else if (role === 'hybrid' && (this.readOnly || this.writeOnly)) {
+      console.warn('Distributed role is "hybrid" but readOnly or writeOnly is set. Clearing both for hybrid mode.')
+      this.readOnly = false
+      this.writeOnly = false
+    }
+    
+    // Apply cache configuration from operational mode
+    const modeCache = this.operationalMode.cacheStrategy
+    if (modeCache) {
+      this.cacheConfig = {
+        ...this.cacheConfig,
+        hotCacheMaxSize: modeCache.hotCacheRatio * 1000000, // Convert ratio to size
+        hotCacheEvictionThreshold: modeCache.hotCacheRatio,
+        warmCacheTTL: modeCache.ttl,
+        batchSize: modeCache.writeBufferSize || 100
+      }
+      
+      // Update storage cache config if it supports it
+      if (this.storage && 'updateCacheConfig' in this.storage) {
+        (this.storage as any).updateCacheConfig(this.cacheConfig)
+      }
+    }
+    
+    // Initialize domain detector
+    this.domainDetector = new DomainDetector()
+    
+    // Initialize health monitor
+    this.healthMonitor = new HealthMonitor(this.configManager)
+    this.healthMonitor.start()
+    
+    // Set up config update listener
+    this.configManager.setOnConfigUpdate((config) => {
+      this.handleDistributedConfigUpdate(config)
+    })
+    
+    if (this.loggingConfig?.verbose) {
+      console.log(`Distributed mode initialized as ${role} with ${sharedConfig.settings.partitionStrategy} partitioning`)
+    }
+  }
+  
+  /**
+   * Handle distributed configuration updates
+   */
+  private handleDistributedConfigUpdate(config: any): void {
+    // Update partitioner if needed
+    if (this.partitioner && config.settings) {
+      this.partitioner = new HashPartitioner(config)
+    }
+    
+    // Log configuration update
+    if (this.loggingConfig?.verbose) {
+      console.log('Distributed configuration updated:', config.version)
+    }
+  }
+  
+  /**
+   * Get distributed health status
+   * @returns Health status if distributed mode is enabled
+   */
+  public getHealthStatus(): any {
+    if (this.healthMonitor) {
+      return this.healthMonitor.getHealthEndpointData()
+    }
+    return null
+  }
+  
   /**
    * Connect to a remote Brainy server for search operations
    * @param serverUrl WebSocket URL of the remote Brainy server
@@ -1338,6 +1485,34 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           if (metadata && typeof metadata === 'object') {
             // Always make a copy without adding the ID
             metadataToSave = { ...metadata }
+            
+            // Add domain metadata if distributed mode is enabled
+            if (this.domainDetector) {
+              // First check if domain is already in metadata
+              if ((metadataToSave as any).domain) {
+                // Domain already specified, keep it
+                const domainInfo = this.domainDetector.detectDomain(metadataToSave)
+                if (domainInfo.domainMetadata) {
+                  (metadataToSave as any).domainMetadata = domainInfo.domainMetadata
+                }
+              } else {
+                // Try to detect domain from the data
+                const dataToAnalyze = Array.isArray(vectorOrData) ? metadata : vectorOrData
+                const domainInfo = this.domainDetector.detectDomain(dataToAnalyze)
+                if (domainInfo.domain) {
+                  (metadataToSave as any).domain = domainInfo.domain
+                  if (domainInfo.domainMetadata) {
+                    (metadataToSave as any).domainMetadata = domainInfo.domainMetadata
+                  }
+                }
+              }
+            }
+            
+            // Add partition information if distributed mode is enabled
+            if (this.partitioner) {
+              const partition = this.partitioner.getPartition(id)
+              ;(metadataToSave as any).partition = partition
+            }
           }
 
           await this.storage!.saveMetadata(id, metadataToSave)
@@ -1350,6 +1525,12 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
       // Update HNSW index size (excluding verbs)
       await this.storage!.updateHnswIndexSize(await this.getNounCount())
+      
+      // Update health metrics if in distributed mode
+      if (this.healthMonitor) {
+        const vectorCount = await this.getNounCount()
+        this.healthMonitor.updateVectorCount(vectorCount)
+      }
 
       // If addToRemote is true and we're connected to a remote server, add to remote as well
       if (options.addToRemote && this.isConnectedToRemoteServer()) {
@@ -1365,6 +1546,12 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       return id
     } catch (error) {
       console.error('Failed to add vector:', error)
+      
+      // Track error in health monitor
+      if (this.healthMonitor) {
+        this.healthMonitor.recordRequest(0, true)
+      }
+      
       throw new Error(`Failed to add vector: ${error}`)
     }
   }
@@ -1865,8 +2052,10 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       verbDirection?: 'outgoing' | 'incoming' | 'both' // Direction of verbs to consider when searching connected nouns
       service?: string // Filter results by the service that created the data
       searchField?: string // Optional specific field to search within JSON documents
+      filter?: { domain?: string } // Filter results by domain
     } = {}
   ): Promise<SearchResult<T>[]> {
+    const startTime = Date.now()
     // Validate input is not null or undefined
     if (queryVectorOrData === null || queryVectorOrData === undefined) {
       throw new Error('Query cannot be null or undefined')
@@ -1925,7 +2114,25 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     }
 
     // Default behavior (backward compatible): search locally
-    return this.searchLocal(queryVectorOrData, k, options)
+    try {
+      const results = await this.searchLocal(queryVectorOrData, k, options)
+      
+      // Track successful search in health monitor
+      if (this.healthMonitor) {
+        const latency = Date.now() - startTime
+        this.healthMonitor.recordRequest(latency, false)
+        this.healthMonitor.recordCacheAccess(results.length > 0)
+      }
+      
+      return results
+    } catch (error) {
+      // Track error in health monitor
+      if (this.healthMonitor) {
+        const latency = Date.now() - startTime
+        this.healthMonitor.recordRequest(latency, true)
+      }
+      throw error
+    }
   }
 
   /**
@@ -1945,6 +2152,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       service?: string // Filter results by the service that created the data
       searchField?: string // Optional specific field to search within JSON documents
       priorityFields?: string[] // Fields to prioritize when searching JSON documents
+      filter?: { domain?: string } // Filter results by domain
     } = {}
   ): Promise<SearchResult<T>[]> {
     if (!this.isInitialized) {
@@ -2024,7 +2232,16 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       if (result.metadata && typeof result.metadata === 'object') {
         const metadata = result.metadata as Record<string, any>
         // Exclude placeholder nouns from search results
-        return !metadata.isPlaceholder
+        if (metadata.isPlaceholder) {
+          return false
+        }
+        
+        // Apply domain filter if specified
+        if (options.filter?.domain) {
+          if (metadata.domain !== options.filter.domain) {
+            return false
+          }
+        }
       }
       return true
     })
@@ -4858,6 +5075,30 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
     // Sort by score and limit to k results
     return allResults.sort((a, b) => b.score - a.score).slice(0, k)
+  }
+  
+  /**
+   * Cleanup distributed resources
+   * Should be called when shutting down the instance
+   */
+  public async cleanup(): Promise<void> {
+    // Stop real-time updates
+    if (this.updateTimerId) {
+      clearInterval(this.updateTimerId)
+      this.updateTimerId = null
+    }
+    
+    // Clean up distributed mode resources
+    if (this.healthMonitor) {
+      this.healthMonitor.stop()
+    }
+    
+    if (this.configManager) {
+      await this.configManager.cleanup()
+    }
+    
+    // Clean up worker pools
+    await cleanupWorkerPools()
   }
 }
 
