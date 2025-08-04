@@ -13,10 +13,14 @@
 
 ## ✨ What is Brainy?
 
-Imagine a database that thinks like you do - connecting ideas, finding patterns, and getting smarter over time. Brainy is the **AI-native database** that brings vector search and knowledge graphs together in one powerful, ridiculously easy-to-use package.
+Imagine a database that thinks like you do - connecting ideas, finding patterns, and getting smarter over time. Brainy
+is the **AI-native database** that brings vector search and knowledge graphs together in one powerful, ridiculously
+easy-to-use package.
 
 ### 🆕 NEW: Distributed Mode (v0.38+)
+
 **Scale horizontally with zero configuration!** Brainy now supports distributed deployments with automatic coordination:
+
 - **🌐 Multi-Instance Coordination** - Multiple readers and writers working in harmony
 - **🏷️ Smart Domain Detection** - Automatically categorizes data (medical, legal, product, etc.)
 - **📊 Real-Time Health Monitoring** - Track performance across all instances
@@ -25,43 +29,78 @@ Imagine a database that thinks like you do - connecting ideas, finding patterns,
 
 ### 🚀 Why Developers Love Brainy
 
-- **🧠 It Just Works™** - No config files, no tuning parameters, no DevOps headaches. Brainy auto-detects your environment and optimizes itself
-- **🌍 True Write-Once, Run-Anywhere** - Same code runs in React, Angular, Vue, Node.js, Deno, Bun, serverless, edge workers, and even vanilla HTML
+- **🧠 Zero-to-Smart™** - No config files, no tuning parameters, no DevOps headaches. Brainy auto-detects your
+  environment and optimizes itself
+- **🌍 True Write-Once, Run-Anywhere** - Same code runs in React, Angular, Vue, Node.js, Deno, Bun, serverless, edge
+  workers, and even vanilla HTML
 - **⚡ Scary Fast** - Handles millions of vectors with sub-millisecond search. Built-in GPU acceleration when available
 - **🎯 Self-Learning** - Like having a database that goes to the gym. Gets faster and smarter the more you use it
 - **🔮 AI-First Design** - Built for the age of embeddings, RAG, and semantic search. Your LLMs will thank you
 - **🎮 Actually Fun to Use** - Clean API, great DX, and it does the heavy lifting so you can build cool stuff
 
+### 🚀 NEW: Ultra-Fast Search Performance + Auto-Configuration
+
+**Your searches just got 100x faster AND Brainy now configures itself!** Advanced performance with zero setup:
+
+- **🤖 Intelligent Auto-Configuration** - Detects environment and usage patterns, optimizes automatically
+- **⚡ Smart Result Caching** - Repeated queries return in <1ms with automatic cache invalidation
+- **📄 Cursor-Based Pagination** - Navigate millions of results with constant O(k) performance
+- **🔄 Real-Time Data Sync** - Cache automatically updates when data changes, even in distributed scenarios
+- **📊 Performance Monitoring** - Built-in hit rate and memory usage tracking with adaptive optimization
+- **🎯 Zero Breaking Changes** - All existing code works unchanged, just faster and smarter
+
+```javascript
+// Zero configuration - everything optimized automatically!
+const brainy = new BrainyData()  // Auto-detects environment & optimizes
+await brainy.init()
+
+// Caching happens automatically - no setup needed!
+const results1 = await brainy.search('query', 10)  // ~50ms first time
+const results2 = await brainy.search('query', 10)  // <1ms cached hit!
+
+// Advanced pagination works instantly
+const page1 = await brainy.searchWithCursor('query', 100)
+const page2 = await brainy.searchWithCursor('query', 100, {
+  cursor: page1.cursor  // Constant time, no matter how deep!
+})
+
+// Monitor auto-optimized performance
+const stats = brainy.getCacheStats()
+console.log(`Auto-tuned cache hit rate: ${(stats.search.hitRate * 100).toFixed(1)}%`)
+```
+
 ## 🚀 Quick Start (30 seconds!)
 
 ### Node.js TLDR
+
 ```bash
 # Install
 npm install brainy
 
 # Use it
 ```
+
 ```javascript
 import { createAutoBrainy, NounType, VerbType } from 'brainy'
 
 const brainy = createAutoBrainy()
 
 // Add data with Nouns (entities)
-const catId = await brainy.add("Siamese cats are elegant and vocal", { 
+const catId = await brainy.add("Siamese cats are elegant and vocal", {
   noun: NounType.Thing,
   breed: "Siamese",
-  category: "animal" 
+  category: "animal"
 })
 
-const ownerId = await brainy.add("John loves his pets", { 
+const ownerId = await brainy.add("John loves his pets", {
   noun: NounType.Person,
-  name: "John Smith" 
+  name: "John Smith"
 })
 
 // Connect with Verbs (relationships)
-await brainy.addVerb(ownerId, catId, { 
+await brainy.addVerb(ownerId, catId, {
   verb: VerbType.Owns,
-  since: "2020-01-01" 
+  since: "2020-01-01"
 })
 
 // Search by meaning
@@ -78,24 +117,25 @@ const docs = await brainy.searchDocuments("Siamese", {
 const johnsPets = await brainy.getVerbsBySource(ownerId, VerbType.Owns)
 ```
 
-That's it! No config, no setup, it just works™
+That's it! No config, no setup, Zero-to-Smart™
 
 ### 🌐 Distributed Mode Example (NEW!)
+
 ```javascript
 // Writer Instance - Ingests data from multiple sources
 const writer = createAutoBrainy({
-  storage: { type: 's3', bucket: 'my-bucket' },
+  storage: { s3Storage: { bucketName: 'my-bucket' } },
   distributed: { role: 'writer' }  // Explicit role for safety
 })
 
 // Reader Instance - Optimized for search queries
 const reader = createAutoBrainy({
-  storage: { type: 's3', bucket: 'my-bucket' },
+  storage: { s3Storage: { bucketName: 'my-bucket' } },
   distributed: { role: 'reader' }  // 80% memory for cache
 })
 
 // Data automatically gets domain tags
-await writer.add("Patient shows symptoms of...", { 
+await writer.add("Patient shows symptoms of...", {
   diagnosis: "flu"  // Auto-tagged as 'medical' domain
 })
 
@@ -112,6 +152,7 @@ console.log(`Instance ${health.instanceId}: ${health.status}`)
 ## 🎭 Key Features
 
 ### Core Capabilities
+
 - **Vector Search** - Find semantically similar content using embeddings
 - **Graph Relationships** - Connect data with meaningful relationships
 - **JSON Document Search** - Search within specific fields with prioritization
@@ -121,15 +162,20 @@ console.log(`Instance ${health.instanceId}: ${health.status}`)
 - **Model Control Protocol** - Let AI models access your data
 
 ### Smart Optimizations
-- **Auto-Configuration** - Detects environment and optimizes automatically
-- **Adaptive Learning** - Gets smarter with usage, optimizes itself over time
-- **Intelligent Partitioning** - Hash-based partitioning for perfect load distribution
-- **Role-Based Optimization** - Readers maximize cache, writers optimize throughput
-- **Domain-Aware Indexing** - Automatic categorization improves search relevance
-- **Multi-Level Caching** - Hot/warm/cold caching with predictive prefetching
-- **Memory Optimization** - 75% reduction with compression for large datasets
+
+- **🤖 Intelligent Auto-Configuration** - Detects environment, usage patterns, and optimizes everything automatically
+- **⚡ Runtime Performance Adaptation** - Continuously monitors and self-tunes based on real usage
+- **🌐 Distributed Mode Detection** - Automatically enables real-time updates for shared storage scenarios
+- **📊 Workload-Aware Optimization** - Adapts cache size and TTL based on read/write patterns
+- **🧠 Adaptive Learning** - Gets smarter with usage, learns from your data access patterns
+- **#️⃣ Intelligent Partitioning** - Hash-based partitioning for perfect load distribution
+- **🎯 Role-Based Optimization** - Readers maximize cache, writers optimize throughput
+- **🏷️ Domain-Aware Indexing** - Automatic categorization improves search relevance
+- **🗂️ Multi-Level Caching** - Hot/warm/cold caching with predictive prefetching
+- **💾 Memory Optimization** - 75% reduction with compression for large datasets
 
 ### Developer Experience
+
 - **TypeScript Support** - Fully typed API with generics
 - **Extensible Augmentations** - Customize and extend functionality
 - **REST API** - Web service wrapper for HTTP endpoints
@@ -138,16 +184,20 @@ console.log(`Instance ${health.instanceId}: ${health.status}`)
 ## 📦 Installation
 
 ### Main Package
+
 ```bash
 npm install brainy
 ```
 
 ### Optional: Offline Models Package
+
 ```bash
 npm install @soulcraft/brainy-models
 ```
 
-The `@soulcraft/brainy-models` package provides **offline access** to the Universal Sentence Encoder model, eliminating network dependencies and ensuring consistent performance. Perfect for:
+The `@soulcraft/brainy-models` package provides **offline access** to the Universal Sentence Encoder model, eliminating
+network dependencies and ensuring consistent performance. Perfect for:
+
 - **Air-gapped environments** - No internet? No problem
 - **Consistent performance** - No network latency or throttling
 - **Privacy-focused apps** - Keep everything local
@@ -166,7 +216,8 @@ const brainy = createAutoBrainy({
 ## 🎨 Build Amazing Things
 
 **🤖 AI Chat Applications** - Build ChatGPT-like apps with long-term memory and context awareness  
-**🔍 Semantic Search Engines** - Search by meaning, not keywords. Find "that thing that's like a cat but bigger" → returns "tiger"  
+**🔍 Semantic Search Engines** - Search by meaning, not keywords. Find "that thing that's like a cat but bigger" →
+returns "tiger"  
 **🎯 Recommendation Engines** - "Users who liked this also liked..." but actually good  
 **🧬 Knowledge Graphs** - Connect everything to everything. Wikipedia meets Neo4j meets magic  
 **👁️ Computer Vision Apps** - Store and search image embeddings. "Find all photos with dogs wearing hats"  
@@ -178,11 +229,13 @@ const brainy = createAutoBrainy({
 
 ## 🧬 The Power of Nouns & Verbs
 
-Brainy uses a **graph-based data model** that mirrors how humans think - with **Nouns** (entities) connected by **Verbs** (relationships). This isn't just vectors in a void; it's structured, meaningful data.
+Brainy uses a **graph-based data model** that mirrors how humans think - with **Nouns** (entities) connected by **Verbs
+** (relationships). This isn't just vectors in a void; it's structured, meaningful data.
 
 ### 📝 Nouns (What Things Are)
 
 Nouns are your entities - the "things" in your data. Each noun has:
+
 - A unique ID
 - A vector representation (for similarity search)
 - A type (Person, Document, Concept, etc.)
@@ -190,28 +243,29 @@ Nouns are your entities - the "things" in your data. Each noun has:
 
 **Available Noun Types:**
 
-| Category | Types | Use For |
-|----------|-------|---------|
-| **Core Entities** | `Person`, `Organization`, `Location`, `Thing`, `Concept`, `Event` | People, companies, places, objects, ideas, happenings |
-| **Digital Content** | `Document`, `Media`, `File`, `Message`, `Content` | PDFs, images, videos, emails, posts, generic content |
-| **Collections** | `Collection`, `Dataset` | Groups of items, structured data sets |
-| **Business** | `Product`, `Service`, `User`, `Task`, `Project` | E-commerce, SaaS, project management |
-| **Descriptive** | `Process`, `State`, `Role` | Workflows, conditions, responsibilities |
+| Category            | Types                                                             | Use For                                               |
+|---------------------|-------------------------------------------------------------------|-------------------------------------------------------|
+| **Core Entities**   | `Person`, `Organization`, `Location`, `Thing`, `Concept`, `Event` | People, companies, places, objects, ideas, happenings |
+| **Digital Content** | `Document`, `Media`, `File`, `Message`, `Content`                 | PDFs, images, videos, emails, posts, generic content  |
+| **Collections**     | `Collection`, `Dataset`                                           | Groups of items, structured data sets                 |
+| **Business**        | `Product`, `Service`, `User`, `Task`, `Project`                   | E-commerce, SaaS, project management                  |
+| **Descriptive**     | `Process`, `State`, `Role`                                        | Workflows, conditions, responsibilities               |
 
 ### 🔗 Verbs (How Things Connect)
 
-Verbs are your relationships - they give meaning to connections. Not just "these vectors are similar" but "this OWNS that" or "this CAUSES that".
+Verbs are your relationships - they give meaning to connections. Not just "these vectors are similar" but "this OWNS
+that" or "this CAUSES that".
 
 **Available Verb Types:**
 
-| Category | Types | Examples |
-|----------|-------|----------|
-| **Core** | `RelatedTo`, `Contains`, `PartOf`, `LocatedAt`, `References` | Generic relations, containment, location |
-| **Temporal** | `Precedes`, `Succeeds`, `Causes`, `DependsOn`, `Requires` | Time sequences, causality, dependencies |
-| **Creation** | `Creates`, `Transforms`, `Becomes`, `Modifies`, `Consumes` | Creation, change, consumption |
-| **Ownership** | `Owns`, `AttributedTo`, `CreatedBy`, `BelongsTo` | Ownership, authorship, belonging |
-| **Social** | `MemberOf`, `WorksWith`, `FriendOf`, `Follows`, `Likes`, `ReportsTo` | Social networks, organizations |
-| **Functional** | `Describes`, `Implements`, `Validates`, `Triggers`, `Serves` | Functions, implementations, services |
+| Category       | Types                                                                | Examples                                 |
+|----------------|----------------------------------------------------------------------|------------------------------------------|
+| **Core**       | `RelatedTo`, `Contains`, `PartOf`, `LocatedAt`, `References`         | Generic relations, containment, location |
+| **Temporal**   | `Precedes`, `Succeeds`, `Causes`, `DependsOn`, `Requires`            | Time sequences, causality, dependencies  |
+| **Creation**   | `Creates`, `Transforms`, `Becomes`, `Modifies`, `Consumes`           | Creation, change, consumption            |
+| **Ownership**  | `Owns`, `AttributedTo`, `CreatedBy`, `BelongsTo`                     | Ownership, authorship, belonging         |
+| **Social**     | `MemberOf`, `WorksWith`, `FriendOf`, `Follows`, `Likes`, `ReportsTo` | Social networks, organizations           |
+| **Functional** | `Describes`, `Implements`, `Validates`, `Triggers`, `Serves`         | Functions, implementations, services     |
 
 ### 💡 Why This Matters
 
@@ -221,16 +275,16 @@ const similar = await vectorDB.search(embedding, 10)
 // Result: [vector1, vector2, ...] - What do these mean? 🤷
 
 // Brainy: Similarity + Meaning + Relationships
-const catId = await brainy.add("Siamese cat", { 
+const catId = await brainy.add("Siamese cat", {
   noun: NounType.Thing,
-  breed: "Siamese" 
+  breed: "Siamese"
 })
-const ownerId = await brainy.add("John Smith", { 
-  noun: NounType.Person 
+const ownerId = await brainy.add("John Smith", {
+  noun: NounType.Person
 })
-await brainy.addVerb(ownerId, catId, { 
+await brainy.addVerb(ownerId, catId, {
   verb: VerbType.Owns,
-  since: "2020-01-01" 
+  since: "2020-01-01"
 })
 
 // Now you can search with context!
@@ -240,44 +294,45 @@ const catOwners = await brainy.getVerbsByTarget(catId, VerbType.Owns)
 
 ## 🌍 Distributed Mode (New!)
 
-Brainy now supports **distributed deployments** with multiple specialized instances sharing the same data. Perfect for scaling your AI applications across multiple servers.
+Brainy now supports **distributed deployments** with multiple specialized instances sharing the same data. Perfect for
+scaling your AI applications across multiple servers.
 
 ### Distributed Setup
 
 ```javascript
 // Single instance (no change needed!)
 const brainy = createAutoBrainy({
-  storage: { type: 's3', bucket: 'my-bucket' }
+  storage: { s3Storage: { bucketName: 'my-bucket' } }
 })
 
 // Distributed mode requires explicit role configuration
 // Option 1: Via environment variable
 process.env.BRAINY_ROLE = 'writer'  // or 'reader' or 'hybrid'
 const brainy = createAutoBrainy({
-  storage: { type: 's3', bucket: 'my-bucket' },
+  storage: { s3Storage: { bucketName: 'my-bucket' } },
   distributed: true
 })
 
 // Option 2: Via configuration
 const writer = createAutoBrainy({
-  storage: { type: 's3', bucket: 'my-bucket' },
+  storage: { s3Storage: { bucketName: 'my-bucket' } },
   distributed: { role: 'writer' }  // Handles data ingestion
 })
 
 const reader = createAutoBrainy({
-  storage: { type: 's3', bucket: 'my-bucket' },
+  storage: { s3Storage: { bucketName: 'my-bucket' } },
   distributed: { role: 'reader' }  // Optimized for queries
 })
 
 // Option 3: Via read/write mode (role auto-inferred)
 const writer = createAutoBrainy({
-  storage: { type: 's3', bucket: 'my-bucket' },
+  storage: { s3Storage: { bucketName: 'my-bucket' } },
   writeOnly: true,  // Automatically becomes 'writer' role
   distributed: true
 })
 
 const reader = createAutoBrainy({
-  storage: { type: 's3', bucket: 'my-bucket' },
+  storage: { s3Storage: { bucketName: 'my-bucket' } },
   readOnly: true,   // Automatically becomes 'reader' role
   distributed: true
 })
@@ -286,25 +341,28 @@ const reader = createAutoBrainy({
 ### Key Distributed Features
 
 **🎯 Explicit Role Configuration**
+
 - Roles must be explicitly set (no dangerous auto-assignment)
 - Can use environment variables, config, or read/write modes
 - Clear separation between writers and readers
 
 **#️⃣ Hash-Based Partitioning**
+
 - Handles multiple writers with different data types
 - Even distribution across partitions
 - No semantic conflicts with mixed data
 
 **🏷️ Domain Tagging**
+
 - Automatic domain detection (medical, legal, product, etc.)
 - Filter searches by domain
 - Logical separation without complexity
 
 ```javascript
 // Data is automatically tagged with domains
-await brainy.add({ 
-  symptoms: "fever", 
-  diagnosis: "flu" 
+await brainy.add({
+  symptoms: "fever",
+  diagnosis: "flu"
 }, metadata)  // Auto-tagged as 'medical'
 
 // Search within specific domains
@@ -314,6 +372,7 @@ const medicalResults = await brainy.search(query, 10, {
 ```
 
 **📊 Health Monitoring**
+
 - Real-time health metrics
 - Automatic dead instance cleanup
 - Performance tracking
@@ -331,6 +390,7 @@ const health = brainy.getHealthStatus()
 ```
 
 **⚡ Role-Optimized Performance**
+
 - **Readers**: 80% memory for cache, aggressive prefetching
 - **Writers**: Optimized write batching, minimal cache
 - **Hybrid**: Adaptive based on workload
@@ -338,13 +398,14 @@ const health = brainy.getHealthStatus()
 ### Deployment Examples
 
 **Docker Compose**
+
 ```yaml
 services:
   writer:
     image: myapp
     environment:
       BRAINY_ROLE: writer  # Optional - auto-detects
-      
+
   reader:
     image: myapp
     environment:
@@ -353,6 +414,7 @@ services:
 ```
 
 **Kubernetes**
+
 ```yaml
 # Automatically detects role from deployment type
 apiVersion: apps/v1
@@ -364,12 +426,13 @@ spec:
   template:
     spec:
       containers:
-      - name: app
-        image: myapp
-        # Role auto-detected as 'reader' (multiple replicas)
+        - name: app
+          image: myapp
+          # Role auto-detected as 'reader' (multiple replicas)
 ```
 
 **Benefits**
+
 - ✅ **50-70% faster searches** with parallel readers
 - ✅ **No coordination complexity** - Shared JSON config in S3
 - ✅ **Zero downtime scaling** - Add/remove instances anytime
@@ -378,18 +441,22 @@ spec:
 ## 🤔 Why Choose Brainy?
 
 ### vs. Traditional Databases
+
 ❌ **PostgreSQL with pgvector** - Requires complex setup, tuning, and DevOps expertise  
 ✅ **Brainy** - Zero config, auto-optimizes, works everywhere from browser to cloud
 
 ### vs. Vector Databases
+
 ❌ **Pinecone/Weaviate/Qdrant** - Cloud-only, expensive, vendor lock-in  
 ✅ **Brainy** - Run locally, in browser, or cloud. Your choice, your data
 
 ### vs. Graph Databases
+
 ❌ **Neo4j** - Great for graphs, no vector support  
 ✅ **Brainy** - Vectors + graphs in one. Best of both worlds
 
 ### vs. DIY Solutions
+
 ❌ **Building your own** - Months of work, optimization nightmares  
 ✅ **Brainy** - Production-ready in 30 seconds
 
@@ -411,7 +478,7 @@ function SemanticSearch() {
   }
 
   return (
-    <input onChange={(e) => search(e.target.value)} 
+    <input onChange={(e) => search(e.target.value)}
            placeholder="Search by meaning..." />
   )
 }
@@ -446,20 +513,21 @@ export class SearchComponent implements OnInit {
 ### Vue 3
 
 ```vue
+
 <script setup>
-import { createAutoBrainy } from 'brainy'
-import { ref } from 'vue'
+  import { createAutoBrainy } from 'brainy'
+  import { ref } from 'vue'
 
-const brainy = createAutoBrainy()
-const results = ref([])
+  const brainy = createAutoBrainy()
+  const results = ref([])
 
-const search = async (query) => {
-  results.value = await brainy.searchText(query, 10)
-}
+  const search = async (query) => {
+    results.value = await brainy.searchText(query, 10)
+  }
 </script>
 
 <template>
-  <input @input="search($event.target.value)" 
+  <input @input="search($event.target.value)"
          placeholder="Find similar content...">
   <div v-for="result in results" :key="result.id">
     {{ result.text }}
@@ -535,19 +603,19 @@ console.log(results)
 <head>
   <script type="module">
     import { createAutoBrainy } from 'https://unpkg.com/brainy/dist/unified.min.js'
-    
+
     window.brainy = createAutoBrainy()
-    
+
     window.search = async function(query) {
       const results = await brainy.searchText(query, 10)
-      document.getElementById('results').innerHTML = 
+      document.getElementById('results').innerHTML =
         results.map(r => `<div>${r.text}</div>`).join('')
     }
   </script>
 </head>
 <body>
-  <input onkeyup="search(this.value)" placeholder="Search...">
-  <div id="results"></div>
+<input onkeyup="search(this.value)" placeholder="Search...">
+<div id="results"></div>
 </body>
 </html>
 ```
@@ -559,13 +627,13 @@ import { createAutoBrainy } from 'brainy'
 
 export default {
   async fetch(request, env) {
-    const brainy = createAutoBrainy({ 
-      bucketName: env.R2_BUCKET 
+    const brainy = createAutoBrainy({
+      bucketName: env.R2_BUCKET
     })
-    
+
     const url = new URL(request.url)
     const query = url.searchParams.get('q')
-    
+
     const results = await brainy.searchText(query, 10)
     return Response.json(results)
   }
@@ -578,12 +646,12 @@ export default {
 import { createAutoBrainy } from 'brainy'
 
 export const handler = async (event) => {
-  const brainy = createAutoBrainy({ 
-    bucketName: process.env.S3_BUCKET 
+  const brainy = createAutoBrainy({
+    bucketName: process.env.S3_BUCKET
   })
-  
+
   const results = await brainy.searchText(event.query, 10)
-  
+
   return {
     statusCode: 200,
     body: JSON.stringify(results)
@@ -596,13 +664,13 @@ export const handler = async (event) => {
 ```javascript
 import { createAutoBrainy } from 'brainy'
 
-module.exports = async function (context, req) {
+module.exports = async function(context, req) {
   const brainy = createAutoBrainy({
     bucketName: process.env.AZURE_STORAGE_CONTAINER
   })
-  
+
   const results = await brainy.searchText(req.query.q, 10)
-  
+
   context.res = {
     body: results
   }
@@ -618,7 +686,7 @@ export const searchHandler = async (req, res) => {
   const brainy = createAutoBrainy({
     bucketName: process.env.GCS_BUCKET
   })
-  
+
   const results = await brainy.searchText(req.query.q, 10)
   res.json(results)
 }
@@ -678,7 +746,7 @@ export default async function handler(request) {
   const brainy = createAutoBrainy()
   const { searchParams } = new URL(request.url)
   const query = searchParams.get('q')
-  
+
   const results = await brainy.searchText(query, 10)
   return Response.json(results)
 }
@@ -692,9 +760,9 @@ import { createAutoBrainy } from 'brainy'
 export async function handler(event, context) {
   const brainy = createAutoBrainy()
   const query = event.queryStringParameters.q
-  
+
   const results = await brainy.searchText(query, 10)
-  
+
   return {
     statusCode: 200,
     body: JSON.stringify(results)
@@ -712,9 +780,9 @@ serve(async (req) => {
   const brainy = createAutoBrainy()
   const url = new URL(req.url)
   const query = url.searchParams.get('q')
-  
+
   const results = await brainy.searchText(query, 10)
-  
+
   return new Response(JSON.stringify(results), {
     headers: { 'Content-Type': 'application/json' }
   })
@@ -762,11 +830,11 @@ spec:
   template:
     spec:
       containers:
-      - name: brainy
-        image: your-registry/brainy-api:latest
-        env:
-        - name: S3_BUCKET
-          value: "your-vector-bucket"
+        - name: brainy
+          image: your-registry/brainy-api:latest
+          env:
+            - name: S3_BUCKET
+              value: "your-vector-bucket"
 ```
 
 ### Railway.app
@@ -861,52 +929,60 @@ const brainy = createAutoBrainy({
 })
 
 // Works exactly the same, but 100% offline
-await brainy.add("This works without internet!", { 
-  noun: NounType.Content 
+await brainy.add("This works without internet!", {
+  noun: NounType.Content
 })
 ```
 
 ## 🌐 Live Demo
 
-**[Try the interactive demo](https://soulcraft-research.github.io/brainy/demo/index.html)** - See Brainy in action with animations and examples.
+**[Try the interactive demo](https://soulcraft-research.github.io/brainy/demo/index.html)** - See Brainy in action with
+animations and examples.
 
 ## 🔧 Environment Support
 
-| Environment | Storage | Threading | Auto-Configured |
-|-------------|---------|-----------|-----------------|
-| Browser | OPFS | Web Workers | ✅ |
-| Node.js | FileSystem/S3 | Worker Threads | ✅ |
-| Serverless | Memory/S3 | Limited | ✅ |
-| Edge Functions | Memory/KV | Limited | ✅ |
+| Environment    | Storage       | Threading      | Auto-Configured |
+|----------------|---------------|----------------|-----------------|
+| Browser        | OPFS          | Web Workers    | ✅               |
+| Node.js        | FileSystem/S3 | Worker Threads | ✅               |
+| Serverless     | Memory/S3     | Limited        | ✅               |
+| Edge Functions | Memory/KV     | Limited        | ✅               |
 
 ## 📚 Documentation
 
 ### Getting Started
+
 - [**Quick Start Guide**](docs/getting-started/) - Get up and running in minutes
 - [**Installation**](docs/getting-started/installation.md) - Detailed setup instructions
 - [**Environment Setup**](docs/getting-started/environment-setup.md) - Platform-specific configuration
 
 ### User Guides
+
 - [**Search and Metadata**](docs/user-guides/) - Advanced search techniques
 - [**JSON Document Search**](docs/guides/json-document-search.md) - Field-based searching
 - [**Production Migration**](docs/guides/production-migration-guide.md) - Deployment best practices
 
 ### API Reference
+
 - [**Core API**](docs/api-reference/) - Complete method reference
 - [**Configuration Options**](docs/api-reference/configuration.md) - All configuration parameters
-- [**Auto-Configuration API**](docs/api-reference/auto-configuration-api.md) - Intelligent setup
 
 ### Optimization & Scaling
+
+- [**Performance Features Guide**](docs/PERFORMANCE_FEATURES.md) - Advanced caching, auto-configuration, and
+  optimization
 - [**Large-Scale Optimizations**](docs/optimization-guides/) - Handle millions of vectors
 - [**Memory Management**](docs/optimization-guides/memory-optimization.md) - Efficient resource usage
 - [**S3 Migration Guide**](docs/optimization-guides/s3-migration-guide.md) - Cloud storage setup
 
 ### Examples & Patterns
+
 - [**Code Examples**](docs/examples/) - Real-world usage patterns
 - [**Integrations**](docs/examples/integrations.md) - Third-party services
 - [**Performance Patterns**](docs/examples/performance.md) - Optimization techniques
 
 ### Technical Documentation
+
 - [**Architecture Overview**](docs/technical/) - System design and internals
 - [**Testing Guide**](docs/technical/TESTING.md) - Testing strategies
 - [**Statistics & Monitoring**](docs/technical/STATISTICS.md) - Performance tracking
@@ -914,6 +990,7 @@ await brainy.add("This works without internet!", {
 ## 🤝 Contributing
 
 We welcome contributions! Please see:
+
 - [Contributing Guidelines](CONTRIBUTING.md)
 - [Developer Documentation](docs/development/DEVELOPERS.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
