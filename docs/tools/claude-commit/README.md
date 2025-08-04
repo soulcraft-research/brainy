@@ -41,9 +41,35 @@ cd ~/Projects/brainy/docs/tools/claude-commit
    curl -sSL https://raw.githubusercontent.com/yourusername/my-dotfiles/main/install.sh | bash
    ```
 
+## 📖 Usage
+
+After installation, use `git cc` in any git repository:
+
+```bash
+# Make your changes
+git cc
+
+# The tool will:
+# 1. Analyze your changes
+# 2. Generate a Conventional Commit message
+# 3. ⚠️ REQUIRE YOUR REVIEW
+# 4. Let you edit, regenerate, or cancel
+# 5. NEVER auto-push
+```
+
+## 🛡️ Safety Features
+
+- **Always Requires Review**: You MUST explicitly approve every commit message
+- **Double Confirmation**: Asks "Confirm commit? [y/N]" before committing  
+- **Edit Option**: Modify the message in your editor before committing
+- **Regenerate Option**: Request a new message if not satisfied
+- **No Auto-Push**: NEVER pushes automatically - you control when to push
+- **Clear Formatting**: Shows the full message with clear visual separation
+
 ## 📁 What Gets Installed
 
 - `~/.local/bin/claude-commit` - The main script
+- `~/.claude-commit.conf` - Optional configuration file
 - Git aliases: `git cc` and `git smart-commit`
 - PATH update (if needed)
 
