@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.39.0](https://github.com/soulcraft-research/brainy/compare/v0.38.0...v0.39.0) (2025-08-04)
+
+
+### Added
+
+* **pagination:** implement cursor-based pagination and enhance search caching ([0f538f3](https://github.com/soulcraft-research/brainy/commit/0f538f39ba7897d2efb0fadd39fc7218b1bbe72d))
+
+
+### Documentation
+
+* add comprehensive performance docs and rebrand to Zero-to-Smart™ ([80ca8e3](https://github.com/soulcraft-research/brainy/commit/80ca8e35d257723853d0f9d6c95f49937b71aceb))
+
 ## [0.38.0](https://github.com/soulcraft-research/brainy/compare/v0.37.0...v0.38.0) (2025-08-04)
 
 
