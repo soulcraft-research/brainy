@@ -27,6 +27,25 @@ export interface SearchResult<T = any> {
 }
 
 /**
+ * Cursor for pagination through search results
+ */
+export interface SearchCursor {
+  lastId: string
+  lastScore: number
+  position: number // For debugging/logging
+}
+
+/**
+ * Paginated search result with cursor support
+ */
+export interface PaginatedSearchResult<T = any> {
+  results: SearchResult<T>[]
+  cursor?: SearchCursor
+  hasMore: boolean
+  totalEstimate?: number
+}
+
+/**
  * Distance function for comparing vectors
  */
 export type DistanceFunction = (a: Vector, b: Vector) => number
