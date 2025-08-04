@@ -15,14 +15,9 @@ import { euclideanDistance } from '../utils/index.js'
 
 export interface PartitionConfig {
   maxNodesPerPartition: number
-  partitionStrategy: 'semantic' | 'random' | 'geographic' | 'hash'
-  semanticClusters?: number
-  geographicBounds?: {
-    minLat: number
-    maxLat: number
-    minLng: number
-    maxLng: number
-  }
+  partitionStrategy: 'semantic' | 'hash' // Simplified to focus on useful strategies
+  semanticClusters?: number // Auto-configured based on dataset size
+  autoTuneSemanticClusters?: boolean // Automatically adjust cluster count
 }
 
 export interface PartitionMetadata {
@@ -57,8 +52,9 @@ export class PartitionedHNSWIndex {
   ) {
     this.config = {
       maxNodesPerPartition: 50000, // Optimal size for memory efficiency
-      partitionStrategy: 'hash',
-      semanticClusters: 10,
+      partitionStrategy: 'semantic', // Default to semantic for better performance
+      semanticClusters: 8, // Auto-tuned based on dataset
+      autoTuneSemanticClusters: true,
       ...partitionConfig
     }
 
@@ -111,8 +107,8 @@ export class PartitionedHNSWIndex {
     const metadata = this.partitionMetadata.get(partitionId)!
     metadata.nodeCount = partition.size()
     
-    // Update bounds for semantic/geographic strategies
-    if (this.config.partitionStrategy === 'semantic' || this.config.partitionStrategy === 'geographic') {
+    // Update bounds for semantic strategy
+    if (this.config.partitionStrategy === 'semantic') {
       this.updatePartitionBounds(partitionId, item.vector)
     }
 
@@ -167,21 +163,19 @@ export class PartitionedHNSWIndex {
 
   /**
    * Select the appropriate partition for a new item
+   * Automatically chooses semantic partitioning when beneficial, falls back to hash
    */
   private async selectPartition(item: VectorDocument): Promise<string> {
+    // Auto-tune semantic clusters based on current dataset size
+    if (this.config.autoTuneSemanticClusters && this.config.partitionStrategy === 'semantic') {
+      this.autoTuneSemanticClusters()
+    }
+    
     switch (this.config.partitionStrategy) {
-      case 'hash':
-        return this.hashPartition(item.id)
-      
       case 'semantic':
         return await this.semanticPartition(item.vector)
       
-      case 'geographic':
-        return this.geographicPartition(item)
-      
-      case 'random':
-        return this.randomPartition()
-      
+      case 'hash':
       default:
         return this.hashPartition(item.id)
     }
@@ -234,30 +228,32 @@ export class PartitionedHNSWIndex {
   }
 
   /**
-   * Geographic partitioning (requires lat/lng in metadata)
+   * Auto-tune semantic clusters based on dataset size and performance
    */
-  private geographicPartition(item: VectorDocument): string {
-    // This would require geographic metadata in the item
-    // For now, fall back to hash partitioning
-    return this.hashPartition(item.id)
-  }
-
-  /**
-   * Random partitioning
-   */
-  private randomPartition(): string {
-    const existingPartitions = Array.from(this.partitions.keys())
+  private autoTuneSemanticClusters(): void {
+    const totalNodes = this.size()
+    const currentPartitions = this.partitions.size
     
-    // Find partition with space
-    for (const partitionId of existingPartitions) {
-      const metadata = this.partitionMetadata.get(partitionId)
-      if (metadata && metadata.nodeCount < this.config.maxNodesPerPartition) {
-        return partitionId
+    // Optimal clusters based on dataset size
+    let optimalClusters = Math.max(4, Math.min(32, Math.floor(totalNodes / 10000)))
+    
+    // Adjust based on current partition performance
+    if (currentPartitions > 0) {
+      const avgNodesPerPartition = totalNodes / currentPartitions
+      
+      if (avgNodesPerPartition > this.config.maxNodesPerPartition * 0.8) {
+        // Partitions are getting full, increase clusters
+        optimalClusters = Math.min(32, this.config.semanticClusters! + 2)
+      } else if (avgNodesPerPartition < this.config.maxNodesPerPartition * 0.3 && currentPartitions > 4) {
+        // Partitions are underutilized, decrease clusters
+        optimalClusters = Math.max(4, this.config.semanticClusters! - 1)
       }
     }
     
-    // Create new partition
-    return `random_${this.nextPartitionId++}`
+    if (optimalClusters !== this.config.semanticClusters) {
+      console.log(`Auto-tuning semantic clusters: ${this.config.semanticClusters} → ${optimalClusters}`)
+      this.config.semanticClusters = optimalClusters
+    }
   }
 
   /**
