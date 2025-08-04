@@ -18,6 +18,8 @@ import {
   HNSWConfig,
   HNSWNoun,
   SearchResult,
+  SearchCursor,
+  PaginatedSearchResult,
   StorageAdapter,
   Vector,
   VectorDocument
@@ -55,6 +57,8 @@ import {
   DomainDetector,
   HealthMonitor
 } from './distributed/index.js'
+import { SearchCache, SearchCacheConfig } from './utils/searchCache.js'
+import { CacheAutoConfigurator } from './utils/cacheAutoConfig.js'
 
 export interface BrainyDataConfig {
   /**
@@ -182,6 +186,12 @@ export interface BrainyDataConfig {
      */
     verbose?: boolean
   }
+
+  /**
+   * Search result caching configuration
+   * Improves performance for repeated queries
+   */
+  searchCache?: SearchCacheConfig
 
   /**
    * Timeout configuration for async operations
@@ -367,6 +377,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   private _dimensions: number
   private loggingConfig: BrainyDataConfig['logging'] = { verbose: true }
   private defaultService: string = 'default'
+  private searchCache: SearchCache<T>
+  private cacheAutoConfigurator: CacheAutoConfigurator
 
   // Timeout and retry configuration
   private timeoutConfig: BrainyDataConfig['timeouts'] = {}
@@ -548,6 +560,33 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         this.distributedConfig = config.distributed
       }
     }
+    
+    // Initialize cache auto-configurator first
+    this.cacheAutoConfigurator = new CacheAutoConfigurator()
+    
+    // Auto-detect optimal cache configuration if not explicitly provided
+    let finalSearchCacheConfig = config.searchCache
+    if (!config.searchCache || Object.keys(config.searchCache).length === 0) {
+      const autoConfig = this.cacheAutoConfigurator.autoDetectOptimalConfig(
+        config.storage
+      )
+      finalSearchCacheConfig = autoConfig.cacheConfig
+      
+      // Apply auto-detected real-time update configuration if not explicitly set
+      if (!config.realtimeUpdates && autoConfig.realtimeConfig.enabled) {
+        this.realtimeUpdateConfig = {
+          ...this.realtimeUpdateConfig,
+          ...autoConfig.realtimeConfig
+        }
+      }
+      
+      if (this.loggingConfig?.verbose) {
+        console.log(this.cacheAutoConfigurator.getConfigExplanation(autoConfig))
+      }
+    }
+    
+    // Initialize search cache with final configuration
+    this.searchCache = new SearchCache<T>(finalSearchCacheConfig)
   }
 
   /**
@@ -721,6 +760,19 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         }
       }
 
+      // Cleanup expired cache entries (defensive mechanism for distributed scenarios)
+      const expiredCount = this.searchCache.cleanupExpiredEntries()
+      if (expiredCount > 0 && this.loggingConfig?.verbose) {
+        console.log(`Cleaned up ${expiredCount} expired cache entries`)
+      }
+
+      // Adapt cache configuration based on performance (every few updates)
+      // Only adapt every 5th update to avoid over-optimization
+      const updateCount = Math.floor((Date.now() - (this.lastUpdateTime || 0)) / this.realtimeUpdateConfig.interval)
+      if (updateCount % 5 === 0) {
+        this.adaptCacheConfiguration()
+      }
+
       // Update the last update time
       this.lastUpdateTime = Date.now()
 
@@ -821,6 +873,14 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         )
       }
 
+      // Invalidate search cache if any external changes were detected
+      if (addedCount > 0 || updatedCount > 0 || deletedCount > 0) {
+        this.searchCache.invalidateOnDataChange('update')
+        if (this.loggingConfig?.verbose) {
+          console.log('Search cache invalidated due to external data changes')
+        }
+      }
+
       // Update the last known noun count
       this.lastKnownNounCount = await this.getNounCount()
     } catch (error) {
@@ -878,6 +938,14 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
         // Update the last known noun count
         this.lastKnownNounCount = currentCount
+
+        // Invalidate search cache if new nouns were detected
+        if (newNouns.length > 0) {
+          this.searchCache.invalidateOnDataChange('add')
+          if (this.loggingConfig?.verbose) {
+            console.log('Search cache invalidated due to external data changes')
+          }
+        }
 
         if (this.loggingConfig?.verbose && newNouns.length > 0) {
           console.log(
@@ -1543,6 +1611,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         }
       }
 
+      // Invalidate search cache since data has changed
+      this.searchCache.invalidateOnDataChange('add')
+
       return id
     } catch (error) {
       console.error('Failed to add vector:', error)
@@ -1832,6 +1903,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     options: {
       forceEmbed?: boolean // Force using the embedding function even if input is a vector
       service?: string // Filter results by the service that created the data
+      offset?: number // Number of results to skip for pagination (default: 0)
     } = {}
   ): Promise<SearchResult<T>[]> {
     // Helper function to filter results by service
@@ -1930,13 +2002,20 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           }
         }
 
-        // Search in the index
-        const results = await this.index.search(queryVector, k)
+        // When using offset, we need to fetch more results and then slice
+        const offset = options.offset || 0
+        const totalNeeded = k + offset
+        
+        // Search in the index for totalNeeded results
+        const results = await this.index.search(queryVector, totalNeeded)
+
+        // Skip the offset number of results
+        const paginatedResults = results.slice(offset, offset + k)
 
         // Get metadata for each result
         const searchResults: SearchResult<T>[] = []
 
-        for (const [id, score] of results) {
+        for (const [id, score] of paginatedResults) {
           const noun = this.index.getNouns().get(id)
           if (!noun) {
             continue
@@ -1990,8 +2069,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         // Sort by distance (ascending)
         results.sort((a, b) => a[1] - b[1])
 
-        // Take top k results
-        const topResults = results.slice(0, k)
+        // Apply offset and take k results
+        const offset = options.offset || 0
+        const topResults = results.slice(offset, offset + k)
 
         // Get metadata for each result
         const searchResults: SearchResult<T>[] = []
@@ -2053,6 +2133,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       service?: string // Filter results by the service that created the data
       searchField?: string // Optional specific field to search within JSON documents
       filter?: { domain?: string } // Filter results by domain
+      offset?: number // Number of results to skip for pagination (default: 0)
+      skipCache?: boolean // Skip cache for this search (default: false)
     } = {}
   ): Promise<SearchResult<T>[]> {
     const startTime = Date.now()
@@ -2115,13 +2197,33 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
     // Default behavior (backward compatible): search locally
     try {
+      // Check cache first (transparent to user)
+      const cacheKey = this.searchCache.getCacheKey(queryVectorOrData, k, options)
+      const cachedResults = this.searchCache.get(cacheKey)
+      
+      if (cachedResults) {
+        // Track cache hit in health monitor
+        if (this.healthMonitor) {
+          const latency = Date.now() - startTime
+          this.healthMonitor.recordRequest(latency, false)
+          this.healthMonitor.recordCacheAccess(true)
+        }
+        return cachedResults
+      }
+      
+      // Cache miss - perform actual search
       const results = await this.searchLocal(queryVectorOrData, k, options)
+      
+      // Cache results for future queries (unless explicitly disabled)
+      if (!options.skipCache) {
+        this.searchCache.set(cacheKey, results)
+      }
       
       // Track successful search in health monitor
       if (this.healthMonitor) {
         const latency = Date.now() - startTime
         this.healthMonitor.recordRequest(latency, false)
-        this.healthMonitor.recordCacheAccess(results.length > 0)
+        this.healthMonitor.recordCacheAccess(false)
       }
       
       return results
@@ -2132,6 +2234,79 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         this.healthMonitor.recordRequest(latency, true)
       }
       throw error
+    }
+  }
+
+  /**
+   * Search with cursor-based pagination for better performance on large datasets
+   * @param queryVectorOrData Query vector or data to search for
+   * @param k Number of results to return
+   * @param options Additional options including cursor for pagination
+   * @returns Paginated search results with cursor for next page
+   */
+  public async searchWithCursor(
+    queryVectorOrData: Vector | any,
+    k: number = 10,
+    options: {
+      forceEmbed?: boolean
+      nounTypes?: string[]
+      includeVerbs?: boolean
+      service?: string
+      searchField?: string
+      filter?: { domain?: string }
+      cursor?: SearchCursor // For continuing from previous search
+      skipCache?: boolean
+    } = {}
+  ): Promise<PaginatedSearchResult<T>> {
+    // For cursor-based search, we need to fetch more results and filter
+    const searchK = options.cursor ? k + 20 : k // Get extra results for filtering
+    
+    // Perform regular search
+    const allResults = await this.search(queryVectorOrData, searchK, {
+      ...options,
+      skipCache: options.skipCache
+    })
+    
+    let results = allResults
+    let startIndex = 0
+    
+    // If cursor provided, find starting position
+    if (options.cursor) {
+      startIndex = allResults.findIndex(r => 
+        r.id === options.cursor!.lastId && 
+        Math.abs(r.score - options.cursor!.lastScore) < 0.0001
+      )
+      
+      if (startIndex >= 0) {
+        startIndex += 1 // Start after the cursor position
+        results = allResults.slice(startIndex, startIndex + k)
+      } else {
+        // Cursor not found, might be stale - return from beginning
+        results = allResults.slice(0, k)
+        startIndex = 0
+      }
+    } else {
+      results = allResults.slice(0, k)
+    }
+    
+    // Create cursor for next page
+    let nextCursor: SearchCursor | undefined
+    const hasMoreResults = (startIndex + results.length) < allResults.length || allResults.length >= searchK
+    
+    if (results.length > 0 && hasMoreResults) {
+      const lastResult = results[results.length - 1]
+      nextCursor = {
+        lastId: lastResult.id,
+        lastScore: lastResult.score,
+        position: startIndex + results.length
+      }
+    }
+    
+    return {
+      results,
+      cursor: nextCursor,
+      hasMore: !!nextCursor,
+      totalEstimate: allResults.length > searchK ? undefined : allResults.length
     }
   }
 
@@ -2153,6 +2328,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       searchField?: string // Optional specific field to search within JSON documents
       priorityFields?: string[] // Fields to prioritize when searching JSON documents
       filter?: { domain?: string } // Filter results by domain
+      offset?: number // Number of results to skip for pagination (default: 0)
+      skipCache?: boolean // Skip cache for this search (default: false)
     } = {}
   ): Promise<SearchResult<T>[]> {
     if (!this.isInitialized) {
@@ -2216,14 +2393,16 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         options.nounTypes,
         {
           forceEmbed: options.forceEmbed,
-          service: options.service
+          service: options.service,
+          offset: options.offset
         }
       )
     } else {
       // Otherwise, search all GraphNouns
       searchResults = await this.searchByNounTypes(queryToUse, k, null, {
         forceEmbed: options.forceEmbed,
-        service: options.service
+        service: options.service,
+        offset: options.offset
       })
     }
 
@@ -2637,6 +2816,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         // Ignore
       }
 
+      // Invalidate search cache since data has changed
+      this.searchCache.invalidateOnDataChange('delete')
+
       return true
     } catch (error) {
       console.error(`Failed to delete vector ${id}:`, error)
@@ -2745,6 +2927,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       // Track metadata statistics
       const service = this.getServiceName(options)
       await this.storage!.incrementStatistic('metadata', service)
+
+      // Invalidate search cache since metadata has changed
+      this.searchCache.invalidateOnDataChange('update')
 
       return true
     } catch (error) {
@@ -3195,6 +3380,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       // Update HNSW index size (excluding verbs)
       await this.storage!.updateHnswIndexSize(await this.getNounCount())
 
+      // Invalidate search cache since verb data has changed
+      this.searchCache.invalidateOnDataChange('add')
+
       return id
     } catch (error) {
       console.error('Failed to add verb:', error)
@@ -3461,6 +3649,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
       // Clear storage
       await this.storage!.clear()
+      
+      // Clear search cache since all data has been removed
+      this.searchCache.invalidateOnDataChange('delete')
     } catch (error) {
       console.error('Failed to clear vector database:', error)
       throw new Error(`Failed to clear vector database: ${error}`)
@@ -3472,6 +3663,79 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
    */
   public size(): number {
     return this.index.size()
+  }
+
+  /**
+   * Get search cache statistics for performance monitoring
+   * @returns Cache statistics including hit rate and memory usage
+   */
+  public getCacheStats() {
+    return {
+      search: this.searchCache.getStats(),
+      searchMemoryUsage: this.searchCache.getMemoryUsage()
+    }
+  }
+
+  /**
+   * Clear search cache manually (useful for testing or memory management)
+   */
+  public clearCache(): void {
+    this.searchCache.clear()
+  }
+  
+  /**
+   * Adapt cache configuration based on current performance metrics
+   * This method analyzes usage patterns and automatically optimizes cache settings
+   * @private
+   */
+  private adaptCacheConfiguration(): void {
+    const stats = this.searchCache.getStats()
+    const memoryUsage = this.searchCache.getMemoryUsage()
+    const currentConfig = this.searchCache.getConfig()
+    
+    // Prepare performance metrics for adaptation
+    const performanceMetrics = {
+      hitRate: stats.hitRate,
+      avgResponseTime: 50, // Would be measured in real implementation
+      memoryUsage: memoryUsage,
+      externalChangesDetected: 0, // Would be tracked from real-time updates
+      timeSinceLastChange: Date.now() - this.lastUpdateTime
+    }
+    
+    // Try to adapt configuration
+    const newConfig = this.cacheAutoConfigurator.adaptConfiguration(
+      currentConfig,
+      performanceMetrics
+    )
+    
+    if (newConfig) {
+      // Apply new cache configuration
+      this.searchCache.updateConfig(newConfig.cacheConfig)
+      
+      // Apply new real-time update configuration if needed
+      if (newConfig.realtimeConfig.enabled !== this.realtimeUpdateConfig.enabled ||
+          newConfig.realtimeConfig.interval !== this.realtimeUpdateConfig.interval) {
+        
+        const wasEnabled = this.realtimeUpdateConfig.enabled
+        this.realtimeUpdateConfig = {
+          ...this.realtimeUpdateConfig,
+          ...newConfig.realtimeConfig
+        }
+        
+        // Restart real-time updates with new configuration
+        if (wasEnabled) {
+          this.stopRealtimeUpdates()
+        }
+        if (this.realtimeUpdateConfig.enabled && this.isInitialized) {
+          this.startRealtimeUpdates()
+        }
+      }
+      
+      if (this.loggingConfig?.verbose) {
+        console.log('🔧 Auto-adapted cache configuration:')
+        console.log(this.cacheAutoConfigurator.getConfigExplanation(newConfig))
+      }
+    }
   }
 
   /**
@@ -4167,6 +4431,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       storeResults?: boolean // Whether to store the results in the local database (default: true)
       service?: string // Filter results by the service that created the data
       searchField?: string // Optional specific field to search within JSON documents
+      offset?: number // Number of results to skip for pagination (default: 0)
     } = {}
   ): Promise<SearchResult<T>[]> {
     await this.ensureInitialized()
@@ -4198,18 +4463,24 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         )
       }
 
-      // Search the remote server
+      // When using offset, fetch more results and slice
+      const offset = options.offset || 0
+      const totalNeeded = k + offset
+      
+      // Search the remote server for totalNeeded results
       const searchResult = await this.serverSearchConduit.searchServer(
         this.serverConnection.connectionId,
         query,
-        k
+        totalNeeded
       )
 
       if (!searchResult.success) {
         throw new Error(`Remote search failed: ${searchResult.error}`)
       }
 
-      return searchResult.data as SearchResult<T>[]
+      // Apply offset to remote results
+      const allResults = searchResult.data as SearchResult<T>[]
+      return allResults.slice(offset, offset + k)
     } catch (error) {
       console.error('Failed to search remote server:', error)
       throw new Error(`Failed to search remote server: ${error}`)
@@ -4233,6 +4504,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       localFirst?: boolean // Whether to search local first (default: true)
       service?: string // Filter results by the service that created the data
       searchField?: string // Optional specific field to search within JSON documents
+      offset?: number // Number of results to skip for pagination (default: 0)
     } = {}
   ): Promise<SearchResult<T>[]> {
     await this.ensureInitialized()
