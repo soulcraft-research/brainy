@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.37.0](https://github.com/soulcraft-research/brainy/compare/v0.36.0...v0.37.0) (2025-08-04)
+
+
+### Fixed
+
+* **build:** resolve TypeScript compilation errors in optimization modules ([0e2bce1](https://github.com/soulcraft-research/brainy/commit/0e2bce19251f7ea5008695f058272ca4271805f8))
+* **types:** add explicit ArrayBuffer type assertions for compression ([7196fe2](https://github.com/soulcraft-research/brainy/commit/7196fe2d6b756a4e9401cf87585db688145e46fe))
+* **types:** resolve remaining ArrayBuffer type issues in compression methods ([eb8c95e](https://github.com/soulcraft-research/brainy/commit/eb8c95ef3720afa52acc45af2c3dcc896d67decc))
+
+
+### Added
+
+* **auto-configuration:** implement automatic configuration system for optimal settings ([aa64f49](https://github.com/soulcraft-research/brainy/commit/aa64f490cbad98bc6c95c1f212b8f049d41aa32f))
+* **docs:** add comprehensive user guides and installation instructions for Brainy ([d4dafbf](https://github.com/soulcraft-research/brainy/commit/d4dafbf598a49c7b1b005f7773f14b47fe65bffa))
+* **docs:** update README and add large-scale optimizations guide for v0.36.0 ([ae01bea](https://github.com/soulcraft-research/brainy/commit/ae01bea1aa5d7f3a042f67fa6123c17e59310d68))
+* **hnsw:** implement comprehensive large-scale search optimizations ([c39eee6](https://github.com/soulcraft-research/brainy/commit/c39eee624d40c4ee4d5112c26283c17b133dc3e1))
+* **partitioning:** simplify partition strategies and enable auto-tuning of semantic clusters ([1015c33](https://github.com/soulcraft-research/brainy/commit/1015c33004c248dd45fdb9c37edc6b15ad95a5f8))
+
 ## [0.36.0](https://github.com/soulcraft-research/brainy/compare/v0.35.0...v0.36.0) (2025-08-03)
 
 
