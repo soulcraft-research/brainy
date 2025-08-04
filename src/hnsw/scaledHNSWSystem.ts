@@ -11,29 +11,34 @@ import { EnhancedCacheManager } from '../storage/enhancedCacheManager.js'
 import { BatchS3Operations } from '../storage/adapters/batchS3Operations.js'
 import { ReadOnlyOptimizations } from '../storage/readOnlyOptimizations.js'
 import { euclideanDistance } from '../utils/index.js'
+import { autoConfigureBrainy, AutoConfiguration } from '../utils/autoConfiguration.js'
 
 export interface ScaledHNSWConfig {
-  // Dataset scale expectations
-  expectedDatasetSize: number
-  maxMemoryUsage: number // bytes
-  targetSearchLatency: number // ms
+  // Required: Basic dataset expectations (can be auto-detected if not provided)
+  expectedDatasetSize?: number // Auto-detected if not provided
+  maxMemoryUsage?: number // Auto-detected based on environment
+  targetSearchLatency?: number // Auto-configured based on environment
   
-  // Storage configuration
+  // Storage configuration (optional - auto-detects S3 availability)
   s3Config?: {
     bucketName: string
     region: string
     endpoint?: string
-    accessKeyId: string
-    secretAccessKey: string
+    accessKeyId?: string // Falls back to env vars
+    secretAccessKey?: string // Falls back to env vars
   }
   
-  // Optimization strategies
+  // Auto-configuration options
+  autoConfigureEnvironment?: boolean // Default: true
+  learningEnabled?: boolean // Default: true - adapts to performance
+  
+  // Manual overrides (optional - auto-configured if not provided)
   enablePartitioning?: boolean
   enableCompression?: boolean
   enableDistributedSearch?: boolean
   enablePredictiveCaching?: boolean
   
-  // Performance tuning
+  // Advanced manual tuning (optional)
   partitionConfig?: Partial<PartitionConfig>
   hnswConfig?: Partial<OptimizedHNSWConfig>
   readOnlyMode?: boolean
@@ -44,35 +49,52 @@ export interface ScaledHNSWConfig {
  * Handles datasets from thousands to millions of vectors
  */
 export class ScaledHNSWSystem {
-  private config: ScaledHNSWConfig
+  private config: ScaledHNSWConfig & {
+    expectedDatasetSize: number
+    maxMemoryUsage: number
+    targetSearchLatency: number
+    autoConfigureEnvironment: boolean
+    learningEnabled: boolean
+    enablePartitioning: boolean
+    enableCompression: boolean
+    enableDistributedSearch: boolean
+    enablePredictiveCaching: boolean
+    readOnlyMode: boolean
+  }
+  private autoConfig: AutoConfiguration
   private partitionedIndex?: PartitionedHNSWIndex
   private distributedSearch?: DistributedSearchSystem
   private cacheManager?: EnhancedCacheManager<any>
   private batchOperations?: BatchS3Operations
   private readOnlyOptimizations?: ReadOnlyOptimizations
   
-  // Performance monitoring
+  // Performance monitoring and learning
   private performanceMetrics = {
     totalSearches: 0,
     averageSearchTime: 0,
     cacheHitRate: 0,
     compressionRatio: 0,
     memoryUsage: 0,
-    indexSize: 0
+    indexSize: 0,
+    lastLearningUpdate: Date.now()
   }
 
-  constructor(config: ScaledHNSWConfig) {
+  constructor(config: ScaledHNSWConfig = {}) {
+    this.autoConfig = AutoConfiguration.getInstance()
+    
+    // Set basic defaults - these will be overridden by auto-configuration
     this.config = {
+      expectedDatasetSize: 100000,
+      maxMemoryUsage: 4 * 1024 * 1024 * 1024,
+      targetSearchLatency: 150,
+      autoConfigureEnvironment: true,
+      learningEnabled: true,
       enablePartitioning: true,
       enableCompression: true,
       enableDistributedSearch: true,
       enablePredictiveCaching: true,
       readOnlyMode: false,
-      ...config,
-      // Set defaults only if not provided
-      expectedDatasetSize: config.expectedDatasetSize || 100000,
-      maxMemoryUsage: config.maxMemoryUsage || (4 * 1024 * 1024 * 1024),
-      targetSearchLatency: config.targetSearchLatency || 100
+      ...config
     }
 
     this.initializeOptimizedSystem()
@@ -82,19 +104,48 @@ export class ScaledHNSWSystem {
    * Initialize the optimized system based on configuration
    */
   private async initializeOptimizedSystem(): Promise<void> {
-    console.log('Initializing Scaled HNSW System...')
+    console.log('Initializing Scaled HNSW System with auto-configuration...')
     
-    // Determine optimal configuration based on dataset size
+    // Auto-configure if enabled
+    if (this.config.autoConfigureEnvironment) {
+      const autoConfigResult = await this.autoConfig.detectAndConfigure({
+        expectedDataSize: this.config.expectedDatasetSize,
+        s3Available: !!this.config.s3Config,
+        memoryBudget: this.config.maxMemoryUsage
+      })
+      
+      console.log(`Detected environment: ${autoConfigResult.environment}`)
+      console.log(`Available memory: ${(autoConfigResult.availableMemory / 1024 / 1024 / 1024).toFixed(1)}GB`)
+      console.log(`CPU cores: ${autoConfigResult.cpuCores}`)
+      
+      // Override config with auto-detected values
+      this.config = {
+        ...this.config,
+        expectedDatasetSize: autoConfigResult.recommendedConfig.expectedDatasetSize,
+        maxMemoryUsage: autoConfigResult.recommendedConfig.maxMemoryUsage,
+        targetSearchLatency: autoConfigResult.recommendedConfig.targetSearchLatency,
+        enablePartitioning: autoConfigResult.recommendedConfig.enablePartitioning,
+        enableCompression: autoConfigResult.recommendedConfig.enableCompression,
+        enableDistributedSearch: autoConfigResult.recommendedConfig.enableDistributedSearch,
+        enablePredictiveCaching: autoConfigResult.recommendedConfig.enablePredictiveCaching
+      }
+    }
+    
+    // Determine optimal configuration
     const optimizedConfig = this.calculateOptimalConfiguration()
     
-    // Initialize partitioned index
+    // Initialize partitioned index with semantic partitioning as default
     if (this.config.enablePartitioning) {
       this.partitionedIndex = new PartitionedHNSWIndex(
-        optimizedConfig.partitionConfig,
+        {
+          ...optimizedConfig.partitionConfig,
+          partitionStrategy: 'semantic', // Always use semantic for better performance
+          autoTuneSemanticClusters: true // Enable auto-tuning
+        },
         optimizedConfig.hnswConfig,
         euclideanDistance
       )
-      console.log('✓ Partitioned index initialized')
+      console.log('✓ Partitioned index initialized with semantic clustering')
     }
 
     // Initialize distributed search system
@@ -355,9 +406,14 @@ export class ScaledHNSWSystem {
         throw new Error('No search system available')
       }
 
-      // Update performance metrics
+      // Update performance metrics and learn from performance
       const searchTime = Date.now() - startTime
       this.updateSearchMetrics(searchTime, results.length)
+      
+      // Adaptive learning - adjust configuration based on performance
+      if (this.config.learningEnabled && this.shouldTriggerLearning()) {
+        await this.adaptivelyLearnFromPerformance()
+      }
 
       return results
 
@@ -512,6 +568,104 @@ System Status: ${this.getSystemStatus()}
   }
 
   /**
+   * Check if adaptive learning should be triggered
+   */
+  private shouldTriggerLearning(): boolean {
+    const timeSinceLastLearning = Date.now() - this.performanceMetrics.lastLearningUpdate
+    const minLearningInterval = 30000 // 30 seconds
+    const minSearches = 20 // Minimum searches before learning
+    
+    return timeSinceLastLearning > minLearningInterval && 
+           this.performanceMetrics.totalSearches > minSearches &&
+           this.performanceMetrics.totalSearches % 50 === 0 // Learn every 50 searches
+  }
+  
+  /**
+   * Adaptively learn from performance and adjust configuration
+   */
+  private async adaptivelyLearnFromPerformance(): Promise<void> {
+    try {
+      const currentMetrics = {
+        averageSearchTime: this.performanceMetrics.averageSearchTime,
+        memoryUsage: this.performanceMetrics.memoryUsage,
+        cacheHitRate: this.performanceMetrics.cacheHitRate,
+        errorRate: 0 // Could be tracked separately
+      }
+      
+      const adjustments = await this.autoConfig.learnFromPerformance(currentMetrics)
+      
+      if (Object.keys(adjustments).length > 0) {
+        console.log('🧠 Adaptive learning: Adjusting configuration based on performance')
+        
+        // Apply learned adjustments
+        let configChanged = false
+        
+        if (adjustments.enableDistributedSearch !== undefined && 
+            adjustments.enableDistributedSearch !== this.config.enableDistributedSearch) {
+          this.config.enableDistributedSearch = adjustments.enableDistributedSearch
+          configChanged = true
+        }
+        
+        if (adjustments.enableCompression !== undefined && 
+            adjustments.enableCompression !== this.config.enableCompression) {
+          this.config.enableCompression = adjustments.enableCompression
+          configChanged = true
+        }
+        
+        if (adjustments.enablePredictiveCaching !== undefined && 
+            adjustments.enablePredictiveCaching !== this.config.enablePredictiveCaching) {
+          this.config.enablePredictiveCaching = adjustments.enablePredictiveCaching
+          configChanged = true
+        }
+        
+        // Apply partition adjustments
+        if (adjustments.maxNodesPerPartition && 
+            this.partitionedIndex && 
+            adjustments.maxNodesPerPartition !== this.partitionedIndex.getPartitionStats().averageNodesPerPartition) {
+          // This would require rebuilding the index in a real implementation
+          console.log(`Learning suggests partition size: ${adjustments.maxNodesPerPartition}`)
+        }
+        
+        if (configChanged) {
+          console.log('✅ Configuration updated based on performance learning')
+        }
+      }
+      
+      this.performanceMetrics.lastLearningUpdate = Date.now()
+      
+    } catch (error) {
+      console.warn('Adaptive learning failed:', error)
+    }
+  }
+  
+  /**
+   * Update dataset analysis for better auto-configuration
+   */
+  public async updateDatasetAnalysis(vectorCount: number, vectorDimension?: number): Promise<void> {
+    if (this.config.autoConfigureEnvironment) {
+      const analysis = {
+        estimatedSize: vectorCount,
+        vectorDimension,
+        accessPatterns: this.inferAccessPatterns()
+      }
+      
+      await this.autoConfig.adaptToDataset(analysis)
+      console.log(`📊 Dataset analysis updated: ${vectorCount} vectors${vectorDimension ? `, ${vectorDimension}D` : ''}`)
+    }
+  }
+  
+  /**
+   * Infer access patterns from current metrics
+   */
+  private inferAccessPatterns(): 'read-heavy' | 'write-heavy' | 'balanced' {
+    // Simple heuristic - in practice, this would track read/write ratios
+    if (this.performanceMetrics.totalSearches > 100) {
+      return 'read-heavy'
+    }
+    return 'balanced'
+  }
+
+  /**
    * Cleanup system resources
    */
   public cleanup(): void {
@@ -519,12 +673,62 @@ System Status: ${this.getSystemStatus()}
     this.cacheManager?.clear()
     this.readOnlyOptimizations?.cleanup()
     this.partitionedIndex?.clear()
+    this.autoConfig.resetCache()
     
     console.log('Scaled HNSW System cleaned up')
   }
 }
 
-// Export convenience factory function
-export function createScaledHNSWSystem(config: ScaledHNSWConfig): ScaledHNSWSystem {
+// Export convenience factory functions
+
+/**
+ * Create a fully auto-configured Brainy system - minimal setup required!
+ * Just provide S3 config if you want persistence beyond the current session
+ */
+export function createAutoBrainy(s3Config?: {
+  bucketName: string
+  region?: string
+  accessKeyId?: string
+  secretAccessKey?: string
+}): ScaledHNSWSystem {
+  return new ScaledHNSWSystem({
+    s3Config: s3Config ? {
+      bucketName: s3Config.bucketName,
+      region: s3Config.region || 'us-east-1',
+      accessKeyId: s3Config.accessKeyId,
+      secretAccessKey: s3Config.secretAccessKey
+    } : undefined,
+    autoConfigureEnvironment: true,
+    learningEnabled: true
+  })
+}
+
+/**
+ * Create a Brainy system optimized for specific scenarios
+ */
+export async function createQuickBrainy(
+  scenario: 'small' | 'medium' | 'large' | 'enterprise',
+  s3Config?: { bucketName: string; region?: string }
+): Promise<ScaledHNSWSystem> {
+  const { getQuickSetup } = await import('../utils/autoConfiguration.js')
+  const quickConfig = await getQuickSetup(scenario)
+  
+  return new ScaledHNSWSystem({
+    ...quickConfig,
+    s3Config: s3Config && quickConfig.s3Required ? {
+      bucketName: s3Config.bucketName,
+      region: s3Config.region || 'us-east-1',
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    } : undefined,
+    autoConfigureEnvironment: true,
+    learningEnabled: true
+  })
+}
+
+/**
+ * Legacy factory function - still works but consider using createAutoBrainy() instead
+ */
+export function createScaledHNSWSystem(config: ScaledHNSWConfig = {}): ScaledHNSWSystem {
   return new ScaledHNSWSystem(config)
 }
