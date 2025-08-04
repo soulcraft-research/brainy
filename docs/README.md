@@ -32,6 +32,7 @@ Performance optimization and scaling strategies.
 - **[Distributed Search](optimization-guides/distributed-search.md)** - Parallel processing
 - **[Memory Optimization](optimization-guides/memory-optimization.md)** - Efficient memory usage
 - **[Storage Optimization](optimization-guides/storage-optimization.md)** - S3 and storage strategies
+- **[S3 Migration Guide](optimization-guides/s3-migration-guide.md)** - Migrating existing data with shared buckets
 
 ### 🔧 [API Reference](api-reference/)
 Complete API documentation and examples.
@@ -103,6 +104,7 @@ Common issues and solutions.
 
 ## 🔄 Recently Updated
 
+- **[S3 Migration Guide](optimization-guides/s3-migration-guide.md)** - NEW: Complete migration guide for shared S3 buckets
 - **[Large-Scale Optimizations](optimization-guides/large-scale-optimizations.md)** - Complete rewrite with auto-configuration
 - **[Quick Start Guide](getting-started/quick-start.md)** - Updated with zero-config setup
 - **[API Reference](api-reference/)** - New auto-configuration APIs
