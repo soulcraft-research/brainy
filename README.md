@@ -93,7 +93,7 @@ The system automatically adapts based on your dataset size:
 - **Pattern Recognition**: Learns from access patterns to improve predictions
 - **Self-Optimization**: Automatically enables/disables features based on workload
 
-> **📖 Full Documentation**: See the complete [Large-Scale Optimizations Guide](docs/large-scale-optimizations.md) for detailed configuration options and advanced usage.
+> **📖 Full Documentation**: See the complete [Large-Scale Optimizations Guide](docs/optimization-guides/large-scale-optimizations.md) for detailed configuration options and advanced usage.
 
 ## 🚀 Live Demo
 
@@ -634,6 +634,54 @@ Then you can use the CLI commands programmatically or through the command line i
     - `-i, --interval <ms>` - Interval between data items in milliseconds (default: 1000)
     - `-t, --data-type <type>` - Type of data to process (default: 'text')
     - `-v, --verbose` - Show detailed output
+
+## 📚 Documentation
+
+### 🚀 [Getting Started](docs/getting-started/)
+Quick setup guides and first steps with Brainy.
+
+- **[Installation](docs/getting-started/installation.md)** - Installation and setup
+- **[Quick Start](docs/getting-started/quick-start.md)** - Get running in 2 minutes
+- **[First Steps](docs/getting-started/first-steps.md)** - Core concepts and features
+- **[Environment Setup](docs/getting-started/environment-setup.md)** - Environment-specific configuration
+
+### 📖 [User Guides](docs/user-guides/)
+Comprehensive guides for using Brainy effectively.
+
+- **[Search and Metadata](docs/user-guides/SEARCH_AND_METADATA_GUIDE.md)** - Advanced search techniques
+- **[Write-Only Mode](docs/user-guides/WRITEONLY_MODE_IMPLEMENTATION.md)** - High-throughput data loading
+- **[JSON Document Search](docs/guides/json-document-search.md)** - Search within JSON fields
+- **[Production Migration](docs/guides/production-migration-guide.md)** - Deployment best practices
+
+### ⚡ [Optimization Guides](docs/optimization-guides/)
+Transform Brainy from prototype to production-ready system.
+
+- **[Large-Scale Optimizations](docs/optimization-guides/large-scale-optimizations.md)** - Complete v0.36.0 optimization system
+- **[Auto-Configuration](docs/optimization-guides/auto-configuration.md)** - Intelligent environment detection
+- **[Memory Optimization](docs/optimization-guides/memory-optimization.md)** - Advanced memory management
+- **[Storage Optimization](docs/optimization-guides/storage-optimization.md)** - S3 and storage optimization
+
+### 🔧 [API Reference](docs/api-reference/)
+Complete API documentation and method references.
+
+- **[Core API](docs/api-reference/core-api.md)** - Main BrainyData class methods
+- **[Vector Operations](docs/api-reference/vector-operations.md)** - Vector storage and search
+- **[Configuration](docs/api-reference/configuration.md)** - System configuration
+- **[Auto-Configuration API](docs/api-reference/auto-configuration-api.md)** - Intelligent configuration
+
+### 💡 [Examples](docs/examples/)
+Practical code examples and real-world applications.
+
+- **[Basic Usage](docs/examples/basic-usage.md)** - Simple examples to get started
+- **[Advanced Patterns](docs/examples/advanced-patterns.md)** - Complex use cases
+- **[Integrations](docs/examples/integrations.md)** - Third-party service integrations
+- **[Performance Examples](docs/examples/performance.md)** - Optimization and scaling
+
+### 🔬 Technical Documentation
+
+- **[Testing Guide](docs/technical/TESTING.md)** - Testing strategies and best practices
+- **[Statistics Guide](STATISTICS.md)** - Database statistics and monitoring
+- **[Technical Guides](TECHNICAL_GUIDES.md)** - Advanced technical topics
 
 ## API Reference
 
