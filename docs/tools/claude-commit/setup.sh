@@ -108,46 +108,89 @@ if [[ -z "$COMMIT_MSG" ]]; then
 fi
 
 # Display the generated message
+echo ""
 echo -e "${GREEN}Generated commit message:${NC}"
-echo "----------------------------------------"
+echo "========================================"
 echo "$COMMIT_MSG"
-echo "----------------------------------------"
+echo "========================================"
+echo ""
 
-# Ask for confirmation
-echo -e "${YELLOW}Do you want to:${NC}"
-echo "  1) Use this message"
-echo "  2) Edit this message"
-echo "  3) Cancel"
-read -p "Choice [1-3]: " choice
+# ALWAYS require explicit review
+echo -e "${YELLOW}⚠️  REVIEW REQUIRED${NC}"
+echo -e "${YELLOW}Please review the commit message above carefully.${NC}"
+echo ""
+echo -e "${YELLOW}What would you like to do?${NC}"
+echo "  ${GREEN}1)${NC} Use this message AS-IS"
+echo "  ${GREEN}2)${NC} EDIT this message first"
+echo "  ${GREEN}3)${NC} Generate a NEW message"
+echo "  ${RED}4)${NC} CANCEL (no commit)"
+echo ""
+read -p "Your choice [1-4]: " choice
 
 case $choice in
     1)
-        # Stage all changes if nothing is staged
-        if [[ -z $(git diff --cached --name-only) ]]; then
-            git add -A
+        # Final confirmation before committing
+        echo -e "${YELLOW}Ready to commit with the message above.${NC}"
+        read -p "Confirm commit? [y/N]: " confirm
+        
+        if [[ "$confirm" =~ ^[Yy]$ ]]; then
+            # Stage all changes if nothing is staged
+            if [[ -z $(git diff --cached --name-only) ]]; then
+                git add -A
+            fi
+            # Commit with the generated message
+            git commit -m "$COMMIT_MSG"
+            echo -e "${GREEN}✓ Committed successfully${NC}"
+            echo -e "${YELLOW}📝 Note: Changes are committed locally only${NC}"
+            echo -e "${YELLOW}   Run 'git push' manually when ready to push${NC}"
+        else
+            echo -e "${YELLOW}Commit cancelled${NC}"
+            exit 0
         fi
-        # Commit with the generated message
-        git commit -m "$COMMIT_MSG"
-        echo -e "${GREEN}✓ Committed successfully${NC}"
         ;;
     2)
         # Save message to temp file and open in editor
         TEMP_MSG=$(mktemp)
         echo "$COMMIT_MSG" > "$TEMP_MSG"
+        
+        echo -e "${YELLOW}Opening editor to modify the message...${NC}"
         ${EDITOR:-vim} "$TEMP_MSG"
         
-        # Stage all changes if nothing is staged
-        if [[ -z $(git diff --cached --name-only) ]]; then
-            git add -A
-        fi
+        # Show the edited message
+        echo ""
+        echo -e "${GREEN}Edited commit message:${NC}"
+        echo "========================================"
+        cat "$TEMP_MSG"
+        echo "========================================"
+        echo ""
         
-        # Commit with edited message
-        git commit -F "$TEMP_MSG"
-        rm "$TEMP_MSG"
-        echo -e "${GREEN}✓ Committed with edited message${NC}"
+        read -p "Commit with this edited message? [y/N]: " confirm
+        
+        if [[ "$confirm" =~ ^[Yy]$ ]]; then
+            # Stage all changes if nothing is staged
+            if [[ -z $(git diff --cached --name-only) ]]; then
+                git add -A
+            fi
+            
+            # Commit with edited message
+            git commit -F "$TEMP_MSG"
+            rm "$TEMP_MSG"
+            echo -e "${GREEN}✓ Committed with edited message${NC}"
+            echo -e "${YELLOW}📝 Note: Changes are committed locally only${NC}"
+            echo -e "${YELLOW}   Run 'git push' manually when ready to push${NC}"
+        else
+            rm "$TEMP_MSG"
+            echo -e "${YELLOW}Commit cancelled${NC}"
+            exit 0
+        fi
         ;;
     3)
-        echo -e "${YELLOW}Commit cancelled${NC}"
+        echo -e "${YELLOW}Regenerating commit message...${NC}"
+        # Re-run the script
+        exec "$0" "$@"
+        ;;
+    4)
+        echo -e "${RED}✗ Commit cancelled by user${NC}"
         exit 0
         ;;
     *)
@@ -160,6 +203,37 @@ EOF
 # Make the script executable
 chmod +x ~/.local/bin/claude-commit
 echo -e "${GREEN}✓ claude-commit script installed${NC}"
+
+# Create configuration file if it doesn't exist
+if [[ ! -f ~/.claude-commit.conf ]]; then
+    echo -e "${YELLOW}Creating configuration file...${NC}"
+    cat > ~/.claude-commit.conf << 'CONF_EOF'
+# Claude Commit Configuration
+# Safety settings to ensure review and prevent accidental pushes
+
+# ALWAYS require explicit confirmation before committing
+REQUIRE_CONFIRMATION=true
+
+# NEVER auto-push after commit
+AUTO_PUSH=false
+
+# Default editor for message editing (vim, nano, code, etc.)
+# Leave empty to use system default ($EDITOR)
+PREFERRED_EDITOR=
+
+# Show diff in commit message review (helps catch issues)
+SHOW_DIFF_PREVIEW=false
+
+# Maximum diff size to include in Claude prompt (lines)
+MAX_DIFF_LINES=500
+
+# Require double confirmation for commits with breaking changes
+DOUBLE_CONFIRM_BREAKING=true
+CONF_EOF
+    echo -e "${GREEN}✓ Configuration file created at ~/.claude-commit.conf${NC}"
+else
+    echo -e "${GREEN}✓ Configuration file already exists${NC}"
+fi
 
 # Set up git aliases
 echo -e "${YELLOW}Setting up git aliases...${NC}"
