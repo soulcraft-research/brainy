@@ -47,6 +47,14 @@ import {
 // Export worker utilities
 import { executeInThread, cleanupWorkerPools } from './utils/workerUtils.js'
 
+// Export logging utilities
+import { 
+  logger, 
+  LogLevel, 
+  configureLogger, 
+  createModuleLogger 
+} from './utils/logger.js'
+
 // Export environment utilities
 import {
   isBrowser,
@@ -78,7 +86,13 @@ export {
   areWorkerThreadsAvailable,
   areWorkerThreadsAvailableSync,
   isThreadingAvailable,
-  isThreadingAvailableAsync
+  isThreadingAvailableAsync,
+  
+  // Logging utilities
+  logger,
+  LogLevel,
+  configureLogger,
+  createModuleLogger
 }
 
 // Export storage adapters

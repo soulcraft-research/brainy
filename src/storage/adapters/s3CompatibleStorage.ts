@@ -19,6 +19,7 @@ import {
 } from '../../utils/operationUtils.js'
 import { BrainyError } from '../../errors/brainyError.js'
 import { CacheManager } from '../cacheManager.js'
+import { createModuleLogger } from '../../utils/logger.js'
 
 // Type aliases for better readability
 type HNSWNode = HNSWNoun
@@ -96,6 +97,9 @@ export class S3CompatibleStorage extends BaseStorage {
   // Multi-level cache manager for efficient data access
   private nounCacheManager: CacheManager<HNSWNode>
   private verbCacheManager: CacheManager<Edge>
+  
+  // Module logger
+  private logger = createModuleLogger('S3Storage')
 
   /**
    * Initialize the storage adapter
@@ -116,6 +120,7 @@ export class S3CompatibleStorage extends BaseStorage {
       hotCacheEvictionThreshold?: number
       warmCacheTTL?: number
     }
+    readOnly?: boolean
   }) {
     super()
     this.bucketName = options.bucketName
@@ -126,6 +131,7 @@ export class S3CompatibleStorage extends BaseStorage {
     this.secretAccessKey = options.secretAccessKey
     this.sessionToken = options.sessionToken
     this.serviceType = options.serviceType || 's3'
+    this.readOnly = options.readOnly || false
 
     // Initialize operation executors with timeout and retry configuration
     this.operationExecutors = new StorageOperationExecutors(
@@ -278,8 +284,9 @@ export class S3CompatibleStorage extends BaseStorage {
       this.verbCacheManager.setStorageAdapters(verbStorageAdapter, verbStorageAdapter)
 
       this.isInitialized = true
+      this.logger.info(`Initialized ${this.serviceType} storage with bucket ${this.bucketName}`)
     } catch (error) {
-      console.error(`Failed to initialize ${this.serviceType} storage:`, error)
+      this.logger.error(`Failed to initialize ${this.serviceType} storage:`, error)
       throw new Error(
         `Failed to initialize ${this.serviceType} storage: ${error}`
       )
@@ -300,7 +307,7 @@ export class S3CompatibleStorage extends BaseStorage {
     await this.ensureInitialized()
 
     try {
-      console.log(`Saving node ${node.id} to bucket ${this.bucketName}`)
+      this.logger.trace(`Saving node ${node.id}`)
 
       // Convert connections Map to a serializable format
       const serializableNode = {
@@ -316,10 +323,7 @@ export class S3CompatibleStorage extends BaseStorage {
       const key = `${this.nounPrefix}${node.id}.json`
       const body = JSON.stringify(serializableNode, null, 2)
 
-      console.log(`Saving node to key: ${key}`)
-      console.log(
-        `Node data: ${body.substring(0, 100)}${body.length > 100 ? '...' : ''}`
-      )
+      this.logger.trace(`Saving to key: ${key}`)
 
       // Save the node to S3-compatible storage
       const result = await this.s3Client!.send(
@@ -331,7 +335,7 @@ export class S3CompatibleStorage extends BaseStorage {
         })
       )
 
-      console.log(`Node ${node.id} saved successfully:`, result)
+      this.logger.debug(`Node ${node.id} saved successfully`)
 
       // Log the change for efficient synchronization
       await this.appendToChangeLog({
@@ -356,20 +360,20 @@ export class S3CompatibleStorage extends BaseStorage {
         )
 
         if (verifyResponse && verifyResponse.Body) {
-          console.log(`Verified node ${node.id} was saved correctly`)
+          this.logger.trace(`Verified node ${node.id} was saved correctly`)
         } else {
-          console.error(
+          this.logger.warn(
             `Failed to verify node ${node.id} was saved correctly: no response or body`
           )
         }
       } catch (verifyError) {
-        console.error(
+        this.logger.warn(
           `Failed to verify node ${node.id} was saved correctly:`,
           verifyError
         )
       }
     } catch (error) {
-      console.error(`Failed to save node ${node.id}:`, error)
+      this.logger.error(`Failed to save node ${node.id}:`, error)
       throw new Error(`Failed to save node ${node.id}: ${error}`)
     }
   }
@@ -391,9 +395,8 @@ export class S3CompatibleStorage extends BaseStorage {
       // Import the GetObjectCommand only when needed
       const { GetObjectCommand } = await import('@aws-sdk/client-s3')
 
-      console.log(`Getting node ${id} from bucket ${this.bucketName}`)
       const key = `${this.nounPrefix}${id}.json`
-      console.log(`Looking for node at key: ${key}`)
+      this.logger.trace(`Getting node ${id} from key: ${key}`)
 
       // Try to get the node from the nouns directory
       const response = await this.s3Client!.send(
@@ -405,20 +408,18 @@ export class S3CompatibleStorage extends BaseStorage {
 
       // Check if response is null or undefined
       if (!response || !response.Body) {
-        console.log(`No node found for ${id}`)
+        this.logger.trace(`No node found for ${id}`)
         return null
       }
 
       // Convert the response body to a string
       const bodyContents = await response.Body.transformToString()
-      console.log(
-        `Retrieved node body: ${bodyContents.substring(0, 100)}${bodyContents.length > 100 ? '...' : ''}`
-      )
+      this.logger.trace(`Retrieved node body for ${id}`)
 
       // Parse the JSON string
       try {
         const parsedNode = JSON.parse(bodyContents)
-        console.log(`Parsed node data for ${id}:`, parsedNode)
+        this.logger.trace(`Parsed node data for ${id}`)
 
         // Ensure the parsed node has the expected properties
         if (
@@ -427,7 +428,7 @@ export class S3CompatibleStorage extends BaseStorage {
           !parsedNode.vector ||
           !parsedNode.connections
         ) {
-          console.error(`Invalid node data for ${id}:`, parsedNode)
+          this.logger.warn(`Invalid node data for ${id}`)
           return null
         }
 
@@ -444,15 +445,15 @@ export class S3CompatibleStorage extends BaseStorage {
           level: parsedNode.level || 0
         }
 
-        console.log(`Successfully retrieved node ${id}:`, node)
+        this.logger.trace(`Successfully retrieved node ${id}`)
         return node
       } catch (parseError) {
-        console.error(`Failed to parse node data for ${id}:`, parseError)
+        this.logger.error(`Failed to parse node data for ${id}:`, parseError)
         return null
       }
     } catch (error) {
       // Node not found or other error
-      console.log(`Error getting node for ${id}:`, error)
+      this.logger.trace(`Node not found for ${id}`)
       return null
     }
   }
@@ -461,7 +462,12 @@ export class S3CompatibleStorage extends BaseStorage {
    * Get all nouns from storage (internal implementation)
    */
   protected async getAllNouns_internal(): Promise<HNSWNoun[]> {
-    return this.getAllNodes()
+    // Use paginated method to avoid deprecation warning
+    const result = await this.getNodesWithPagination({
+      limit: 1000,
+      useCache: true
+    })
+    return result.nodes
   }
 
   // Node cache to avoid redundant API calls
@@ -475,7 +481,7 @@ export class S3CompatibleStorage extends BaseStorage {
   protected async getAllNodes(): Promise<HNSWNode[]> {
     await this.ensureInitialized()
     
-    console.warn('WARNING: getAllNodes() is deprecated and will be removed in a future version. Use getNodesWithPagination() instead.')
+    this.logger.warn('getAllNodes() is deprecated and will be removed in a future version. Use getNodesWithPagination() instead.')
 
     try {
       // Use the paginated method with a large limit to maintain backward compatibility
@@ -486,12 +492,12 @@ export class S3CompatibleStorage extends BaseStorage {
       })
       
       if (result.hasMore) {
-        console.warn(`WARNING: Only returning the first 1000 nodes. There are more nodes available. Use getNodesWithPagination() for proper pagination.`)
+        this.logger.warn(`Only returning the first 1000 nodes. There are more nodes available. Use getNodesWithPagination() for proper pagination.`)
       }
       
       return result.nodes
     } catch (error) {
-      console.error('Failed to get all nodes:', error)
+      this.logger.error('Failed to get all nodes:', error)
       return []
     }
   }
@@ -605,7 +611,7 @@ export class S3CompatibleStorage extends BaseStorage {
         nextCursor
       }
     } catch (error) {
-      console.error('Failed to get nodes with pagination:', error)
+      this.logger.error('Failed to get nodes with pagination:', error)
       return {
         nodes: [],
         hasMore: false
@@ -660,14 +666,14 @@ export class S3CompatibleStorage extends BaseStorage {
         
         // Safety check to prevent infinite loops
         if (!cursor && hasMore) {
-          console.warn('No cursor returned but hasMore is true, breaking loop')
+          this.logger.warn('No cursor returned but hasMore is true, breaking loop')
           break
         }
       }
 
       return filteredNodes
     } catch (error) {
-      console.error(`Failed to get nodes by noun type ${nounType}:`, error)
+      this.logger.error(`Failed to get nodes by noun type ${nounType}:`, error)
       return []
     }
   }
@@ -705,7 +711,7 @@ export class S3CompatibleStorage extends BaseStorage {
         entityId: id
       })
     } catch (error) {
-      console.error(`Failed to delete node ${id}:`, error)
+      this.logger.error(`Failed to delete node ${id}:`, error)
       throw new Error(`Failed to delete node ${id}: ${error}`)
     }
   }
@@ -756,7 +762,7 @@ export class S3CompatibleStorage extends BaseStorage {
         }
       })
     } catch (error) {
-      console.error(`Failed to save edge ${edge.id}:`, error)
+      this.logger.error(`Failed to save edge ${edge.id}:`, error)
       throw new Error(`Failed to save edge ${edge.id}: ${error}`)
     }
   }
@@ -778,9 +784,8 @@ export class S3CompatibleStorage extends BaseStorage {
       // Import the GetObjectCommand only when needed
       const { GetObjectCommand } = await import('@aws-sdk/client-s3')
 
-      console.log(`Getting edge ${id} from bucket ${this.bucketName}`)
       const key = `${this.verbPrefix}${id}.json`
-      console.log(`Looking for edge at key: ${key}`)
+      this.logger.trace(`Getting edge ${id} from key: ${key}`)
 
       // Try to get the edge from the verbs directory
       const response = await this.s3Client!.send(
@@ -792,20 +797,18 @@ export class S3CompatibleStorage extends BaseStorage {
 
       // Check if response is null or undefined
       if (!response || !response.Body) {
-        console.log(`No edge found for ${id}`)
+        this.logger.trace(`No edge found for ${id}`)
         return null
       }
 
       // Convert the response body to a string
       const bodyContents = await response.Body.transformToString()
-      console.log(
-        `Retrieved edge body: ${bodyContents.substring(0, 100)}${bodyContents.length > 100 ? '...' : ''}`
-      )
+      this.logger.trace(`Retrieved edge body for ${id}`)
 
       // Parse the JSON string
       try {
         const parsedEdge = JSON.parse(bodyContents)
-        console.log(`Parsed edge data for ${id}:`, parsedEdge)
+        this.logger.trace(`Parsed edge data for ${id}`)
 
         // Ensure the parsed edge has the expected properties
         if (
@@ -814,7 +817,7 @@ export class S3CompatibleStorage extends BaseStorage {
           !parsedEdge.vector ||
           !parsedEdge.connections
         ) {
-          console.error(`Invalid edge data for ${id}:`, parsedEdge)
+          this.logger.warn(`Invalid edge data for ${id}`)
           return null
         }
 
@@ -830,15 +833,15 @@ export class S3CompatibleStorage extends BaseStorage {
           connections
         }
 
-        console.log(`Successfully retrieved edge ${id}:`, edge)
+        this.logger.trace(`Successfully retrieved edge ${id}`)
         return edge
       } catch (parseError) {
-        console.error(`Failed to parse edge data for ${id}:`, parseError)
+        this.logger.error(`Failed to parse edge data for ${id}:`, parseError)
         return null
       }
     } catch (error) {
       // Edge not found or other error
-      console.log(`Error getting edge for ${id}:`, error)
+      this.logger.trace(`Edge not found for ${id}`)
       return null
     }
   }
@@ -849,7 +852,7 @@ export class S3CompatibleStorage extends BaseStorage {
    * It can cause memory issues with large datasets. Use getVerbsWithPagination() instead.
    */
   protected async getAllVerbs_internal(): Promise<HNSWVerb[]> {
-    console.warn('WARNING: getAllVerbs_internal() is deprecated and will be removed in a future version. Use getVerbsWithPagination() instead.')
+    this.logger.warn('getAllVerbs_internal() is deprecated and will be removed in a future version. Use getVerbsWithPagination() instead.')
     return this.getAllEdges()
   }
 
@@ -861,7 +864,7 @@ export class S3CompatibleStorage extends BaseStorage {
   protected async getAllEdges(): Promise<Edge[]> {
     await this.ensureInitialized()
     
-    console.warn('WARNING: getAllEdges() is deprecated and will be removed in a future version. Use getEdgesWithPagination() instead.')
+    this.logger.warn('getAllEdges() is deprecated and will be removed in a future version. Use getEdgesWithPagination() instead.')
 
     try {
       // Use the paginated method with a large limit to maintain backward compatibility
@@ -872,12 +875,12 @@ export class S3CompatibleStorage extends BaseStorage {
       })
       
       if (result.hasMore) {
-        console.warn(`WARNING: Only returning the first 1000 edges. There are more edges available. Use getEdgesWithPagination() for proper pagination.`)
+        this.logger.warn(`Only returning the first 1000 edges. There are more edges available. Use getEdgesWithPagination() for proper pagination.`)
       }
       
       return result.edges
     } catch (error) {
-      console.error('Failed to get all edges:', error)
+      this.logger.error('Failed to get all edges:', error)
       return []
     }
   }
@@ -1005,7 +1008,7 @@ export class S3CompatibleStorage extends BaseStorage {
         nextCursor
       }
     } catch (error) {
-      console.error('Failed to get edges with pagination:', error)
+      this.logger.error('Failed to get edges with pagination:', error)
       return {
         edges: [],
         hasMore: false
@@ -1026,7 +1029,7 @@ export class S3CompatibleStorage extends BaseStorage {
   }): boolean {
     // HNSWVerb filtering is not supported since metadata is stored separately
     // This method is deprecated and should not be used with the new storage pattern
-    console.warn('Edge filtering is deprecated and not supported with the new storage pattern')
+    this.logger.trace('Edge filtering is deprecated and not supported with the new storage pattern')
     return true // Return all edges since filtering requires metadata
   }
   
@@ -1122,7 +1125,7 @@ export class S3CompatibleStorage extends BaseStorage {
   protected async getEdgesBySource(sourceId: string): Promise<GraphVerb[]> {
     // This method is deprecated and would require loading metadata for each edge
     // For now, return empty array since this is not efficiently implementable with new storage pattern
-    console.warn('getEdgesBySource is deprecated and not efficiently supported in new storage pattern')
+    this.logger.trace('getEdgesBySource is deprecated and not efficiently supported in new storage pattern')
     return []
   }
 
@@ -1141,7 +1144,7 @@ export class S3CompatibleStorage extends BaseStorage {
   protected async getEdgesByTarget(targetId: string): Promise<GraphVerb[]> {
     // This method is deprecated and would require loading metadata for each edge
     // For now, return empty array since this is not efficiently implementable with new storage pattern
-    console.warn('getEdgesByTarget is deprecated and not efficiently supported in new storage pattern')
+    this.logger.trace('getEdgesByTarget is deprecated and not efficiently supported in new storage pattern')
     return []
   }
 
@@ -1158,7 +1161,7 @@ export class S3CompatibleStorage extends BaseStorage {
   protected async getEdgesByType(type: string): Promise<GraphVerb[]> {
     // This method is deprecated and would require loading metadata for each edge
     // For now, return empty array since this is not efficiently implementable with new storage pattern
-    console.warn('getEdgesByType is deprecated and not efficiently supported in new storage pattern')
+    this.logger.trace('getEdgesByType is deprecated and not efficiently supported in new storage pattern')
     return []
   }
 
@@ -1195,7 +1198,7 @@ export class S3CompatibleStorage extends BaseStorage {
         entityId: id
       })
     } catch (error) {
-      console.error(`Failed to delete edge ${id}:`, error)
+      this.logger.error(`Failed to delete edge ${id}:`, error)
       throw new Error(`Failed to delete edge ${id}: ${error}`)
     }
   }
@@ -1207,16 +1210,13 @@ export class S3CompatibleStorage extends BaseStorage {
     await this.ensureInitialized()
 
     try {
-      console.log(`Saving metadata for ${id} to bucket ${this.bucketName}`)
-
       // Import the PutObjectCommand only when needed
       const { PutObjectCommand } = await import('@aws-sdk/client-s3')
 
       const key = `${this.metadataPrefix}${id}.json`
       const body = JSON.stringify(metadata, null, 2)
 
-      console.log(`Saving metadata to key: ${key}`)
-      console.log(`Metadata: ${body}`)
+      this.logger.trace(`Saving metadata for ${id} to key: ${key}`)
 
       // Save the metadata to S3-compatible storage
       const result = await this.s3Client!.send(
@@ -1228,7 +1228,7 @@ export class S3CompatibleStorage extends BaseStorage {
         })
       )
 
-      console.log(`Metadata for ${id} saved successfully:`, result)
+      this.logger.debug(`Metadata for ${id} saved successfully`)
 
       // Log the change for efficient synchronization
       await this.appendToChangeLog({
@@ -1250,23 +1250,20 @@ export class S3CompatibleStorage extends BaseStorage {
         )
 
         if (verifyResponse && verifyResponse.Body) {
-          const bodyContents = await verifyResponse.Body.transformToString()
-          console.log(
-            `Verified metadata for ${id} was saved correctly: ${bodyContents}`
-          )
+          this.logger.trace(`Verified metadata for ${id} was saved correctly`)
         } else {
-          console.error(
+          this.logger.warn(
             `Failed to verify metadata for ${id} was saved correctly: no response or body`
           )
         }
       } catch (verifyError) {
-        console.error(
+        this.logger.warn(
           `Failed to verify metadata for ${id} was saved correctly:`,
           verifyError
         )
       }
     } catch (error) {
-      console.error(`Failed to save metadata for ${id}:`, error)
+      this.logger.error(`Failed to save metadata for ${id}:`, error)
       throw new Error(`Failed to save metadata for ${id}: ${error}`)
     }
   }
@@ -1278,16 +1275,13 @@ export class S3CompatibleStorage extends BaseStorage {
     await this.ensureInitialized()
 
     try {
-      console.log(`Saving verb metadata for ${id} to bucket ${this.bucketName}`)
-
       // Import the PutObjectCommand only when needed
       const { PutObjectCommand } = await import('@aws-sdk/client-s3')
 
       const key = `verb-metadata/${id}.json`
       const body = JSON.stringify(metadata, null, 2)
 
-      console.log(`Saving verb metadata to key: ${key}`)
-      console.log(`Verb Metadata: ${body}`)
+      this.logger.trace(`Saving verb metadata for ${id} to key: ${key}`)
 
       // Save the verb metadata to S3-compatible storage
       const result = await this.s3Client!.send(
@@ -1299,9 +1293,9 @@ export class S3CompatibleStorage extends BaseStorage {
         })
       )
 
-      console.log(`Verb metadata for ${id} saved successfully:`, result)
+      this.logger.debug(`Verb metadata for ${id} saved successfully`)
     } catch (error) {
-      console.error(`Failed to save verb metadata for ${id}:`, error)
+      this.logger.error(`Failed to save verb metadata for ${id}:`, error)
       throw new Error(`Failed to save verb metadata for ${id}: ${error}`)
     }
   }
@@ -1316,9 +1310,8 @@ export class S3CompatibleStorage extends BaseStorage {
       // Import the GetObjectCommand only when needed
       const { GetObjectCommand } = await import('@aws-sdk/client-s3')
 
-      console.log(`Getting verb metadata for ${id} from bucket ${this.bucketName}`)
       const key = `verb-metadata/${id}.json`
-      console.log(`Looking for verb metadata at key: ${key}`)
+      this.logger.trace(`Getting verb metadata for ${id} from key: ${key}`)
 
       // Try to get the verb metadata
       const response = await this.s3Client!.send(
@@ -1330,24 +1323,21 @@ export class S3CompatibleStorage extends BaseStorage {
 
       // Check if response is null or undefined
       if (!response || !response.Body) {
-        console.log(`No verb metadata found for ${id}`)
+        this.logger.trace(`No verb metadata found for ${id}`)
         return null
       }
 
       // Convert the response body to a string
       const bodyContents = await response.Body.transformToString()
-      console.log(`Retrieved verb metadata body: ${bodyContents}`)
+      this.logger.trace(`Retrieved verb metadata body for ${id}`)
 
       // Parse the JSON string
       try {
         const parsedMetadata = JSON.parse(bodyContents)
-        console.log(
-          `Successfully retrieved verb metadata for ${id}:`,
-          parsedMetadata
-        )
+        this.logger.trace(`Successfully retrieved verb metadata for ${id}`)
         return parsedMetadata
       } catch (parseError) {
-        console.error(`Failed to parse verb metadata for ${id}:`, parseError)
+        this.logger.error(`Failed to parse verb metadata for ${id}:`, parseError)
         return null
       }
     } catch (error: any) {
@@ -1359,7 +1349,7 @@ export class S3CompatibleStorage extends BaseStorage {
             error.message.includes('not found') ||
             error.message.includes('does not exist')))
       ) {
-        console.log(`Verb metadata not found for ${id}`)
+        this.logger.trace(`Verb metadata not found for ${id}`)
         return null
       }
 
@@ -1375,16 +1365,13 @@ export class S3CompatibleStorage extends BaseStorage {
     await this.ensureInitialized()
 
     try {
-      console.log(`Saving noun metadata for ${id} to bucket ${this.bucketName}`)
-
       // Import the PutObjectCommand only when needed
       const { PutObjectCommand } = await import('@aws-sdk/client-s3')
 
       const key = `noun-metadata/${id}.json`
       const body = JSON.stringify(metadata, null, 2)
 
-      console.log(`Saving noun metadata to key: ${key}`)
-      console.log(`Noun Metadata: ${body}`)
+      this.logger.trace(`Saving noun metadata for ${id} to key: ${key}`)
 
       // Save the noun metadata to S3-compatible storage
       const result = await this.s3Client!.send(
@@ -1396,9 +1383,9 @@ export class S3CompatibleStorage extends BaseStorage {
         })
       )
 
-      console.log(`Noun metadata for ${id} saved successfully:`, result)
+      this.logger.debug(`Noun metadata for ${id} saved successfully`)
     } catch (error) {
-      console.error(`Failed to save noun metadata for ${id}:`, error)
+      this.logger.error(`Failed to save noun metadata for ${id}:`, error)
       throw new Error(`Failed to save noun metadata for ${id}: ${error}`)
     }
   }
@@ -1413,9 +1400,8 @@ export class S3CompatibleStorage extends BaseStorage {
       // Import the GetObjectCommand only when needed
       const { GetObjectCommand } = await import('@aws-sdk/client-s3')
 
-      console.log(`Getting noun metadata for ${id} from bucket ${this.bucketName}`)
       const key = `noun-metadata/${id}.json`
-      console.log(`Looking for noun metadata at key: ${key}`)
+      this.logger.trace(`Getting noun metadata for ${id} from key: ${key}`)
 
       // Try to get the noun metadata
       const response = await this.s3Client!.send(
@@ -1427,24 +1413,21 @@ export class S3CompatibleStorage extends BaseStorage {
 
       // Check if response is null or undefined
       if (!response || !response.Body) {
-        console.log(`No noun metadata found for ${id}`)
+        this.logger.trace(`No noun metadata found for ${id}`)
         return null
       }
 
       // Convert the response body to a string
       const bodyContents = await response.Body.transformToString()
-      console.log(`Retrieved noun metadata body: ${bodyContents}`)
+      this.logger.trace(`Retrieved noun metadata body for ${id}`)
 
       // Parse the JSON string
       try {
         const parsedMetadata = JSON.parse(bodyContents)
-        console.log(
-          `Successfully retrieved noun metadata for ${id}:`,
-          parsedMetadata
-        )
+        this.logger.trace(`Successfully retrieved noun metadata for ${id}`)
         return parsedMetadata
       } catch (parseError) {
-        console.error(`Failed to parse noun metadata for ${id}:`, parseError)
+        this.logger.error(`Failed to parse noun metadata for ${id}:`, parseError)
         return null
       }
     } catch (error: any) {
@@ -1456,7 +1439,7 @@ export class S3CompatibleStorage extends BaseStorage {
             error.message.includes('not found') ||
             error.message.includes('does not exist')))
       ) {
-        console.log(`Noun metadata not found for ${id}`)
+        this.logger.trace(`Noun metadata not found for ${id}`)
         return null
       }
 
@@ -1747,7 +1730,7 @@ export class S3CompatibleStorage extends BaseStorage {
                 }
               }
             } catch (error) {
-              console.error(`Error getting metadata from ${object.Key}:`, error)
+              this.logger.warn(`Error getting metadata from ${object.Key}:`, error)
             }
           }
         }
@@ -1768,7 +1751,7 @@ export class S3CompatibleStorage extends BaseStorage {
         }
       }
     } catch (error) {
-      console.error('Failed to get storage status:', error)
+      this.logger.error('Failed to get storage status:', error)
       return {
         type: this.serviceType,
         used: 0,
@@ -1824,6 +1807,12 @@ export class S3CompatibleStorage extends BaseStorage {
     // Mark statistics as modified
     this.statisticsModified = true
 
+    // If we're in read-only mode, don't update statistics
+    if (this.readOnly) {
+      this.logger.trace('Skipping statistics update in read-only mode')
+      return
+    }
+
     // If a timer is already set, don't set another one
     if (this.statisticsBatchUpdateTimerId !== null) {
       return
@@ -1869,7 +1858,7 @@ export class S3CompatibleStorage extends BaseStorage {
     if (!lockAcquired) {
       // Another instance is updating statistics, skip this flush
       // but keep the modified flag so we'll try again later
-      console.log('Statistics flush skipped - another instance is updating')
+      this.logger.debug('Statistics flush skipped - another instance is updating')
       return
     }
 
@@ -1893,7 +1882,7 @@ export class S3CompatibleStorage extends BaseStorage {
         currentStorageStats = await this.tryGetStatisticsFromKey(key)
       } catch (error) {
         // If we can't read current stats, proceed with local cache
-        console.warn(
+        this.logger.warn(
           'Could not read current statistics from storage, using local cache:',
           error
         )
@@ -1946,7 +1935,7 @@ export class S3CompatibleStorage extends BaseStorage {
         )
       }
     } catch (error) {
-      console.error('Failed to flush statistics data:', error)
+      this.logger.error('Failed to flush statistics data:', error)
       // Mark as still modified so we'll try again later
       this.statisticsModified = true
       // Don't throw the error to avoid disrupting the application
@@ -2032,7 +2021,7 @@ export class S3CompatibleStorage extends BaseStorage {
       // Schedule a batch update instead of saving immediately
       this.scheduleBatchUpdate()
     } catch (error) {
-      console.error('Failed to save statistics data:', error)
+      this.logger.error('Failed to save statistics data:', error)
       throw new Error(`Failed to save statistics data: ${error}`)
     }
   }
@@ -2044,8 +2033,12 @@ export class S3CompatibleStorage extends BaseStorage {
   protected async getStatisticsData(): Promise<StatisticsData | null> {
     await this.ensureInitialized()
 
-    // If we have cached statistics, return a deep copy
-    if (this.statisticsCache) {
+    // Always fetch fresh statistics from storage to avoid inconsistencies
+    // Only use cache if explicitly in read-only mode
+    const shouldUseCache = this.readOnly && this.statisticsCache && 
+      (Date.now() - this.lastStatisticsFlushTime < this.MIN_FLUSH_INTERVAL_MS)
+    
+    if (shouldUseCache && this.statisticsCache) {
       return {
         nounCount: { ...this.statisticsCache.nounCount },
         verbCount: { ...this.statisticsCache.verbCount },
@@ -2091,7 +2084,7 @@ export class S3CompatibleStorage extends BaseStorage {
 
       return statistics
     } catch (error: any) {
-      console.error('Error getting statistics data:', error)
+      this.logger.error('Error getting statistics data:', error)
       throw error
     }
   }
@@ -2177,7 +2170,7 @@ export class S3CompatibleStorage extends BaseStorage {
         })
       )
     } catch (error) {
-      console.warn('Failed to append to change log:', error)
+      this.logger.warn('Failed to append to change log:', error)
       // Don't throw error to avoid disrupting main operations
     }
   }
@@ -2238,7 +2231,7 @@ export class S3CompatibleStorage extends BaseStorage {
             }
           }
         } catch (error) {
-          console.warn(`Failed to read change log entry ${object.Key}:`, error)
+          this.logger.warn(`Failed to read change log entry ${object.Key}:`, error)
           // Continue processing other entries
         }
       }
@@ -2248,7 +2241,7 @@ export class S3CompatibleStorage extends BaseStorage {
 
       return changes.slice(0, maxEntries)
     } catch (error) {
-      console.error('Failed to get changes from change log:', error)
+      this.logger.error('Failed to get changes from change log:', error)
       return []
     }
   }
@@ -2308,17 +2301,17 @@ export class S3CompatibleStorage extends BaseStorage {
             })
           )
         } catch (error) {
-          console.warn(`Failed to delete old change log entry ${key}:`, error)
+          this.logger.warn(`Failed to delete old change log entry ${key}:`, error)
         }
       }
 
       if (entriesToDelete.length > 0) {
-        console.log(
+        this.logger.debug(
           `Cleaned up ${entriesToDelete.length} old change log entries`
         )
       }
     } catch (error) {
-      console.warn('Failed to cleanup old change logs:', error)
+      this.logger.warn('Failed to cleanup old change logs:', error)
     }
   }
 
@@ -2391,13 +2384,13 @@ export class S3CompatibleStorage extends BaseStorage {
       // Schedule automatic cleanup when lock expires
       setTimeout(() => {
         this.releaseLock(lockKey, lockValue).catch((error) => {
-          console.warn(`Failed to auto-release expired lock ${lockKey}:`, error)
+          this.logger.warn(`Failed to auto-release expired lock ${lockKey}:`, error)
         })
       }, ttl)
 
       return true
     } catch (error) {
-      console.warn(`Failed to acquire lock ${lockKey}:`, error)
+      this.logger.warn(`Failed to acquire lock ${lockKey}:`, error)
       return false
     }
   }
@@ -2462,7 +2455,7 @@ export class S3CompatibleStorage extends BaseStorage {
       // Remove from active locks
       this.activeLocks.delete(lockKey)
     } catch (error) {
-      console.warn(`Failed to release lock ${lockKey}:`, error)
+      this.logger.warn(`Failed to release lock ${lockKey}:`, error)
     }
   }
 
@@ -2526,15 +2519,108 @@ export class S3CompatibleStorage extends BaseStorage {
             })
           )
         } catch (error) {
-          console.warn(`Failed to delete expired lock ${lockKey}:`, error)
+          this.logger.warn(`Failed to delete expired lock ${lockKey}:`, error)
         }
       }
 
       if (expiredLocks.length > 0) {
-        console.log(`Cleaned up ${expiredLocks.length} expired locks`)
+        this.logger.debug(`Cleaned up ${expiredLocks.length} expired locks`)
       }
     } catch (error) {
-      console.warn('Failed to cleanup expired locks:', error)
+      this.logger.warn('Failed to cleanup expired locks:', error)
+    }
+  }
+
+  /**
+   * Get nouns with pagination support
+   * @param options Pagination options
+   * @returns Promise that resolves to a paginated result of nouns
+   */
+  public async getNounsWithPagination(options: {
+    limit?: number
+    cursor?: string
+    filter?: {
+      nounType?: string | string[]
+      service?: string | string[]
+      metadata?: Record<string, any>
+    }
+  } = {}): Promise<{
+    items: HNSWNoun[]
+    totalCount?: number
+    hasMore: boolean
+    nextCursor?: string
+  }> {
+    await this.ensureInitialized()
+    
+    const limit = options.limit || 100
+    const cursor = options.cursor
+    
+    // Get paginated nodes
+    const result = await this.getNodesWithPagination({
+      limit,
+      cursor,
+      useCache: true
+    })
+    
+    // Apply filters if provided
+    let filteredNodes = result.nodes
+    
+    if (options.filter) {
+      // Filter by noun type
+      if (options.filter.nounType) {
+        const nounTypes = Array.isArray(options.filter.nounType)
+          ? options.filter.nounType
+          : [options.filter.nounType]
+        
+        const filteredByType: HNSWNoun[] = []
+        for (const node of filteredNodes) {
+          const metadata = await this.getNounMetadata(node.id)
+          if (metadata && nounTypes.includes(metadata.type || metadata.noun)) {
+            filteredByType.push(node)
+          }
+        }
+        filteredNodes = filteredByType
+      }
+      
+      // Filter by service
+      if (options.filter.service) {
+        const services = Array.isArray(options.filter.service)
+          ? options.filter.service
+          : [options.filter.service]
+        
+        const filteredByService: HNSWNoun[] = []
+        for (const node of filteredNodes) {
+          const metadata = await this.getNounMetadata(node.id)
+          if (metadata && services.includes(metadata.service)) {
+            filteredByService.push(node)
+          }
+        }
+        filteredNodes = filteredByService
+      }
+      
+      // Filter by metadata
+      if (options.filter.metadata) {
+        const metadataFilter = options.filter.metadata
+        const filteredByMetadata: HNSWNoun[] = []
+        for (const node of filteredNodes) {
+          const metadata = await this.getNounMetadata(node.id)
+          if (metadata) {
+            const matches = Object.entries(metadataFilter).every(
+              ([key, value]) => metadata[key] === value
+            )
+            if (matches) {
+              filteredByMetadata.push(node)
+            }
+          }
+        }
+        filteredNodes = filteredByMetadata
+      }
+    }
+    
+    return {
+      items: filteredNodes,
+      hasMore: result.hasMore,
+      nextCursor: result.nextCursor
     }
   }
 }
