@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.41.0](https://github.com/soulcraft-research/brainy/compare/v0.40.0...v0.41.0) (2025-08-05)
+
+
+### Added
+
+* **tools:** update feature description for clarity ([5e15dab](https://github.com/soulcraft-research/brainy/commit/5e15dabb54e9e5616cf49b759222a24734c58fbc))
+
+
+### Fixed
+
+* **security:** resolve critical vulnerability in form-data dependency ([8450af5](https://github.com/soulcraft-research/brainy/commit/8450af5d9289391dd516d23779fb675ae81bf5f6))
+* **storage:** resolve pagination warnings and improve S3 adapter performance ([d7a1c1b](https://github.com/soulcraft-research/brainy/commit/d7a1c1bd27257522e0986e2e882eb169bc7e1d14))
+
 ## [0.40.0](https://github.com/soulcraft-research/brainy/compare/v0.39.0...v0.40.0) (2025-08-05)
 
 

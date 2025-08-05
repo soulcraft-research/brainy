@@ -1,6 +1,6 @@
 {
   "name": "@soulcraft/brainy",
-  "version": "0.40.0",
+  "version": "0.41.0",
   "description": "A vector graph database using HNSW indexing with Origin Private File System storage",
   "main": "dist/unified.js",
   "module": "dist/unified.js",
