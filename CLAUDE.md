@@ -47,7 +47,7 @@ The project uses **Conventional Commits** format. When working with Claude Code,
 User: "Please commit these changes"
 Claude: "Here's the commit message I'll use:
         
-        feat(tools): add claude-commit AI tool
+        feat(tools): add new feature
         
         [detailed description]
         
@@ -55,6 +55,12 @@ Claude: "Here's the commit message I'll use:
 User: "Yes, go ahead"
 Claude: [Commits and pushes]
 ```
+
+**IMPORTANT COMMIT GUIDELINES:**
+- **DO NOT include any Claude references in commit messages**
+- **DO NOT add Co-Authored-By: Claude lines**
+- **DO NOT include "Generated with Claude Code" or similar references**
+- Keep commit messages professional and focused on the changes only
 
 **Manual Usage (git cc):**
 - `git cc` - Generate commit with interactive review
