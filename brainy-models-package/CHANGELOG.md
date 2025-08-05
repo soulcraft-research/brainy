@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.0.0](https://github.com/soulcraft-research/brainy/compare/brainy-models-v0.7.0...brainy-models-v1.0.0) (2025-08-05)
+
+
+### Features
+
+* add verb and noun metadata handling in storage adapters ([9778f1b](https://github.com/soulcraft-research/brainy/commit/9778f1bbf46de06bb71d87333f3861210558024e))
+* **auto-configuration:** implement automatic configuration system for optimal settings ([aa64f49](https://github.com/soulcraft-research/brainy/commit/aa64f490cbad98bc6c95c1f212b8f049d41aa32f))
+* **distributed:** add distributed mode with multi-instance coordination ([8e4b0ef](https://github.com/soulcraft-research/brainy/commit/8e4b0ef7d8b9c3a4de2b776adc25da3c0a7fc971))
+* **docs:** add comprehensive user guides and installation instructions for Brainy ([d4dafbf](https://github.com/soulcraft-research/brainy/commit/d4dafbf598a49c7b1b005f7773f14b47fe65bffa))
+* **docs:** add S3 migration guide for optimized data transfer strategies ([7b4c779](https://github.com/soulcraft-research/brainy/commit/7b4c7794f3a587e2038452ab0d2c908272cf9556))
+* **docs:** update README and add large-scale optimizations guide for v0.36.0 ([ae01bea](https://github.com/soulcraft-research/brainy/commit/ae01bea1aa5d7f3a042f67fa6123c17e59310d68))
+* **hnsw:** implement comprehensive large-scale search optimizations ([c39eee6](https://github.com/soulcraft-research/brainy/commit/c39eee624d40c4ee4d5112c26283c17b133dc3e1))
+* **pagination:** implement cursor-based pagination and enhance search caching ([0f538f3](https://github.com/soulcraft-research/brainy/commit/0f538f39ba7897d2efb0fadd39fc7218b1bbe72d))
+* **partitioning:** simplify partition strategies and enable auto-tuning of semantic clusters ([1015c33](https://github.com/soulcraft-research/brainy/commit/1015c33004c248dd45fdb9c37edc6b15ad95a5f8))
+* refactor verb storage to use HNSWVerb for improved performance ([75ccf0f](https://github.com/soulcraft-research/brainy/commit/75ccf0f7472f94cc7a76a9b64b377fb7bdc02624))
+* **safety:** enhance claude-commit with mandatory review and safety features ([c20cc39](https://github.com/soulcraft-research/brainy/commit/c20cc392620ebded69732c62a07295dc212de001))
+* **tools:** add claude-commit AI-powered git commit tool ([d05e320](https://github.com/soulcraft-research/brainy/commit/d05e320a52486c5b5620869940df5b7330fa1067))
+* **tools:** propagate safety features to all projects ([8854b37](https://github.com/soulcraft-research/brainy/commit/8854b3735fac75e695e76ec62edde2160c065f55))
+* **tools:** update feature description for clarity ([5e15dab](https://github.com/soulcraft-research/brainy/commit/5e15dabb54e9e5616cf49b759222a24734c58fbc))
+
+
+### Bug Fixes
+
+* **build:** resolve TypeScript compilation errors in optimization modules ([0e2bce1](https://github.com/soulcraft-research/brainy/commit/0e2bce19251f7ea5008695f058272ca4271805f8))
+* **core:** resolve TypeScript compilation errors and test failures ([67db734](https://github.com/soulcraft-research/brainy/commit/67db73461124c33bb6fc11cb5f8daf3ddbfd9f09))
+* **security:** resolve critical vulnerability in form-data dependency ([8450af5](https://github.com/soulcraft-research/brainy/commit/8450af5d9289391dd516d23779fb675ae81bf5f6))
+* **storage:** resolve pagination warnings and improve S3 adapter performance ([d7a1c1b](https://github.com/soulcraft-research/brainy/commit/d7a1c1bd27257522e0986e2e882eb169bc7e1d14))
+* **types:** add explicit ArrayBuffer type assertions for compression ([7196fe2](https://github.com/soulcraft-research/brainy/commit/7196fe2d6b756a4e9401cf87585db688145e46fe))
+* **types:** resolve remaining ArrayBuffer type issues in compression methods ([eb8c95e](https://github.com/soulcraft-research/brainy/commit/eb8c95ef3720afa52acc45af2c3dcc896d67decc))
+
+
+### Documentation
+
+* add comprehensive performance docs and rebrand to Zero-to-Smart™ ([80ca8e3](https://github.com/soulcraft-research/brainy/commit/80ca8e35d257723853d0f9d6c95f49937b71aceb))
+* add distributed deployment architecture and enhancement proposals ([4bb7a9f](https://github.com/soulcraft-research/brainy/commit/4bb7a9f431edaf85e782144057d77b4b20b16b44))
+* add guidelines for Conventional Commit format and structured commit messages ([f9a8595](https://github.com/soulcraft-research/brainy/commit/f9a859587802dfd294b2eaeefcf251f75a460db4))
+* add revised distributed implementation plan with practical phases ([e3978e5](https://github.com/soulcraft-research/brainy/commit/e3978e570dcee9b9c7757e75d3fe2c2f55cd99e4))
+* streamline README for better readability and user engagement ([2492fe4](https://github.com/soulcraft-research/brainy/commit/2492fe4f30099dc1b9f9cf0e435b83d5ffc34dce))
+
 ## [0.7.0](https://github.com/soulcraft-research/brainy/compare/brainy-models-v0.6.0...brainy-models-v0.7.0) (2025-08-02)
 
 ## [0.6.0](https://github.com/soulcraft-research/brainy/compare/brainy-models-v0.5.0...brainy-models-v0.6.0) (2025-08-01)
