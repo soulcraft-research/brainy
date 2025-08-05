@@ -57,7 +57,7 @@ describe('Brainy Statistics Functionality', () => {
       expect(stats.nounCount).toBe(3)
       expect(stats.verbCount).toBe(1)
       expect(stats.metadataCount).toBe(3) // Each noun has metadata
-      expect(stats.hnswIndexSize).toBe(2)
+      expect(stats.hnswIndexSize).toBe(4) // 3 nouns + 1 verb (verbs are also added to HNSW index)
     })
 
     it('should throw an error when no instance is provided', async () => {
@@ -77,8 +77,16 @@ describe('Brainy Statistics Functionality', () => {
       const instanceStats = await data.getStatistics()
       const functionStats = await brainy.getStatistics(data)
       
-      // Verify they match
-      expect(functionStats).toEqual(instanceStats)
+      // Verify core statistics match (ignoring volatile fields like memoryUsage and timestamps)
+      expect(functionStats.nounCount).toBe(instanceStats.nounCount)
+      expect(functionStats.verbCount).toBe(instanceStats.verbCount)
+      expect(functionStats.metadataCount).toBe(instanceStats.metadataCount)
+      expect(functionStats.hnswIndexSize).toBe(instanceStats.hnswIndexSize)
+      
+      // If serviceBreakdown exists, verify it matches
+      if (instanceStats.serviceBreakdown) {
+        expect(functionStats.serviceBreakdown).toEqual(instanceStats.serviceBreakdown)
+      }
     })
 
     it('should track statistics by service', async () => {

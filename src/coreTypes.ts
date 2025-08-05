@@ -82,6 +82,7 @@ export interface HNSWNoun {
   id: string
   vector: Vector
   connections: Map<number, Set<string>> // level -> set of connected noun ids
+  level: number // The highest layer this noun appears in
   metadata?: any // Optional metadata for the noun
 }
 
@@ -198,6 +199,58 @@ export interface StatisticsData {
    * Maps standard field names to the actual field names used by each service
    */
   standardFieldMappings?: Record<string, Record<string, string[]>>
+
+  /**
+   * Content type breakdown (e.g., Person, Repository, Issue, etc.)
+   */
+  contentTypes?: Record<string, number>
+
+  /**
+   * Data freshness metrics
+   */
+  dataFreshness?: {
+    oldestEntry: string
+    newestEntry: string
+    updatesLastHour: number
+    updatesLastDay: number
+    ageDistribution: {
+      last24h: number
+      last7d: number
+      last30d: number
+      older: number
+    }
+  }
+
+  /**
+   * Storage utilization metrics
+   */
+  storageMetrics?: {
+    totalSizeBytes: number
+    nounsSizeBytes: number
+    verbsSizeBytes: number
+    metadataSizeBytes: number
+    indexSizeBytes: number
+  }
+
+  /**
+   * Search performance metrics
+   */
+  searchMetrics?: {
+    totalSearches: number
+    averageSearchTimeMs: number
+    searchesLastHour: number
+    searchesLastDay: number
+    topSearchTerms?: string[]
+  }
+
+  /**
+   * Verb statistics similar to nouns
+   */
+  verbStatistics?: {
+    totalVerbs: number
+    verbTypes: Record<string, number>
+    averageConnectionsPerVerb: number
+  }
 
   /**
    * Last updated timestamp

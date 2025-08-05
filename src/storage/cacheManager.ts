@@ -7,7 +7,7 @@
  * - Level 3: Cold storage (all nodes) - OPFS, Filesystem or S3 depending on environment
  */
 
-import { HNSWNoun, GraphVerb } from '../coreTypes.js'
+import { HNSWNoun, GraphVerb, HNSWVerb } from '../coreTypes.js'
 import { BrainyError } from '../errors/brainyError.js'
 
 // Extend Navigator interface to include deviceMemory property
@@ -71,7 +71,7 @@ enum StorageType {
 /**
  * Multi-level cache manager for efficient data access
  */
-export class CacheManager<T extends HNSWNode | Edge> {
+export class CacheManager<T extends HNSWNode | Edge | HNSWVerb> {
   // Hot cache (RAM)
   private hotCache = new Map<string, CacheEntry<T>>()
   

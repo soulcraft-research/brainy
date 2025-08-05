@@ -59,6 +59,7 @@ import {
 } from './distributed/index.js'
 import { SearchCache, SearchCacheConfig } from './utils/searchCache.js'
 import { CacheAutoConfigurator } from './utils/cacheAutoConfig.js'
+import { StatisticsCollector } from './utils/statisticsCollector.js'
 
 export interface BrainyDataConfig {
   /**
@@ -283,7 +284,7 @@ export interface BrainyDataConfig {
    * Enables coordination across multiple Brainy instances
    */
   distributed?: DistributedConfig | boolean
-  
+
   /**
    * Cache configuration for optimizing search performance
    * Controls how the system caches data for faster access
@@ -404,7 +405,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   private remoteServerConfig: BrainyDataConfig['remoteServer'] | null = null
   private serverSearchConduit: ServerSearchConduitAugmentation | null = null
   private serverConnection: WebSocketConnection | null = null
-  
+
   // Distributed mode properties
   private distributedConfig: DistributedConfig | null = null
   private configManager: DistributedConfigManager | null = null
@@ -412,6 +413,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   private operationalMode: any = null
   private domainDetector: DomainDetector | null = null
   private healthMonitor: HealthMonitor | null = null
+
+  // Statistics collector
+  private statisticsCollector: StatisticsCollector = new StatisticsCollector()
 
   /**
    * Get the vector dimensions
@@ -547,7 +551,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         ...config.cache
       }
     }
-    
+
     // Store distributed configuration
     if (config.distributed) {
       if (typeof config.distributed === 'boolean') {
@@ -560,10 +564,10 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         this.distributedConfig = config.distributed
       }
     }
-    
+
     // Initialize cache auto-configurator first
     this.cacheAutoConfigurator = new CacheAutoConfigurator()
-    
+
     // Auto-detect optimal cache configuration if not explicitly provided
     let finalSearchCacheConfig = config.searchCache
     if (!config.searchCache || Object.keys(config.searchCache).length === 0) {
@@ -571,7 +575,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         config.storage
       )
       finalSearchCacheConfig = autoConfig.cacheConfig
-      
+
       // Apply auto-detected real-time update configuration if not explicitly set
       if (!config.realtimeUpdates && autoConfig.realtimeConfig.enabled) {
         this.realtimeUpdateConfig = {
@@ -579,12 +583,12 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           ...autoConfig.realtimeConfig
         }
       }
-      
+
       if (this.loggingConfig?.verbose) {
         console.log(this.cacheAutoConfigurator.getConfigExplanation(autoConfig))
       }
     }
-    
+
     // Initialize search cache with final configuration
     this.searchCache = new SearchCache<T>(finalSearchCacheConfig)
   }
@@ -768,7 +772,10 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
       // Adapt cache configuration based on performance (every few updates)
       // Only adapt every 5th update to avoid over-optimization
-      const updateCount = Math.floor((Date.now() - (this.lastUpdateTime || 0)) / this.realtimeUpdateConfig.interval)
+      const updateCount = Math.floor(
+        (Date.now() - (this.lastUpdateTime || 0)) /
+          this.realtimeUpdateConfig.interval
+      )
       if (updateCount % 5 === 0) {
         this.adaptCacheConfiguration()
       }
@@ -1108,7 +1115,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
       // Initialize storage
       await this.storage!.init()
-      
+
       // Initialize distributed mode if configured
       if (this.distributedConfig) {
         await this.initializeDistributedMode()
@@ -1172,6 +1179,16 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         }
       }
 
+      // Initialize statistics collector with existing data
+      try {
+        const existingStats = await this.storage!.getStatistics()
+        if (existingStats) {
+          this.statisticsCollector.mergeFromStorage(existingStats)
+        }
+      } catch (e) {
+        // Ignore errors loading existing statistics
+      }
+
       this.isInitialized = true
       this.isInitializing = false
 
@@ -1192,17 +1209,17 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     if (!this.storage) {
       throw new Error('Storage must be initialized before distributed mode')
     }
-    
+
     // Create configuration manager with mode hints
     this.configManager = new DistributedConfigManager(
       this.storage,
       this.distributedConfig || undefined,
       { readOnly: this.readOnly, writeOnly: this.writeOnly }
     )
-    
+
     // Initialize configuration
     const sharedConfig = await this.configManager.initialize()
-    
+
     // Create partitioner based on strategy
     if (sharedConfig.settings.partitionStrategy === 'hash') {
       this.partitioner = new HashPartitioner(sharedConfig)
@@ -1210,27 +1227,33 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       // Default to hash partitioner for now
       this.partitioner = new HashPartitioner(sharedConfig)
     }
-    
+
     // Create operational mode based on role
     const role = this.configManager.getRole()
     this.operationalMode = OperationalModeFactory.createMode(role)
-    
+
     // Validate that role matches the configured mode
     // Don't override explicitly set readOnly/writeOnly
     if (role === 'reader' && !this.readOnly) {
-      console.warn('Distributed role is "reader" but readOnly is not set. Setting readOnly=true for consistency.')
+      console.warn(
+        'Distributed role is "reader" but readOnly is not set. Setting readOnly=true for consistency.'
+      )
       this.readOnly = true
       this.writeOnly = false
     } else if (role === 'writer' && !this.writeOnly) {
-      console.warn('Distributed role is "writer" but writeOnly is not set. Setting writeOnly=true for consistency.')
+      console.warn(
+        'Distributed role is "writer" but writeOnly is not set. Setting writeOnly=true for consistency.'
+      )
       this.readOnly = false
       this.writeOnly = true
     } else if (role === 'hybrid' && (this.readOnly || this.writeOnly)) {
-      console.warn('Distributed role is "hybrid" but readOnly or writeOnly is set. Clearing both for hybrid mode.')
+      console.warn(
+        'Distributed role is "hybrid" but readOnly or writeOnly is set. Clearing both for hybrid mode.'
+      )
       this.readOnly = false
       this.writeOnly = false
     }
-    
+
     // Apply cache configuration from operational mode
     const modeCache = this.operationalMode.cacheStrategy
     if (modeCache) {
@@ -1241,30 +1264,32 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         warmCacheTTL: modeCache.ttl,
         batchSize: modeCache.writeBufferSize || 100
       }
-      
+
       // Update storage cache config if it supports it
       if (this.storage && 'updateCacheConfig' in this.storage) {
-        (this.storage as any).updateCacheConfig(this.cacheConfig)
+        ;(this.storage as any).updateCacheConfig(this.cacheConfig)
       }
     }
-    
+
     // Initialize domain detector
     this.domainDetector = new DomainDetector()
-    
+
     // Initialize health monitor
     this.healthMonitor = new HealthMonitor(this.configManager)
     this.healthMonitor.start()
-    
+
     // Set up config update listener
     this.configManager.setOnConfigUpdate((config) => {
       this.handleDistributedConfigUpdate(config)
     })
-    
+
     if (this.loggingConfig?.verbose) {
-      console.log(`Distributed mode initialized as ${role} with ${sharedConfig.settings.partitionStrategy} partitioning`)
+      console.log(
+        `Distributed mode initialized as ${role} with ${sharedConfig.settings.partitionStrategy} partitioning`
+      )
     }
   }
-  
+
   /**
    * Handle distributed configuration updates
    */
@@ -1273,13 +1298,13 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     if (this.partitioner && config.settings) {
       this.partitioner = new HashPartitioner(config)
     }
-    
+
     // Log configuration update
     if (this.loggingConfig?.verbose) {
       console.log('Distributed configuration updated:', config.version)
     }
   }
-  
+
   /**
    * Get distributed health status
    * @returns Health status if distributed mode is enabled
@@ -1290,7 +1315,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     }
     return null
   }
-  
+
   /**
    * Connect to a remote Brainy server for search operations
    * @param serverUrl WebSocket URL of the remote Brainy server
@@ -1430,26 +1455,31 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         try {
           if (this.writeOnly) {
             // In write-only mode, check storage directly
-            existingNoun = await this.storage!.getNoun(options.id) ?? undefined
+            existingNoun =
+              (await this.storage!.getNoun(options.id)) ?? undefined
           } else {
             // In normal mode, check index first, then storage
             existingNoun = this.index.getNouns().get(options.id)
             if (!existingNoun) {
-              existingNoun = await this.storage!.getNoun(options.id) ?? undefined
+              existingNoun =
+                (await this.storage!.getNoun(options.id)) ?? undefined
             }
           }
 
           if (existingNoun) {
             // Check if existing noun is a placeholder
             const existingMetadata = await this.storage!.getMetadata(options.id)
-            const isPlaceholder = existingMetadata && 
-              typeof existingMetadata === 'object' && 
+            const isPlaceholder =
+              existingMetadata &&
+              typeof existingMetadata === 'object' &&
               (existingMetadata as any).isPlaceholder
 
             if (isPlaceholder) {
               // Replace placeholder with real data
               if (this.loggingConfig?.verbose) {
-                console.log(`Replacing placeholder noun ${options.id} with real data`)
+                console.log(
+                  `Replacing placeholder noun ${options.id} with real data`
+                )
               }
             } else {
               // Real noun already exists, update it
@@ -1472,6 +1502,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           id,
           vector,
           connections: new Map(),
+          level: 0, // Default level for new nodes
           metadata: undefined // Will be set separately
         }
       } else {
@@ -1553,29 +1584,35 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           if (metadata && typeof metadata === 'object') {
             // Always make a copy without adding the ID
             metadataToSave = { ...metadata }
-            
+
             // Add domain metadata if distributed mode is enabled
             if (this.domainDetector) {
               // First check if domain is already in metadata
               if ((metadataToSave as any).domain) {
                 // Domain already specified, keep it
-                const domainInfo = this.domainDetector.detectDomain(metadataToSave)
+                const domainInfo =
+                  this.domainDetector.detectDomain(metadataToSave)
                 if (domainInfo.domainMetadata) {
-                  (metadataToSave as any).domainMetadata = domainInfo.domainMetadata
+                  ;(metadataToSave as any).domainMetadata =
+                    domainInfo.domainMetadata
                 }
               } else {
                 // Try to detect domain from the data
-                const dataToAnalyze = Array.isArray(vectorOrData) ? metadata : vectorOrData
-                const domainInfo = this.domainDetector.detectDomain(dataToAnalyze)
+                const dataToAnalyze = Array.isArray(vectorOrData)
+                  ? metadata
+                  : vectorOrData
+                const domainInfo =
+                  this.domainDetector.detectDomain(dataToAnalyze)
                 if (domainInfo.domain) {
-                  (metadataToSave as any).domain = domainInfo.domain
+                  ;(metadataToSave as any).domain = domainInfo.domain
                   if (domainInfo.domainMetadata) {
-                    (metadataToSave as any).domainMetadata = domainInfo.domainMetadata
+                    ;(metadataToSave as any).domainMetadata =
+                      domainInfo.domainMetadata
                   }
                 }
               }
             }
-            
+
             // Add partition information if distributed mode is enabled
             if (this.partitioner) {
               const partition = this.partitioner.getPartition(id)
@@ -1588,12 +1625,27 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           // Track metadata statistics
           const metadataService = this.getServiceName(options)
           await this.storage!.incrementStatistic('metadata', metadataService)
+
+          // Track content type if it's a GraphNoun
+          if (
+            metadataToSave &&
+            typeof metadataToSave === 'object' &&
+            'noun' in metadataToSave
+          ) {
+            this.statisticsCollector.trackContentType(
+              (metadataToSave as any).noun
+            )
+          }
+
+          // Track update timestamp
+          this.statisticsCollector.trackUpdate()
         }
       }
 
-      // Update HNSW index size (excluding verbs)
-      await this.storage!.updateHnswIndexSize(await this.getNounCount())
-      
+      // Update HNSW index size with actual index size
+      const indexSize = this.index.size()
+      await this.storage!.updateHnswIndexSize(indexSize)
+
       // Update health metrics if in distributed mode
       if (this.healthMonitor) {
         const vectorCount = await this.getNounCount()
@@ -1617,12 +1669,12 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       return id
     } catch (error) {
       console.error('Failed to add vector:', error)
-      
+
       // Track error in health monitor
       if (this.healthMonitor) {
         this.healthMonitor.recordRequest(0, true)
       }
-      
+
       throw new Error(`Failed to add vector: ${error}`)
     }
   }
@@ -2005,7 +2057,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         // When using offset, we need to fetch more results and then slice
         const offset = options.offset || 0
         const totalNeeded = k + offset
-        
+
         // Search in the index for totalNeeded results
         const results = await this.index.search(queryVector, totalNeeded)
 
@@ -2198,9 +2250,13 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     // Default behavior (backward compatible): search locally
     try {
       // Check cache first (transparent to user)
-      const cacheKey = this.searchCache.getCacheKey(queryVectorOrData, k, options)
+      const cacheKey = this.searchCache.getCacheKey(
+        queryVectorOrData,
+        k,
+        options
+      )
       const cachedResults = this.searchCache.get(cacheKey)
-      
+
       if (cachedResults) {
         // Track cache hit in health monitor
         if (this.healthMonitor) {
@@ -2210,22 +2266,22 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         }
         return cachedResults
       }
-      
+
       // Cache miss - perform actual search
       const results = await this.searchLocal(queryVectorOrData, k, options)
-      
+
       // Cache results for future queries (unless explicitly disabled)
       if (!options.skipCache) {
         this.searchCache.set(cacheKey, results)
       }
-      
+
       // Track successful search in health monitor
       if (this.healthMonitor) {
         const latency = Date.now() - startTime
         this.healthMonitor.recordRequest(latency, false)
         this.healthMonitor.recordCacheAccess(false)
       }
-      
+
       return results
     } catch (error) {
       // Track error in health monitor
@@ -2260,23 +2316,24 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   ): Promise<PaginatedSearchResult<T>> {
     // For cursor-based search, we need to fetch more results and filter
     const searchK = options.cursor ? k + 20 : k // Get extra results for filtering
-    
+
     // Perform regular search
     const allResults = await this.search(queryVectorOrData, searchK, {
       ...options,
       skipCache: options.skipCache
     })
-    
+
     let results = allResults
     let startIndex = 0
-    
+
     // If cursor provided, find starting position
     if (options.cursor) {
-      startIndex = allResults.findIndex(r => 
-        r.id === options.cursor!.lastId && 
-        Math.abs(r.score - options.cursor!.lastScore) < 0.0001
+      startIndex = allResults.findIndex(
+        (r) =>
+          r.id === options.cursor!.lastId &&
+          Math.abs(r.score - options.cursor!.lastScore) < 0.0001
       )
-      
+
       if (startIndex >= 0) {
         startIndex += 1 // Start after the cursor position
         results = allResults.slice(startIndex, startIndex + k)
@@ -2288,11 +2345,13 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     } else {
       results = allResults.slice(0, k)
     }
-    
+
     // Create cursor for next page
     let nextCursor: SearchCursor | undefined
-    const hasMoreResults = (startIndex + results.length) < allResults.length || allResults.length >= searchK
-    
+    const hasMoreResults =
+      startIndex + results.length < allResults.length ||
+      allResults.length >= searchK
+
     if (results.length > 0 && hasMoreResults) {
       const lastResult = results[results.length - 1]
       nextCursor = {
@@ -2301,7 +2360,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         position: startIndex + results.length
       }
     }
-    
+
     return {
       results,
       cursor: nextCursor,
@@ -2407,14 +2466,14 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     }
 
     // Filter out placeholder nouns from search results
-    searchResults = searchResults.filter(result => {
+    searchResults = searchResults.filter((result) => {
       if (result.metadata && typeof result.metadata === 'object') {
         const metadata = result.metadata as Record<string, any>
         // Exclude placeholder nouns from search results
         if (metadata.isPlaceholder) {
           return false
         }
-        
+
         // Apply domain filter if specified
         if (options.filter?.domain) {
           if (metadata.domain !== options.filter.domain) {
@@ -2544,7 +2603,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       // In write-only mode, query storage directly since index is not loaded
       if (this.writeOnly) {
         try {
-          noun = await this.storage!.getNoun(id) ?? undefined
+          noun = (await this.storage!.getNoun(id)) ?? undefined
         } catch (storageError) {
           // If storage lookup fails, return null (noun doesn't exist)
           return null
@@ -2552,11 +2611,11 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       } else {
         // Normal mode: Get noun from index first
         noun = this.index.getNouns().get(id)
-        
+
         // If not found in index, fallback to storage (for race conditions)
         if (!noun && this.storage) {
           try {
-            noun = await this.storage.getNoun(id) ?? undefined
+            noun = (await this.storage.getNoun(id)) ?? undefined
           } catch (storageError) {
             // Storage lookup failed, noun doesn't exist
             return null
@@ -3061,6 +3120,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           id: sourceId,
           vector: sourcePlaceholderVector,
           connections: new Map(),
+          level: 0,
           metadata: sourceMetadata
         }
 
@@ -3083,6 +3143,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           id: targetId,
           vector: targetPlaceholderVector,
           connections: new Map(),
+          level: 0,
           metadata: targetMetadata
         }
 
@@ -3377,8 +3438,12 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       const serviceForStats = this.getServiceName(options)
       await this.storage!.incrementStatistic('verb', serviceForStats)
 
-      // Update HNSW index size (excluding verbs)
-      await this.storage!.updateHnswIndexSize(await this.getNounCount())
+      // Track verb type
+      this.statisticsCollector.trackVerbType(verbMetadata.verb)
+
+      // Update HNSW index size with actual index size
+      const indexSize = this.index.size()
+      await this.storage!.updateHnswIndexSize(indexSize)
 
       // Invalidate search cache since verb data has changed
       this.searchCache.invalidateOnDataChange('add')
@@ -3406,7 +3471,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       // Get the verb metadata
       const metadata = await this.storage!.getVerbMetadata(id)
       if (!metadata) {
-        console.warn(`Verb ${id} found but no metadata - creating minimal GraphVerb`)
+        console.warn(
+          `Verb ${id} found but no metadata - creating minimal GraphVerb`
+        )
         // Return minimal GraphVerb if metadata is missing
         return {
           id: hnswVerb.id,
@@ -3451,7 +3518,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     try {
       // Get all lightweight verbs from storage
       const hnswVerbs = await this.storage!.getAllVerbs()
-      
+
       // Convert each HNSWVerb to GraphVerb by loading metadata
       const graphVerbs: GraphVerb[] = []
       for (const hnswVerb of hnswVerbs) {
@@ -3478,7 +3545,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           console.warn(`Verb ${hnswVerb.id} found but no metadata - skipping`)
         }
       }
-      
+
       return graphVerbs
     } catch (error) {
       console.error('Failed to get all verbs:', error)
@@ -3649,7 +3716,10 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
       // Clear storage
       await this.storage!.clear()
-      
+
+      // Reset statistics collector
+      this.statisticsCollector = new StatisticsCollector()
+
       // Clear search cache since all data has been removed
       this.searchCache.invalidateOnDataChange('delete')
     } catch (error) {
@@ -3682,7 +3752,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   public clearCache(): void {
     this.searchCache.clear()
   }
-  
+
   /**
    * Adapt cache configuration based on current performance metrics
    * This method analyzes usage patterns and automatically optimizes cache settings
@@ -3692,7 +3762,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     const stats = this.searchCache.getStats()
     const memoryUsage = this.searchCache.getMemoryUsage()
     const currentConfig = this.searchCache.getConfig()
-    
+
     // Prepare performance metrics for adaptation
     const performanceMetrics = {
       hitRate: stats.hitRate,
@@ -3701,27 +3771,29 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       externalChangesDetected: 0, // Would be tracked from real-time updates
       timeSinceLastChange: Date.now() - this.lastUpdateTime
     }
-    
+
     // Try to adapt configuration
     const newConfig = this.cacheAutoConfigurator.adaptConfiguration(
       currentConfig,
       performanceMetrics
     )
-    
+
     if (newConfig) {
       // Apply new cache configuration
       this.searchCache.updateConfig(newConfig.cacheConfig)
-      
+
       // Apply new real-time update configuration if needed
-      if (newConfig.realtimeConfig.enabled !== this.realtimeUpdateConfig.enabled ||
-          newConfig.realtimeConfig.interval !== this.realtimeUpdateConfig.interval) {
-        
+      if (
+        newConfig.realtimeConfig.enabled !==
+          this.realtimeUpdateConfig.enabled ||
+        newConfig.realtimeConfig.interval !== this.realtimeUpdateConfig.interval
+      ) {
         const wasEnabled = this.realtimeUpdateConfig.enabled
         this.realtimeUpdateConfig = {
           ...this.realtimeUpdateConfig,
           ...newConfig.realtimeConfig
         }
-        
+
         // Restart real-time updates with new configuration
         if (wasEnabled) {
           this.stopRealtimeUpdates()
@@ -3730,7 +3802,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           this.startRealtimeUpdates()
         }
       }
-      
+
       if (this.loggingConfig?.verbose) {
         console.log('🔧 Auto-adapted cache configuration:')
         console.log(this.cacheAutoConfigurator.getConfigExplanation(newConfig))
@@ -3821,6 +3893,55 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
     // Call the flushStatisticsToStorage method on the storage adapter
     await this.storage.flushStatisticsToStorage()
+  }
+
+  /**
+   * Update storage sizes if needed (called periodically for performance)
+   */
+  private async updateStorageSizesIfNeeded(): Promise<void> {
+    // Only update every minute to avoid performance impact
+    const now = Date.now()
+    const lastUpdate = (this as any).lastStorageSizeUpdate || 0
+
+    if (now - lastUpdate < 60000) {
+      return // Skip if updated recently
+    }
+
+    ;(this as any).lastStorageSizeUpdate = now
+
+    try {
+      // Estimate sizes based on counts and average sizes
+      const stats = await this.storage!.getStatistics()
+      if (stats) {
+        const avgNounSize = 2048 // ~2KB per noun (vector + metadata)
+        const avgVerbSize = 512 // ~0.5KB per verb
+        const avgMetadataSize = 256 // ~0.25KB per metadata entry
+        const avgIndexEntrySize = 128 // ~128 bytes per index entry
+
+        // Calculate total counts
+        const totalNouns = Object.values(stats.nounCount).reduce(
+          (a, b) => a + b,
+          0
+        )
+        const totalVerbs = Object.values(stats.verbCount).reduce(
+          (a, b) => a + b,
+          0
+        )
+        const totalMetadata = Object.values(stats.metadataCount).reduce(
+          (a, b) => a + b,
+          0
+        )
+
+        this.statisticsCollector.updateStorageSizes({
+          nouns: totalNouns * avgNounSize,
+          verbs: totalVerbs * avgVerbSize,
+          metadata: totalMetadata * avgMetadataSize,
+          index: stats.hnswIndexSize * avgIndexEntrySize
+        })
+      }
+    } catch (error) {
+      // Ignore errors in size calculation
+    }
   }
 
   /**
@@ -3939,6 +4060,42 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           update: result.metadataCount,
           relate: result.verbCount,
           total: result.nounCount + result.verbCount + result.metadataCount
+        }
+
+        // Add extended statistics if requested
+        if (true) {
+          // Always include for now
+          // Add index health metrics
+          try {
+            const indexHealth = this.index.getIndexHealth()
+            ;(result as any).indexHealth = indexHealth
+          } catch (e) {
+            // Index health not available
+          }
+
+          // Add cache metrics
+          try {
+            const cacheStats = this.searchCache.getStats()
+            ;(result as any).cacheMetrics = cacheStats
+          } catch (e) {
+            // Cache stats not available
+          }
+
+          // Add memory usage
+          if (typeof process !== 'undefined' && process.memoryUsage) {
+            ;(result as any).memoryUsage = process.memoryUsage().heapUsed
+          }
+
+          // Add last updated timestamp
+          ;(result as any).lastUpdated =
+            stats.lastUpdated || new Date().toISOString()
+
+          // Add enhanced statistics from collector
+          const collectorStats = this.statisticsCollector.getStatistics()
+          Object.assign(result as any, collectorStats)
+
+          // Update storage sizes if needed (only periodically for performance)
+          await this.updateStorageSizesIfNeeded()
         }
 
         return result
@@ -4398,16 +4555,24 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     // Check if database is in write-only mode
     this.checkWriteOnly()
 
+    const searchStartTime = Date.now()
+
     try {
       // Embed the query text
       const queryVector = await this.embed(query)
 
       // Search using the embedded vector
-      return await this.search(queryVector, k, {
+      const results = await this.search(queryVector, k, {
         nounTypes: options.nounTypes,
         includeVerbs: options.includeVerbs,
         searchMode: options.searchMode
       })
+
+      // Track search performance
+      const duration = Date.now() - searchStartTime
+      this.statisticsCollector.trackSearch(query, duration)
+
+      return results
     } catch (error) {
       console.error('Failed to search with text query:', error)
       throw new Error(`Failed to search with text query: ${error}`)
@@ -4466,7 +4631,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       // When using offset, fetch more results and slice
       const offset = options.offset || 0
       const totalNeeded = k + offset
-      
+
       // Search the remote server for totalNeeded results
       const searchResult = await this.serverSearchConduit.searchServer(
         this.serverConnection.connectionId,
@@ -5348,7 +5513,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     // Sort by score and limit to k results
     return allResults.sort((a, b) => b.score - a.score).slice(0, k)
   }
-  
+
   /**
    * Cleanup distributed resources
    * Should be called when shutting down the instance
@@ -5359,16 +5524,16 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       clearInterval(this.updateTimerId)
       this.updateTimerId = null
     }
-    
+
     // Clean up distributed mode resources
     if (this.healthMonitor) {
       this.healthMonitor.stop()
     }
-    
+
     if (this.configManager) {
       await this.configManager.cleanup()
     }
-    
+
     // Clean up worker pools
     await cleanupWorkerPools()
   }

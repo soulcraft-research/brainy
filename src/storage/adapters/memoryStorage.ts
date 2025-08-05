@@ -42,7 +42,8 @@ export class MemoryStorage extends BaseStorage {
     const nounCopy: HNSWNoun = {
       id: noun.id,
       vector: [...noun.vector],
-      connections: new Map()
+      connections: new Map(),
+      level: noun.level || 0
     }
 
     // Copy connections
@@ -70,7 +71,8 @@ export class MemoryStorage extends BaseStorage {
     const nounCopy: HNSWNoun = {
       id: noun.id,
       vector: [...noun.vector],
-      connections: new Map()
+      connections: new Map(),
+      level: noun.level || 0
     }
 
     // Copy connections
@@ -93,7 +95,8 @@ export class MemoryStorage extends BaseStorage {
       const nounCopy: HNSWNoun = {
         id: noun.id,
         vector: [...noun.vector],
-        connections: new Map()
+        connections: new Map(),
+        level: noun.level || 0
       }
 
       // Copy connections
@@ -193,7 +196,8 @@ export class MemoryStorage extends BaseStorage {
       const nounCopy: HNSWNoun = {
         id: noun.id,
         vector: [...noun.vector],
-        connections: new Map()
+        connections: new Map(),
+        level: noun.level || 0
       }
       
       // Copy connections
@@ -578,6 +582,10 @@ export class MemoryStorage extends BaseStorage {
     this.nounMetadata.clear()
     this.verbMetadata.clear()
     this.statistics = null
+    
+    // Clear the statistics cache
+    this.statisticsCache = null
+    this.statisticsModified = false
   }
 
   /**

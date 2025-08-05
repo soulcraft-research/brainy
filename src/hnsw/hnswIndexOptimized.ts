@@ -411,7 +411,8 @@ export class HNSWIndexOptimized extends HNSWIndex {
       const noun: HNSWNoun = {
         id,
         vector,
-        connections: new Map()
+        connections: new Map(),
+        level: 0
       }
 
       // Store the noun

@@ -193,7 +193,8 @@ export class FileSystemStorage extends BaseStorage {
       return {
         id: parsedNode.id,
         vector: parsedNode.vector,
-        connections
+        connections,
+        level: parsedNode.level || 0
       }
     } catch (error: any) {
       if (error.code !== 'ENOENT') {
@@ -229,7 +230,8 @@ export class FileSystemStorage extends BaseStorage {
           allNodes.push({
             id: parsedNode.id,
             vector: parsedNode.vector,
-            connections
+            connections,
+            level: parsedNode.level || 0
           })
         }
       }
@@ -273,7 +275,8 @@ export class FileSystemStorage extends BaseStorage {
             nouns.push({
               id: parsedNode.id,
               vector: parsedNode.vector,
-              connections
+              connections,
+              level: parsedNode.level || 0
             })
           }
         }
@@ -575,6 +578,10 @@ export class FileSystemStorage extends BaseStorage {
 
     // Remove all files in the index directory
     await removeDirectoryContents(this.indexDir)
+    
+    // Clear the statistics cache
+    this.statisticsCache = null
+    this.statisticsModified = false
   }
 
   /**
