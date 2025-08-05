@@ -33,6 +33,7 @@ import {
   euclideanDistance,
   cleanupWorkerPools
 } from './utils/index.js'
+import { getAugmentationVersion } from './utils/version.js'
 import { NounType, VerbType, GraphNoun } from './types/graphTypes.js'
 import {
   ServerSearchConduitAugmentation,
@@ -1557,10 +1558,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
             // Only set createdBy if it doesn't exist or is being explicitly updated
             if (!graphNoun.createdBy || options.service) {
-              graphNoun.createdBy = {
-                augmentation: service,
-                version: '1.0' // TODO: Get actual version from augmentation
-              }
+              graphNoun.createdBy = getAugmentationVersion(service)
             }
 
             // Update timestamps
@@ -2957,10 +2955,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           }
         } else if (!graphNoun.createdBy) {
           // If no existing createdBy and none in the update, set it
-          graphNoun.createdBy = {
-            augmentation: service,
-            version: '1.0' // TODO: Get actual version from augmentation
-          }
+          graphNoun.createdBy = getAugmentationVersion(service)
 
           // Set createdAt if it doesn't exist
           if (!graphNoun.createdAt) {
@@ -3223,10 +3218,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
             createdAt: timestamp,
             updatedAt: timestamp,
             noun: NounType.Concept,
-            createdBy: {
-              augmentation: service,
-              version: '1.0' // TODO: Get actual version from augmentation
-            }
+            createdBy: getAugmentationVersion(service)
           }
 
           // Add the missing noun
@@ -3265,10 +3257,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
             createdAt: timestamp,
             updatedAt: timestamp,
             noun: NounType.Concept,
-            createdBy: {
-              augmentation: service,
-              version: '1.0' // TODO: Get actual version from augmentation
-            }
+            createdBy: getAugmentationVersion(service)
           }
 
           // Add the missing noun
@@ -3389,10 +3378,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         weight: options.weight,
         createdAt: timestamp,
         updatedAt: timestamp,
-        createdBy: {
-          augmentation: service,
-          version: '1.0' // TODO: Get actual version from augmentation
-        },
+        createdBy: getAugmentationVersion(service),
         data: options.metadata // Store the original metadata in the data field
       }
 

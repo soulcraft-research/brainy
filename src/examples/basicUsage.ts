@@ -42,18 +42,8 @@ async function runExample() {
 
   // Add vectors to the database
   const ids: Record<string, string> = {}
-  const metadata: Record<string, { type: string; domesticated: boolean }> = {
-    cat: { type: 'mammal', domesticated: true },
-    dog: { type: 'mammal', domesticated: true },
-    fish: { type: 'fish', domesticated: false },
-    bird: { type: 'bird', domesticated: false },
-    tiger: { type: 'mammal', domesticated: false },
-    lion: { type: 'mammal', domesticated: false },
-    shark: { type: 'fish', domesticated: false },
-    eagle: { type: 'bird', domesticated: false }
-  }
   for (const [word, vector] of Object.entries(wordEmbeddings)) {
-    ids[word] = await db.add(vector, metadata[word])
+    ids[word] = await db.add(vector, metadata[word as keyof typeof metadata])
 
     console.log(`Added "${word}" with ID: ${ids[word]}`)
   }
