@@ -284,7 +284,9 @@ const mainConfig = {
     'node:fs',
     'node:path',
     'fs',
-    'path'
+    'path',
+    // Optional dependency - externalize to allow graceful failure
+    '@soulcraft/brainy-models'
   ]
 }
 
@@ -330,7 +332,9 @@ const workerConfig = {
     'node:fs',
     'node:path',
     'fs',
-    'path'
+    'path',
+    // Optional dependency - externalize to allow graceful failure
+    '@soulcraft/brainy-models'
   ]
 }
 

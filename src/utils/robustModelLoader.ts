@@ -168,6 +168,44 @@ export class RobustModelLoader {
    */
   private async tryLoadLocalBundledModel(): Promise<EmbeddingModel | null> {
     try {
+      // First, try to use @soulcraft/brainy-models package if available
+      try {
+        this.log('Checking for @soulcraft/brainy-models package...')
+        // Use dynamic import with string literal to avoid TypeScript compilation errors for optional dependency
+        const packageName = '@soulcraft/brainy-models'
+        const brainyModels = await import(packageName).catch(() => null)
+        
+        if (brainyModels?.BundledUniversalSentenceEncoder) {
+          this.log('✅ Found @soulcraft/brainy-models package, using bundled model for maximum reliability')
+          
+          const encoder = new brainyModels.BundledUniversalSentenceEncoder({ 
+            verbose: this.options.verbose,
+            preferCompressed: false 
+          })
+          
+          await encoder.load()
+          
+          // Return a wrapper that matches the Universal Sentence Encoder interface
+          return {
+            init: async () => {
+              // Already initialized
+            },
+            embed: async (sentences: string | string[]) => {
+              const input = Array.isArray(sentences) ? sentences : [sentences]
+              const embeddings = await encoder.embedToArrays(input)
+              
+              // Return the first embedding as a Vector (number[])
+              return embeddings[0] || []
+            },
+            dispose: async () => {
+              encoder.dispose()
+            }
+          }
+        }
+      } catch (importError) {
+        this.log(`@soulcraft/brainy-models not available: ${importError}`)
+      }
+
       // Check if we're in Node.js environment
       const isNode = typeof process !== 'undefined' && 
                      process.versions != null && 
