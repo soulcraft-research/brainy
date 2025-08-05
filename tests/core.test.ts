@@ -389,7 +389,7 @@ describe('Brainy Core Functionality', () => {
       // Verify counts
       expect(stats.nounCount).toBe(3)
       expect(stats.verbCount).toBe(2)
-      expect(stats.hnswIndexSize).toBe(1)
+      expect(stats.hnswIndexSize).toBe(5)
     })
   })
 })

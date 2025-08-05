@@ -440,7 +440,8 @@ export class S3CompatibleStorage extends BaseStorage {
         const node = {
           id: parsedNode.id,
           vector: parsedNode.vector,
-          connections
+          connections,
+          level: parsedNode.level || 0
         }
 
         console.log(`Successfully retrieved node ${id}:`, node)
@@ -1585,6 +1586,10 @@ export class S3CompatibleStorage extends BaseStorage {
 
       // Delete all objects in the index directory
       await deleteObjectsWithPrefix(this.indexPrefix)
+      
+      // Clear the statistics cache
+      this.statisticsCache = null
+      this.statisticsModified = false
     } catch (error) {
       console.error('Failed to clear storage:', error)
       throw new Error(`Failed to clear storage: ${error}`)

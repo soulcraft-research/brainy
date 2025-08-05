@@ -224,7 +224,8 @@ export class OPFSStorage extends BaseStorage {
             return {
                 id: data.id,
                 vector: data.vector,
-                connections
+                connections,
+                level: data.level || 0
             }
         } catch (error) {
             // Noun not found or other error
@@ -258,7 +259,8 @@ export class OPFSStorage extends BaseStorage {
                         allNouns.push({
                             id: data.id,
                             vector: data.vector,
-                            connections
+                            connections,
+                            level: data.level || 0
                         })
                     } catch (error) {
                         console.error(`Error reading noun file ${name}:`, error)
@@ -315,7 +317,8 @@ export class OPFSStorage extends BaseStorage {
                             nodes.push({
                                 id: data.id,
                                 vector: data.vector,
-                                connections
+                                connections,
+                                level: data.level || 0
                             })
                         }
                     } catch (error) {
@@ -732,6 +735,10 @@ export class OPFSStorage extends BaseStorage {
 
             // Remove all files in the index directory
             await removeDirectoryContents(this.indexDir!)
+            
+            // Clear the statistics cache
+            this.statisticsCache = null
+            this.statisticsModified = false
         } catch (error) {
             console.error('Error clearing storage:', error)
             throw error

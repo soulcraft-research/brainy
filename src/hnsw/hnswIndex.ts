@@ -140,7 +140,8 @@ export class HNSWIndex {
     const noun: HNSWNoun = {
       id,
       vector,
-      connections: new Map()
+      connections: new Map(),
+      level: nounLevel
     }
 
     // Initialize empty connection sets for each level
@@ -556,6 +557,38 @@ export class HNSWIndex {
    */
   public getConfig(): HNSWConfig {
     return { ...this.config }
+  }
+
+  /**
+   * Get index health metrics
+   */
+  public getIndexHealth(): {
+    averageConnections: number
+    layerDistribution: number[]
+    maxLayer: number
+    totalNodes: number
+  } {
+    let totalConnections = 0
+    const layerCounts = new Array(this.maxLevel + 1).fill(0)
+    
+    // Count connections and layer distribution
+    this.nouns.forEach(noun => {
+      // Count connections at each layer
+      for (let level = 0; level <= noun.level; level++) {
+        totalConnections += noun.connections.get(level)?.size || 0
+        layerCounts[level]++
+      }
+    })
+    
+    const totalNodes = this.nouns.size
+    const averageConnections = totalNodes > 0 ? totalConnections / totalNodes : 0
+    
+    return {
+      averageConnections,
+      layerDistribution: layerCounts,
+      maxLayer: this.maxLevel,
+      totalNodes
+    }
   }
 
   /**
