@@ -6,8 +6,8 @@
 import {describe, expect, it} from 'vitest'
 import {execSync} from 'child_process'
 
-const CURRENT_UNPACKED_SIZE_MB = 12.6
-const CURRENT_PACKED_SIZE_MB = 2.3
+const CURRENT_UNPACKED_SIZE_MB = 1.9
+const CURRENT_PACKED_SIZE_MB = 0.54
 const ALLOWED_SIZE_INCREASE_PERCENTAGE = 5 // 5% increase threshold
 
 /**
@@ -19,15 +19,15 @@ function parseNpmPackOutput(output: string): {
     totalFiles: number
 } {
     const packageSizeMatch = output.match(
-        /npm notice package size:\s*([\d.]+)\s*([KMGT]?B)/
+        /npm notice package size:\s*([\d.]+)\s*([KMGTkmgt]?B)/
     )
     const unpackedSizeMatch = output.match(
-        /npm notice unpacked size:\s*([\d.]+)\s*([KMGT]?B)/
+        /npm notice unpacked size:\s*([\d.]+)\s*([KMGTkmgt]?B)/
     )
     const totalFilesMatch = output.match(/npm notice total files:\s*(\d+)/)
 
     const convertToMB = (size: number, unit: string): number => {
-        switch (unit) {
+        switch (unit.toUpperCase()) {
             case 'B':
                 return size / (1024 * 1024)
             case 'KB':

@@ -5,8 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Essential Commands
 
 ### Build and Development
-- `npm run build` - Build the unified bundle using Rollup
-- `npm run build:browser` - Build browser-specific bundle
+- `npm run build` - Compile TypeScript to ES modules using tsc
 - `npm test` - Run all tests using Vitest
 - `npm run test:watch` - Run tests in watch mode
 - `npm run test:coverage` - Run tests with coverage
@@ -86,9 +85,9 @@ Brainy is a vector graph database with HNSW indexing that works across multiple 
 ### Core Components
 
 **Main Entry Points:**
-- `src/unified.ts` - Universal entry point that adapts to any environment
-- `src/index.ts` - Standard exports without environment detection
+- `src/index.ts` - Main entry point with comprehensive exports for all environments
 - `src/brainyData.ts` - Main database class
+- `src/unified.ts` - Legacy compatibility (maintained for existing code)
 
 **Key Architectural Patterns:**
 
@@ -109,16 +108,17 @@ Brainy is a vector graph database with HNSW indexing that works across multiple 
 
 ### Build System
 
-**Rollup Configuration** (`rollup.config.js`):
-- Dual build targets: unified (cross-platform) and browser-specific
-- Custom plugins for Node.js module shimming in browser environments
-- Buffer polyfill injection for browser compatibility
-- Worker bundling as separate output
+**ES Modules Architecture:**
+- Simple TypeScript compilation using `tsc`
+- Individual module files for optimal tree-shaking by modern frameworks
+- No complex bundling - frameworks handle optimization
+- Faster development builds and better debugging experience
 
-**Critical Build Dependencies:**
-- TypeScript compilation with multiple tsconfig files
-- Environment-specific module resolution
-- TensorFlow.js patching for cross-platform compatibility
+**Build Process:**
+- TypeScript compilation with single tsconfig.json
+- Direct ES module output to dist/
+- Source maps for all files
+- Modern framework compatibility (Angular, React, Vue bundlers handle the rest)
 
 ### Testing Strategy
 

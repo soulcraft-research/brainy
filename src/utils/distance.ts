@@ -152,7 +152,7 @@ export async function calculateDistancesBatch(
               // Ensure TextEncoder/TextDecoder are globally available in Node.js
               const util = await import('util')
               if (typeof global.TextEncoder === 'undefined') {
-                global.TextEncoder = util.TextEncoder
+                global.TextEncoder = util.TextEncoder as unknown as typeof TextEncoder
               }
               if (typeof global.TextDecoder === 'undefined') {
                 global.TextDecoder = util.TextDecoder as unknown as typeof TextDecoder

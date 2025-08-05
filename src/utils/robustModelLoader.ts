@@ -32,6 +32,8 @@ export interface ModelLoadOptions {
   verbose?: boolean
   /** Whether to prefer local bundled model if available */
   preferLocalModel?: boolean
+  /** Custom directory path where models are stored (for Docker deployments) */
+  customModelsPath?: string
 }
 
 export interface RetryConfig {
@@ -42,10 +44,16 @@ export interface RetryConfig {
 }
 
 export class RobustModelLoader {
-  private options: Required<ModelLoadOptions>
+  private options: Required<Omit<ModelLoadOptions, 'customModelsPath'>> & { customModelsPath?: string }
   private loadAttempts: Map<string, number> = new Map()
 
   constructor(options: ModelLoadOptions = {}) {
+    // Check for environment variables
+    const envModelsPath = process.env.BRAINY_MODELS_PATH || process.env.MODELS_PATH
+    
+    // Auto-detect if we need to use an auto-extracted models directory
+    const autoDetectedPath = this.autoDetectModelsPath()
+    
     this.options = {
       maxRetries: options.maxRetries ?? 3,
       initialRetryDelay: options.initialRetryDelay ?? 1000,
@@ -54,8 +62,124 @@ export class RobustModelLoader {
       useExponentialBackoff: options.useExponentialBackoff ?? true,
       fallbackUrls: options.fallbackUrls ?? [],
       verbose: options.verbose ?? false,
-      preferLocalModel: options.preferLocalModel ?? true
+      preferLocalModel: options.preferLocalModel ?? true,
+      customModelsPath: options.customModelsPath ?? envModelsPath ?? autoDetectedPath
     }
+  }
+
+  /**
+   * Auto-detect extracted models directory
+   */
+  private autoDetectModelsPath(): string | undefined {
+    try {
+      // Check if we're in Node.js environment
+      const isNode = typeof process !== 'undefined' && 
+                     process.versions != null && 
+                     process.versions.node != null
+
+      if (!isNode) {
+        return undefined
+      }
+
+      // Try to detect extracted models directory
+      const possiblePaths = [
+        // Standard extraction location
+        './models',
+        '../models',
+        '/app/models',
+        // Project root relative paths
+        process.cwd() + '/models',
+        // Docker/container standard paths
+        '/usr/src/app/models',
+        '/home/app/models'
+      ]
+
+      // Use require to access fs and path synchronously (only in Node.js)
+      let fs: any, path: any
+      try {
+        fs = require('fs')
+        path = require('path')
+      } catch (error) {
+        // If require fails, we're probably in a browser environment
+        return undefined
+      }
+
+      for (const modelPath of possiblePaths) {
+        try {
+          // Check for marker file that indicates successful extraction
+          const markerFile = path.join(modelPath, '.brainy-models-extracted')
+          if (fs.existsSync(markerFile)) {
+            console.log(`🎯 Auto-detected extracted models at: ${modelPath}`)
+            return modelPath
+          }
+
+          // Fallback: check for universal-sentence-encoder directory
+          const useDir = path.join(modelPath, 'universal-sentence-encoder')
+          const modelJson = path.join(useDir, 'model.json')
+          if (fs.existsSync(modelJson)) {
+            console.log(`🎯 Auto-detected models directory at: ${modelPath}`)
+            return modelPath
+          }
+        } catch (error) {
+          continue
+        }
+      }
+
+      return undefined
+    } catch (error) {
+      return undefined
+    }
+  }
+
+  /**
+   * Load model with all available fallback strategies
+   */
+  async loadModelWithFallbacks(): Promise<EmbeddingModel> {
+    const startTime = Date.now()
+    this.log('Starting model loading with all fallback strategies')
+    
+    // Try local bundled model first (from @soulcraft/brainy-models if available)
+    const localModel = await this.tryLoadLocalBundledModel()
+    if (localModel) {
+      const loadTime = Date.now() - startTime
+      this.log(`✅ Model loaded successfully from local bundle in ${loadTime}ms`)
+      return localModel
+    }
+    
+    // Fallback to loading from URLs
+    console.warn('⚠️ Local model not found. Falling back to remote model loading.')
+    console.warn('   For best performance and reliability:')
+    console.warn('   1. Install @soulcraft/brainy-models: npm install @soulcraft/brainy-models')
+    console.warn('   2. Or set BRAINY_MODELS_PATH environment variable for Docker deployments')
+    console.warn('   3. Or use customModelsPath option in RobustModelLoader')
+    
+    const fallbackUrls = getUniversalSentenceEncoderFallbacks()
+    for (const url of fallbackUrls) {
+      try {
+        this.log(`Attempting to load model from: ${url}`)
+        const model = await this.withTimeout(this.loadFromUrl(url), this.options.timeout)
+        const loadTime = Date.now() - startTime
+        
+        // Verify it's the correct model by checking if it can embed text
+        try {
+          const testEmbedding = await model.embed('test')
+          if (!testEmbedding || (Array.isArray(testEmbedding) && testEmbedding.length !== 512)) {
+            throw new Error(`Model verification failed: incorrect embedding dimensions (expected 512, got ${Array.isArray(testEmbedding) ? testEmbedding.length : 'invalid'})`)
+          }
+        } catch (verifyError) {
+          console.warn(`⚠️ Model verification failed for ${url}: ${verifyError}`)
+          continue
+        }
+        
+        console.warn(`✅ Successfully loaded Universal Sentence Encoder from remote URL: ${url}`)
+        console.warn(`   Load time: ${loadTime}ms`)
+        return model
+      } catch (error) {
+        this.log(`Failed to load from ${url}: ${error}`)
+      }
+    }
+    
+    throw new Error('Failed to load model from all available sources')
   }
 
   /**
@@ -168,15 +292,27 @@ export class RobustModelLoader {
    */
   private async tryLoadLocalBundledModel(): Promise<EmbeddingModel | null> {
     try {
-      // First, try to use @soulcraft/brainy-models package if available
+      // First, try custom models directory if specified (for Docker deployments)
+      if (this.options.customModelsPath) {
+        console.log(`Checking custom models directory: ${this.options.customModelsPath}`)
+        const customModel = await this.tryLoadFromCustomPath(this.options.customModelsPath)
+        if (customModel) {
+          console.log('✅ Successfully loaded model from custom directory')
+          console.log('   Using custom model path for Docker/production deployment')
+          return customModel
+        }
+      }
+
+      // Second, try to use @soulcraft/brainy-models package if available
       try {
-        this.log('Checking for @soulcraft/brainy-models package...')
+        console.log('Checking for @soulcraft/brainy-models package...')
         // Use dynamic import with string literal to avoid TypeScript compilation errors for optional dependency
         const packageName = '@soulcraft/brainy-models'
         const brainyModels = await import(packageName).catch(() => null)
         
         if (brainyModels?.BundledUniversalSentenceEncoder) {
-          this.log('✅ Found @soulcraft/brainy-models package, using bundled model for maximum reliability')
+          console.log('✅ Found @soulcraft/brainy-models package installed')
+          console.log('   Using local bundled model for maximum performance and reliability')
           
           const encoder = new brainyModels.BundledUniversalSentenceEncoder({ 
             verbose: this.options.verbose,
@@ -184,6 +320,7 @@ export class RobustModelLoader {
           })
           
           await encoder.load()
+          console.log('✅ Local Universal Sentence Encoder model loaded successfully')
           
           // Return a wrapper that matches the Universal Sentence Encoder interface
           return {
@@ -212,10 +349,16 @@ export class RobustModelLoader {
                      process.versions.node != null
 
       if (isNode) {
-        // Try to load from bundled model directory
-        const path = await import('path')
-        const fs = await import('fs')
-        const { fileURLToPath } = await import('url')
+        try {
+          // Try to load from bundled model directory
+          // Use dynamic import with a non-literal string to prevent Rollup from bundling these
+          const pathModule = 'path'
+          const fsModule = 'fs'
+          const urlModule = 'url'
+          
+          const path = await import(/* @vite-ignore */ pathModule)
+          const fs = await import(/* @vite-ignore */ fsModule)
+          const { fileURLToPath } = await import(/* @vite-ignore */ urlModule)
 
         const __filename = fileURLToPath(import.meta.url)
         const __dirname = path.dirname(__filename)
@@ -267,6 +410,9 @@ export class RobustModelLoader {
             return this.createModelWrapper(model)
           }
         }
+        } catch (nodeImportError) {
+          this.log(`Could not load Node.js modules in browser: ${nodeImportError}`)
+        }
       }
 
       return null
@@ -277,12 +423,108 @@ export class RobustModelLoader {
   }
 
   /**
+   * Try to load model from a custom directory path
+   */
+  private async tryLoadFromCustomPath(customPath: string): Promise<EmbeddingModel | null> {
+    try {
+      // Check if we're in Node.js environment
+      const isNode = typeof process !== 'undefined' && 
+                     process.versions != null && 
+                     process.versions.node != null
+
+      if (!isNode) {
+        console.log('Custom model path only supported in Node.js environment')
+        return null
+      }
+
+      // Dynamic imports to avoid bundling issues
+      const pathModule = 'path'
+      const fsModule = 'fs'
+      
+      const path = await import(/* @vite-ignore */ pathModule)
+      const fs = await import(/* @vite-ignore */ fsModule)
+
+      // Look for models in standard subdirectories
+      const possibleModelPaths = [
+        // Direct path to universal-sentence-encoder
+        path.join(customPath, 'universal-sentence-encoder'),
+        // Mirroring @soulcraft/brainy-models structure
+        path.join(customPath, 'models', 'universal-sentence-encoder'),
+        // TensorFlow hub model structure
+        path.join(customPath, 'tfhub', 'universal-sentence-encoder'),
+        // Simple models directory
+        path.join(customPath, 'use'),
+        // Check if customPath itself contains model.json
+        customPath
+      ]
+
+      for (const modelPath of possibleModelPaths) {
+        const modelJsonPath = path.join(modelPath, 'model.json')
+        
+        if (fs.existsSync(modelJsonPath)) {
+          console.log(`Found model at custom path: ${modelJsonPath}`)
+          
+          // Load TensorFlow.js if not already loaded
+          const tf = await import('@tensorflow/tfjs')
+          
+          // Read and validate the model.json
+          const modelJsonContent = JSON.parse(fs.readFileSync(modelJsonPath, 'utf8'))
+          
+          // Ensure the format field exists for TensorFlow.js compatibility
+          if (!modelJsonContent.format) {
+            modelJsonContent.format = 'tfjs-graph-model'
+            try {
+              fs.writeFileSync(modelJsonPath, JSON.stringify(modelJsonContent, null, 2))
+              console.log(`✅ Added missing "format" field to model.json for TensorFlow.js compatibility`)
+            } catch (writeError) {
+              console.log(`⚠️ Could not write format field to model.json: ${writeError}`)
+            }
+          }
+          
+          const modelFormat = modelJsonContent.format || 'tfjs-graph-model'
+          
+          let model
+          if (modelFormat === 'tfjs-graph-model') {
+            // Use loadGraphModel for graph models
+            model = await tf.loadGraphModel(`file://${modelJsonPath}`)
+          } else {
+            // Use loadLayersModel for layers models (default)
+            model = await tf.loadLayersModel(`file://${modelJsonPath}`)
+          }
+          
+          // Return a wrapper that matches the Universal Sentence Encoder interface
+          return this.createModelWrapper(model)
+        }
+      }
+
+      console.log(`No model found in custom path: ${customPath}`)
+      return null
+    } catch (error) {
+      console.log(`Error loading from custom path ${customPath}: ${error}`)
+      return null
+    }
+  }
+
+  /**
    * Load model from a specific URL
    */
   private async loadFromUrl(url: string): Promise<EmbeddingModel> {
-    // This would need to be implemented based on the specific model type
-    // For now, we'll throw an error indicating this needs implementation
-    throw new Error(`Loading from custom URL not yet implemented: ${url}`)
+    try {
+      this.log(`Loading model from URL: ${url}`)
+      
+      // Import TensorFlow.js
+      const tf = await import('@tensorflow/tfjs')
+      
+      // Load the model as a graph model
+      const model = await tf.loadGraphModel(url)
+      
+      this.log(`✅ Successfully loaded model from: ${url}`)
+      
+      // Return a wrapper that matches the Universal Sentence Encoder interface
+      return this.createModelWrapper(model)
+    } catch (error) {
+      throw new Error(`Failed to load model from ${url}: ${error}`)
+    }
   }
 
   /**
@@ -294,11 +536,29 @@ export class RobustModelLoader {
         // Model is already loaded
       },
       embed: async (sentences: string | string[]) => {
+        const tf = await import('@tensorflow/tfjs')
         const input = Array.isArray(sentences) ? sentences : [sentences]
         
-        // This is a simplified implementation - would need proper preprocessing
-        const inputTensors = tfModel.predict(input)
-        return inputTensors
+        // Universal Sentence Encoder expects tokenized input
+        // For the tfhub model, we need to handle text preprocessing
+        // The model expects a tensor of strings
+        const inputTensor = tf.tensor(input)
+        
+        try {
+          // Run the model prediction
+          const embeddings = await tfModel.predict(inputTensor)
+          
+          // Convert to array and clean up
+          const result = await embeddings.array()
+          embeddings.dispose()
+          inputTensor.dispose()
+          
+          // Return first embedding if single input, otherwise return all
+          return Array.isArray(sentences) ? result : (result[0] || [])
+        } catch (error) {
+          inputTensor.dispose()
+          throw new Error(`Failed to generate embeddings: ${error}`)
+        }
       },
       dispose: async () => {
         if (tfModel && tfModel.dispose) {

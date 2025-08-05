@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  brainy-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      # Set custom models path for Brainy
+      - BRAINY_MODELS_PATH=/app/models
+      # Optional: Set other Brainy configuration
+      - NODE_ENV=production
+    volumes:
+      # Optional: Mount models from host (alternative to embedding in image)
+      # - ./models:/app/models:ro
+      - ./logs:/app/logs
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+
+  # Alternative: Mount models from a separate volume
+  brainy-app-with-volume:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    environment:
+      - BRAINY_MODELS_PATH=/models
+      - NODE_ENV=production
+    volumes:
+      # Mount models from external volume
+      - brainy-models:/models:ro
+      - ./logs:/app/logs
+    restart: unless-stopped
+    depends_on:
+      - model-downloader
+
+  # Service to download and prepare models
+  model-downloader:
+    image: node:24-alpine
+    volumes:
+      - brainy-models:/models
+    command: >
+      sh -c "
+        if [ ! -f /models/universal-sentence-encoder/model.json ]; then
+          echo 'Downloading Universal Sentence Encoder models...';
+          mkdir -p /models/universal-sentence-encoder;
+          # Add your model download logic here
+          echo 'Models would be downloaded here in a real setup';
+        else
+          echo 'Models already exist';
+        fi
+      "
+
+volumes:
+  brainy-models:
+    driver: local

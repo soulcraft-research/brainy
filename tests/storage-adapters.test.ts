@@ -25,10 +25,13 @@ describe('Storage Adapters', () => {
     storageFactory = await import('../src/storage/storageFactory.js')
     createStorage = storageFactory.createStorage
     MemoryStorage = storageFactory.MemoryStorage
-    FileSystemStorage = storageFactory.FileSystemStorage
     OPFSStorage = storageFactory.OPFSStorage
     S3CompatibleStorage = storageFactory.S3CompatibleStorage
     R2Storage = storageFactory.R2Storage
+    
+    // FileSystemStorage needs to be imported separately to avoid browser build issues
+    const fsStorageModule = await import('../src/storage/adapters/fileSystemStorage.js')
+    FileSystemStorage = fsStorageModule.FileSystemStorage
   })
 
   describe('MemoryStorage', () => {

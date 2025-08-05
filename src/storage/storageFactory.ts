@@ -498,4 +498,5 @@ export {
 }
 
 // Export FileSystemStorage conditionally
-export { FileSystemStorage } from './adapters/fileSystemStorage.js'
+// NOTE: FileSystemStorage is now only imported dynamically to avoid fs imports in browser builds
+// export { FileSystemStorage } from './adapters/fileSystemStorage.js'
