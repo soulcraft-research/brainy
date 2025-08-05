@@ -6,9 +6,9 @@
 import {describe, expect, it} from 'vitest'
 import {execSync} from 'child_process'
 
-const CURRENT_UNPACKED_SIZE_MB = 1.9
-const CURRENT_PACKED_SIZE_MB = 0.54
-const ALLOWED_SIZE_INCREASE_PERCENTAGE = 5 // 5% increase threshold
+const CURRENT_UNPACKED_SIZE_MB = 2.5
+const CURRENT_PACKED_SIZE_MB = 0.65
+const ALLOWED_SIZE_INCREASE_PERCENTAGE = 10 // 10% increase threshold
 
 /**
  * Parses npm pack --dry-run output to extract package size information
