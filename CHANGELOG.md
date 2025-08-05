@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.44.0](https://github.com/soulcraft-research/brainy/compare/v0.43.0...v0.44.0) (2025-08-05)
+
+
+### Fixed
+
+* include all JavaScript modules in npm package ([b37debb](https://github.com/soulcraft-research/brainy/commit/b37debb33c45e8ca50c70434bfdc5ae75c7c7797))
+
 ## [0.43.0](https://github.com/soulcraft-research/brainy/compare/v0.41.0...v0.43.0) (2025-08-05)
 
 
