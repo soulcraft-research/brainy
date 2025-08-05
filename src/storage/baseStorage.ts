@@ -21,6 +21,7 @@ export const STATISTICS_KEY = 'statistics'
  */
 export abstract class BaseStorage extends BaseStorageAdapter {
   protected isInitialized = false
+  protected readOnly = false
 
   /**
    * Initialize the storage adapter
