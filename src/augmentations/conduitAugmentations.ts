@@ -745,7 +745,7 @@ export class WebRTCConduitAugmentation extends BaseConduitAugmentation implement
           } else if (data instanceof ArrayBuffer) {
             dc.send(new Uint8Array(data))
           } else if (ArrayBuffer.isView(data)) {
-            dc.send(data)
+            dc.send(data as ArrayBufferView<ArrayBuffer>)
           } else {
             // Convert to JSON string
             dc.send(JSON.stringify(data))
@@ -923,7 +923,7 @@ export class WebRTCConduitAugmentation extends BaseConduitAugmentation implement
               } else if (data instanceof ArrayBuffer) {
                 dataChannel.send(new Uint8Array(data))
               } else if (ArrayBuffer.isView(data)) {
-                dataChannel.send(data)
+                dataChannel.send(data as ArrayBufferView<ArrayBuffer>)
               } else {
                 // Convert to JSON string
                 dataChannel.send(JSON.stringify(data))

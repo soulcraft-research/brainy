@@ -99,7 +99,6 @@ export {
 import {
   OPFSStorage,
   MemoryStorage,
-  FileSystemStorage,
   R2Storage,
   S3CompatibleStorage,
   createStorage
@@ -108,11 +107,13 @@ import {
 export {
   OPFSStorage,
   MemoryStorage,
-  FileSystemStorage,
   R2Storage,
   S3CompatibleStorage,
   createStorage
 }
+
+// FileSystemStorage is exported separately to avoid browser build issues
+export { FileSystemStorage } from './storage/adapters/fileSystemStorage.js'
 
 // Export unified pipeline
 import {

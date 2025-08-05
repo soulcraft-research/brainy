@@ -10,7 +10,8 @@ Brainy uses a unified threading approach that adapts to the environment it's run
 2. **Browser**: Uses Web Workers API
 3. **Fallback**: Executes on the main thread when neither Worker Threads nor Web Workers are available
 
-This implementation ensures that compute-intensive operations (like embedding generation and vector calculations) can be performed efficiently without blocking the main thread, while maintaining compatibility across all environments.
+This implementation ensures that compute-intensive operations (like embedding generation and vector calculations) can be
+performed efficiently without blocking the main thread, while maintaining compatibility across all environments.
 
 ## Implementation Details
 
@@ -76,6 +77,7 @@ export function executeInThread<T>(fnString: string, args: any): Promise<T> {
 ```
 
 This function:
+
 1. Checks if it's running in Node.js and uses Worker Threads if available
 2. Checks if it's running in a browser and uses Web Workers if available
 3. Falls back to executing on the main thread if neither is available
@@ -94,6 +96,7 @@ function executeInNodeWorker<T>(fnString: string, args: any): Promise<T> {
 ```
 
 Key optimizations:
+
 - Worker pool to reuse workers and minimize overhead
 - Dynamic imports with the `node:` protocol prefix
 - Error handling and cleanup
@@ -112,6 +115,7 @@ function executeInWebWorker<T>(fnString: string, args: any): Promise<T> {
 ```
 
 Key features:
+
 - Creates workers using Blob URLs
 - Proper cleanup of resources (terminating workers and revoking URLs)
 - Error handling
@@ -134,7 +138,8 @@ This ensures that Brainy works in all environments, even if threading is not ava
 
 ## Usage
 
-The threading implementation is used throughout Brainy, particularly for compute-intensive operations like embedding generation:
+The threading implementation is used throughout Brainy, particularly for compute-intensive operations like embedding
+generation:
 
 ```typescript
 export function createThreadedEmbeddingFunction(
@@ -154,17 +159,7 @@ export function createThreadedEmbeddingFunction(
 
 ## Testing
 
-Two test scripts are provided to verify the threading implementation:
-
-1. `demo/test-browser-worker.html`: Tests the threading implementation in a browser environment
-2. `demo/test-fallback.html`: Tests the fallback mechanism when threading is not available
-
-To run these tests:
-1. Build the project: `npm run build`
-2. Start a local server: `npx http-server`
-3. Open the test pages in a browser:
-   - http://localhost:8080/demo/test-browser-worker.html
-   - http://localhost:8080/demo/test-fallback.html
+// Demo references removed: The demo is now maintained in the separate @soulcraft/demos project.
 
 ## Compatibility
 
@@ -172,12 +167,14 @@ The threading implementation has been tested and works in:
 
 - Node.js 24+ (using Worker Threads)
 - Modern browsers (using Web Workers):
-  - Chrome
-  - Firefox
-  - Safari
-  - Edge
+    - Chrome
+    - Firefox
+    - Safari
+    - Edge
 - Environments without threading support (using fallback mechanism)
 
 ## Conclusion
 
-Brainy's threading implementation provides efficient execution of compute-intensive operations across all environments, with optimizations for Node.js 24 and modern browsers, and a fallback mechanism for environments where threading is not available.
+Brainy's threading implementation provides efficient execution of compute-intensive operations across all environments,
+with optimizations for Node.js 24 and modern browsers, and a fallback mechanism for environments where threading is not
+available.

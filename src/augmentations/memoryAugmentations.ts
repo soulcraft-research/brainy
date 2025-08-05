@@ -4,7 +4,8 @@ import {
     AugmentationResponse
 } from '../types/augmentations.js'
 import {StorageAdapter, Vector} from '../coreTypes.js'
-import {MemoryStorage, FileSystemStorage, OPFSStorage} from '../storage/storageFactory.js'
+import {MemoryStorage, OPFSStorage} from '../storage/storageFactory.js'
+// FileSystemStorage will be dynamically imported when needed to avoid fs imports in browser
 import {cosineDistance} from '../utils/distance.js'
 
 /**
@@ -253,9 +254,24 @@ export class MemoryStorageAugmentation extends BaseMemoryAugmentation {
 export class FileSystemStorageAugmentation extends BaseMemoryAugmentation {
     readonly description = 'Memory augmentation that stores data in the file system'
     enabled = true
+    private rootDirectory: string
 
     constructor(name: string, rootDirectory?: string) {
-        super(name, new FileSystemStorage(rootDirectory || '.'))
+        // Temporarily use MemoryStorage, will be replaced in initialize()
+        super(name, new MemoryStorage())
+        this.rootDirectory = rootDirectory || '.'
+    }
+    
+    async initialize(): Promise<void> {
+        try {
+            // Dynamically import FileSystemStorage
+            const { FileSystemStorage } = await import('../storage/adapters/fileSystemStorage.js')
+            this.storage = new FileSystemStorage(this.rootDirectory)
+            await super.initialize()
+        } catch (error) {
+            console.error('Failed to load FileSystemStorage:', error)
+            throw new Error(`Failed to initialize FileSystemStorage: ${error}`)
+        }
     }
 
     getType(): AugmentationType {

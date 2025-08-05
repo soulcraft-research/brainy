@@ -75,3 +75,4 @@ debug*.ts
 /temp-tests/
 /brainy-models-package/node_modules/
 /test-consumer/node_modules/
+/test-install/node_modules/

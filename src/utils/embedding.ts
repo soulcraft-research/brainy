@@ -250,7 +250,7 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
             ) {
               const util = await import('util')
               if (!globalObj.TextEncoder) {
-                globalObj.TextEncoder = util.TextEncoder
+                globalObj.TextEncoder = util.TextEncoder as unknown as typeof TextEncoder
               }
               if (!globalObj.TextDecoder) {
                 globalObj.TextDecoder =
@@ -309,8 +309,8 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
           this.backend = 'cpu'
         }
 
-        // Load Universal Sentence Encoder using dynamic import
-        this.use = await import('@tensorflow-models/universal-sentence-encoder')
+        // Note: @tensorflow-models/universal-sentence-encoder is no longer used
+        // Model loading is handled entirely by robustLoader
       } catch (error) {
         this.logger('error', 'Failed to initialize TensorFlow.js:', error)
         // No fallback allowed - throw error
@@ -324,30 +324,35 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
         await this.tf.setBackend(this.backend)
       }
 
-      // Try to find the load function in different possible module structures
-      const loadFunction = findUSELoadFunction(this.use)
-
-      if (!loadFunction) {
-        this.logger(
-          'error',
-          'Could not find Universal Sentence Encoder load function'
-        )
-        throw new Error(
-          'Universal Sentence Encoder load function not found. Fallback mechanisms are not allowed.'
-        )
-      }
-
+      // Load model using robustLoader which handles all loading strategies:
+      // 1. @soulcraft/brainy-models package if available (offline mode)
+      // 2. Direct TensorFlow.js URL loading as fallback
       try {
-        // Load the model from local files first, falling back to default loading if necessary
-        this.model = await this.loadModelFromLocal(loadFunction)
+        this.model = await this.robustLoader.loadModelWithFallbacks()
         this.initialized = true
+        
+        // If the model doesn't have an embed method but has embedToArrays, wrap it
+        if (!this.model.embed && this.model.embedToArrays) {
+          const originalModel = this.model
+          this.model = {
+            embed: async (sentences: string | string[]) => {
+              const input = Array.isArray(sentences) ? sentences : [sentences]
+              const embeddings = await originalModel.embedToArrays(input)
+              // Return TensorFlow tensor-like object
+              return {
+                array: async () => embeddings,
+                arraySync: () => embeddings
+              }
+            },
+            dispose: () => originalModel.dispose ? originalModel.dispose() : undefined
+          }
+        }
       } catch (modelError) {
         this.logger(
           'error',
           'Failed to load Universal Sentence Encoder model:',
           modelError
         )
-        // No fallback allowed - throw error
         throw new Error(
           `Universal Sentence Encoder model loading failed: ${modelError}`
         )
@@ -572,10 +577,9 @@ export class UniversalSentenceEncoder implements EmbeddingModel {
 }
 
 /**
- * Helper function to load the Universal Sentence Encoder model
- * This tries multiple approaches to find the correct load function
- * @param sentenceEncoderModule The imported module
- * @returns The load function or null if not found
+ * Helper function - NO LONGER USED
+ * Kept for compatibility but will be removed in next major version
+ * @deprecated Since we removed @tensorflow-models/universal-sentence-encoder dependency
  */
 function findUSELoadFunction(
   sentenceEncoderModule: any

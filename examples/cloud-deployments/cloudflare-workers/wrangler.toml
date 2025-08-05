@@ -1,0 +1,42 @@
+# Cloudflare Workers configuration with Brainy models
+# Note: Cloudflare Workers have different constraints than traditional containers
+
+name = "brainy-cloudflare-worker"
+main = "dist/worker.js"
+compatibility_date = "2024-01-15"
+compatibility_flags = ["nodejs_compat"]
+
+# Cloudflare Workers with nodejs_compat support
+node_compat = true
+
+# Environment variables
+[env.production]
+name = "brainy-cloudflare-worker-prod"
+
+[env.staging]
+name = "brainy-cloudflare-worker-staging"
+
+# Build configuration
+[build]
+command = "npm run build:cloudflare"
+cwd = "."
+watch_dir = "src"
+
+# KV namespaces for model storage (alternative approach for Cloudflare)
+[[kv_namespaces]]
+binding = "BRAINY_MODELS"
+id = "your-kv-namespace-id"
+preview_id = "your-preview-kv-namespace-id"
+
+# R2 bucket for large model files
+[[r2_buckets]]
+binding = "BRAINY_MODELS_BUCKET"
+bucket_name = "brainy-models"
+
+# Durable Objects for state management
+[[durable_objects.bindings]]
+name = "BRAINY_STATE"
+class_name = "BrainyState"
+
+# Size limits for Cloudflare Workers
+# Note: Standard workers have 1MB limit, but we can use modules with larger limits
