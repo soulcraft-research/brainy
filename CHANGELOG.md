@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.40.0](https://github.com/soulcraft-research/brainy/compare/v0.39.0...v0.40.0) (2025-08-05)
+
+
+### Fixed
+
+* **core:** resolve TypeScript compilation errors and test failures ([67db734](https://github.com/soulcraft-research/brainy/commit/67db73461124c33bb6fc11cb5f8daf3ddbfd9f09))
+
 ## [0.39.0](https://github.com/soulcraft-research/brainy/compare/v0.38.0...v0.39.0) (2025-08-04)
 
 
