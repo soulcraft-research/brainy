@@ -1,6 +1,6 @@
 {
   "name": "@soulcraft/brainy",
-  "version": "0.42.0",
+  "version": "0.43.0",
   "description": "A vector graph database using HNSW indexing with Origin Private File System storage",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -48,7 +48,7 @@
   "scripts": {
     "prebuild": "echo 'Prebuild step - no version generation needed'",
     "build": "tsc",
-    "build:framework": "tsc", 
+    "build:framework": "tsc",
     "start": "node dist/framework.js",
     "demo": "npm run build && cd demo/brainy-angular-demo && npm run build && npm run serve",
     "prepare": "npm run build",
