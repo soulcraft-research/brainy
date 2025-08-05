@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.43.0](https://github.com/soulcraft-research/brainy/compare/v0.41.0...v0.43.0) (2025-08-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* Models are no longer bundled with the package. They are now loaded dynamically from CDN or custom paths.
+
+### Added
+
+* **package:** add initial package.json for test consumer setup ([f50e220](https://github.com/soulcraft-research/brainy/commit/f50e220263a7bdfa050fcb265e244a097f7a0088))
+* **reliability:** implement automatic offline model detection for production ([042a545](https://github.com/soulcraft-research/brainy/commit/042a5454a27e7d023fb97a363f51f10d537d02d5))
+* **test:** add test script for BrainyData functionality ([b7859e4](https://github.com/soulcraft-research/brainy/commit/b7859e4ab7e5680b801323c9eea90d088ad5c967))
+
+
+### Documentation
+
+* **readme:** add security and enterprise benefits for offline models ([5b022cf](https://github.com/soulcraft-research/brainy/commit/5b022cf4c97228f79500a4e0c7086f7e73d869dd))
+* **readme:** improve user engagement flow and add advanced features ([2acd2e0](https://github.com/soulcraft-research/brainy/commit/2acd2e08331b75d4bee703918ba25b6c352d3542))
+
+
+### Changed
+
+* clean up deprecated functions and unused code ([0214168](https://github.com/soulcraft-research/brainy/commit/02141682804ab36efa56b4fbdbfad72cda2a8d43))
+* clean up project for release ([d429a62](https://github.com/soulcraft-research/brainy/commit/d429a623e3af53d041306734e332608e3f23a8c1))
+* **gitignore:** add node_modules directory for test consumer to .gitignore ([45eef34](https://github.com/soulcraft-research/brainy/commit/45eef34067a1667b6891ba63c231a428ba5e7daf))
+* **gitignore:** ignore npm package artifacts ([6ed3ac5](https://github.com/soulcraft-research/brainy/commit/6ed3ac56fe94d4ab92e1ba2fc829769fbdf4e668))
+* **release:** 1.0.0 ([53edf16](https://github.com/soulcraft-research/brainy/commit/53edf16166f45b3be80c1aab48f9c3be3916ed9d))
+* simplify build system and improve model loading flexibility ([3d4c759](https://github.com/soulcraft-research/brainy/commit/3d4c7596938316d1046e9bf7eb97f1e2ec712523))
+
 ## [0.41.0](https://github.com/soulcraft-research/brainy/compare/v0.40.0...v0.41.0) (2025-08-05)
 
 
