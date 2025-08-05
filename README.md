@@ -31,8 +31,7 @@ easy-to-use package.
 
 - **🧠 Zero-to-Smart™** - No config files, no tuning parameters, no DevOps headaches. Brainy auto-detects your
   environment and optimizes itself
-- **🌍 True Write-Once, Run-Anywhere** - Same code runs in React, Angular, Vue, Node.js, Deno, Bun, serverless, edge
-  workers, and even vanilla HTML
+- **🌍 True Write-Once, Run-Anywhere** - Same code runs in Angular, React, Vue, Node.js, Deno, Bun, serverless, edge workers, and web workers with automatic environment detection
 - **⚡ Scary Fast** - Handles millions of vectors with sub-millisecond search. Built-in GPU acceleration when available
 - **🎯 Self-Learning** - Like having a database that goes to the gym. Gets faster and smarter the more you use it
 - **🔮 AI-First Design** - Built for the age of embeddings, RAG, and semantic search. Your LLMs will thank you
@@ -48,6 +47,408 @@ easy-to-use package.
 - **🔄 Real-Time Data Sync** - Cache automatically updates when data changes, even in distributed scenarios
 - **📊 Performance Monitoring** - Built-in hit rate and memory usage tracking with adaptive optimization
 - **🎯 Zero Breaking Changes** - All existing code works unchanged, just faster and smarter
+
+## 📦 Get Started in 30 Seconds
+
+```bash
+npm install @soulcraft/brainy
+```
+
+```javascript
+import { BrainyData } from '@soulcraft/brainy'
+
+const brainy = new BrainyData()
+await brainy.init() // Auto-detects your environment
+
+// Add some data
+await brainy.add("The quick brown fox jumps over the lazy dog")
+await brainy.add("A fast fox leaps over a sleeping dog")  
+await brainy.add("Cats are independent and mysterious animals")
+
+// Vector search finds similar content
+const results = await brainy.search("speedy animals jumping", 2)
+console.log(results) // Finds the fox sentences!
+```
+
+**🎯 That's it!** You just built semantic search in 4 lines. Works in Angular, React, Vue, Node.js, browsers, serverless - everywhere.
+
+## 🚀 The Magic: Vector + Graph Database
+
+**Most databases do one thing.** Brainy does both vector similarity AND graph relationships:
+
+```javascript
+// Add entities with relationships
+const companyId = await brainy.addNoun("OpenAI creates powerful AI models", "company")
+const productId = await brainy.addNoun("GPT-4 is a large language model", "product")
+
+// Connect them with relationships  
+await brainy.addVerb(companyId, productId, undefined, { type: "develops" })
+
+// Now you can do BOTH:
+const similar = await brainy.search("AI language models")  // Vector similarity
+const products = await brainy.getVerbsByType("develops")   // Graph traversal
+```
+
+**Why this matters:** Find content by meaning AND follow relationships. It's like having PostgreSQL and Pinecone working together seamlessly.
+
+### 🔍 Want More Power?
+- **Advanced graph traversal** - Complex relationship queries and multi-hop searches
+- **Distributed clustering** - Scale across multiple instances with automatic coordination  
+- **Real-time syncing** - WebSocket and WebRTC for live data updates
+- **Custom augmentations** - Extend Brainy with your own functionality
+
+*[See full API documentation below](#-installation) for advanced features*
+
+## 🎨 Build Amazing Things
+
+**🤖 AI Chat Applications** - Build ChatGPT-like apps with long-term memory and context awareness  
+**🔍 Semantic Search Engines** - Search by meaning, not keywords. Find "that thing that's like a cat but bigger" →
+returns "tiger"  
+**🎯 Recommendation Engines** - "Users who liked this also liked..." but actually good  
+**🧬 Knowledge Graphs** - Connect everything to everything. Wikipedia meets Neo4j meets magic  
+**👁️ Computer Vision Apps** - Store and search image embeddings. "Find all photos with dogs wearing hats"  
+**🎵 Music Discovery** - Find songs that "feel" similar. Spotify's Discover Weekly in your app  
+**📚 Smart Documentation** - Docs that answer questions. "How do I deploy to production?" → relevant guides  
+**🛡️ Fraud Detection** - Find patterns humans can't see. Anomaly detection on steroids  
+**🌐 Real-Time Collaboration** - Sync vector data across devices. Figma for AI data  
+**🏥 Medical Diagnosis Tools** - Match symptoms to conditions using embedding similarity
+
+## 🚀 Write-Once, Run-Anywhere Quick Start
+
+Brainy uses the same code across all environments with automatic detection. **Framework-optimized** for the best developer experience. Choose your environment:
+
+### 🅰️ Angular (Latest)
+
+```bash
+npm install @soulcraft/brainy
+```
+
+```typescript
+import { Component, signal, OnInit } from '@angular/core'
+import { BrainyData } from '@soulcraft/brainy'
+
+@Component({
+  selector: 'app-search',
+  template: `
+    <div class="search-container">
+      <input [(ngModel)]="query" 
+             (input)="search($event.target.value)" 
+             placeholder="Search by meaning (try 'pets' or 'food')..."
+             class="search-input">
+      
+      <div class="results">
+        @for (result of results(); track result.id) {
+          <div class="result-item">
+            <strong>{{result.metadata?.category}}</strong>: {{result.metadata?.originalData}}
+            <small>Similarity: {{result.score | number:'1.2-2'}}</small>
+          </div>
+        }
+      </div>
+    </div>
+  `
+})
+export class SearchComponent implements OnInit {
+  private brainy: BrainyData | null = null
+  results = signal<any[]>([])
+  query = ''
+
+  async ngOnInit() {
+    // Auto-detects environment and uses OPFS storage in browsers
+    this.brainy = new BrainyData({
+      defaultService: 'my-app'
+    })
+    await this.brainy.init()
+    
+    // Add sample data
+    await this.brainy.add("Cats are amazing pets", { category: "animals" })
+    await this.brainy.add("Dogs love to play fetch", { category: "animals" }) 
+    await this.brainy.add("Pizza is delicious food", { category: "food" })
+  }
+
+  async search(query: string) {
+    if (!query.trim() || !this.brainy) {
+      this.results.set([])
+      return
+    }
+    
+    const searchResults = await this.brainy.search(query, 5)
+    this.results.set(searchResults)
+  }
+}
+```
+
+### ⚛️ React
+
+```bash
+npm install @soulcraft/brainy
+```
+
+```jsx
+import { BrainyData } from '@soulcraft/brainy'
+import { useEffect, useState } from 'react'
+
+function SemanticSearch() {
+  const [brainy, setBrainy] = useState(null)
+  const [results, setResults] = useState([])
+  const [query, setQuery] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function initBrainy() {
+      // Auto-detects environment and uses OPFS storage in browsers
+      const db = new BrainyData({
+        defaultService: 'my-app'
+      })
+      await db.init()
+      
+      // Add sample data
+      await db.add("Cats are amazing pets", { category: "animals" })
+      await db.add("Dogs love to play fetch", { category: "animals" })
+      await db.add("Pizza is delicious food", { category: "food" })
+      
+      setBrainy(db)
+      setLoading(false)
+    }
+    
+    initBrainy()
+  }, [])
+
+  const search = async (searchQuery) => {
+    if (!searchQuery.trim() || !brainy) return setResults([])
+    
+    const searchResults = await brainy.search(searchQuery, 5)
+    setResults(searchResults)
+  }
+
+  if (loading) return <div>Initializing Brainy...</div>
+
+  return (
+    <div className="search-container">
+      <input 
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value)
+          search(e.target.value)
+        }}
+        placeholder="Search by meaning (try 'pets' or 'food')..."
+        className="search-input"
+      />
+      
+      <div className="results">
+        {results.map((result, i) => (
+          <div key={result.id} className="result-item">
+            <strong>{result.metadata?.category}</strong>: {result.metadata?.originalData}
+            <small>Similarity: {result.score.toFixed(2)}</small>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export default SemanticSearch
+```
+
+### 🌟 Vue 3
+
+```bash
+npm install @soulcraft/brainy
+```
+
+```vue
+<template>
+  <div class="search-container">
+    <input 
+      v-model="query"
+      @input="search"
+      placeholder="Search by meaning (try 'pets' or 'food')..."
+      class="search-input"
+    />
+    
+    <div v-if="loading" class="loading">
+      Initializing Brainy...
+    </div>
+    
+    <div v-else class="results">
+      <div 
+        v-for="result in results" 
+        :key="result.id" 
+        class="result-item"
+      >
+        <strong>{{ result.metadata?.category }}</strong>: {{ result.metadata?.originalData }}
+        <small>Similarity: {{ result.score.toFixed(2) }}</small>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { BrainyData } from '@soulcraft/brainy'
+import { ref, onMounted } from 'vue'
+
+const brainy = ref(null)
+const results = ref([])
+const query = ref('')
+const loading = ref(true)
+
+onMounted(async () => {
+  // Auto-detects environment and uses OPFS storage in browsers
+  const db = new BrainyData({
+    defaultService: 'my-app'
+  })
+  await db.init()
+  
+  // Add sample data
+  await db.add("Cats are amazing pets", { category: "animals" })
+  await db.add("Dogs love to play fetch", { category: "animals" })
+  await db.add("Pizza is delicious food", { category: "food" })
+  
+  brainy.value = db
+  loading.value = false
+})
+
+const search = async () => {
+  if (!query.value.trim() || !brainy.value) {
+    results.value = []
+    return
+  }
+  
+  const searchResults = await brainy.value.search(query.value, 5)
+  results.value = searchResults
+}
+</script>
+
+<style scoped>
+.search-container { max-width: 600px; margin: 0 auto; padding: 20px; }
+.search-input { width: 100%; padding: 12px; margin-bottom: 20px; border: 2px solid #ddd; border-radius: 8px; }
+.result-item { padding: 12px; border: 1px solid #eee; margin-bottom: 8px; border-radius: 6px; }
+.loading { text-align: center; color: #666; }
+</style>
+```
+
+### 🟢 Node.js Server
+
+```bash
+npm install @soulcraft/brainy
+```
+
+```javascript
+import { BrainyData } from '@soulcraft/brainy'
+
+// Auto-detects Node.js → FileSystem (local) or S3 (production), Worker threads
+const brainy = new BrainyData({
+  defaultService: 'my-app',
+  // Optional: Production S3 storage
+  storage: {
+    s3Storage: {
+      bucketName: process.env.S3_BUCKET,
+      region: process.env.AWS_REGION,
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    }
+  }
+})
+await brainy.init()
+
+// Same API everywhere
+await brainy.add("Cats are amazing pets", { category: "animals" })
+const results = await brainy.search("pets", 5)
+console.log('Search results:', results)
+```
+
+### ⚡ Serverless (Vercel/Netlify)
+
+```javascript
+import { BrainyData } from '@soulcraft/brainy'
+
+export default async function handler(req, res) {
+  // Auto-detects serverless → S3/R2 storage for persistence, or Memory for temp
+  const brainy = new BrainyData({
+    defaultService: 'my-app',
+    // Optional: Explicit S3-compatible storage
+    storage: {
+      r2Storage: {
+        bucketName: process.env.R2_BUCKET,
+        accessKeyId: process.env.R2_ACCESS_KEY_ID,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+        accountId: process.env.R2_ACCOUNT_ID
+      }
+    }
+  })
+  await brainy.init()
+  
+  // Same API everywhere  
+  const results = await brainy.search(req.query.q, 5)
+  res.json({ results })
+}
+```
+
+### 🔥 Cloudflare Workers
+
+```javascript
+import { BrainyData } from '@soulcraft/brainy'
+
+export default {
+  async fetch(request) {
+    // Auto-detects edge → Minimal footprint, KV storage
+    const brainy = new BrainyData({
+      defaultService: 'edge-app'
+    })
+    await brainy.init()
+    
+    // Same API everywhere
+    const url = new URL(request.url)
+    const results = await brainy.search(url.searchParams.get('q'), 5)
+    return Response.json({ results })
+  }
+}
+```
+
+### 🦕 Deno
+
+```typescript
+import { BrainyData } from 'https://esm.sh/@soulcraft/brainy'
+
+// Auto-detects Deno → Native compatibility, FileSystem storage
+const brainy = new BrainyData({
+  defaultService: 'deno-app'
+})
+await brainy.init()
+
+// Same API everywhere
+await brainy.add("Deno is awesome", { category: "tech" })
+const results = await brainy.search("technology", 5)
+console.log(results)
+```
+
+**That's it! Same code, everywhere. Zero-to-Smart™**
+
+Brainy automatically detects and optimizes for:
+- 🌐 **Browser frameworks** → OPFS storage, Web Workers, memory optimization
+- 🟢 **Node.js servers** → FileSystem or S3/R2 storage, Worker threads, cluster support  
+- ⚡ **Serverless functions** → S3/R2 or Memory storage, cold start optimization
+- 🔥 **Edge workers** → Memory or KV storage, minimal footprint
+- 🧵 **Web/Worker threads** → Shared storage, thread-safe operations
+- 🦕 **Deno/Bun runtimes** → FileSystem or S3-compatible storage, native performance
+
+
+### 🐳 NEW: Zero-Config Docker Deployment
+
+**Deploy to any cloud with embedded models - no runtime downloads needed!**
+
+```dockerfile
+# One line extracts models automatically during build
+RUN npm run extract-models
+
+# Deploy anywhere: Google Cloud, AWS, Azure, Cloudflare, etc.
+```
+
+- **⚡ 7x Faster Cold Starts** - Models embedded in container, no downloads
+- **🌐 Universal Cloud Support** - Same Dockerfile works everywhere
+- **🔒 Offline Ready** - No external dependencies at runtime
+- **📦 Zero Configuration** - Automatic model detection and loading
+
+See [Docker Deployment Guide](./docs/docker-deployment.md) for complete examples.
 
 ```javascript
 // Zero configuration - everything optimized automatically!
@@ -68,56 +469,6 @@ const page2 = await brainy.searchWithCursor('query', 100, {
 const stats = brainy.getCacheStats()
 console.log(`Auto-tuned cache hit rate: ${(stats.search.hitRate * 100).toFixed(1)}%`)
 ```
-
-## 🚀 Quick Start (30 seconds!)
-
-### Node.js TLDR
-
-```bash
-# Install
-npm install brainy
-
-# Use it
-```
-
-```javascript
-import { createAutoBrainy, NounType, VerbType } from 'brainy'
-
-const brainy = createAutoBrainy()
-
-// Add data with Nouns (entities)
-const catId = await brainy.add("Siamese cats are elegant and vocal", {
-  noun: NounType.Thing,
-  breed: "Siamese",
-  category: "animal"
-})
-
-const ownerId = await brainy.add("John loves his pets", {
-  noun: NounType.Person,
-  name: "John Smith"
-})
-
-// Connect with Verbs (relationships)
-await brainy.addVerb(ownerId, catId, {
-  verb: VerbType.Owns,
-  since: "2020-01-01"
-})
-
-// Search by meaning
-const results = await brainy.searchText("feline companions", 5)
-
-// Search JSON documents by specific fields
-const docs = await brainy.searchDocuments("Siamese", {
-  fields: ['breed', 'category'],  // Search these fields
-  weights: { breed: 2.0 },         // Prioritize breed matches
-  limit: 10
-})
-
-// Find relationships
-const johnsPets = await brainy.getVerbsBySource(ownerId, VerbType.Owns)
-```
-
-That's it! No config, no setup, Zero-to-Smart™
 
 ### 🌐 Distributed Mode Example (NEW!)
 
@@ -161,19 +512,6 @@ console.log(`Instance ${health.instanceId}: ${health.status}`)
 - **Streaming Pipeline** - Process data in real-time as it flows through
 - **Model Control Protocol** - Let AI models access your data
 
-### Smart Optimizations
-
-- **🤖 Intelligent Auto-Configuration** - Detects environment, usage patterns, and optimizes everything automatically
-- **⚡ Runtime Performance Adaptation** - Continuously monitors and self-tunes based on real usage
-- **🌐 Distributed Mode Detection** - Automatically enables real-time updates for shared storage scenarios
-- **📊 Workload-Aware Optimization** - Adapts cache size and TTL based on read/write patterns
-- **🧠 Adaptive Learning** - Gets smarter with usage, learns from your data access patterns
-- **#️⃣ Intelligent Partitioning** - Hash-based partitioning for perfect load distribution
-- **🎯 Role-Based Optimization** - Readers maximize cache, writers optimize throughput
-- **🏷️ Domain-Aware Indexing** - Automatic categorization improves search relevance
-- **🗂️ Multi-Level Caching** - Hot/warm/cold caching with predictive prefetching
-- **💾 Memory Optimization** - 75% reduction with compression for large datasets
-
 ### Developer Experience
 
 - **TypeScript Support** - Fully typed API with generics
@@ -187,6 +525,71 @@ console.log(`Instance ${health.instanceId}: ${health.status}`)
 ```bash
 npm install @soulcraft/brainy
 ```
+
+### ✨ Write-Once, Run-Anywhere Architecture
+
+**Same code, every environment.** Brainy auto-detects and optimizes for your runtime:
+
+```javascript
+// This exact code works in Angular, React, Vue, Node.js, Deno, Bun, 
+// serverless functions, edge workers, and web workers
+import { BrainyData } from '@soulcraft/brainy'
+
+const brainy = new BrainyData()
+await brainy.init() // Auto-detects environment and chooses optimal storage
+
+// Vector + Graph: Add entities (nouns) with relationships (verbs)
+const companyId = await brainy.addNoun("OpenAI creates powerful AI models", "company", { 
+  founded: "2015", industry: "AI" 
+})
+const productId = await brainy.addNoun("GPT-4 is a large language model", "product", { 
+  type: "LLM", parameters: "1.7T" 
+})
+
+// Create relationships between entities  
+await brainy.addVerb(companyId, productId, undefined, { type: "develops" })
+
+// Vector search finds semantically similar content
+const similar = await brainy.search("AI language models", 5)
+
+// Graph operations: explore relationships
+const relationships = await brainy.getVerbsBySource(companyId)
+const allProducts = await brainy.getVerbsByType("develops")
+```
+
+### 🔍 Advanced Graph Operations
+
+```javascript
+// Vector search with graph filtering
+const results = await brainy.search("AI models", 10, {
+  searchVerbs: true,           // Search relationships directly
+  verbTypes: ["develops"],     // Filter by relationship types
+  searchConnectedNouns: true,  // Find entities connected by relationships
+  verbDirection: "outgoing"    // Direction: outgoing, incoming, or both
+})
+
+// Graph traversal methods
+const outgoing = await brainy.getVerbsBySource(entityId)  // What this entity relates to
+const incoming = await brainy.getVerbsByTarget(entityId)  // What relates to this entity
+const byType = await brainy.getVerbsByType("develops")    // All relationships of this type
+
+// Combined vector + graph search
+const connected = await brainy.searchNounsByVerbs("machine learning", 5, {
+  verbTypes: ["develops", "uses"],
+  direction: "both"
+})
+
+// Get related entities through specific relationships
+const related = await brainy.getRelatedNouns(companyId, { relationType: "develops" })
+```
+
+**Universal benefits:**
+- ✅ **Auto-detects everything** - Environment, storage, threading, optimization
+- ✅ **Framework-optimized** - Best experience with Angular, React, Vue bundlers  
+- ✅ **Runtime-agnostic** - Node.js, Deno, Bun, browsers, serverless, edge
+- ✅ **TypeScript-first** - Full types everywhere, IntelliSense support
+- ✅ **Tree-shaking ready** - Modern bundlers import only what you need
+- ✅ **ES Modules architecture** - Individual modules for better optimization by modern frameworks
 
 ### Production: Add Offline Model Reliability
 ```bash
@@ -218,19 +621,75 @@ const brainy = createAutoBrainy({
 })
 ```
 
-## 🎨 Build Amazing Things
+## 🐳 Docker & Cloud Deployment
 
-**🤖 AI Chat Applications** - Build ChatGPT-like apps with long-term memory and context awareness  
-**🔍 Semantic Search Engines** - Search by meaning, not keywords. Find "that thing that's like a cat but bigger" →
-returns "tiger"  
-**🎯 Recommendation Engines** - "Users who liked this also liked..." but actually good  
-**🧬 Knowledge Graphs** - Connect everything to everything. Wikipedia meets Neo4j meets magic  
-**👁️ Computer Vision Apps** - Store and search image embeddings. "Find all photos with dogs wearing hats"  
-**🎵 Music Discovery** - Find songs that "feel" similar. Spotify's Discover Weekly in your app  
-**📚 Smart Documentation** - Docs that answer questions. "How do I deploy to production?" → relevant guides  
-**🛡️ Fraud Detection** - Find patterns humans can't see. Anomaly detection on steroids  
-**🌐 Real-Time Collaboration** - Sync vector data across devices. Figma for AI data  
-**🏥 Medical Diagnosis Tools** - Match symptoms to conditions using embedding similarity
+**Deploy Brainy to any cloud provider with embedded models for maximum performance and reliability.**
+
+### Quick Docker Setup
+
+1. **Install models package:**
+   ```bash
+   npm install @soulcraft/brainy-models
+   ```
+
+2. **Add to your Dockerfile:**
+   ```dockerfile
+   # Extract models during build (zero configuration!)
+   RUN npm run extract-models
+   
+   # Include models in final image
+   COPY --from=builder /app/models ./models
+   ```
+
+3. **Deploy anywhere:**
+   ```bash
+   # Works on all cloud providers
+   gcloud run deploy --source .     # Google Cloud Run
+   aws ecs create-service ...        # AWS ECS/Fargate  
+   az container create ...           # Azure Container Instances
+   wrangler publish                  # Cloudflare Workers
+   ```
+
+### Universal Dockerfile Template
+
+```dockerfile
+FROM node:24-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run extract-models  # ← Automatic model extraction
+RUN npm run build
+
+FROM node:24-alpine AS production  
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production --omit=optional
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/models ./models  # ← Models included
+CMD ["node", "dist/server.js"]
+```
+
+### Benefits
+
+- **⚡ 7x Faster Cold Starts** - No model download delays
+- **🌐 Universal Compatibility** - Same Dockerfile works on all clouds
+- **🔒 Offline Ready** - No external dependencies at runtime
+- **📦 Zero Configuration** - Automatic model detection
+- **🛡️ Enhanced Security** - No network calls for model loading
+
+**📖 Complete Guide:** See [docs/docker-deployment.md](./docs/docker-deployment.md) for detailed examples covering Google Cloud Run, AWS Lambda/ECS, Azure Container Instances, Cloudflare Workers, and more.
+
+### 📦 Modern ES Modules Architecture
+
+Brainy now uses individual ES modules instead of large bundles, providing better optimization for modern frameworks:
+
+- **Better tree-shaking**: Frameworks import only the specific functions you use
+- **Smaller final apps**: Your bundled application only includes what you actually need  
+- **Faster development builds**: No complex bundling during development
+- **Better debugging**: Source maps point to individual files, not large bundles
+
+This change reduced the package size significantly while improving compatibility with Angular, React, Vue, and other modern framework build systems.
 
 ## 🧬 The Power of Nouns & Verbs
 
@@ -600,30 +1059,29 @@ const results = await brainy.searchText("JavaScript with types", 5)
 console.log(results)
 ```
 
-### Vanilla JavaScript
+### 🌍 Framework-First, Runs Everywhere
 
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <script type="module">
-    import { createAutoBrainy } from 'https://unpkg.com/brainy/dist/unified.min.js'
+**Brainy is designed for modern frameworks** with automatic environment detection and storage selection:
 
-    window.brainy = createAutoBrainy()
+**✨ Supported environments:**
+- ⚛️ **React/Vue/Angular** - Framework-optimized builds with proper bundling
+- 🟢 **Node.js/Deno/Bun** - Full server-side capabilities  
+- ⚡ **Serverless/Edge** - Optimized for cold starts and minimal footprint
+- 🧵 **Web/Worker threads** - Thread-safe, shared storage
 
-    window.search = async function(query) {
-      const results = await brainy.searchText(query, 10)
-      document.getElementById('results').innerHTML =
-        results.map(r => `<div>${r.text}</div>`).join('')
-    }
-  </script>
-</head>
-<body>
-<input onkeyup="search(this.value)" placeholder="Search...">
-<div id="results"></div>
-</body>
-</html>
-```
+**🗄️ Auto-selected storage:**
+- 🌐 **OPFS** - Browser frameworks (persistent, fast)
+- 📁 **FileSystem** - Node.js servers (local development)
+- ☁️ **S3/R2/GCS** - Production, serverless, distributed deployments
+- 💾 **Memory** - Edge workers, testing, temporary data
+
+**🚀 Framework benefits:**
+- ✅ **Proper bundling** - Handles dynamic imports and dependencies correctly
+- ✅ **Type safety** - Full TypeScript integration and IntelliSense
+- ✅ **State management** - Reactive updates and component lifecycle
+- ✅ **Production ready** - Tree-shaking, optimization, error boundaries
+
+**Note:** We focus on framework support for reliability. Vanilla JS had too many module resolution issues.
 
 ### Cloudflare Workers
 
