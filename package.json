@@ -175,6 +175,9 @@
     "dotenv": "^16.4.5",
     "uuid": "^9.0.1"
   },
+  "optionalDependencies": {
+    "@soulcraft/brainy-models": "^1.0.0"
+  },
   "prettier": {
     "arrowParens": "always",
     "bracketSameLine": true,
