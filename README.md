@@ -203,6 +203,8 @@ npm install @soulcraft/brainy @soulcraft/brainy-models
 - **🐳 Docker Ready** - Perfect for Cloud Run, Lambda, Kubernetes
 - **🔒 Zero Dependencies** - No external network calls required
 - **🎯 Zero Configuration** - Automatic detection with graceful fallback
+- **🔐 Enhanced Security** - Complete air-gapping support for sensitive environments
+- **🏢 Enterprise Ready** - Works behind corporate firewalls and restricted networks
 
 The offline models provide the **same functionality** with maximum reliability. Your existing code works unchanged - Brainy automatically detects and uses bundled models when available.
 
