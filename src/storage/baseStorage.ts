@@ -7,17 +7,51 @@ import { GraphVerb, HNSWNoun, HNSWVerb, StatisticsData } from '../coreTypes.js'
 import { BaseStorageAdapter } from './adapters/baseStorageAdapter.js'
 
 // Common directory/prefix names
-export const NOUNS_DIR = 'nouns'
-export const VERBS_DIR = 'verbs'
-export const METADATA_DIR = 'metadata'
-export const NOUN_METADATA_DIR = 'noun-metadata'
-export const VERB_METADATA_DIR = 'verb-metadata'
+// Option A: Entity-Based Directory Structure
+export const ENTITIES_DIR = 'entities'
+export const NOUNS_VECTOR_DIR = 'entities/nouns/vectors'
+export const NOUNS_METADATA_DIR = 'entities/nouns/metadata'
+export const VERBS_VECTOR_DIR = 'entities/verbs/vectors'
+export const VERBS_METADATA_DIR = 'entities/verbs/metadata'
+export const INDEXES_DIR = 'indexes'
+export const METADATA_INDEX_DIR = 'indexes/metadata'
+
+// Legacy paths - kept for backward compatibility during migration
+export const NOUNS_DIR = 'nouns'  // Legacy: now maps to entities/nouns/vectors
+export const VERBS_DIR = 'verbs'  // Legacy: now maps to entities/verbs/vectors
+export const METADATA_DIR = 'metadata'  // Legacy: now maps to entities/nouns/metadata
+export const NOUN_METADATA_DIR = 'noun-metadata'  // Legacy: now maps to entities/nouns/metadata
+export const VERB_METADATA_DIR = 'verb-metadata'  // Legacy: now maps to entities/verbs/metadata
 export const INDEX_DIR = 'index'  // Legacy - kept for backward compatibility
-export const SYSTEM_DIR = '_system'  // New location for system data
+export const SYSTEM_DIR = '_system'  // System config & metadata indexes
 export const STATISTICS_KEY = 'statistics'
 
 // Migration version to track compatibility
-export const STORAGE_SCHEMA_VERSION = 2  // Increment when making breaking changes
+export const STORAGE_SCHEMA_VERSION = 3  // v3: Entity-Based Directory Structure (Option A)
+
+// Configuration flag to enable new directory structure
+export const USE_ENTITY_BASED_STRUCTURE = true  // Set to true to use Option A structure
+
+/**
+ * Get the appropriate directory path based on configuration
+ */
+export function getDirectoryPath(entityType: 'noun' | 'verb', dataType: 'vector' | 'metadata'): string {
+  if (USE_ENTITY_BASED_STRUCTURE) {
+    // Option A: Entity-Based Structure
+    if (entityType === 'noun') {
+      return dataType === 'vector' ? NOUNS_VECTOR_DIR : NOUNS_METADATA_DIR
+    } else {
+      return dataType === 'vector' ? VERBS_VECTOR_DIR : VERBS_METADATA_DIR  
+    }
+  } else {
+    // Legacy structure
+    if (entityType === 'noun') {
+      return dataType === 'vector' ? NOUNS_DIR : METADATA_DIR
+    } else {
+      return dataType === 'vector' ? VERBS_DIR : VERB_METADATA_DIR
+    }
+  }
+}
 
 /**
  * Base storage adapter that implements common functionality

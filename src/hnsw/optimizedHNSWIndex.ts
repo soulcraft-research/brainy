@@ -131,7 +131,8 @@ export class OptimizedHNSWIndex extends HNSWIndex {
    */
   public async search(
     queryVector: Vector,
-    k: number = 10
+    k: number = 10,
+    filter?: (id: string) => Promise<boolean>
   ): Promise<Array<[string, number]>> {
     const startTime = Date.now()
 
@@ -160,10 +161,10 @@ export class OptimizedHNSWIndex extends HNSWIndex {
     try {
       // This is a simplified approach - in practice, we'd need to modify
       // the parent class to accept runtime parameter changes
-      results = await super.search(queryVector, k)
+      results = await super.search(queryVector, k, filter)
     } catch (error) {
       console.error('Optimized search failed, falling back to default:', error)
-      results = await super.search(queryVector, k)
+      results = await super.search(queryVector, k, filter)
     }
 
     // Record performance metrics
