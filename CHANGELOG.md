@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.46.0](https://github.com/soulcraft-research/brainy/compare/v0.45.0...v0.46.0) (2025-08-06)
+
+
+### Fixed
+
+* improve local model loading with USE-lite tokenizer support ([5eaf306](https://github.com/soulcraft-research/brainy/commit/5eaf306e76743096d1ad959e5459e0c8a886db57))
+
+
+### Added
+
+* add brainy-models-package v0.8.0 with USE-lite model ([334b469](https://github.com/soulcraft-research/brainy/commit/334b46927b8c867a751da2a536017ab09f187161))
+
+
+### Changed
+
+* add models-download to gitignore ([6e31a3c](https://github.com/soulcraft-research/brainy/commit/6e31a3c4d4d7d2bc2953b940588fc68f433530b7))
+
 ## [0.45.0](https://github.com/soulcraft-research/brainy/compare/v0.44.0...v0.45.0) (2025-08-06)
 
 
