@@ -314,28 +314,50 @@ export class RobustModelLoader {
           console.log('✅ Found @soulcraft/brainy-models package installed')
           console.log('   Using local bundled model for maximum performance and reliability')
           
-          const encoder = new brainyModels.BundledUniversalSentenceEncoder({ 
-            verbose: this.options.verbose,
-            preferCompressed: false 
-          })
-          
-          await encoder.load()
-          console.log('✅ Local Universal Sentence Encoder model loaded successfully')
-          
-          // Return a wrapper that matches the Universal Sentence Encoder interface
-          return {
-            init: async () => {
-              // Already initialized
-            },
-            embed: async (sentences: string | string[]) => {
-              const input = Array.isArray(sentences) ? sentences : [sentences]
-              const embeddings = await encoder.embedToArrays(input)
-              
-              // Return the first embedding as a Vector (number[])
-              return embeddings[0] || []
-            },
-            dispose: async () => {
-              encoder.dispose()
+          try {
+            const encoder = new brainyModels.BundledUniversalSentenceEncoder({ 
+              verbose: this.options.verbose,
+              preferCompressed: false 
+            })
+            
+            // Log metadata if available
+            if (encoder.metadata) {
+              console.log('📋 Model metadata:', encoder.metadata)
+            }
+            
+            await encoder.load()
+            console.log('✅ Local Universal Sentence Encoder model loaded successfully')
+            
+            // Return a wrapper that matches the Universal Sentence Encoder interface
+            return {
+              init: async () => {
+                // Already initialized
+              },
+              embed: async (sentences: string | string[]) => {
+                const input = Array.isArray(sentences) ? sentences : [sentences]
+                const embeddings = await encoder.embedToArrays(input)
+                
+                // Return the first embedding as a Vector (number[])
+                return embeddings[0] || []
+              },
+              dispose: async () => {
+                encoder.dispose()
+              }
+            }
+          } catch (loadError) {
+            console.error('Failed to load bundled model:', loadError)
+            // Try alternative loading method if available
+            if (brainyModels.loadUniversalSentenceEncoder) {
+              console.log('Trying alternative loading method...')
+              try {
+                const model = await brainyModels.loadUniversalSentenceEncoder({
+                  verbose: this.options.verbose
+                })
+                console.log('✅ Loaded via alternative method')
+                return model
+              } catch (altError) {
+                console.error('Alternative loading failed:', altError)
+              }
             }
           }
         }
@@ -365,12 +387,18 @@ export class RobustModelLoader {
 
         // Look for bundled model in multiple possible locations
         const possiblePaths = [
+          // Direct @soulcraft/brainy-models paths
+          path.join(process.cwd(), 'node_modules', '@soulcraft', 'brainy-models', 'models', 'universal-sentence-encoder'),
+          path.join(process.cwd(), 'node_modules', '@soulcraft', 'brainy-models', 'universal-sentence-encoder'),
+          path.join(__dirname, '..', '..', 'node_modules', '@soulcraft', 'brainy-models', 'models', 'universal-sentence-encoder'),
+          path.join(__dirname, '..', '..', 'node_modules', '@soulcraft', 'brainy-models', 'universal-sentence-encoder'),
+          // Alternative paths
           path.join(__dirname, '..', '..', 'models', 'bundled', 'universal-sentence-encoder'),
           path.join(__dirname, '..', '..', 'brainy-models-package', 'models', 'universal-sentence-encoder'),
           path.join(process.cwd(), 'brainy-models-package', 'models', 'universal-sentence-encoder'),
-          path.join(__dirname, '..', '..', 'node_modules', '@soulcraft', 'brainy-models', 'models', 'universal-sentence-encoder'),
-          path.join(__dirname, '..', '..', 'node_modules', '@soulcraft', 'brainy-models', 'universal-sentence-encoder'),
-          path.join(process.cwd(), 'node_modules', '@soulcraft', 'brainy-models', 'universal-sentence-encoder')
+          // Check parent directories (for monorepo structures)
+          path.join(process.cwd(), '..', 'node_modules', '@soulcraft', 'brainy-models', 'models', 'universal-sentence-encoder'),
+          path.join(process.cwd(), '..', '..', 'node_modules', '@soulcraft', 'brainy-models', 'models', 'universal-sentence-encoder')
         ]
 
         for (const modelPath of possiblePaths) {
@@ -648,8 +676,14 @@ export function createRobustModelLoader(options?: ModelLoadOptions): RobustModel
  */
 export function getUniversalSentenceEncoderFallbacks(): string[] {
   return [
-    'https://tfhub.dev/tensorflow/tfjs-model/universal-sentence-encoder/1/default/1',
-    'https://storage.googleapis.com/tfjs-models/savedmodel/universal_sentence_encoder/1/model.json',
+    // TensorFlow Hub model URL (correct path)
+    'https://tfhub.dev/tensorflow/tfjs-model/universal-sentence-encoder/1/default/1/model.json?tfjs-format=file',
+    // Alternative TensorFlow Hub URL
+    'https://www.kaggle.com/models/tensorflow/universal-sentence-encoder/tfJs/default/1/model.json?tfjs-format=file',
+    // Google Storage URL (updated path)
+    'https://storage.googleapis.com/tfjs-models/savedmodel/universal_sentence_encoder/model.json',
+    // Alternative Google Storage URL
+    'https://storage.googleapis.com/tfhub-tfjs-modules/tensorflow/universal-sentence-encoder/1/default/1/model.json',
     // Add more fallback URLs as they become available
   ]
 }
