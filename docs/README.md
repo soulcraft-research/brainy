@@ -43,7 +43,7 @@ Complete API documentation and examples.
 - **[Vector Operations](api-reference/vector-operations.md)** - Vector storage and search
 - **[Graph Operations](api-reference/graph-operations.md)** - Noun and verb relationships
 - **[Configuration API](api-reference/configuration.md)** - System configuration options
-- **[Storage Adapters](api-reference/storage-adapters.md)** - Storage backend interfaces
+- **[Storage Adapters](api-reference/storage-adapters.md)** - Universal storage compatibility and custom adapters
 - **[Augmentations API](api-reference/augmentations.md)** - Extension system
 
 ### 🛠️ [Development](development/)

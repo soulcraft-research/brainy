@@ -7,7 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4.5-blue.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-**A powerful graph & vector data platform for AI applications across any environment**
+**The world's only true Vector + Graph database - unified semantic search and knowledge graphs**
 
 </div>
 
@@ -83,6 +83,34 @@ RUN npm run download-models  # Download during build for offline production
 ```
 
 ---
+
+## 🏆 Industry First: True Vector + Graph Database
+
+**Brainy is the only database that natively combines vector search and graph relationships in a single, unified system.**
+
+Unlike other solutions that bolt vector search onto traditional databases or require multiple systems:
+
+✅ **Native Vector + Graph Architecture** - Purpose-built for both semantic search AND knowledge graphs  
+✅ **Single API, Dual Power** - Vector similarity search AND graph traversal in one database  
+✅ **True Semantic Relationships** - Not just "similar vectors" but meaningful connections like "develops", "owns", "causes"  
+✅ **Zero Integration Complexity** - No need to sync between Pinecone + Neo4j or pgvector + graph databases
+
+**Why This Matters:**
+```javascript
+// Other solutions: Manage 2+ databases
+const vectors = await pinecone.search(query)        // Vector search
+const graph = await neo4j.run("MATCH (a)-[r]->(b)") // Graph traversal
+// How do you keep them in sync? 😢
+
+// Brainy: One database, both capabilities
+const results = await brainy.search("AI models", 10, {
+  includeVerbs: true,     // Include relationships
+  verbTypes: ["develops"] // Filter by relationship type
+})
+// Everything stays perfectly synchronized! 🎉
+```
+
+This revolutionary architecture enables entirely new classes of AI applications that were previously impossible or prohibitively complex.
 
 ## ✨ What is Brainy?
 
@@ -884,6 +912,13 @@ spec:
 
 ❌ **Neo4j** - Great for graphs, no vector support  
 ✅ **Brainy** - Vectors + graphs in one. Best of both worlds
+
+### vs. "Vector + Graph" Solutions
+
+❌ **Pinecone + Neo4j** - Two databases, sync nightmares, double the cost  
+❌ **pgvector + graph extension** - Hacked together, not native, performance issues  
+❌ **Weaviate "references"** - Limited graph capabilities, not true relationships  
+✅ **Brainy** - Purpose-built vector+graph architecture, single source of truth
 
 ### vs. DIY Solutions
 
