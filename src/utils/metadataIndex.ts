@@ -47,7 +47,7 @@ export class MetadataIndexManager {
       rebuildThreshold: config.rebuildThreshold ?? 0.1,
       autoOptimize: config.autoOptimize ?? true,
       indexedFields: config.indexedFields ?? [],
-      excludeFields: config.excludeFields ?? ['id', 'createdAt', 'updatedAt']
+      excludeFields: config.excludeFields ?? ['id', 'createdAt', 'updatedAt', 'embedding', 'vector', 'embeddings', 'vectors']
     }
   }
 
@@ -60,14 +60,67 @@ export class MetadataIndexManager {
   }
 
   /**
+   * Generate field index filename for filter discovery
+   */
+  private getFieldIndexFilename(field: string): string {
+    return `field_${field}`
+  }
+
+  /**
+   * Generate value chunk filename for scalable storage
+   */
+  private getValueChunkFilename(field: string, value: any, chunkIndex: number = 0): string {
+    const normalizedValue = this.normalizeValue(value)
+    const safeValue = this.makeSafeFilename(normalizedValue)
+    return `${field}_${safeValue}_chunk${chunkIndex}`
+  }
+
+  /**
+   * Make a value safe for use in filenames
+   */
+  private makeSafeFilename(value: string): string {
+    // Replace unsafe characters and limit length
+    return value
+      .replace(/[^a-zA-Z0-9-_]/g, '_')
+      .substring(0, 50)
+      .toLowerCase()
+  }
+
+  /**
    * Normalize value for consistent indexing
    */
   private normalizeValue(value: any): string {
     if (value === null || value === undefined) return '__NULL__'
     if (typeof value === 'boolean') return value ? '__TRUE__' : '__FALSE__'
     if (typeof value === 'number') return value.toString()
-    if (Array.isArray(value)) return value.map(v => this.normalizeValue(v)).join(',')
-    return String(value).toLowerCase().trim()
+    if (Array.isArray(value)) {
+      const joined = value.map(v => this.normalizeValue(v)).join(',')
+      // Hash very long array values to avoid filesystem limits
+      if (joined.length > 100) {
+        return this.hashValue(joined)
+      }
+      return joined
+    }
+    const stringValue = String(value).toLowerCase().trim()
+    // Hash very long string values to avoid filesystem limits
+    if (stringValue.length > 100) {
+      return this.hashValue(stringValue)
+    }
+    return stringValue
+  }
+
+  /**
+   * Create a short hash for long values to avoid filesystem filename limits
+   */
+  private hashValue(value: string): string {
+    // Simple hash function to create shorter keys
+    let hash = 0
+    for (let i = 0; i < value.length; i++) {
+      const char = value.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32-bit integer
+    }
+    return `__HASH_${Math.abs(hash).toString(36)}`
   }
 
   /**
@@ -400,12 +453,16 @@ export class MetadataIndexManager {
   }
 
   /**
-   * Load index entry from storage
+   * Load index entry from storage using safe filenames
    */
   private async loadIndexEntry(key: string): Promise<MetadataIndexEntry | null> {
     try {
-      // Load metadata indexes from the _system directory with a special prefix
-      const indexId = `__metadata_index__${key}`
+      // Extract field and value from key
+      const [field, value] = key.split(':', 2)
+      const filename = this.getValueChunkFilename(field, value)
+      
+      // Load from metadata indexes directory with safe filename
+      const indexId = `__metadata_index__${filename}`
       const data = await this.storage.getMetadata(indexId)
       if (data) {
         return {
@@ -422,7 +479,7 @@ export class MetadataIndexManager {
   }
 
   /**
-   * Save index entry to storage
+   * Save index entry to storage using safe filenames
    */
   private async saveIndexEntry(key: string, entry: MetadataIndexEntry): Promise<void> {
     const data = {
@@ -432,17 +489,23 @@ export class MetadataIndexManager {
       lastUpdated: entry.lastUpdated
     }
     
-    // Store metadata indexes in the _system directory with a special prefix
-    const indexId = `__metadata_index__${key}`
+    // Extract field and value from key for safe filename generation
+    const [field, value] = key.split(':', 2)
+    const filename = this.getValueChunkFilename(field, value)
+    
+    // Store metadata indexes with safe filename
+    const indexId = `__metadata_index__${filename}`
     await this.storage.saveMetadata(indexId, data)
   }
 
   /**
-   * Delete index entry from storage
+   * Delete index entry from storage using safe filenames
    */
   private async deleteIndexEntry(key: string): Promise<void> {
     try {
-      const indexId = `__metadata_index__${key}`
+      const [field, value] = key.split(':', 2)
+      const filename = this.getValueChunkFilename(field, value)
+      const indexId = `__metadata_index__${filename}`
       await this.storage.saveMetadata(indexId, null)
     } catch (error) {
       // Entry might not exist
