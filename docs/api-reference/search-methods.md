@@ -427,6 +427,73 @@ Brainy validates metadata queries and provides helpful error messages:
 
 ---
 
+## Filter Discovery API (v0.49+)
+
+### getFilterValues(field)
+
+Get all available values for a specific field that can be used in filters:
+
+```javascript
+// Get all categories in the database
+const categories = await brainy.getFilterValues('category')
+// Returns: ['electronics', 'books', 'clothing', 'home', ...]
+
+// Get all brands
+const brands = await brainy.getFilterValues('brand')
+// Returns: ['apple', 'samsung', 'sony', ...]
+
+// Use discovered values in filters
+const results = await brainy.search("products", 10, {
+  metadata: {
+    category: { $in: categories.slice(0, 3) },  // First 3 categories
+    brand: brands[0]                            // Specific brand
+  }
+})
+```
+
+### getFilterFields()
+
+Get all fields that have been indexed and can be used for filtering:
+
+```javascript
+// Discover what fields are available
+const fields = await brainy.getFilterFields()
+// Returns: ['category', 'price', 'brand', 'rating', 'tags', ...]
+
+// Build dynamic filters based on available fields
+const filter = {}
+if (fields.includes('category')) {
+  filter.category = 'electronics'
+}
+if (fields.includes('price')) {
+  filter.price = { $lte: 1000 }
+}
+
+const results = await brainy.search("query", 10, { metadata: filter })
+```
+
+### Use Cases
+
+1. **Dynamic UI Generation**: Build filter dropdowns from actual data
+2. **Data Exploration**: Understand what metadata exists
+3. **Validation**: Check if a field exists before filtering
+4. **Analytics**: See distribution of values
+
+```javascript
+// Build a filter UI dynamically
+async function buildFilterUI() {
+  const fields = await brainy.getFilterFields()
+  
+  for (const field of fields) {
+    const values = await brainy.getFilterValues(field)
+    console.log(`${field}: ${values.length} unique values`)
+    
+    // Create dropdown/checkbox for each field
+    createFilterControl(field, values)
+  }
+}
+```
+
 ## Migration Guide
 
 ### From Simple Filtering

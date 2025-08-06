@@ -752,12 +752,6 @@ export class FileSystemStorage extends BaseStorage {
     return this.getNode(id)
   }
 
-  /**
-   * Get all nouns from storage
-   */
-  protected async getAllNouns_internal(): Promise<HNSWNoun[]> {
-    return this.getAllNodes()
-  }
 
   /**
    * Get nouns by noun type
@@ -789,12 +783,6 @@ export class FileSystemStorage extends BaseStorage {
     return this.getEdge(id)
   }
 
-  /**
-   * Get all verbs from storage
-   */
-  protected async getAllVerbs_internal(): Promise<HNSWVerb[]> {
-    return this.getAllEdges()
-  }
 
   /**
    * Get verbs by source

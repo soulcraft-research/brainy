@@ -466,17 +466,6 @@ export class S3CompatibleStorage extends BaseStorage {
     }
   }
 
-  /**
-   * Get all nouns from storage (internal implementation)
-   */
-  protected async getAllNouns_internal(): Promise<HNSWNoun[]> {
-    // Use paginated method to avoid deprecation warning
-    const result = await this.getNodesWithPagination({
-      limit: 1000,
-      useCache: true
-    })
-    return result.nodes
-  }
 
   // Node cache to avoid redundant API calls
   private nodeCache = new Map<string, HNSWNode>()
@@ -854,15 +843,6 @@ export class S3CompatibleStorage extends BaseStorage {
     }
   }
 
-  /**
-   * Get all verbs from storage (internal implementation)
-   * @deprecated This method is deprecated and will be removed in a future version.
-   * It can cause memory issues with large datasets. Use getVerbsWithPagination() instead.
-   */
-  protected async getAllVerbs_internal(): Promise<HNSWVerb[]> {
-    this.logger.warn('getAllVerbs_internal() is deprecated and will be removed in a future version. Use getVerbsWithPagination() instead.')
-    return this.getAllEdges()
-  }
 
   /**
    * Get all edges from storage

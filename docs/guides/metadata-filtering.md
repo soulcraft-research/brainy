@@ -372,10 +372,33 @@ const results = await brainy.search("laptop", 10, {
    { specs: { display: "4K" } }  // ❌ Won't work as expected
    ```
 
+## 🔍 Filter Discovery API (v0.49+)
+
+Discover what filters are available in your data:
+
+```javascript
+// Get all available values for a field
+const categories = await brainy.getFilterValues('category')
+console.log('Available categories:', categories)
+// Output: ['electronics', 'books', 'clothing', ...]
+
+// Get all filterable fields
+const fields = await brainy.getFilterFields()
+console.log('Filterable fields:', fields)
+// Output: ['category', 'price', 'brand', 'rating', ...]
+
+// Build dynamic filter UI
+for (const field of fields) {
+  const values = await brainy.getFilterValues(field)
+  createDropdown(field, values)
+}
+```
+
 ## 🎉 What's Next?
 
 This powerful filtering system opens up possibilities for:
 - **Advanced search UIs** with multiple filter controls
+- **Dynamic filter discovery** to build UIs from actual data
 - **Personalized recommendations** based on user preferences  
 - **Complex business logic** in search applications
 - **Multi-tenant filtering** by organization or user
