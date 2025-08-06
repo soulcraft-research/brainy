@@ -14,8 +14,8 @@ RUN npm ci
 # Copy application source
 COPY . .
 
-# 🎯 AUTOMATIC MODEL EXTRACTION - No configuration needed!
-RUN npm run extract-models
+# 🎯 AUTOMATIC MODEL DOWNLOAD - No configuration needed!
+RUN npm run download-models
 
 # Build the application
 RUN npm run build
@@ -32,7 +32,7 @@ RUN npm ci --only=production --omit=optional && npm cache clean --force
 # Copy built application
 COPY --from=builder /app/dist ./dist
 
-# 🎯 COPY AUTO-EXTRACTED MODELS - Works everywhere!
+# 🎯 COPY DOWNLOADED MODELS - Works everywhere!
 COPY --from=builder /app/models ./models
 
 # Create non-root user for security
