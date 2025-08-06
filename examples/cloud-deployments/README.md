@@ -4,8 +4,8 @@ This guide provides **zero-configuration** deployment examples for Brainy across
 
 ## 🚀 How It Works
 
-1. **Automatic Model Extraction**: The `scripts/extract-models.js` script runs during Docker build
-2. **Auto-Detection**: Brainy automatically finds extracted models at runtime
+1. **Automatic Model Download**: The `scripts/download-models.cjs` script runs during Docker build
+2. **Auto-Detection**: Brainy automatically finds downloaded models at runtime
 3. **Universal Compatibility**: Works across Google Cloud, AWS, Azure, Cloudflare, and others
 4. **Zero Configuration**: No environment variables or custom paths needed
 
@@ -14,14 +14,14 @@ This guide provides **zero-configuration** deployment examples for Brainy across
 ### Google Cloud Run
 
 ```dockerfile
-FROM node:24-alpine AS builder
+FROM node:24-slim AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 COPY . .
-RUN node scripts/extract-models.js  # ← Automatic model extraction
+RUN node scripts/download-models.cjs  # ← Automatic model download
 
-FROM node:24-alpine AS production
+FROM node:24-slim AS production
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production --omit=optional
@@ -47,7 +47,7 @@ FROM public.ecr.aws/lambda/nodejs:24
 COPY package*.json ./
 RUN npm ci --only=production
 COPY . .
-RUN node scripts/extract-models.js  # ← Automatic model extraction
+RUN node scripts/download-models.cjs  # ← Automatic model download
 CMD ["index.handler"]
 ```
 
@@ -64,14 +64,14 @@ aws lambda create-function \
 ### AWS ECS/Fargate
 
 ```dockerfile
-FROM node:24-alpine AS builder
+FROM node:24-slim AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 COPY . .
-RUN node scripts/extract-models.js  # ← Automatic model extraction
+RUN node scripts/download-models.cjs  # ← Automatic model download
 
-FROM node:24-alpine AS production
+FROM node:24-slim AS production
 WORKDIR /app
 COPY --from=builder /app/models ./models  # ← Models included
 # ... rest of Dockerfile
@@ -97,14 +97,14 @@ Deploy with ECS task definition:
 ### Azure Container Instances
 
 ```dockerfile
-FROM node:24-alpine AS builder
+FROM node:24-slim AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 COPY . .
-RUN node scripts/extract-models.js  # ← Automatic model extraction
+RUN node scripts/download-models.cjs  # ← Automatic model download
 
-FROM node:24-alpine AS production
+FROM node:24-slim AS production
 WORKDIR /app
 COPY --from=builder /app/models ./models  # ← Models included
 ENV PORT=80
@@ -152,7 +152,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 COPY . .
-RUN node scripts/extract-models.js  # ← Automatic model extraction
+RUN node scripts/download-models.cjs  # ← Automatic model download
 CMD ["node", "dist/server.js"]
 ```
 

@@ -1,7 +1,7 @@
 # Google Cloud Run Dockerfile with Auto-Extracted Models
 # Optimized for Cloud Run's requirements and constraints
 
-FROM node:24-alpine AS builder
+FROM node:24-slim AS builder
 
 WORKDIR /app
 
@@ -15,10 +15,10 @@ RUN npm ci --only=production && npm cache clean --force
 COPY . .
 
 # Extract models using our automatic script
-RUN node scripts/extract-models.js
+RUN node scripts/download-models.cjs
 
 # Production stage
-FROM node:24-alpine AS production
+FROM node:24-slim AS production
 
 WORKDIR /app
 
