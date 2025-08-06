@@ -1,4 +1,4 @@
-<div align="center>
+<div align="center">
 <img src="./brainy.png" alt="Brainy Logo" width="200"/>
 <br/><br/>
 
