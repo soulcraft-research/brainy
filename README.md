@@ -69,6 +69,66 @@ const results = await brainy.search("AI language models", 5, {
 
 **That's it. You just built a knowledge graph with semantic search and faceted filtering in 8 lines.**
 
+## 🔥 MAJOR UPDATES: What's New in v0.51, v0.49 & v0.48
+
+### 🎯 **v0.51: Revolutionary Developer Experience** 
+
+**Problem-focused approach that gets you productive in seconds!**
+
+- ✅ **Problem-Solution Narrative** - Immediately understand why Brainy exists
+- ✅ **8-Line Quickstart** - Three search types in one simple demo  
+- ✅ **Streamlined Documentation** - Focus on what matters most
+- ✅ **Clear Positioning** - The only true Vector + Graph database
+
+### 🎯 **v0.49: Filter Discovery & Performance Improvements**
+
+**Discover available filters and scale to millions of items!**
+
+```javascript
+// Discover what filters are available - O(1) field lookup
+const categories = await brainy.getFilterValues('category')
+// Returns: ['electronics', 'books', 'clothing', ...]
+
+const fields = await brainy.getFilterFields()  // O(1) operation
+// Returns: ['category', 'price', 'brand', 'rating', ...]
+```
+
+- ✅ **Filter Discovery API**: O(1) field discovery for instant filter UI generation
+- ✅ **Improved Performance**: Removed deprecated methods, now uses pagination everywhere
+- ✅ **Better Scalability**: Hybrid indexing with O(1) field access scales to millions
+- ✅ **Smart Caching**: LRU cache for frequently accessed filters
+- ✅ **Zero Configuration**: Everything auto-optimizes based on usage patterns
+
+### 🚀 **v0.48: MongoDB-Style Metadata Filtering**
+
+**Powerful querying with familiar syntax - filter DURING search for maximum performance!**
+
+```javascript
+const results = await brainy.search("wireless headphones", 10, {
+  metadata: {
+    category: { $in: ["electronics", "audio"] },
+    price: { $lte: 200 },
+    rating: { $gte: 4.0 },
+    brand: { $ne: "Generic" }
+  }
+})
+```
+
+- ✅ **15+ MongoDB Operators**: `$gt`, `$in`, `$regex`, `$and`, `$or`, `$includes`, etc.
+- ✅ **Automatic Indexing**: Zero configuration, maximum performance
+- ✅ **Nested Fields**: Use dot notation for complex objects
+- ✅ **100% Backward Compatible**: Your existing code works unchanged
+
+### ⚡ **v0.46: Transformers.js Migration**
+
+**Replaced TensorFlow.js for better performance and true offline operation!**
+
+- ✅ **95% Smaller Package**: 643 kB vs 12.5 MB
+- ✅ **84% Smaller Models**: 87 MB vs 525 MB models
+- ✅ **True Offline**: Zero network calls after initial download
+- ✅ **5x Fewer Dependencies**: Clean tree, no peer dependency issues
+- ✅ **Same API**: Drop-in replacement, existing code works unchanged
+
 ## 🏆 Why Brainy Wins
 
 - 🧠 **Triple Search Power** - Vector + Graph + Faceted filtering in one query
@@ -84,26 +144,163 @@ const results = await brainy.search("AI language models", 5, {
 - **⚡ LLM Generation** - Built-in content generation powered by your knowledge graph  
 - **🌊 Real-time Sync** - Live updates across distributed instances
 
-## 🎯 Perfect For
+## 🎨 Build Amazing Things
 
-**🤖 AI Chat Applications** - ChatGPT-like apps with long-term memory and context  
-**🔍 Semantic Search** - Find "that thing like a cat but bigger" → returns "tiger"  
-**🧬 Knowledge Graphs** - Connect everything. Wikipedia meets Neo4j meets magic  
+**🤖 AI Chat Applications** - Build ChatGPT-like apps with long-term memory and context awareness  
+**🔍 Semantic Search Engines** - Search by meaning, not keywords. Find "that thing that's like a cat but bigger" → returns "tiger"  
 **🎯 Recommendation Engines** - "Users who liked this also liked..." but actually good  
-**📚 Smart Documentation** - Docs that answer questions before you ask them  
+**🧬 Knowledge Graphs** - Connect everything to everything. Wikipedia meets Neo4j meets magic  
+**👁️ Computer Vision Apps** - Store and search image embeddings. "Find all photos with dogs wearing hats"  
+**🎵 Music Discovery** - Find songs that "feel" similar. Spotify's Discover Weekly in your app  
+**📚 Smart Documentation** - Docs that answer questions. "How do I deploy to production?" → relevant guides  
+**🛡️ Fraud Detection** - Find patterns humans can't see. Anomaly detection on steroids  
+**🌐 Real-Time Collaboration** - Sync vector data across devices. Figma for AI data  
+**🏥 Medical Diagnosis Tools** - Match symptoms to conditions using embedding similarity
 
 ## 🌍 Works Everywhere - Same Code
 
+**Write once, run anywhere.** Brainy auto-detects your environment and optimizes automatically:
+
+### 🌐 Browser Frameworks (React, Angular, Vue)
+
 ```javascript
-// This EXACT code works in ALL environments
 import { BrainyData } from '@soulcraft/brainy'
 
+// SAME CODE in React, Angular, Vue, Svelte, etc.
 const brainy = new BrainyData()
-await brainy.init()
+await brainy.init()  // Auto-uses OPFS in browsers
 
-// Works in: React, Vue, Angular, Node.js, Deno, Bun, 
-// Cloudflare Workers, Vercel Edge, AWS Lambda, browsers, anywhere
+// Add entities and relationships
+const john = await brainy.add("John is a software engineer", { type: "person" })
+const jane = await brainy.add("Jane is a data scientist", { type: "person" })
+const ai = await brainy.add("AI Project", { type: "project" })
+
+await brainy.relate(john, ai, "works_on")
+await brainy.relate(jane, ai, "leads")
+
+// Search by meaning
+const engineers = await brainy.search("software developers", 5)
+
+// Traverse relationships
+const team = await brainy.getVerbsByTarget(ai)  // Who works on AI Project?
 ```
+
+<details>
+<summary>📦 <strong>Full React Component Example</strong></summary>
+
+```jsx
+import { BrainyData } from '@soulcraft/brainy'
+import { useEffect, useState } from 'react'
+
+function Search() {
+  const [brainy, setBrainy] = useState(null)
+  const [results, setResults] = useState([])
+
+  useEffect(() => {
+    const init = async () => {
+      const db = new BrainyData()
+      await db.init()
+      // Add your data...
+      setBrainy(db)
+    }
+    init()
+  }, [])
+
+  const search = async (query) => {
+    const results = await brainy?.search(query, 5) || []
+    setResults(results)
+  }
+
+  return <input onChange={(e) => search(e.target.value)} placeholder="Search..." />
+}
+```
+
+</details>
+
+<details>
+<summary>📦 <strong>Full Angular Component Example</strong></summary>
+
+```typescript
+import { Component, signal, OnInit } from '@angular/core'
+import { BrainyData } from '@soulcraft/brainy'
+
+@Component({
+  selector: 'app-search',
+  template: `<input (input)="search($event.target.value)" placeholder="Search...">`
+})
+export class SearchComponent implements OnInit {
+  brainy = new BrainyData()
+
+  async ngOnInit() {
+    await this.brainy.init()
+    // Add your data...
+  }
+
+  async search(query: string) {
+    const results = await this.brainy.search(query, 5)
+    // Display results...
+  }
+}
+```
+
+</details>
+
+<details>
+<summary>📦 <strong>Full Vue Example</strong></summary>
+
+```vue
+<script setup>
+  import { BrainyData } from '@soulcraft/brainy'
+  import { ref, onMounted } from 'vue'
+
+  const brainy = ref(null)
+  const results = ref([])
+
+  onMounted(async () => {
+    const db = new BrainyData()
+    await db.init()
+    // Add your data...
+    brainy.value = db
+  })
+
+  const search = async (query) => {
+    const results = await brainy.value?.search(query, 5) || []
+    setResults(results)
+  }
+</script>
+
+<template>
+  <input @input="search($event.target.value)" placeholder="Search..." />
+</template>
+```
+
+</details>
+
+### 🟢 Node.js / Serverless / Edge
+
+```javascript
+import { BrainyData } from '@soulcraft/brainy'
+
+// SAME CODE works in Node.js, Vercel, Netlify, Cloudflare Workers, Deno, Bun
+const brainy = new BrainyData()
+await brainy.init()  // Auto-detects environment and optimizes
+
+// Add entities and relationships
+await brainy.add("Python is great for data science", { type: "fact" })
+await brainy.add("JavaScript rules the web", { type: "fact" })
+
+// Search by meaning
+const results = await brainy.search("programming languages", 5)
+
+// Optional: Production with S3/R2 storage (auto-detected in cloud environments)
+const productionBrainy = new BrainyData({
+  storage: {
+    s3Storage: { bucketName: process.env.BUCKET_NAME }
+  }
+})
+```
+
+**That's it! Same code, everywhere. Zero-to-Smart™**
 
 Brainy automatically detects and optimizes for your environment:
 
@@ -113,6 +310,44 @@ Brainy automatically detects and optimizes for your environment:
 | 🟢 Node.js | FileSystem / S3 | Worker Threads, Clustering |
 | ⚡ Serverless | S3 / Memory | Cold Start Optimization |
 | 🔥 Edge | Memory / KV | Minimal Footprint |
+
+## 🌐 Distributed Mode (NEW!)
+
+**Scale horizontally with zero configuration!** Brainy now supports distributed deployments with automatic coordination:
+
+- **🌐 Multi-Instance Coordination** - Multiple readers and writers working in harmony
+- **🏷️ Smart Domain Detection** - Automatically categorizes data (medical, legal, product, etc.)
+- **📊 Real-Time Health Monitoring** - Track performance across all instances
+- **🔄 Automatic Role Optimization** - Readers optimize for cache, writers for throughput
+- **🗂️ Intelligent Partitioning** - Hash-based partitioning for perfect load distribution
+
+```javascript
+// Writer Instance - Ingests data from multiple sources
+const writer = new BrainyData({
+  storage: { s3Storage: { bucketName: 'my-bucket' } },
+  distributed: { role: 'writer' }  // Explicit role for safety
+})
+
+// Reader Instance - Optimized for search queries
+const reader = new BrainyData({
+  storage: { s3Storage: { bucketName: 'my-bucket' } },
+  distributed: { role: 'reader' }  // 80% memory for cache
+})
+
+// Data automatically gets domain tags
+await writer.add("Patient shows symptoms of...", {
+  diagnosis: "flu"  // Auto-tagged as 'medical' domain
+})
+
+// Domain-aware search across all partitions
+const results = await reader.search("medical symptoms", 10, {
+  filter: { domain: 'medical' }  // Only search medical data
+})
+
+// Monitor health across all instances
+const health = reader.getHealthStatus()
+console.log(`Instance ${health.instanceId}: ${health.status}`)
+```
 
 ## 🆚 Why Not Just Use...?
 
