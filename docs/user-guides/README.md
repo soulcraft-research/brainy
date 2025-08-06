@@ -20,6 +20,14 @@ Optimize data ingestion with write-only mode.
 - Performance optimization for writes
 - Use cases and implementations
 
+### 🔒 [Read-Only & Frozen Modes](../guides/readonly-frozen-modes.md)
+Control immutability for different production scenarios.
+
+- Read-only with optimizations (default)
+- Completely frozen for compliance
+- Dynamic mode switching
+- Migration from older versions
+
 ### 💾 [Cache Configuration](../guides/cache-configuration.md)
 Configure caching for optimal performance.
 
