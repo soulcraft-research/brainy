@@ -11,8 +11,10 @@ import {
   VERBS_DIR,
   METADATA_DIR,
   INDEX_DIR,
+  SYSTEM_DIR,
   STATISTICS_KEY
 } from '../baseStorage.js'
+import { StorageCompatibilityLayer, StoragePaths } from '../backwardCompatibility.js'
 import {
   StorageOperationExecutors,
   OperationConfig
@@ -79,7 +81,9 @@ export class S3CompatibleStorage extends BaseStorage {
   private nounPrefix: string
   private verbPrefix: string
   private metadataPrefix: string
-  private indexPrefix: string
+  private indexPrefix: string  // Legacy - for backward compatibility
+  private systemPrefix: string  // New location for system data
+  private useDualWrite: boolean = true  // Write to both locations during migration
 
   // Statistics caching for better performance
   protected statisticsCache: StatisticsData | null = null
@@ -142,7 +146,8 @@ export class S3CompatibleStorage extends BaseStorage {
     this.nounPrefix = `${NOUNS_DIR}/`
     this.verbPrefix = `${VERBS_DIR}/`
     this.metadataPrefix = `${METADATA_DIR}/`
-    this.indexPrefix = `${INDEX_DIR}/`
+    this.indexPrefix = `${INDEX_DIR}/`  // Legacy
+    this.systemPrefix = `${SYSTEM_DIR}/`  // New
     
     // Initialize cache managers
     this.nounCacheManager = new CacheManager<HNSWNode>(options.cacheConfig)
@@ -1921,18 +1926,29 @@ export class S3CompatibleStorage extends BaseStorage {
       // Update local cache with merged data
       this.statisticsCache = mergedStats
 
-      // Also update the legacy key for backward compatibility, but less frequently
-      // Only update it once every 10 flushes (approximately)
-      if (Math.random() < 0.1) {
-        const legacyKey = this.getLegacyStatisticsKey()
-        await this.s3Client!.send(
-          new PutObjectCommand({
-            Bucket: this.bucketName,
-            Key: legacyKey,
-            Body: body,
-            ContentType: 'application/json'
-          })
-        )
+      // During migration period, also update the legacy location
+      // for backward compatibility with older services
+      if (this.useDualWrite) {
+        try {
+          const legacyKey = this.getLegacyStatisticsKey()
+          await this.s3Client!.send(
+            new PutObjectCommand({
+              Bucket: this.bucketName,
+              Key: legacyKey,
+              Body: body,
+              ContentType: 'application/json',
+              Metadata: {
+                'migration-note': 'dual-write-for-compatibility',
+                'schema-version': '2'
+              }
+            })
+          )
+        } catch (error) {
+          StorageCompatibilityLayer.logMigrationEvent(
+            'Failed to write statistics to legacy S3 location',
+            { error }
+          )
+        }
       }
     } catch (error) {
       this.logger.error('Failed to flush statistics data:', error)

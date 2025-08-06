@@ -256,6 +256,12 @@ export interface StatisticsData {
    * Last updated timestamp
    */
   lastUpdated: string
+
+  /**
+   * Distributed configuration (stored in index folder for easy access)
+   * This is used for distributed Brainy instances coordination
+   */
+  distributedConfig?: import('./types/distributedTypes.js').SharedConfig
 }
 
 export interface StorageAdapter {

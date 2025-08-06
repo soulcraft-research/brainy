@@ -12,8 +12,12 @@ export const VERBS_DIR = 'verbs'
 export const METADATA_DIR = 'metadata'
 export const NOUN_METADATA_DIR = 'noun-metadata'
 export const VERB_METADATA_DIR = 'verb-metadata'
-export const INDEX_DIR = 'index'
+export const INDEX_DIR = 'index'  // Legacy - kept for backward compatibility
+export const SYSTEM_DIR = '_system'  // New location for system data
 export const STATISTICS_KEY = 'statistics'
+
+// Migration version to track compatibility
+export const STORAGE_SCHEMA_VERSION = 2  // Increment when making breaking changes
 
 /**
  * Base storage adapter that implements common functionality
@@ -891,6 +895,22 @@ export abstract class BaseStorage extends BaseStorageAdapter {
       obj[key.toString()] = valueTransformer(value)
     }
     return obj
+  }
+
+  /**
+   * Save statistics data to storage (public interface)
+   * @param statistics The statistics data to save
+   */
+  public async saveStatistics(statistics: StatisticsData): Promise<void> {
+    return this.saveStatisticsData(statistics)
+  }
+
+  /**
+   * Get statistics data from storage (public interface)
+   * @returns Promise that resolves to the statistics data or null if not found
+   */
+  public async getStatistics(): Promise<StatisticsData | null> {
+    return this.getStatisticsData()
   }
 
   /**

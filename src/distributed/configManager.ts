@@ -12,6 +12,10 @@ import {
 } from '../types/distributedTypes.js'
 import { StorageAdapter } from '../coreTypes.js'
 
+// Constants for config storage locations
+const DISTRIBUTED_CONFIG_KEY = 'distributed_config'
+const LEGACY_CONFIG_KEY = '_distributed_config'
+
 export class DistributedConfigManager {
   private config: SharedConfig | null = null
   private instanceId: string
@@ -25,6 +29,7 @@ export class DistributedConfigManager {
   private configWatchTimer?: NodeJS.Timeout
   private lastConfigVersion: number = 0
   private onConfigUpdate?: (config: SharedConfig) => void
+  private hasMigrated: boolean = false
   
   constructor(
     storage: StorageAdapter,
@@ -33,7 +38,8 @@ export class DistributedConfigManager {
   ) {
     this.storage = storage
     this.instanceId = distributedConfig?.instanceId || `instance-${uuidv4()}`
-    this.configPath = distributedConfig?.configPath || '_brainy/config.json'
+    // Updated default path to use _system instead of _brainy
+    this.configPath = distributedConfig?.configPath || '_system/distributed_config.json'
     this.heartbeatInterval = distributedConfig?.heartbeatInterval || 30000
     this.configCheckInterval = distributedConfig?.configCheckInterval || 10000
     this.instanceTimeout = distributedConfig?.instanceTimeout || 60000
@@ -79,10 +85,31 @@ export class DistributedConfigManager {
    * Load existing config or create new one
    */
   private async loadOrCreateConfig(): Promise<SharedConfig> {
+    // First, try to load from the new location in index folder
     try {
-      // Use metadata storage with a special ID for config
-      const configData = await this.storage.getMetadata('_distributed_config')
+      const configData = await this.storage.getStatistics()
+      if (configData && configData.distributedConfig) {
+        this.lastConfigVersion = configData.distributedConfig.version
+        return configData.distributedConfig as SharedConfig
+      }
+    } catch (error) {
+      // Config doesn't exist in new location yet
+    }
+    
+    // Check if we need to migrate from old location
+    if (!this.hasMigrated) {
+      const migrated = await this.migrateConfigFromLegacyLocation()
+      if (migrated) {
+        return migrated
+      }
+    }
+    
+    // Legacy fallback - try old location
+    try {
+      const configData = await this.storage.getMetadata(LEGACY_CONFIG_KEY)
       if (configData) {
+        // Migrate to new location
+        await this.migrateConfig(configData as SharedConfig)
         this.lastConfigVersion = configData.version
         return configData as SharedConfig
       }
@@ -179,6 +206,57 @@ export class DistributedConfigManager {
   }
   
   /**
+   * Migrate config from legacy location to new location
+   */
+  private async migrateConfigFromLegacyLocation(): Promise<SharedConfig | null> {
+    try {
+      // Try to load from old location
+      const legacyConfig = await this.storage.getMetadata(LEGACY_CONFIG_KEY)
+      if (legacyConfig) {
+        console.log('Migrating distributed config from legacy location to index folder...')
+        
+        // Save to new location
+        await this.migrateConfig(legacyConfig as SharedConfig)
+        
+        // Delete from old location (optional - we can keep it for rollback)
+        // await this.storage.deleteMetadata(LEGACY_CONFIG_KEY)
+        
+        this.hasMigrated = true
+        this.lastConfigVersion = legacyConfig.version
+        return legacyConfig as SharedConfig
+      }
+    } catch (error) {
+      console.error('Error during config migration:', error)
+    }
+    
+    this.hasMigrated = true
+    return null
+  }
+  
+  /**
+   * Migrate config to new location in index folder
+   */
+  private async migrateConfig(config: SharedConfig): Promise<void> {
+    // Get existing statistics or create new
+    let stats = await this.storage.getStatistics()
+    if (!stats) {
+      stats = {
+        nounCount: {},
+        verbCount: {},
+        metadataCount: {},
+        hnswIndexSize: 0,
+        lastUpdated: new Date().toISOString()
+      }
+    }
+    
+    // Add distributed config to statistics
+    stats.distributedConfig = config
+    
+    // Save updated statistics
+    await this.storage.saveStatistics(stats)
+  }
+  
+  /**
    * Save configuration with version increment
    */
   private async saveConfig(config: SharedConfig): Promise<void> {
@@ -186,8 +264,23 @@ export class DistributedConfigManager {
     config.updated = new Date().toISOString()
     this.lastConfigVersion = config.version
     
-    // Use metadata storage with a special ID for config
-    await this.storage.saveMetadata('_distributed_config', config)
+    // Save to new location in index folder along with statistics
+    let stats = await this.storage.getStatistics()
+    if (!stats) {
+      stats = {
+        nounCount: {},
+        verbCount: {},
+        metadataCount: {},
+        hnswIndexSize: 0,
+        lastUpdated: new Date().toISOString()
+      }
+    }
+    
+    // Update distributed config in statistics
+    stats.distributedConfig = config
+    
+    // Save updated statistics
+    await this.storage.saveStatistics(stats)
     
     this.config = config
   }
@@ -251,7 +344,23 @@ export class DistributedConfigManager {
       await this.saveConfig(this.config)
     } else {
       // Just update our heartbeat without version increment
-      await this.storage.saveMetadata('_distributed_config', this.config)
+      // Get existing statistics
+      let stats = await this.storage.getStatistics()
+      if (!stats) {
+        stats = {
+          nounCount: {},
+          verbCount: {},
+          metadataCount: {},
+          hnswIndexSize: 0,
+          lastUpdated: new Date().toISOString()
+        }
+      }
+      
+      // Update distributed config in statistics without version increment
+      stats.distributedConfig = this.config
+      
+      // Save updated statistics
+      await this.storage.saveStatistics(stats)
     }
   }
   
@@ -291,9 +400,19 @@ export class DistributedConfigManager {
    */
   private async loadConfig(): Promise<SharedConfig | null> {
     try {
-      const configData = await this.storage.getMetadata('_distributed_config')
-      if (configData) {
-        return configData as SharedConfig
+      // Try new location first
+      const stats = await this.storage.getStatistics()
+      if (stats && stats.distributedConfig) {
+        return stats.distributedConfig as SharedConfig
+      }
+      
+      // Fallback to legacy location if not migrated yet
+      if (!this.hasMigrated) {
+        const configData = await this.storage.getMetadata(LEGACY_CONFIG_KEY)
+        if (configData) {
+          // Trigger migration on next save
+          return configData as SharedConfig
+        }
       }
     } catch (error) {
       console.error('Failed to load config:', error)
@@ -358,7 +477,23 @@ export class DistributedConfigManager {
     }
     
     // Don't increment version for metric updates
-    await this.storage.saveMetadata('_distributed_config', this.config)
+    // Get existing statistics
+    let stats = await this.storage.getStatistics()
+    if (!stats) {
+      stats = {
+        nounCount: {},
+        verbCount: {},
+        metadataCount: {},
+        hnswIndexSize: 0,
+        lastUpdated: new Date().toISOString()
+      }
+    }
+    
+    // Update distributed config in statistics without version increment
+    stats.distributedConfig = this.config
+    
+    // Save updated statistics
+    await this.storage.saveStatistics(stats)
   }
   
   /**
