@@ -138,7 +138,7 @@ export function createMockDirectoryHandle(dirName: string, entries: Map<string, 
       
       return Promise.resolve()
     }),
-    entries: vi.fn().mockImplementation(function* () {
+    entries: vi.fn().mockImplementation(async function* () {
       const dirEntries = mockFileSystem.get(fullPath) || new Map()
       
       for (const [name, entry] of dirEntries.entries()) {
@@ -147,6 +147,24 @@ export function createMockDirectoryHandle(dirName: string, entries: Map<string, 
         } else {
           yield [name, createMockDirectoryHandle(name, entry.content)]
         }
+      }
+    }),
+    values: vi.fn().mockImplementation(async function* () {
+      const dirEntries = mockFileSystem.get(fullPath) || new Map()
+      
+      for (const [name, entry] of dirEntries.entries()) {
+        if (entry.type === 'file') {
+          yield createMockFileHandle(name, entry.content)
+        } else {
+          yield createMockDirectoryHandle(name, entry.content)
+        }
+      }
+    }),
+    keys: vi.fn().mockImplementation(async function* () {
+      const dirEntries = mockFileSystem.get(fullPath) || new Map()
+      
+      for (const name of dirEntries.keys()) {
+        yield name
       }
     })
   }
