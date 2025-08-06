@@ -133,7 +133,7 @@ describe('Hash Partitioner', () => {
         partitionStrategy: 'hash' as const,
         partitionCount: 10,
         embeddingModel: 'test',
-        dimensions: 512,
+        dimensions: 384,
         distanceMetric: 'cosine' as const
       },
       instances: {}
@@ -158,7 +158,7 @@ describe('Hash Partitioner', () => {
         partitionStrategy: 'hash' as const,
         partitionCount: 10,
         embeddingModel: 'test',
-        dimensions: 512,
+        dimensions: 384,
         distanceMetric: 'cosine' as const
       },
       instances: {}
@@ -404,7 +404,7 @@ describe('BrainyData with Distributed Mode', () => {
     }
     
     // Create a proper 512-dimensional vector
-    const vector = new Array(512).fill(0).map((_, i) => i / 512)
+    const vector = new Array(384).fill(0).map((_, i) => i / 384)
     
     const id = await brainy.add(vector, medicalData)
     const result = await brainy.get(id)
@@ -428,9 +428,9 @@ describe('BrainyData with Distributed Mode', () => {
     await brainy.init()
     
     // Create proper 512-dimensional vectors
-    const vector1 = new Array(512).fill(0).map((_, i) => i === 0 ? 1 : 0)
-    const vector2 = new Array(512).fill(0).map((_, i) => i === 1 ? 1 : 0)
-    const vector3 = new Array(512).fill(0).map((_, i) => i === 2 ? 1 : 0)
+    const vector1 = new Array(384).fill(0).map((_, i) => i === 0 ? 1 : 0)
+    const vector2 = new Array(384).fill(0).map((_, i) => i === 1 ? 1 : 0)
+    const vector3 = new Array(384).fill(0).map((_, i) => i === 2 ? 1 : 0)
     
     // Add items with different domains
     await brainy.add(vector1, { domain: 'medical', content: 'medical1' })

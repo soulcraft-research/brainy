@@ -27,11 +27,9 @@ import {
 import {
   cosineDistance,
   defaultEmbeddingFunction,
-  defaultBatchEmbeddingFunction,
-  getDefaultEmbeddingFunction,
-  getDefaultBatchEmbeddingFunction,
   euclideanDistance,
-  cleanupWorkerPools
+  cleanupWorkerPools,
+  batchEmbed
 } from './utils/index.js'
 import { getAugmentationVersion } from './utils/version.js'
 import { NounType, VerbType, GraphNoun } from './types/graphTypes.js'
@@ -445,8 +443,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
    * Create a new vector database
    */
   constructor(config: BrainyDataConfig = {}) {
-    // Set dimensions to fixed value of 512 (Universal Sentence Encoder dimension)
-    this._dimensions = 512
+    // Set dimensions to fixed value of 384 (all-MiniLM-L6-v2 dimension)
+    this._dimensions = 384
 
     // Set distance function
     this.distanceFunction = config.distanceFunction || cosineDistance
@@ -480,9 +478,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     if (config.embeddingFunction) {
       this.embeddingFunction = config.embeddingFunction
     } else {
-      this.embeddingFunction = getDefaultEmbeddingFunction({
-        verbose: this.loggingConfig?.verbose
-      })
+      this.embeddingFunction = defaultEmbeddingFunction
     }
 
     // Set persistent storage request flag
@@ -1051,10 +1047,10 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
           // Try again with a different approach - use the non-threaded version
           // This is a fallback in case the threaded version fails
-          const { createTensorFlowEmbeddingFunction } = await import(
+          const { createEmbeddingFunction } = await import(
             './utils/embedding.js'
           )
-          const fallbackEmbeddingFunction = createTensorFlowEmbeddingFunction()
+          const fallbackEmbeddingFunction = createEmbeddingFunction()
 
           // Test the fallback embedding function
           await fallbackEmbeddingFunction('')
@@ -1859,7 +1855,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           const texts = textItems.map((item) => item.text)
 
           // Perform batch embedding
-          const embeddings = await defaultBatchEmbeddingFunction(texts)
+          const embeddings = await batchEmbed(texts)
 
           // Add each item with its embedding
           textPromises = textItems.map((item, i) =>

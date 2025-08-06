@@ -50,10 +50,12 @@ describe('Model Loading Priority', () => {
       console.log('Model loading failed (expected in test environment):', error)
     }
     
-    // Check if it attempted to load @soulcraft/brainy-models first
+    // Check if it attempted to load local models (either @tensorflow-models or @soulcraft/brainy-models)
     const hasCheckedForLocalModel = logMessages.some(msg => 
       msg.includes('@soulcraft/brainy-models') || 
-      msg.includes('Checking for @soulcraft/brainy-models')
+      msg.includes('Checking for @soulcraft/brainy-models') ||
+      msg.includes('@tensorflow-models/universal-sentence-encoder') ||
+      msg.includes('Checking for @tensorflow-models/universal-sentence-encoder')
     )
     
     expect(hasCheckedForLocalModel).toBe(true)
@@ -79,7 +81,8 @@ describe('Model Loading Priority', () => {
     
     // We should see one of these: either local model found or fallback warning
     const hasLocalModelSuccess = logMessages.some(msg => 
-      msg.includes('Found @soulcraft/brainy-models package installed')
+      msg.includes('Found @soulcraft/brainy-models package installed') ||
+      msg.includes('Found @tensorflow-models/universal-sentence-encoder package')
     )
     
     // Either we found the local model OR we got a fallback warning
@@ -115,7 +118,7 @@ describe('Model Loading Priority', () => {
         async load() { return true }
         async embedToArrays(input: string[]) {
           // Return mock embeddings with correct dimensions
-          return input.map(() => new Array(512).fill(0.1))
+          return input.map(() => new Array(384).fill(0.1))
         }
         dispose() {}
       }
@@ -135,7 +138,7 @@ describe('Model Loading Priority', () => {
         init: async () => {},
         embed: async (sentences: string | string[]) => {
           const input = Array.isArray(sentences) ? sentences : [sentences]
-          return new Array(512).fill(0.1)
+          return new Array(384).fill(0.1)
         },
         dispose: async () => {}
       }

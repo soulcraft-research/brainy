@@ -3,14 +3,7 @@
  * A vector and graph database using HNSW
  */
 
-// CRITICAL: The TensorFlow.js environment patch is now centralized in setup.ts
-// We import setup.js below which applies the necessary patches through textEncoding.js
-// This ensures a consistent patching approach and avoids conflicts
-
-// Import the setup file for its side-effects.
-// This MUST be the very first import to ensure patches are applied
-// before any other module (like TensorFlow.js) is loaded.
-import './setup.js'
+// No setup needed - using clean ONNX Runtime with Transformers.js
 
 // Export main BrainyData class and related types
 import { BrainyData, BrainyDataConfig } from './brainyData.js'
@@ -38,10 +31,11 @@ export {
 // Export embedding functionality
 import {
   UniversalSentenceEncoder,
+  TransformerEmbedding,
   createEmbeddingFunction,
-  createTensorFlowEmbeddingFunction,
-  createThreadedEmbeddingFunction,
-  defaultEmbeddingFunction
+  defaultEmbeddingFunction,
+  batchEmbed,
+  embeddingFunctions
 } from './utils/embedding.js'
 
 // Export worker utilities
@@ -69,10 +63,11 @@ import {
 
 export {
   UniversalSentenceEncoder,
+  TransformerEmbedding,
   createEmbeddingFunction,
-  createTensorFlowEmbeddingFunction,
-  createThreadedEmbeddingFunction,
   defaultEmbeddingFunction,
+  batchEmbed,
+  embeddingFunctions,
 
   // Worker utilities
   executeInThread,

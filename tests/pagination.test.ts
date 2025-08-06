@@ -224,7 +224,7 @@ describe('Pagination with Offset', () => {
     it('should paginate vector searches', async () => {
       // Add test vectors
       for (let i = 0; i < 20; i++) {
-        const vector = new Array(512).fill(0).map(() => Math.random())
+        const vector = new Array(384).fill(0).map(() => Math.random())
         await db.add({
           id: `vec-${i}`,
           vector: vector,
@@ -233,7 +233,7 @@ describe('Pagination with Offset', () => {
       }
 
       // Create a query vector
-      const queryVector = new Array(512).fill(0).map(() => Math.random())
+      const queryVector = new Array(384).fill(0).map(() => Math.random())
 
       // Get first page
       const page1 = await db.search(queryVector, 5, { forceEmbed: false })

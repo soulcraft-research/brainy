@@ -171,7 +171,7 @@ describe('Edge Case Tests', () => {
   describe('Vector edge cases', () => {
     it('should handle vectors with very small values', async () => {
       // Create a vector with very small values
-      const smallVector = new Array(512).fill(1e-10)
+      const smallVector = new Array(384).fill(1e-10)
       const id = await brainyInstance.add(smallVector)
       expect(id).toBeDefined()
       
@@ -183,7 +183,7 @@ describe('Edge Case Tests', () => {
     
     it('should handle vectors with very large values', async () => {
       // Create a vector with large values
-      const largeVector = new Array(512).fill(1e10)
+      const largeVector = new Array(384).fill(1e10)
       const id = await brainyInstance.add(largeVector)
       expect(id).toBeDefined()
       
@@ -195,7 +195,7 @@ describe('Edge Case Tests', () => {
     
     it('should handle vectors with mixed positive and negative values', async () => {
       // Create a vector with mixed values
-      const mixedVector = new Array(512).fill(0).map((_, i) => i % 2 === 0 ? 1 : -1)
+      const mixedVector = new Array(384).fill(0).map((_, i) => i % 2 === 0 ? 1 : -1)
       const id = await brainyInstance.add(mixedVector)
       expect(id).toBeDefined()
       
@@ -234,8 +234,8 @@ describe('Edge Case Tests', () => {
       const batchItems = [
         'text item 1',
         { text: 'text item 2', metadata: { source: 'batch-test' } },
-        new Array(512).fill(0.1), // Vector
-        { vector: new Array(512).fill(0.2), metadata: { source: 'vector-item' } }
+        new Array(384).fill(0.1), // Vector
+        { vector: new Array(384).fill(0.2), metadata: { source: 'vector-item' } }
       ]
       
       const results = await brainyInstance.addBatch(batchItems)

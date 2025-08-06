@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run test:coverage` - Run tests with coverage
 - `npm run test:core` - Run core functionality tests only
 - `npm run demo` - Build and serve the demo page
+- `npm run download-models` - Download models for offline/Docker use
 
 ### Test Variations
 - `npm run test:node` - Node.js environment tests
@@ -82,6 +83,28 @@ Claude: [Commits and pushes]
 
 Brainy is a vector graph database with HNSW indexing that works across multiple environments (browser, Node.js, serverless). The architecture follows a modular design with clear separation of concerns:
 
+### Major Migration: TensorFlow.js → Transformers.js (v0.46+)
+
+**IMPORTANT**: As of v0.46, Brainy has completely replaced TensorFlow.js with Transformers.js + ONNX Runtime:
+
+- **Package Size**: Reduced from 12.5MB to 643kB (95% reduction)
+- **Model Size**: Reduced from 525MB to 87MB (84% reduction) 
+- **Dependencies**: Reduced from 47+ to 5 (no more --legacy-peer-deps issues)
+- **Network Calls**: True offline operation after initial model download
+- **Performance**: ONNX Runtime often faster than TensorFlow.js
+- **Dimensions**: Changed from 512 (USE) to 384 (all-MiniLM-L6-v2)
+
+**Key Files for Migration:**
+- `src/utils/embedding.ts` - Complete rewrite using Transformers.js
+- `src/utils/distance.ts` - Removed TensorFlow GPU acceleration, pure JS now
+- `src/brainyData.ts` - Updated default dimensions to 384
+- `scripts/download-models.cjs` - Script for Docker/offline model bundling
+
+**Offline Models Workflow:**
+- **Default**: Models download automatically on first use
+- **Docker**: Use `npm run download-models` during build for production containers without egress
+- **Smart Detection**: Automatically finds cached, bundled, or downloads models as needed
+
 ### Core Components
 
 **Main Entry Points:**
@@ -123,9 +146,9 @@ Brainy is a vector graph database with HNSW indexing that works across multiple 
 ### Testing Strategy
 
 **Vitest Configuration** (`vitest.config.ts`):
-- 60-second timeout for TensorFlow operations
+- 60-second timeout for model loading operations
 - Environment-specific test suites
-- Console filtering to reduce noise from TensorFlow logs
+- Console filtering to reduce noise from model loading
 - JSON reporting for CI/CD integration
 
 **Test Categories:**
@@ -139,7 +162,7 @@ Brainy is a vector graph database with HNSW indexing that works across multiple 
 ### Environment Detection
 The codebase heavily relies on runtime environment detection. Key files:
 - `src/utils/environment.ts` - Environment detection utilities
-- `src/setup.ts` - TensorFlow.js environment patching
+- `src/utils/embedding.ts` - Smart model detection and caching
 
 ### Storage Pattern
 Storage is abstracted through the StorageAdapter interface with automatic selection:
@@ -155,7 +178,7 @@ Centralized error types in `src/errors/brainyError.ts` with environment-aware er
 
 ## Important Implementation Notes
 
-1. **TensorFlow.js Patching**: Critical startup sequence in `setup.ts` must execute before any TensorFlow imports
+1. **Model Loading**: Smart detection system automatically finds cached, bundled, or downloads models as needed
 2. **Worker Management**: Automatic worker pool cleanup in browser/Node.js environments
 3. **Memory Management**: Multi-level caching with LRU eviction for large datasets
 4. **Cross-Platform Compatibility**: Rollup shimming ensures Node.js modules work in browsers

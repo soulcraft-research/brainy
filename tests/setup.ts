@@ -49,3 +49,9 @@ const testUtilsObject = {
 
 global.testUtils = testUtilsObject
 globalThis.testUtils = testUtilsObject
+
+// Set a clear test environment flag for embedding system
+globalThis.__BRAINY_TEST_ENV__ = true
+if (typeof global !== 'undefined') {
+  (global as any).__BRAINY_TEST_ENV__ = true
+}

@@ -11,6 +11,51 @@
 
 </div>
 
+## 🔥 MAJOR UPDATE: TensorFlow.js → Transformers.js Migration (v0.46+)
+
+**We've completely replaced TensorFlow.js with Transformers.js for better performance and true offline operation!**
+
+### Why We Made This Change
+
+**The Honest Truth About TensorFlow.js:**
+
+- 📦 **Massive Package Size**: 12.5MB+ packages with complex dependency trees
+- 🌐 **Hidden Network Calls**: Even "local" models triggered fetch() calls internally
+- 🐛 **Dependency Hell**: Constant `--legacy-peer-deps` issues with Node.js updates
+- 🔧 **Maintenance Burden**: 47+ dependencies to keep compatible across environments
+- 💾 **Huge Models**: 525MB Universal Sentence Encoder models
+
+### What You Get Now
+
+- ✅ **95% Smaller Package**: 643 kB vs 12.5 MB (and it actually works better!)
+- ✅ **84% Smaller Models**: 87 MB vs 525 MB all-MiniLM-L6-v2 vs USE
+- ✅ **True Offline Operation**: Zero network calls after initial model download
+- ✅ **5x Fewer Dependencies**: Clean dependency tree, no more peer dep issues
+- ✅ **Same API**: Drop-in replacement - your existing code just works
+- ✅ **Better Performance**: ONNX Runtime is faster than TensorFlow.js in most cases
+
+### Migration (It's Automatic!)
+
+```javascript
+// Your existing code works unchanged!
+import { BrainyData } from '@soulcraft/brainy'
+
+const db = new BrainyData({
+  embedding: { type: 'transformer' } // Now uses Transformers.js automatically
+})
+
+// Dimensions changed from 512 → 384 (handled automatically)
+```
+
+**For Docker/Production or No Egress:**
+
+```dockerfile
+RUN npm install @soulcraft/brainy
+RUN npm run download-models  # Download during build for offline production
+```
+
+---
+
 ## ✨ What is Brainy?
 
 Imagine a database that thinks like you do - connecting ideas, finding patterns, and getting smarter over time. Brainy

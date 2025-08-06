@@ -6,7 +6,7 @@
 // Import only browser-compatible modules
 import { MemoryStorage } from './storage/adapters/memoryStorage.js'
 import { OPFSStorage } from './storage/adapters/opfsStorage.js'
-import { UniversalSentenceEncoder } from './utils/embedding.js'
+import { TransformerEmbedding } from './utils/embedding.js'
 import { cosineDistance, euclideanDistance } from './utils/distance.js'
 import { isBrowser } from './utils/environment.js'
 
@@ -35,7 +35,7 @@ export interface VerbData {
  */
 export class DemoBrainyData {
   private storage: MemoryStorage | OPFSStorage
-  private embedder: UniversalSentenceEncoder | null = null
+  private embedder: TransformerEmbedding | null = null
   private initialized = false
   private vectors = new Map<string, Vector>()
   private metadata = new Map<string, any>()
@@ -56,7 +56,7 @@ export class DemoBrainyData {
       await this.storage.init()
       
       // Initialize the embedder
-      this.embedder = new UniversalSentenceEncoder({ verbose: false })
+      this.embedder = new TransformerEmbedding({ verbose: false })
       await this.embedder.init()
       
       this.initialized = true
