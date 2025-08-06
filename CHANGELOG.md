@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.45.0](https://github.com/soulcraft-research/brainy/compare/v0.44.0...v0.45.0) (2025-08-06)
+
+
+### Fixed
+
+* improve model loading reliability with better error handling and updated fallback URLs ([933f305](https://github.com/soulcraft-research/brainy/commit/933f30543784458f340c9b867263bc4cec6e7973))
+
 ## [0.44.0](https://github.com/soulcraft-research/brainy/compare/v0.43.0...v0.44.0) (2025-08-05)
 
 
