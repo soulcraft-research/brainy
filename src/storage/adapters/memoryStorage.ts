@@ -622,6 +622,16 @@ export class MemoryStorage extends BaseStorage {
       metadataCount: {...statistics.metadataCount},
       hnswIndexSize: statistics.hnswIndexSize,
       lastUpdated: statistics.lastUpdated,
+      // Include serviceActivity if present
+      ...(statistics.serviceActivity && {
+        serviceActivity: Object.fromEntries(
+          Object.entries(statistics.serviceActivity).map(([k, v]) => [k, {...v}])
+        )
+      }),
+      // Include services if present
+      ...(statistics.services && {
+        services: statistics.services.map(s => ({...s}))
+      }),
       // Include distributedConfig if present
       ...(statistics.distributedConfig && { 
         distributedConfig: JSON.parse(JSON.stringify(statistics.distributedConfig)) 
@@ -648,6 +658,16 @@ export class MemoryStorage extends BaseStorage {
       metadataCount: {...this.statistics.metadataCount},
       hnswIndexSize: this.statistics.hnswIndexSize,
       lastUpdated: this.statistics.lastUpdated,
+      // Include serviceActivity if present
+      ...(this.statistics.serviceActivity && {
+        serviceActivity: Object.fromEntries(
+          Object.entries(this.statistics.serviceActivity).map(([k, v]) => [k, {...v}])
+        )
+      }),
+      // Include services if present
+      ...(this.statistics.services && {
+        services: this.statistics.services.map(s => ({...s}))
+      }),
       // Include distributedConfig if present
       ...(this.statistics.distributedConfig && { 
         distributedConfig: JSON.parse(JSON.stringify(this.statistics.distributedConfig)) 

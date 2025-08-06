@@ -140,6 +140,60 @@ export interface HNSWConfig {
 /**
  * Statistics data structure for tracking counts by service
  */
+/**
+ * Per-service statistics tracking
+ */
+export interface ServiceStatistics {
+  /**
+   * Service name
+   */
+  name: string
+
+  /**
+   * Total number of nouns created by this service
+   */
+  totalNouns: number
+
+  /**
+   * Total number of verbs created by this service
+   */
+  totalVerbs: number
+
+  /**
+   * Total number of metadata entries created by this service
+   */
+  totalMetadata: number
+
+  /**
+   * First activity timestamp for this service
+   */
+  firstActivity?: string
+
+  /**
+   * Last activity timestamp for this service
+   */
+  lastActivity?: string
+
+  /**
+   * Error count for this service
+   */
+  errorCount?: number
+
+  /**
+   * Operation breakdown for this service
+   */
+  operations?: {
+    adds: number
+    updates: number
+    deletes: number
+  }
+
+  /**
+   * Status of the service (active, inactive, read-only)
+   */
+  status?: 'active' | 'inactive' | 'read-only'
+}
+
 export interface StatisticsData {
   /**
    * Count of nouns by service
@@ -251,6 +305,20 @@ export interface StatisticsData {
     verbTypes: Record<string, number>
     averageConnectionsPerVerb: number
   }
+
+  /**
+   * Service-level activity timestamps
+   */
+  serviceActivity?: Record<string, {
+    firstActivity: string
+    lastActivity: string
+    totalOperations: number
+  }>
+
+  /**
+   * List of all services that have written data
+   */
+  services?: ServiceStatistics[]
 
   /**
    * Last updated timestamp

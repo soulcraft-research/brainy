@@ -138,7 +138,17 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
       verbCount: { ...statistics.verbCount },
       metadataCount: { ...statistics.metadataCount },
       hnswIndexSize: statistics.hnswIndexSize,
-      lastUpdated: statistics.lastUpdated
+      lastUpdated: statistics.lastUpdated,
+      // Include serviceActivity if present
+      ...(statistics.serviceActivity && {
+        serviceActivity: Object.fromEntries(
+          Object.entries(statistics.serviceActivity).map(([k, v]) => [k, {...v}])
+        )
+      }),
+      // Include services if present
+      ...(statistics.services && {
+        services: statistics.services.map(s => ({...s}))
+      })
     }
 
     // Schedule a batch update instead of saving immediately
@@ -263,7 +273,17 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
         verbCount: { ...statistics.verbCount },
         metadataCount: { ...statistics.metadataCount },
         hnswIndexSize: statistics.hnswIndexSize,
-        lastUpdated: statistics.lastUpdated
+        lastUpdated: statistics.lastUpdated,
+        // Include serviceActivity if present
+        ...(statistics.serviceActivity && {
+          serviceActivity: Object.fromEntries(
+            Object.entries(statistics.serviceActivity).map(([k, v]) => [k, {...v}])
+          )
+        }),
+        // Include services if present
+        ...(statistics.services && {
+          services: statistics.services.map(s => ({...s}))
+        })
       }
     }
 
@@ -277,11 +297,49 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
     const counter = counterMap[type]
     counter[service] = (counter[service] || 0) + amount
 
+    // Track service activity
+    this.trackServiceActivity(service, 'add')
+
     // Update timestamp
     this.statisticsCache!.lastUpdated = new Date().toISOString()
 
     // Schedule a batch update instead of saving immediately
     this.scheduleBatchUpdate()
+  }
+
+  /**
+   * Track service activity (first/last activity, operation counts)
+   * @param service The service name
+   * @param operation The operation type
+   */
+  protected trackServiceActivity(
+    service: string,
+    operation: 'add' | 'update' | 'delete'
+  ): void {
+    if (!this.statisticsCache) {
+      return
+    }
+
+    // Initialize serviceActivity if it doesn't exist
+    if (!this.statisticsCache.serviceActivity) {
+      this.statisticsCache.serviceActivity = {}
+    }
+
+    const now = new Date().toISOString()
+    const activity = this.statisticsCache.serviceActivity[service]
+
+    if (!activity) {
+      // First activity for this service
+      this.statisticsCache.serviceActivity[service] = {
+        firstActivity: now,
+        lastActivity: now,
+        totalOperations: 1
+      }
+    } else {
+      // Update existing activity
+      activity.lastActivity = now
+      activity.totalOperations++
+    }
   }
 
   /**
@@ -309,7 +367,17 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
         verbCount: { ...statistics.verbCount },
         metadataCount: { ...statistics.metadataCount },
         hnswIndexSize: statistics.hnswIndexSize,
-        lastUpdated: statistics.lastUpdated
+        lastUpdated: statistics.lastUpdated,
+        // Include serviceActivity if present
+        ...(statistics.serviceActivity && {
+          serviceActivity: Object.fromEntries(
+            Object.entries(statistics.serviceActivity).map(([k, v]) => [k, {...v}])
+          )
+        }),
+        // Include services if present
+        ...(statistics.services && {
+          services: statistics.services.map(s => ({...s}))
+        })
       }
     }
 
@@ -322,6 +390,9 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
 
     const counter = counterMap[type]
     counter[service] = Math.max(0, (counter[service] || 0) - amount)
+
+    // Track service activity
+    this.trackServiceActivity(service, 'delete')
 
     // Update timestamp
     this.statisticsCache!.lastUpdated = new Date().toISOString()
@@ -349,7 +420,17 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
         verbCount: { ...statistics.verbCount },
         metadataCount: { ...statistics.metadataCount },
         hnswIndexSize: statistics.hnswIndexSize,
-        lastUpdated: statistics.lastUpdated
+        lastUpdated: statistics.lastUpdated,
+        // Include serviceActivity if present
+        ...(statistics.serviceActivity && {
+          serviceActivity: Object.fromEntries(
+            Object.entries(statistics.serviceActivity).map(([k, v]) => [k, {...v}])
+          )
+        }),
+        // Include services if present
+        ...(statistics.services && {
+          services: statistics.services.map(s => ({...s}))
+        })
       }
     }
 
