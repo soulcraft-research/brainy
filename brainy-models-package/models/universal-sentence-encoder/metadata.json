@@ -1,0 +1,13 @@
+{
+  "name": "universal-sentence-encoder-lite",
+  "version": "1.0.0",
+  "description": "Universal Sentence Encoder Lite model with tokenizer support",
+  "dimensions": 512,
+  "downloadDate": "2025-08-06T00:56:00.000Z",
+  "source": "https://www.kaggle.com/models/tensorflow/universal-sentence-encoder/tfJs/lite/1",
+  "approach": "full-bundle",
+  "modelUrl": "https://www.kaggle.com/models/tensorflow/universal-sentence-encoder/tfJs/lite/1",
+  "bundledLocally": true,
+  "reliability": "maximum",
+  "notes": "This model requires tokenization of input text. Use with @tensorflow-models/universal-sentence-encoder for proper tokenization."
+}
