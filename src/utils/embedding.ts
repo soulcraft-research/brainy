@@ -41,7 +41,7 @@ export class TransformerEmbedding implements EmbeddingModel {
       model: options.model || 'Xenova/all-MiniLM-L6-v2',
       verbose: this.verbose,
       cacheDir: options.cacheDir || this.getDefaultCacheDir(),
-      localFilesOnly: options.localFilesOnly !== undefined ? options.localFilesOnly : true,
+      localFilesOnly: options.localFilesOnly !== undefined ? options.localFilesOnly : !isBrowser(),
       dtype: options.dtype || 'fp32'
     }
 
@@ -52,6 +52,15 @@ export class TransformerEmbedding implements EmbeddingModel {
       // Prioritize local models for offline operation
       env.allowRemoteModels = !this.options.localFilesOnly
       env.allowLocalModels = true
+    } else {
+      // Browser configuration
+      // Allow both local and remote models, but prefer local if available
+      env.allowLocalModels = true
+      env.allowRemoteModels = true
+      // Force the configuration to ensure it's applied
+      if (this.verbose) {
+        this.logger('log', `Browser env config - allowLocalModels: ${env.allowLocalModels}, allowRemoteModels: ${env.allowRemoteModels}, localFilesOnly: ${this.options.localFilesOnly}`)
+      }
     }
   }
 
@@ -145,11 +154,18 @@ export class TransformerEmbedding implements EmbeddingModel {
       const startTime = Date.now()
       
       // Load the feature extraction pipeline
-      this.extractor = await pipeline('feature-extraction', this.options.model, {
+      // In browsers, never use local_files_only to avoid conflicts
+      const pipelineOptions = {
         cache_dir: this.options.cacheDir,
-        local_files_only: this.options.localFilesOnly,
+        local_files_only: isBrowser() ? false : this.options.localFilesOnly,
         dtype: this.options.dtype
-      })
+      }
+      
+      if (this.verbose) {
+        this.logger('log', `Pipeline options: ${JSON.stringify(pipelineOptions)}`)
+      }
+      
+      this.extractor = await pipeline('feature-extraction', this.options.model, pipelineOptions)
 
       const loadTime = Date.now() - startTime
       this.logger('log', `✅ Model loaded successfully in ${loadTime}ms`)
