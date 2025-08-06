@@ -621,7 +621,11 @@ export class MemoryStorage extends BaseStorage {
       verbCount: {...statistics.verbCount},
       metadataCount: {...statistics.metadataCount},
       hnswIndexSize: statistics.hnswIndexSize,
-      lastUpdated: statistics.lastUpdated
+      lastUpdated: statistics.lastUpdated,
+      // Include distributedConfig if present
+      ...(statistics.distributedConfig && { 
+        distributedConfig: JSON.parse(JSON.stringify(statistics.distributedConfig)) 
+      })
     }
     
     // Since this is in-memory, there's no need for time-based partitioning
@@ -643,7 +647,11 @@ export class MemoryStorage extends BaseStorage {
       verbCount: {...this.statistics.verbCount},
       metadataCount: {...this.statistics.metadataCount},
       hnswIndexSize: this.statistics.hnswIndexSize,
-      lastUpdated: this.statistics.lastUpdated
+      lastUpdated: this.statistics.lastUpdated,
+      // Include distributedConfig if present
+      ...(this.statistics.distributedConfig && { 
+        distributedConfig: JSON.parse(JSON.stringify(this.statistics.distributedConfig)) 
+      })
     }
     
     // Since this is in-memory, there's no need for fallback mechanisms

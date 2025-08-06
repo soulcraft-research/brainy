@@ -12,8 +12,10 @@ import {
   NOUN_METADATA_DIR,
   VERB_METADATA_DIR,
   INDEX_DIR,
+  SYSTEM_DIR,
   STATISTICS_KEY
 } from '../baseStorage.js'
+import { StorageCompatibilityLayer, StoragePaths } from '../backwardCompatibility.js'
 
 // Type aliases for better readability
 type HNSWNode = HNSWNoun
@@ -57,8 +59,10 @@ export class FileSystemStorage extends BaseStorage {
   private metadataDir!: string
   private nounMetadataDir!: string
   private verbMetadataDir!: string
-  private indexDir!: string
+  private indexDir!: string  // Legacy - for backward compatibility
+  private systemDir!: string  // New location for system data
   private lockDir!: string
+  private useDualWrite: boolean = true  // Write to both locations during migration
   private activeLocks: Set<string> = new Set()
 
   /**
@@ -104,7 +108,8 @@ export class FileSystemStorage extends BaseStorage {
       this.metadataDir = path.join(this.rootDir, METADATA_DIR)
       this.nounMetadataDir = path.join(this.rootDir, NOUN_METADATA_DIR)
       this.verbMetadataDir = path.join(this.rootDir, VERB_METADATA_DIR)
-      this.indexDir = path.join(this.rootDir, INDEX_DIR)
+      this.indexDir = path.join(this.rootDir, INDEX_DIR)  // Legacy
+      this.systemDir = path.join(this.rootDir, SYSTEM_DIR)  // New
       this.lockDir = path.join(this.rootDir, 'locks')
 
       // Create the root directory if it doesn't exist
@@ -125,8 +130,12 @@ export class FileSystemStorage extends BaseStorage {
       // Create the verb metadata directory if it doesn't exist
       await this.ensureDirectoryExists(this.verbMetadataDir)
 
-      // Create the index directory if it doesn't exist
-      await this.ensureDirectoryExists(this.indexDir)
+      // Create both directories for backward compatibility
+      await this.ensureDirectoryExists(this.systemDir)
+      // Only create legacy directory if it exists (don't create new legacy dirs)
+      if (await this.directoryExists(this.indexDir)) {
+        await this.ensureDirectoryExists(this.indexDir)
+      }
 
       // Create the locks directory if it doesn't exist
       await this.ensureDirectoryExists(this.lockDir)
@@ -135,6 +144,18 @@ export class FileSystemStorage extends BaseStorage {
     } catch (error) {
       console.error('Error initializing FileSystemStorage:', error)
       throw error
+    }
+  }
+
+  /**
+   * Check if a directory exists
+   */
+  private async directoryExists(dirPath: string): Promise<boolean> {
+    try {
+      const stats = await fs.promises.stat(dirPath)
+      return stats.isDirectory()
+    } catch (error) {
+      return false
     }
   }
 
@@ -576,8 +597,11 @@ export class FileSystemStorage extends BaseStorage {
     // Remove all files in the verb metadata directory
     await removeDirectoryContents(this.verbMetadataDir)
 
-    // Remove all files in the index directory
-    await removeDirectoryContents(this.indexDir)
+    // Remove all files in both system directories
+    await removeDirectoryContents(this.systemDir)
+    if (await this.directoryExists(this.indexDir)) {
+      await removeDirectoryContents(this.indexDir)
+    }
     
     // Clear the statistics cache
     this.statisticsCache = null
@@ -976,9 +1000,7 @@ export class FileSystemStorage extends BaseStorage {
 
     try {
       // Get existing statistics to merge with new data
-      const existingStats = (await this.getMetadata(
-        STATISTICS_KEY
-      )) as StatisticsData | null
+      const existingStats = await this.getStatisticsWithBackwardCompat()
 
       if (existingStats) {
         // Merge statistics data
@@ -1002,14 +1024,14 @@ export class FileSystemStorage extends BaseStorage {
           // Always update lastUpdated to current time
           lastUpdated: new Date().toISOString()
         }
-        await this.saveMetadata(STATISTICS_KEY, mergedStats)
+        await this.saveStatisticsWithBackwardCompat(mergedStats)
       } else {
         // No existing statistics, save new ones
         const newStats: StatisticsData = {
           ...statistics,
           lastUpdated: new Date().toISOString()
         }
-        await this.saveMetadata(STATISTICS_KEY, newStats)
+        await this.saveStatisticsWithBackwardCompat(newStats)
       }
     } finally {
       if (lockAcquired) {
@@ -1022,6 +1044,73 @@ export class FileSystemStorage extends BaseStorage {
    * Get statistics data from storage
    */
   protected async getStatisticsData(): Promise<StatisticsData | null> {
-    return this.getMetadata(STATISTICS_KEY)
+    return this.getStatisticsWithBackwardCompat()
+  }
+
+  /**
+   * Save statistics with backward compatibility (dual write)
+   */
+  private async saveStatisticsWithBackwardCompat(statistics: StatisticsData): Promise<void> {
+    // Always write to new location
+    const newPath = path.join(this.systemDir, `${STATISTICS_KEY}.json`)
+    await this.ensureDirectoryExists(this.systemDir)
+    await fs.promises.writeFile(newPath, JSON.stringify(statistics, null, 2))
+    
+    // During migration period, also write to old location if it exists
+    if (this.useDualWrite && await this.directoryExists(this.indexDir)) {
+      const oldPath = path.join(this.indexDir, `${STATISTICS_KEY}.json`)
+      try {
+        await fs.promises.writeFile(oldPath, JSON.stringify(statistics, null, 2))
+      } catch (error) {
+        // Log but don't fail if old location write fails
+        StorageCompatibilityLayer.logMigrationEvent(
+          'Failed to write to legacy location',
+          { path: oldPath, error }
+        )
+      }
+    }
+  }
+
+  /**
+   * Get statistics with backward compatibility (dual read)
+   */
+  private async getStatisticsWithBackwardCompat(): Promise<StatisticsData | null> {
+    let newStats: StatisticsData | null = null
+    let oldStats: StatisticsData | null = null
+    
+    // Try to read from new location first
+    try {
+      const newPath = path.join(this.systemDir, `${STATISTICS_KEY}.json`)
+      const data = await fs.promises.readFile(newPath, 'utf-8')
+      newStats = JSON.parse(data)
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') {
+        console.error('Error reading statistics from new location:', error)
+      }
+    }
+    
+    // Try to read from old location as fallback
+    if (!newStats && await this.directoryExists(this.indexDir)) {
+      try {
+        const oldPath = path.join(this.indexDir, `${STATISTICS_KEY}.json`)
+        const data = await fs.promises.readFile(oldPath, 'utf-8')
+        oldStats = JSON.parse(data)
+        
+        // If we found data in old location but not new, migrate it
+        if (oldStats && !newStats) {
+          StorageCompatibilityLayer.logMigrationEvent(
+            'Migrating statistics from legacy location'
+          )
+          await this.saveStatisticsWithBackwardCompat(oldStats)
+        }
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') {
+          console.error('Error reading statistics from old location:', error)
+        }
+      }
+    }
+    
+    // Merge statistics from both locations
+    return StorageCompatibilityLayer.mergeStatistics(newStats, oldStats)
   }
 }
