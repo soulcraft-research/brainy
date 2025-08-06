@@ -2,6 +2,58 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.47.0](https://github.com/soulcraft-research/brainy/compare/v0.46.0...v0.47.0) (2025-08-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* Complete migration from TensorFlow.js to Transformers.js for embedding generation
+
+This is a major architectural change that replaces TensorFlow.js (USE model) with Transformers.js (all-MiniLM-L6-v2) for significantly improved performance and reduced complexity.
+
+Key Changes:
+- Replace TensorFlow.js Universal Sentence Encoder with Transformers.js all-MiniLM-L6-v2
+- Reduce model size from 525MB to 87MB (83% reduction)
+- Reduce embedding dimensions from 512 to 384 (faster distance calculations)
+- Remove TensorFlow.js Float32Array patching (caused ONNX conflicts)
+- Implement smart bundled model detection for offline operation
+- Add explicit model download script for Docker deployments
+- Remove complex environment variables in favor of simple configuration
+- Update all distance functions to use optimized pure JavaScript
+- Remove TensorFlow-specific utilities and type definitions
+
+Performance Improvements:
+- Model loading: 5x faster (87MB vs 525MB)
+- Memory usage: 75% reduction (~200-400MB vs ~1.5GB)
+- Distance calculations: Faster pure JS vs GPU overhead for small vectors
+- Cold start performance: Significantly improved
+
+Files Changed:
+- Updated package.json: New dependencies, simplified scripts
+- Rewrote src/utils/embedding.ts: Complete Transformers.js implementation
+- Updated src/utils/distance.ts: Optimized JavaScript distance functions
+- Simplified src/setup.ts: Removed TensorFlow-specific patching
+- Simplified src/utils/textEncoding.ts: Only Node.js TextEncoder/Decoder patches
+- Deleted src/utils/robustModelLoader.ts: TensorFlow-specific loader
+- Deleted src/types/tensorflowTypes.ts: TensorFlow type definitions
+- Added scripts/download-models.cjs: Docker-compatible model downloader
+- Added comprehensive documentation: README.md, OFFLINE_MODELS.md, analysis docs
+
+Testing:
+- All 19 tests passing
+- Removed test mocking in favor of real implementation testing
+- Updated test environment for Transformers.js compatibility
+- Performance tests validate improved efficiency
+
+This migration resolves production issues with Docker egress limitations and provides a more robust, performant foundation for vector operations.
+
+* feat\!: migrate from TensorFlow.js to Transformers.js with ONNX Runtime ([79b1d5e](https://github.com/soulcraft-research/brainy/commit/79b1d5eafb28b242ff2597623c439c1eaadcf20b))
+
+
+### Fixed
+
+* resolve test failures and browser environment issues ([c368864](https://github.com/soulcraft-research/brainy/commit/c368864416c9c5f68016a5f49e2265bcb8d7a792))
+
 ## [0.46.0](https://github.com/soulcraft-research/brainy/compare/v0.45.0...v0.46.0) (2025-08-06)
 
 
