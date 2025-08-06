@@ -32,6 +32,8 @@ import {
   batchEmbed
 } from './utils/index.js'
 import { getAugmentationVersion } from './utils/version.js'
+import { matchesMetadataFilter } from './utils/metadataFilter.js'
+import { MetadataIndexManager, MetadataIndexConfig } from './utils/metadataIndex.js'
 import { NounType, VerbType, GraphNoun } from './types/graphTypes.js'
 import {
   ServerSearchConduitAugmentation,
@@ -195,6 +197,11 @@ export interface BrainyDataConfig {
      */
     verbose?: boolean
   }
+
+  /**
+   * Metadata indexing configuration
+   */
+  metadataIndex?: MetadataIndexConfig
 
   /**
    * Search result caching configuration
@@ -371,8 +378,9 @@ export interface BrainyDataConfig {
 }
 
 export class BrainyData<T = any> implements BrainyDataInterface<T> {
-  private index: HNSWIndex | HNSWIndexOptimized
+  public index: HNSWIndex | HNSWIndexOptimized  // Made public for testing
   private storage: StorageAdapter | null = null
+  public metadataIndex: MetadataIndexManager | null = null
   private isInitialized = false
   private isInitializing = false
   private embeddingFunction: EmbeddingFunction
@@ -383,6 +391,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   private lazyLoadInReadOnlyMode: boolean
   private writeOnly: boolean
   private storageConfig: BrainyDataConfig['storage'] = {}
+  private config: BrainyDataConfig
   private useOptimizedIndex: boolean = false
   private _dimensions: number
   private loggingConfig: BrainyDataConfig['logging'] = { verbose: true }
@@ -407,6 +416,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     updateIndex: true
   }
   private updateTimerId: NodeJS.Timeout | null = null
+  private maintenanceIntervals: NodeJS.Timeout[] = []
   private lastUpdateTime = 0
   private lastKnownNounCount = 0
 
@@ -453,6 +463,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
    * Create a new vector database
    */
   constructor(config: BrainyDataConfig = {}) {
+    // Store config
+    this.config = config
+    
     // Set dimensions to fixed value of 384 (all-MiniLM-L6-v2 dimension)
     this._dimensions = 384
 
@@ -466,12 +479,12 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       hnswConfig.useDiskBasedIndex = true
     }
 
-    this.index = new HNSWIndexOptimized(
+    // Temporarily use base HNSW index for metadata filtering
+    this.index = new HNSWIndex(
       hnswConfig,
-      this.distanceFunction,
-      config.storageAdapter || null
+      this.distanceFunction
     )
-    this.useOptimizedIndex = true
+    this.useOptimizedIndex = false
 
     // Set storage if provided, otherwise it will be initialized in init()
     this.storage = config.storageAdapter || null
@@ -738,6 +751,28 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     if (this.isInitialized) {
       this.startRealtimeUpdates()
     }
+  }
+
+  /**
+   * Start metadata index maintenance
+   */
+  private startMetadataIndexMaintenance(): void {
+    if (!this.metadataIndex) return
+    
+    // Flush index periodically to persist changes
+    const flushInterval = setInterval(async () => {
+      try {
+        await this.metadataIndex!.flush()
+      } catch (error) {
+        console.warn('Error flushing metadata index:', error)
+      }
+    }, 30000) // Flush every 30 seconds
+    
+    // Store the interval ID for cleanup
+    if (!this.maintenanceIntervals) {
+      this.maintenanceIntervals = []
+    }
+    this.maintenanceIntervals.push(flushInterval)
   }
 
   /**
@@ -1224,11 +1259,37 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         // Ignore errors loading existing statistics
       }
 
+      // Initialize metadata index if not in write-only mode
+      if (!this.writeOnly) {
+        this.metadataIndex = new MetadataIndexManager(
+          this.storage!,
+          this.config.metadataIndex
+        )
+        
+        // Check if we need to rebuild the index (for existing data)
+        const stats = await this.metadataIndex.getStats()
+        if (stats.totalEntries === 0 && !this.readOnly) {
+          if (this.loggingConfig?.verbose) {
+            console.log('Rebuilding metadata index for existing data...')
+          }
+          await this.metadataIndex.rebuild()
+          if (this.loggingConfig?.verbose) {
+            const newStats = await this.metadataIndex.getStats()
+            console.log(`Metadata index rebuilt: ${newStats.totalEntries} entries, ${newStats.fieldsIndexed.length} fields`)
+          }
+        }
+      }
+
       this.isInitialized = true
       this.isInitializing = false
 
       // Start real-time updates if enabled
       this.startRealtimeUpdates()
+      
+      // Start metadata index maintenance
+      if (this.metadataIndex) {
+        this.startMetadataIndexMaintenance()
+      }
     } catch (error) {
       console.error('Failed to initialize BrainyData:', error)
       this.isInitializing = false
@@ -1654,6 +1715,11 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
           await this.storage!.saveMetadata(id, metadataToSave)
 
+          // Update metadata index
+          if (this.metadataIndex && !this.readOnly && !this.frozen) {
+            await this.metadataIndex.addToIndex(id, metadataToSave)
+          }
+
           // Track metadata statistics
           const metadataService = this.getServiceName(options)
           await this.storage!.incrementStatistic('metadata', metadataService)
@@ -1987,6 +2053,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     options: {
       forceEmbed?: boolean // Force using the embedding function even if input is a vector
       service?: string // Filter results by the service that created the data
+      metadata?: any // Metadata filter criteria
       offset?: number // Number of results to skip for pagination (default: 0)
     } = {}
   ): Promise<SearchResult<T>[]> {
@@ -2086,12 +2153,84 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           }
         }
 
+        // Create filter function for HNSW search with metadata index optimization
+        const hasMetadataFilter = options.metadata && Object.keys(options.metadata).length > 0
+        const hasServiceFilter = !!options.service
+        
+        let filterFunction: ((id: string) => Promise<boolean>) | undefined
+        let preFilteredIds: Set<string> | undefined
+        
+        // Use metadata index for pre-filtering if available
+        if (hasMetadataFilter && this.metadataIndex) {
+          try {
+            // Get candidate IDs from metadata index
+            const candidateIds = await this.metadataIndex.getIdsForFilter(options.metadata)
+            if (candidateIds.length > 0) {
+              preFilteredIds = new Set(candidateIds)
+              
+              // Create a simple filter function that just checks the pre-filtered set
+              filterFunction = async (id: string) => {
+                if (!preFilteredIds!.has(id)) return false
+                
+                // Still apply service filter if needed
+                if (hasServiceFilter) {
+                  const metadata = await this.storage!.getMetadata(id)
+                  const noun = this.index.getNouns().get(id)
+                  if (!noun || !metadata) return false
+                  const result = { id, score: 0, vector: noun.vector, metadata }
+                  return this.filterResultsByService([result], options.service).length > 0
+                }
+                
+                return true
+              }
+            } else {
+              // No items match the metadata criteria, return empty results immediately
+              return []
+            }
+          } catch (indexError) {
+            console.warn('Metadata index error, falling back to full filtering:', indexError)
+            // Fall back to full metadata filtering below
+          }
+        }
+        
+        // Fallback to full metadata filtering if index wasn't used
+        if (!filterFunction && (hasMetadataFilter || hasServiceFilter)) {
+          filterFunction = async (id: string) => {
+            // Get metadata for filtering
+            let metadata = await this.storage!.getMetadata(id)
+            
+            if (metadata === null) {
+              metadata = {} as T
+            }
+            
+            // Apply metadata filter
+            if (hasMetadataFilter) {
+              const matches = matchesMetadataFilter(metadata, options.metadata)
+              if (!matches) {
+                return false
+              }
+            }
+            
+            // Apply service filter
+            if (hasServiceFilter) {
+              const noun = this.index.getNouns().get(id)
+              if (!noun) return false
+              const result = { id, score: 0, vector: noun.vector, metadata }
+              if (!this.filterResultsByService([result], options.service).length) {
+                return false
+              }
+            }
+            
+            return true
+          }
+        }
+
         // When using offset, we need to fetch more results and then slice
         const offset = options.offset || 0
         const totalNeeded = k + offset
 
-        // Search in the index for totalNeeded results
-        const results = await this.index.search(queryVector, totalNeeded)
+        // Search in the index with filter
+        const results = await this.index.search(queryVector, totalNeeded, filterFunction)
 
         // Skip the offset number of results
         const paginatedResults = results.slice(offset, offset + k)
@@ -2125,8 +2264,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           })
         }
 
-        // Filter results by service if specified
-        return this.filterResultsByService(searchResults, options.service)
+        return searchResults
       } else {
         // Get nouns for each noun type in parallel
         const nounPromises = nounTypes.map((nounType) =>
@@ -2186,8 +2324,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           })
         }
 
-        // Filter results by service if specified
-        return this.filterResultsByService(searchResults, options.service)
+        // Results are already filtered, just return them
+        return searchResults
       }
     } catch (error) {
       console.error('Failed to search vectors by noun types:', error)
@@ -2217,6 +2355,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       service?: string // Filter results by the service that created the data
       searchField?: string // Optional specific field to search within JSON documents
       filter?: { domain?: string } // Filter results by domain
+      metadata?: any // Metadata filter - supports both simple object matching and MongoDB-style operators
       offset?: number // Number of results to skip for pagination (default: 0)
       skipCache?: boolean // Skip cache for this search (default: false)
     } = {}
@@ -2281,29 +2420,41 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
     // Default behavior (backward compatible): search locally
     try {
-      // Check cache first (transparent to user)
-      const cacheKey = this.searchCache.getCacheKey(
-        queryVectorOrData,
-        k,
-        options
-      )
-      const cachedResults = this.searchCache.get(cacheKey)
+      const hasMetadataFilter = options.metadata && Object.keys(options.metadata).length > 0
+      
+      // Check cache first (transparent to user) - but skip cache if we have metadata filters
+      if (!hasMetadataFilter) {
+        const cacheKey = this.searchCache.getCacheKey(
+          queryVectorOrData,
+          k,
+          options
+        )
+        const cachedResults = this.searchCache.get(cacheKey)
 
-      if (cachedResults) {
-        // Track cache hit in health monitor
-        if (this.healthMonitor) {
-          const latency = Date.now() - startTime
-          this.healthMonitor.recordRequest(latency, false)
-          this.healthMonitor.recordCacheAccess(true)
+        if (cachedResults) {
+          // Track cache hit in health monitor
+          if (this.healthMonitor) {
+            const latency = Date.now() - startTime
+            this.healthMonitor.recordRequest(latency, false)
+            this.healthMonitor.recordCacheAccess(true)
+          }
+          return cachedResults
         }
-        return cachedResults
       }
 
       // Cache miss - perform actual search
-      const results = await this.searchLocal(queryVectorOrData, k, options)
+      const results = await this.searchLocal(queryVectorOrData, k, {
+        ...options,
+        metadata: options.metadata
+      })
 
-      // Cache results for future queries (unless explicitly disabled)
-      if (!options.skipCache) {
+      // Cache results for future queries (unless explicitly disabled or has metadata filter)
+      if (!options.skipCache && !hasMetadataFilter) {
+        const cacheKey = this.searchCache.getCacheKey(
+          queryVectorOrData,
+          k,
+          options
+        )
         this.searchCache.set(cacheKey, results)
       }
 
@@ -2419,6 +2570,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       searchField?: string // Optional specific field to search within JSON documents
       priorityFields?: string[] // Fields to prioritize when searching JSON documents
       filter?: { domain?: string } // Filter results by domain
+      metadata?: any // Metadata filter criteria
       offset?: number // Number of results to skip for pagination (default: 0)
       skipCache?: boolean // Skip cache for this search (default: false)
     } = {}
@@ -2485,6 +2637,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         {
           forceEmbed: options.forceEmbed,
           service: options.service,
+          metadata: options.metadata,
           offset: options.offset
         }
       )
@@ -2493,6 +2646,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       searchResults = await this.searchByNounTypes(queryToUse, k, null, {
         forceEmbed: options.forceEmbed,
         service: options.service,
+        metadata: options.metadata,
         offset: options.offset
       })
     }
@@ -2901,6 +3055,14 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
       // Try to remove metadata (ignore errors)
       try {
+        // Get metadata before removing for index cleanup
+        const existingMetadata = await this.storage!.getMetadata(actualId)
+        
+        // Remove from metadata index
+        if (this.metadataIndex && existingMetadata && !this.readOnly && !this.frozen) {
+          await this.metadataIndex.removeFromIndex(actualId, existingMetadata)
+        }
+        
         await this.storage!.saveMetadata(actualId, null)
         await this.storage!.decrementStatistic('metadata', service)
       } catch (error) {
@@ -3011,6 +3173,20 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
       // Update metadata
       await this.storage!.saveMetadata(id, metadata)
+
+      // Update metadata index
+      if (this.metadataIndex && !this.readOnly && !this.frozen) {
+        // Remove old metadata from index if it exists
+        const oldMetadata = await this.storage!.getMetadata(id)
+        if (oldMetadata) {
+          await this.metadataIndex.removeFromIndex(id, oldMetadata)
+        }
+        
+        // Add new metadata to index
+        if (metadata) {
+          await this.metadataIndex.addToIndex(id, metadata)
+        }
+      }
 
       // Track metadata statistics
       const service = this.getServiceName(options)
@@ -3454,6 +3630,11 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       // Save the complete verb (BaseStorage will handle the separation)
       await this.storage!.saveVerb(fullVerb)
 
+      // Update metadata index
+      if (this.metadataIndex && verbMetadata) {
+        await this.metadataIndex.addToIndex(id, verbMetadata)
+      }
+
       // Track verb statistics
       const serviceForStats = this.getServiceName(options)
       await this.storage!.incrementStatistic('verb', serviceForStats)
@@ -3701,10 +3882,18 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     this.checkReadOnly()
 
     try {
+      // Get existing metadata before removal for index cleanup
+      const existingMetadata = await this.storage!.getVerbMetadata(id)
+      
       // Remove from index
       const removed = this.index.removeItem(id)
       if (!removed) {
         return false
+      }
+
+      // Remove from metadata index
+      if (this.metadataIndex && existingMetadata) {
+        await this.metadataIndex.removeFromIndex(id, existingMetadata)
       }
 
       // Remove from storage
@@ -4737,6 +4926,73 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   }
 
   /**
+   * Search within a specific set of items
+   * This is useful when you've pre-filtered items and want to search only within them
+   * 
+   * @param queryVectorOrData Query vector or data to search for
+   * @param itemIds Array of item IDs to search within
+   * @param k Number of results to return
+   * @param options Additional options
+   * @returns Array of search results
+   */
+  public async searchWithinItems(
+    queryVectorOrData: Vector | any,
+    itemIds: string[],
+    k: number = 10,
+    options: {
+      forceEmbed?: boolean
+    } = {}
+  ): Promise<SearchResult<T>[]> {
+    await this.ensureInitialized()
+    
+    // Check if database is in write-only mode
+    this.checkWriteOnly()
+    
+    // Create a Set for fast lookups
+    const allowedIds = new Set(itemIds)
+    
+    // Create filter function that only allows specified items
+    const filterFunction = async (id: string) => allowedIds.has(id)
+    
+    // Get query vector
+    let queryVector: Vector
+    if (Array.isArray(queryVectorOrData) && !options.forceEmbed) {
+      queryVector = queryVectorOrData
+    } else {
+      queryVector = await this.embeddingFunction(queryVectorOrData)
+    }
+    
+    // Search with the filter
+    const results = await this.index.search(queryVector, Math.min(k, itemIds.length), filterFunction)
+    
+    // Get metadata for each result
+    const searchResults: SearchResult<T>[] = []
+    
+    for (const [id, score] of results) {
+      const noun = this.index.getNouns().get(id)
+      if (!noun) continue
+      
+      let metadata = await this.storage!.getMetadata(id)
+      if (metadata === null) {
+        metadata = {} as T
+      }
+      
+      if (metadata && typeof metadata === 'object') {
+        metadata = { ...metadata, id } as T
+      }
+      
+      searchResults.push({
+        id,
+        score,
+        vector: noun.vector,
+        metadata: metadata as T
+      })
+    }
+    
+    return searchResults
+  }
+
+  /**
    * Search for similar documents using a text query
    * This is a convenience method that embeds the query text and performs a search
    *
@@ -4752,6 +5008,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       nounTypes?: string[]
       includeVerbs?: boolean
       searchMode?: 'local' | 'remote' | 'combined'
+      metadata?: any // Simple metadata filter - just pass an object with the fields you want to match
     } = {}
   ): Promise<SearchResult<T>[]> {
     await this.ensureInitialized()
@@ -4765,11 +5022,13 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       // Embed the query text
       const queryVector = await this.embed(query)
 
-      // Search using the embedded vector
+      // Search using the embedded vector with metadata filtering
       const results = await this.search(queryVector, k, {
         nounTypes: options.nounTypes,
         includeVerbs: options.includeVerbs,
-        searchMode: options.searchMode
+        searchMode: options.searchMode,
+        metadata: options.metadata,
+        forceEmbed: false // Already embedded
       })
 
       // Track search performance
@@ -5727,6 +5986,21 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     if (this.updateTimerId) {
       clearInterval(this.updateTimerId)
       this.updateTimerId = null
+    }
+
+    // Stop maintenance intervals
+    for (const intervalId of this.maintenanceIntervals) {
+      clearInterval(intervalId)
+    }
+    this.maintenanceIntervals = []
+
+    // Flush metadata index one last time
+    if (this.metadataIndex) {
+      try {
+        await this.metadataIndex.flush()
+      } catch (error) {
+        console.warn('Error flushing metadata index during cleanup:', error)
+      }
     }
 
     // Clean up distributed mode resources

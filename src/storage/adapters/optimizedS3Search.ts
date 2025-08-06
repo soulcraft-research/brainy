@@ -5,6 +5,7 @@
 
 import { HNSWNoun, GraphVerb } from '../../coreTypes.js'
 import { createModuleLogger } from '../../utils/logger.js'
+import { getDirectoryPath } from '../baseStorage.js'
 
 const logger = createModuleLogger('OptimizedS3Search')
 
@@ -70,7 +71,7 @@ export class OptimizedS3Search {
     
     try {
       // List noun objects with pagination
-      const listResult = await this.storage.listObjectKeys('nouns/', limit * 2, cursor)
+      const listResult = await this.storage.listObjectKeys(`${getDirectoryPath('noun', 'vector')}/`, limit * 2, cursor)
       
       if (!listResult.keys.length) {
         return {
@@ -141,7 +142,7 @@ export class OptimizedS3Search {
     
     try {
       // List verb objects with pagination
-      const listResult = await this.storage.listObjectKeys('verbs/', limit * 2, cursor)
+      const listResult = await this.storage.listObjectKeys(`${getDirectoryPath('verb', 'vector')}/`, limit * 2, cursor)
       
       if (!listResult.keys.length) {
         return {
@@ -163,7 +164,7 @@ export class OptimizedS3Search {
           if (!verbData) return null
           
           // Get metadata
-          const verbId = key.replace('verbs/', '').replace('.json', '')
+          const verbId = key.replace(`${getDirectoryPath('verb', 'vector')}/`, '').replace('.json', '')
           const metadata = await this.storage.getMetadata(verbId, 'verb')
           
           // Combine into GraphVerb

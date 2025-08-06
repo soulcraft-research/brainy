@@ -11,28 +11,37 @@
 
 </div>
 
-## 🔥 MAJOR UPDATE: TensorFlow.js → Transformers.js Migration (v0.46+)
+## 🔥 MAJOR UPDATES: What's New in v0.46+ & v0.48+
 
-**We've completely replaced TensorFlow.js with Transformers.js for better performance and true offline operation!**
+### 🚀 **v0.48: MongoDB-Style Metadata Filtering**
 
-### Why We Made This Change
+**Powerful querying with familiar syntax - filter DURING search for maximum performance!**
 
-**The Honest Truth About TensorFlow.js:**
+```javascript
+const results = await brainy.search("wireless headphones", 10, {
+  metadata: {
+    category: { $in: ["electronics", "audio"] },
+    price: { $lte: 200 },
+    rating: { $gte: 4.0 },
+    brand: { $ne: "Generic" }
+  }
+})
+```
 
-- 📦 **Massive Package Size**: 12.5MB+ packages with complex dependency trees
-- 🌐 **Hidden Network Calls**: Even "local" models triggered fetch() calls internally
-- 🐛 **Dependency Hell**: Constant `--legacy-peer-deps` issues with Node.js updates
-- 🔧 **Maintenance Burden**: 47+ dependencies to keep compatible across environments
-- 💾 **Huge Models**: 525MB Universal Sentence Encoder models
+- ✅ **15+ MongoDB Operators**: `$gt`, `$in`, `$regex`, `$and`, `$or`, `$includes`, etc.
+- ✅ **Automatic Indexing**: Zero configuration, maximum performance
+- ✅ **Nested Fields**: Use dot notation for complex objects
+- ✅ **100% Backward Compatible**: Your existing code works unchanged
 
-### What You Get Now
+### ⚡ **v0.46: Transformers.js Migration**
 
-- ✅ **95% Smaller Package**: 643 kB vs 12.5 MB (and it actually works better!)
-- ✅ **84% Smaller Models**: 87 MB vs 525 MB all-MiniLM-L6-v2 vs USE
-- ✅ **True Offline Operation**: Zero network calls after initial model download
-- ✅ **5x Fewer Dependencies**: Clean dependency tree, no more peer dep issues
-- ✅ **Same API**: Drop-in replacement - your existing code just works
-- ✅ **Better Performance**: ONNX Runtime is faster than TensorFlow.js in most cases
+**Replaced TensorFlow.js for better performance and true offline operation!**
+
+- ✅ **95% Smaller Package**: 643 kB vs 12.5 MB
+- ✅ **84% Smaller Models**: 87 MB vs 525 MB models
+- ✅ **True Offline**: Zero network calls after initial download
+- ✅ **5x Fewer Dependencies**: Clean tree, no peer dependency issues
+- ✅ **Same API**: Drop-in replacement, existing code works unchanged
 
 ### Migration (It's Automatic!)
 
@@ -60,7 +69,9 @@ RUN npm run download-models  # Download during build for offline production
 
 **One API. Every environment. Zero configuration.**
 
-Brainy is the **AI-native database** that combines vector search and knowledge graphs in one unified API. Write your code once, and it runs everywhere - browsers, Node.js, serverless, edge workers - with automatic optimization for each environment.
+Brainy is the **AI-native database** that combines vector search and knowledge graphs in one unified API. Write your
+code once, and it runs everywhere - browsers, Node.js, serverless, edge workers - with automatic optimization for each
+environment.
 
 ```javascript
 // This same code works EVERYWHERE
@@ -89,7 +100,8 @@ const results = await brainy.search("AI", 10)    // Semantic search
   environment and optimizes itself
 - **🌍 True Write-Once, Run-Anywhere** - Same code runs in Angular, React, Vue, Node.js, Deno, Bun, serverless, edge
   workers, and web workers with automatic environment detection
-- **⚡ Scary Fast** - Handles millions of vectors with sub-millisecond search. GPU acceleration for embeddings, optimized CPU for distance calculations
+- **⚡ Scary Fast** - Handles millions of vectors with sub-millisecond search. GPU acceleration for embeddings, optimized
+  CPU for distance calculations
 - **🎯 Self-Learning** - Like having a database that goes to the gym. Gets faster and smarter the more you use it
 - **🔮 AI-First Design** - Built for the age of embeddings, RAG, and semantic search. Your LLMs will thank you
 - **🎮 Actually Fun to Use** - Clean API, great DX, and it does the heavy lifting so you can build cool stuff
@@ -145,6 +157,17 @@ const contextual = await brainy.search("Who leads AI companies?", 5, {
   includeVerbs: true,     // Include relationships in results
   nounTypes: ["person"],  // Filter to specific entity types
 })
+
+// 5️⃣ NEW! MongoDB-style metadata filtering
+const filtered = await brainy.search("AI research", 10, {
+  metadata: {
+    type: "academic",
+    year: { $gte: 2020 },
+    status: { $in: ["published", "peer-reviewed"] },
+    impact: { $gt: 100 }
+  }
+})
+// Filters DURING search for maximum performance!
 ```
 
 **🎯 That's it!** Vector search + graph database + works everywhere. No config needed.
@@ -213,18 +236,19 @@ import { BrainyData } from '@soulcraft/brainy'
 })
 export class SearchComponent implements OnInit {
   brainy = new BrainyData()
-  
+
   async ngOnInit() {
     await this.brainy.init()
     // Add your data...
   }
-  
+
   async search(query: string) {
     const results = await this.brainy.search(query, 5)
     // Display results...
   }
 }
 ```
+
 </details>
 
 <details>
@@ -256,36 +280,39 @@ function Search() {
   return <input onChange={(e) => search(e.target.value)} placeholder="Search..." />
 }
 ```
+
 </details>
 
 <details>
 <summary>📦 Full Vue Example</summary>
 
 ```vue
+
 <script setup>
-import { BrainyData } from '@soulcraft/brainy'
-import { ref, onMounted } from 'vue'
+  import { BrainyData } from '@soulcraft/brainy'
+  import { ref, onMounted } from 'vue'
 
-const brainy = ref(null)
-const results = ref([])
+  const brainy = ref(null)
+  const results = ref([])
 
-onMounted(async () => {
-  const db = new BrainyData()
-  await db.init()
-  // Add your data...
-  brainy.value = db
-})
+  onMounted(async () => {
+    const db = new BrainyData()
+    await db.init()
+    // Add your data...
+    brainy.value = db
+  })
 
-const search = async (query) => {
-  const results = await brainy.value?.search(query, 5) || []
-  setResults(results)
-}
+  const search = async (query) => {
+    const results = await brainy.value?.search(query, 5) || []
+    setResults(results)
+  }
 </script>
 
 <template>
   <input @input="search($event.target.value)" placeholder="Search..." />
 </template>
 ```
+
 </details>
 
 ### 🟢 Node.js / Serverless / Edge
@@ -306,12 +333,11 @@ const results = await brainy.search("programming languages", 5)
 
 // Optional: Production with S3/R2 storage (auto-detected in cloud environments)
 const productionBrainy = new BrainyData({
-  storage: { 
+  storage: {
     s3Storage: { bucketName: process.env.BUCKET_NAME }
   }
 })
 ```
-
 
 **That's it! Same code, everywhere. Zero-to-Smart™**
 
@@ -397,6 +423,7 @@ console.log(`Instance ${health.instanceId}: ${health.status}`)
 ### Core Capabilities
 
 - **Vector Search** - Find semantically similar content using embeddings
+- **MongoDB-Style Metadata Filtering** 🆕 - Advanced filtering with `$gt`, `$in`, `$regex`, `$and`, `$or` operators
 - **Graph Relationships** - Connect data with meaningful relationships
 - **JSON Document Search** - Search within specific fields with prioritization
 - **Distributed Mode** - Scale horizontally with automatic coordination between instances
@@ -871,11 +898,12 @@ const products = await brainy.getVerbsBySource(openai)
 <summary>🔍 See Framework Examples</summary>
 
 ### React
+
 ```jsx
 function App() {
   const [brainy] = useState(() => new BrainyData())
   useEffect(() => brainy.init(), [])
-  
+
   const search = async (query) => {
     return await brainy.search(query, 10)
   }
@@ -884,19 +912,24 @@ function App() {
 ```
 
 ### Vue 3
+
 ```vue
+
 <script setup>
-const brainy = new BrainyData()
-await brainy.init()
-// Same API as above
+  const brainy = new BrainyData()
+  await brainy.init()
+  // Same API as above
 </script>
 ```
 
 ### Angular
+
 ```typescript
+
 @Component({})
 export class AppComponent {
   brainy = new BrainyData()
+
   async ngOnInit() {
     await this.brainy.init()
     // Same API as above
@@ -905,24 +938,26 @@ export class AppComponent {
 ```
 
 ### Node.js / Deno / Bun
+
 ```javascript
 const brainy = new BrainyData()
 await brainy.init()
 // Same API as above
 ```
+
 </details>
 
 ### 🌍 Framework-First, Runs Everywhere
 
 **Brainy automatically detects your environment and optimizes everything:**
 
-| Environment | Storage | Optimization |
-|------------|---------|-------------|
-| 🌐 Browser | OPFS | Web Workers, Memory Cache |
-| 🟢 Node.js | FileSystem / S3 | Worker Threads, Clustering |
-| ⚡ Serverless | S3 / Memory | Cold Start Optimization |
-| 🔥 Edge Workers | Memory / KV | Minimal Footprint |
-| 🦕 Deno/Bun | FileSystem / S3 | Native Performance |
+| Environment     | Storage         | Optimization               |
+|-----------------|-----------------|----------------------------|
+| 🌐 Browser      | OPFS            | Web Workers, Memory Cache  |
+| 🟢 Node.js      | FileSystem / S3 | Worker Threads, Clustering |
+| ⚡ Serverless    | S3 / Memory     | Cold Start Optimization    |
+| 🔥 Edge Workers | Memory / KV     | Minimal Footprint          |
+| 🦕 Deno/Bun     | FileSystem / S3 | Native Performance         |
 
 ## 🌐 Deploy to Any Cloud
 
@@ -930,6 +965,7 @@ await brainy.init()
 <summary>☁️ See Cloud Platform Examples</summary>
 
 ### Cloudflare Workers
+
 ```javascript
 import { BrainyData } from '@soulcraft/brainy'
 
@@ -937,7 +973,7 @@ export default {
   async fetch(request) {
     const brainy = new BrainyData()
     await brainy.init()
-    
+
     const url = new URL(request.url)
     const results = await brainy.search(url.searchParams.get('q'), 10)
     return Response.json(results)
@@ -946,32 +982,35 @@ export default {
 ```
 
 ### AWS Lambda
+
 ```javascript
 import { BrainyData } from '@soulcraft/brainy'
 
 export const handler = async (event) => {
   const brainy = new BrainyData()
   await brainy.init()
-  
+
   const results = await brainy.search(event.query, 10)
   return { statusCode: 200, body: JSON.stringify(results) }
 }
 ```
 
 ### Google Cloud Functions
+
 ```javascript
 import { BrainyData } from '@soulcraft/brainy'
 
 export const searchHandler = async (req, res) => {
   const brainy = new BrainyData()
   await brainy.init()
-  
+
   const results = await brainy.search(req.query.q, 10)
   res.json(results)
 }
 ```
 
 ### Vercel Edge Functions
+
 ```javascript
 import { BrainyData } from '@soulcraft/brainy'
 
@@ -980,14 +1019,14 @@ export const config = { runtime: 'edge' }
 export default async function handler(request) {
   const brainy = new BrainyData()
   await brainy.init()
-  
+
   const { searchParams } = new URL(request.url)
   const results = await brainy.search(searchParams.get('q'), 10)
   return Response.json(results)
 }
 ```
-</details>
 
+</details>
 
 ### Docker Container
 

@@ -280,7 +280,8 @@ export class HNSWIndex {
    */
   public async search(
     queryVector: Vector,
-    k: number = 10
+    k: number = 10,
+    filter?: (id: string) => Promise<boolean>
   ): Promise<Array<[string, number]>> {
     if (this.nouns.size === 0) {
       return []
@@ -372,11 +373,14 @@ export class HNSWIndex {
     }
 
     // Search at level 0 with ef = k
+    // If we have a filter, increase ef to compensate for filtered results
+    const ef = filter ? Math.max(this.config.efSearch * 3, k * 3) : Math.max(this.config.efSearch, k)
     const nearestNouns = await this.searchLayer(
       queryVector,
       currObj,
-      Math.max(this.config.efSearch, k),
-      0
+      ef,
+      0,
+      filter
     )
 
     // Convert to array and sort by distance
@@ -599,24 +603,25 @@ export class HNSWIndex {
     queryVector: Vector,
     entryPoint: HNSWNoun,
     ef: number,
-    level: number
+    level: number,
+    filter?: (id: string) => Promise<boolean>
   ): Promise<Map<string, number>> {
     // Set of visited nouns
     const visited = new Set<string>([entryPoint.id])
 
+    // Check if entry point passes filter
+    const entryPointDistance = this.distanceFunction(queryVector, entryPoint.vector)
+    const entryPointPasses = filter ? await filter(entryPoint.id) : true
+    
     // Priority queue of candidates (closest first)
     const candidates = new Map<string, number>()
-    candidates.set(
-      entryPoint.id,
-      this.distanceFunction(queryVector, entryPoint.vector)
-    )
+    candidates.set(entryPoint.id, entryPointDistance)
 
     // Priority queue of nearest neighbors found so far (closest first)
     const nearest = new Map<string, number>()
-    nearest.set(
-      entryPoint.id,
-      this.distanceFunction(queryVector, entryPoint.vector)
-    )
+    if (entryPointPasses) {
+      nearest.set(entryPoint.id, entryPointDistance)
+    }
 
     // While there are candidates to explore
     while (candidates.size > 0) {
@@ -660,17 +665,25 @@ export class HNSWIndex {
 
           // Process the results
           for (const { id, distance } of distances) {
-            // If we haven't found ef nearest neighbors yet, or this neighbor is closer than the farthest one we've found
-            if (nearest.size < ef || distance < farthestInNearest[1]) {
-              candidates.set(id, distance)
-              nearest.set(id, distance)
+            // Apply filter if provided
+            const passes = filter ? await filter(id) : true
+            
+            // Always add to candidates for graph traversal
+            candidates.set(id, distance)
+            
+            // Only add to nearest if it passes the filter
+            if (passes) {
+              // If we haven't found ef nearest neighbors yet, or this neighbor is closer than the farthest one we've found
+              if (nearest.size < ef || distance < farthestInNearest[1]) {
+                nearest.set(id, distance)
 
-              // If we have more than ef neighbors, remove the farthest one
-              if (nearest.size > ef) {
-                const sortedNearest = [...nearest].sort((a, b) => a[1] - b[1])
-                nearest.clear()
-                for (let i = 0; i < ef; i++) {
-                  nearest.set(sortedNearest[i][0], sortedNearest[i][1])
+                // If we have more than ef neighbors, remove the farthest one
+                if (nearest.size > ef) {
+                  const sortedNearest = [...nearest].sort((a, b) => a[1] - b[1])
+                  nearest.clear()
+                  for (let i = 0; i < ef; i++) {
+                    nearest.set(sortedNearest[i][0], sortedNearest[i][1])
+                  }
                 }
               }
             }
@@ -691,18 +704,26 @@ export class HNSWIndex {
               queryVector,
               neighbor.vector
             )
+            
+            // Apply filter if provided
+            const passes = filter ? await filter(neighborId) : true
+            
+            // Always add to candidates for graph traversal
+            candidates.set(neighborId, distToNeighbor)
+            
+            // Only add to nearest if it passes the filter
+            if (passes) {
+              // If we haven't found ef nearest neighbors yet, or this neighbor is closer than the farthest one we've found
+              if (nearest.size < ef || distToNeighbor < farthestInNearest[1]) {
+                nearest.set(neighborId, distToNeighbor)
 
-            // If we haven't found ef nearest neighbors yet, or this neighbor is closer than the farthest one we've found
-            if (nearest.size < ef || distToNeighbor < farthestInNearest[1]) {
-              candidates.set(neighborId, distToNeighbor)
-              nearest.set(neighborId, distToNeighbor)
-
-              // If we have more than ef neighbors, remove the farthest one
-              if (nearest.size > ef) {
-                const sortedNearest = [...nearest].sort((a, b) => a[1] - b[1])
-                nearest.clear()
-                for (let i = 0; i < ef; i++) {
-                  nearest.set(sortedNearest[i][0], sortedNearest[i][1])
+                // If we have more than ef neighbors, remove the farthest one
+                if (nearest.size > ef) {
+                  const sortedNearest = [...nearest].sort((a, b) => a[1] - b[1])
+                  nearest.clear()
+                  for (let i = 0; i < ef; i++) {
+                    nearest.set(sortedNearest[i][0], sortedNearest[i][1])
+                  }
                 }
               }
             }

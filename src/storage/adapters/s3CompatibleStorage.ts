@@ -12,7 +12,8 @@ import {
   METADATA_DIR,
   INDEX_DIR,
   SYSTEM_DIR,
-  STATISTICS_KEY
+  STATISTICS_KEY,
+  getDirectoryPath
 } from '../baseStorage.js'
 import { StorageCompatibilityLayer, StoragePaths } from '../backwardCompatibility.js'
 import {
@@ -80,7 +81,8 @@ export class S3CompatibleStorage extends BaseStorage {
   // Prefixes for different types of data
   private nounPrefix: string
   private verbPrefix: string
-  private metadataPrefix: string
+  private metadataPrefix: string  // Noun metadata
+  private verbMetadataPrefix: string  // Verb metadata
   private indexPrefix: string  // Legacy - for backward compatibility
   private systemPrefix: string  // New location for system data
   private useDualWrite: boolean = true  // Write to both locations during migration
@@ -142,10 +144,11 @@ export class S3CompatibleStorage extends BaseStorage {
       options.operationConfig
     )
 
-    // Set up prefixes for different types of data
-    this.nounPrefix = `${NOUNS_DIR}/`
-    this.verbPrefix = `${VERBS_DIR}/`
-    this.metadataPrefix = `${METADATA_DIR}/`
+    // Set up prefixes for different types of data using new entity-based structure
+    this.nounPrefix = `${getDirectoryPath('noun', 'vector')}/`
+    this.verbPrefix = `${getDirectoryPath('verb', 'vector')}/`
+    this.metadataPrefix = `${getDirectoryPath('noun', 'metadata')}/`  // Noun metadata
+    this.verbMetadataPrefix = `${getDirectoryPath('verb', 'metadata')}/`  // Verb metadata
     this.indexPrefix = `${INDEX_DIR}/`  // Legacy
     this.systemPrefix = `${SYSTEM_DIR}/`  // New
     
@@ -1283,7 +1286,7 @@ export class S3CompatibleStorage extends BaseStorage {
       // Import the PutObjectCommand only when needed
       const { PutObjectCommand } = await import('@aws-sdk/client-s3')
 
-      const key = `verb-metadata/${id}.json`
+      const key = `${this.verbMetadataPrefix}${id}.json`
       const body = JSON.stringify(metadata, null, 2)
 
       this.logger.trace(`Saving verb metadata for ${id} to key: ${key}`)
@@ -1315,7 +1318,7 @@ export class S3CompatibleStorage extends BaseStorage {
       // Import the GetObjectCommand only when needed
       const { GetObjectCommand } = await import('@aws-sdk/client-s3')
 
-      const key = `verb-metadata/${id}.json`
+      const key = `${this.verbMetadataPrefix}${id}.json`
       this.logger.trace(`Getting verb metadata for ${id} from key: ${key}`)
 
       // Try to get the verb metadata
@@ -1373,7 +1376,7 @@ export class S3CompatibleStorage extends BaseStorage {
       // Import the PutObjectCommand only when needed
       const { PutObjectCommand } = await import('@aws-sdk/client-s3')
 
-      const key = `noun-metadata/${id}.json`
+      const key = `${this.metadataPrefix}${id}.json`
       const body = JSON.stringify(metadata, null, 2)
 
       this.logger.trace(`Saving noun metadata for ${id} to key: ${key}`)
@@ -1405,7 +1408,7 @@ export class S3CompatibleStorage extends BaseStorage {
       // Import the GetObjectCommand only when needed
       const { GetObjectCommand } = await import('@aws-sdk/client-s3')
 
-      const key = `noun-metadata/${id}.json`
+      const key = `${this.metadataPrefix}${id}.json`
       this.logger.trace(`Getting noun metadata for ${id} from key: ${key}`)
 
       // Try to get the noun metadata
@@ -1569,8 +1572,11 @@ export class S3CompatibleStorage extends BaseStorage {
       // Delete all objects in the verbs directory
       await deleteObjectsWithPrefix(this.verbPrefix)
 
-      // Delete all objects in the metadata directory
+      // Delete all objects in the noun metadata directory
       await deleteObjectsWithPrefix(this.metadataPrefix)
+
+      // Delete all objects in the verb metadata directory
+      await deleteObjectsWithPrefix(this.verbMetadataPrefix)
 
       // Delete all objects in the index directory
       await deleteObjectsWithPrefix(this.indexPrefix)
@@ -1659,17 +1665,19 @@ export class S3CompatibleStorage extends BaseStorage {
       // Calculate size and count for each directory
       const nounsResult = await calculateSizeAndCount(this.nounPrefix)
       const verbsResult = await calculateSizeAndCount(this.verbPrefix)
-      const metadataResult = await calculateSizeAndCount(this.metadataPrefix)
+      const nounMetadataResult = await calculateSizeAndCount(this.metadataPrefix)
+      const verbMetadataResult = await calculateSizeAndCount(this.verbMetadataPrefix)
       const indexResult = await calculateSizeAndCount(this.indexPrefix)
 
       totalSize =
         nounsResult.size +
         verbsResult.size +
-        metadataResult.size +
+        nounMetadataResult.size +
+        verbMetadataResult.size +
         indexResult.size
       nodeCount = nounsResult.count
       edgeCount = verbsResult.count
-      metadataCount = metadataResult.count
+      metadataCount = nounMetadataResult.count + verbMetadataResult.count
 
       // Ensure we have a minimum size if we have objects
       if (
