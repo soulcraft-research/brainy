@@ -18,17 +18,17 @@
 **Discover available filters and scale to millions of items!**
 
 ```javascript
-// Discover what filters are available
+// Discover what filters are available - O(1) field lookup
 const categories = await brainy.getFilterValues('category')
 // Returns: ['electronics', 'books', 'clothing', ...]
 
-const fields = await brainy.getFilterFields()
+const fields = await brainy.getFilterFields()  // O(1) operation
 // Returns: ['category', 'price', 'brand', 'rating', ...]
 ```
 
-- ✅ **Filter Discovery API**: See what values are available for filtering
+- ✅ **Filter Discovery API**: O(1) field discovery for instant filter UI generation
 - ✅ **Improved Performance**: Removed deprecated methods, now uses pagination everywhere
-- ✅ **Better Scalability**: Hybrid indexing approach handles millions of items
+- ✅ **Better Scalability**: Hybrid indexing with O(1) field access scales to millions
 - ✅ **Smart Caching**: LRU cache for frequently accessed filters
 - ✅ **Zero Configuration**: Everything auto-optimizes based on usage patterns
 

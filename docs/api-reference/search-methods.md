@@ -431,14 +431,14 @@ Brainy validates metadata queries and provides helpful error messages:
 
 ### getFilterValues(field)
 
-Get all available values for a specific field that can be used in filters:
+Get all available values for a specific field with O(1) field lookup:
 
 ```javascript
-// Get all categories in the database
+// Get all categories in the database - O(1) field access
 const categories = await brainy.getFilterValues('category')
 // Returns: ['electronics', 'books', 'clothing', 'home', ...]
 
-// Get all brands
+// Get all brands - O(1) field lookup + O(n) value retrieval
 const brands = await brainy.getFilterValues('brand')
 // Returns: ['apple', 'samsung', 'sony', ...]
 
@@ -453,10 +453,10 @@ const results = await brainy.search("products", 10, {
 
 ### getFilterFields()
 
-Get all fields that have been indexed and can be used for filtering:
+Get all fields that have been indexed - O(1) operation:
 
 ```javascript
-// Discover what fields are available
+// Discover what fields are available - O(1) direct access
 const fields = await brainy.getFilterFields()
 // Returns: ['category', 'price', 'brand', 'rating', 'tags', ...]
 
