@@ -137,8 +137,17 @@ export interface BrainyDataConfig {
   /**
    * Set the database to read-only mode
    * When true, all write operations will throw an error
+   * Note: Statistics and index optimizations are still allowed unless frozen is also true
    */
   readOnly?: boolean
+
+  /**
+   * Completely freeze the database, preventing all changes including statistics and index optimizations
+   * When true, the database is completely immutable (no data changes, no index rebalancing, no statistics updates)
+   * This is useful for forensic analysis, testing with deterministic state, or compliance scenarios
+   * Default: false (allows optimizations even in readOnly mode)
+   */
+  frozen?: boolean
 
   /**
    * Enable lazy loading in read-only mode
@@ -370,6 +379,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   private distanceFunction: DistanceFunction
   private requestPersistentStorage: boolean
   private readOnly: boolean
+  private frozen: boolean
   private lazyLoadInReadOnlyMode: boolean
   private writeOnly: boolean
   private storageConfig: BrainyDataConfig['storage'] = {}
@@ -488,6 +498,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     // Set read-only flag
     this.readOnly = config.readOnly || false
 
+    // Set frozen flag (defaults to false to allow optimizations in readOnly mode)
+    this.frozen = config.frozen || false
+
     // Set lazy loading in read-only mode flag
     this.lazyLoadInReadOnlyMode = config.lazyLoadInReadOnlyMode || false
 
@@ -603,6 +616,18 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   }
 
   /**
+   * Check if the database is frozen and throw an error if it is
+   * @throws Error if the database is frozen
+   */
+  private checkFrozen(): void {
+    if (this.frozen) {
+      throw new Error(
+        'Cannot perform operation: database is frozen (no changes allowed)'
+      )
+    }
+  }
+
+  /**
    * Check if the database is in write-only mode and throw an error if it is
    * @param allowExistenceChecks If true, allows existence checks (get operations) in write-only mode
    * @throws Error if the database is in write-only mode and operation is not allowed
@@ -622,6 +647,14 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   private startRealtimeUpdates(): void {
     // If real-time updates are not enabled, do nothing
     if (!this.realtimeUpdateConfig.enabled) {
+      return
+    }
+
+    // If the database is frozen, do not start real-time updates
+    if (this.frozen) {
+      if (this.loggingConfig?.verbose) {
+        console.log('Real-time updates disabled: database is frozen')
+      }
       return
     }
 
@@ -736,6 +769,11 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   private async checkForUpdates(): Promise<void> {
     // If the database is not initialized, do nothing
     if (!this.isInitialized || !this.storage) {
+      return
+    }
+
+    // If the database is frozen, do not perform updates
+    if (this.frozen) {
       return
     }
 
@@ -3873,6 +3911,11 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       throw new Error('Storage not initialized')
     }
 
+    // If the database is frozen, do not flush statistics
+    if (this.frozen) {
+      return
+    }
+
     // Call the flushStatisticsToStorage method on the storage adapter
     await this.storage.flushStatisticsToStorage()
   }
@@ -3881,6 +3924,11 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
    * Update storage sizes if needed (called periodically for performance)
    */
   private async updateStorageSizesIfNeeded(): Promise<void> {
+    // If the database is frozen, do not update storage sizes
+    if (this.frozen) {
+      return
+    }
+
     // Only update every minute to avoid performance impact
     const now = Date.now()
     const lastUpdate = (this as any).lastStorageSizeUpdate || 0
@@ -3963,8 +4011,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     await this.ensureInitialized()
 
     try {
-      // If forceRefresh is true, flush statistics to storage first
-      if (options.forceRefresh && this.storage) {
+      // If forceRefresh is true and not frozen, flush statistics to storage first
+      if (options.forceRefresh && this.storage && !this.frozen) {
         await this.storage.flushStatisticsToStorage()
       }
 
@@ -4147,6 +4195,32 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     // Ensure readOnly and writeOnly are not both true
     if (readOnly && this.writeOnly) {
       this.writeOnly = false
+    }
+  }
+
+  /**
+   * Check if the database is frozen (completely immutable)
+   * @returns True if the database is frozen, false otherwise
+   */
+  public isFrozen(): boolean {
+    return this.frozen
+  }
+
+  /**
+   * Set the database to frozen mode (completely immutable)
+   * When frozen, no changes are allowed including statistics updates and index optimizations
+   * @param frozen True to freeze the database, false to allow optimizations
+   */
+  public setFrozen(frozen: boolean): void {
+    this.frozen = frozen
+
+    // If unfreezing and real-time updates are configured, restart them
+    if (!frozen && this.realtimeUpdateConfig.enabled && this.isInitialized) {
+      this.startRealtimeUpdates()
+    }
+    // If freezing, stop real-time updates
+    else if (frozen && this.updateTimerId !== null) {
+      this.stopRealtimeUpdates()
     }
   }
 
