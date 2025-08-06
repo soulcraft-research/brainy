@@ -980,53 +980,66 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
       // If the noun count has changed, update the index
       if (currentCount !== this.lastKnownNounCount) {
-        // Get all nouns from storage
-        const nouns = await this.storage!.getAllNouns()
-
         // Get all nouns currently in the index
         const indexNouns = this.index.getNouns()
         const indexNounIds = new Set(indexNouns.keys())
 
-        // Find nouns that are in storage but not in the index
-        const newNouns = nouns.filter((noun) => !indexNounIds.has(noun.id))
-
-        // Add new nouns to the index
-        for (const noun of newNouns) {
-          // Check if the vector dimensions match the expected dimensions
-          if (noun.vector.length !== this._dimensions) {
-            console.warn(
-              `Skipping noun ${noun.id} due to dimension mismatch: expected ${this._dimensions}, got ${noun.vector.length}`
-            )
-            continue
-          }
-
-          // Add to index
-          await this.index.addItem({
-            id: noun.id,
-            vector: noun.vector
+        // Use pagination to load nouns from storage
+        let offset = 0
+        const limit = 100
+        let hasMore = true
+        let totalNewNouns = 0
+        
+        while (hasMore) {
+          const result = await this.storage!.getNouns({
+            pagination: { offset, limit }
           })
+          
+          // Find nouns that are in storage but not in the index
+          const newNouns = result.items.filter((noun) => !indexNounIds.has(noun.id))
+          totalNewNouns += newNouns.length
+          
+          // Add new nouns to the index
+          for (const noun of newNouns) {
+            // Check if the vector dimensions match the expected dimensions
+            if (noun.vector.length !== this._dimensions) {
+              console.warn(
+                `Skipping noun ${noun.id} due to dimension mismatch: expected ${this._dimensions}, got ${noun.vector.length}`
+              )
+              continue
+            }
 
-          if (this.loggingConfig?.verbose) {
-            console.log(
-              `Added new noun ${noun.id} to index during real-time update`
-            )
+            // Add to index
+            await this.index.addItem({
+              id: noun.id,
+              vector: noun.vector
+            })
+
+            if (this.loggingConfig?.verbose) {
+              console.log(
+                `Added new noun ${noun.id} to index during real-time update`
+              )
+            }
           }
+          
+          hasMore = result.hasMore
+          offset += limit
         }
 
         // Update the last known noun count
         this.lastKnownNounCount = currentCount
 
         // Invalidate search cache if new nouns were detected
-        if (newNouns.length > 0) {
+        if (totalNewNouns > 0) {
           this.searchCache.invalidateOnDataChange('add')
           if (this.loggingConfig?.verbose) {
             console.log('Search cache invalidated due to external data changes')
           }
         }
 
-        if (this.loggingConfig?.verbose && newNouns.length > 0) {
+        if (this.loggingConfig?.verbose && totalNewNouns > 0) {
           console.log(
-            `Real-time update: Added ${newNouns.length} new nouns to index using full scan`
+            `Real-time update: Added ${totalNewNouns} new nouns to index using full scan`
           )
         }
       }
@@ -1212,27 +1225,38 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         // Just initialize an empty index
         this.index.clear()
       } else {
-        // Load all nouns from storage
-        const nouns: HNSWNoun[] = await this.storage!.getAllNouns()
-
-        // Clear the index and add all nouns
+        // Clear the index and load nouns using pagination
         this.index.clear()
-        for (const noun of nouns) {
-          // Check if the vector dimensions match the expected dimensions
-          if (noun.vector.length !== this._dimensions) {
-            console.warn(
-              `Deleting noun ${noun.id} due to dimension mismatch: expected ${this._dimensions}, got ${noun.vector.length}`
-            )
-            // Delete the mismatched noun from storage to prevent future issues
-            await this.storage!.deleteNoun(noun.id)
-            continue
-          }
-
-          // Add to index
-          await this.index.addItem({
-            id: noun.id,
-            vector: noun.vector
+        
+        let offset = 0
+        const limit = 100
+        let hasMore = true
+        
+        while (hasMore) {
+          const result = await this.storage!.getNouns({
+            pagination: { offset, limit }
           })
+          
+          for (const noun of result.items) {
+            // Check if the vector dimensions match the expected dimensions
+            if (noun.vector.length !== this._dimensions) {
+              console.warn(
+                `Deleting noun ${noun.id} due to dimension mismatch: expected ${this._dimensions}, got ${noun.vector.length}`
+              )
+              // Delete the mismatched noun from storage to prevent future issues
+              await this.storage!.deleteNoun(noun.id)
+              continue
+            }
+
+            // Add to index
+            await this.index.addItem({
+              id: noun.id,
+              vector: noun.vector
+            })
+          }
+          
+          hasMore = result.hasMore
+          offset += limit
         }
       }
 
@@ -1267,15 +1291,31 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         )
         
         // Check if we need to rebuild the index (for existing data)
+        // Skip rebuild for memory storage (starts empty) or when in read-only mode
+        // Also skip if index already has entries
+        const isMemoryStorage = this.storage?.constructor?.name === 'MemoryStorage'
         const stats = await this.metadataIndex.getStats()
-        if (stats.totalEntries === 0 && !this.readOnly) {
-          if (this.loggingConfig?.verbose) {
-            console.log('Rebuilding metadata index for existing data...')
-          }
-          await this.metadataIndex.rebuild()
-          if (this.loggingConfig?.verbose) {
-            const newStats = await this.metadataIndex.getStats()
-            console.log(`Metadata index rebuilt: ${newStats.totalEntries} entries, ${newStats.fieldsIndexed.length} fields`)
+        
+        if (!isMemoryStorage && !this.readOnly && stats.totalEntries === 0) {
+          // Check if we have existing data that needs indexing
+          // Use a simple check to avoid expensive operations
+          try {
+            const testResult = await this.storage!.getNouns({ pagination: { offset: 0, limit: 1 }})
+            if (testResult.items.length > 0) {
+              if (this.loggingConfig?.verbose) {
+                console.log('Rebuilding metadata index for existing data...')
+              }
+              await this.metadataIndex.rebuild()
+              if (this.loggingConfig?.verbose) {
+                const newStats = await this.metadataIndex.getStats()
+                console.log(`Metadata index rebuilt: ${newStats.totalEntries} entries, ${newStats.fieldsIndexed.length} fields`)
+              }
+            }
+          } catch (error) {
+            // If getNouns fails, skip rebuild
+            if (this.loggingConfig?.verbose) {
+              console.log('Skipping metadata index rebuild:', error)
+            }
           }
         }
       }
@@ -2124,10 +2164,11 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
           // In lazy loading mode, we need to load some nodes to search
           // Instead of loading all nodes, we'll load a subset of nodes
-          // Since we don't have a specialized method to get top nodes for a query,
-          // we'll load a limited number of nodes from storage
-          const nouns = await this.storage!.getAllNouns()
-          const limitedNouns = nouns.slice(0, Math.min(nouns.length, k * 10)) // Get 10x more nodes than needed
+          // Load a limited number of nodes from storage using pagination
+          const result = await this.storage!.getNouns({
+            pagination: { offset: 0, limit: k * 10 } // Get 10x more nodes than needed
+          })
+          const limitedNouns = result.items
 
           // Add these nodes to the index
           for (const node of limitedNouns) {
@@ -2163,6 +2204,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         // Use metadata index for pre-filtering if available
         if (hasMetadataFilter && this.metadataIndex) {
           try {
+            // Ensure metadata index is up to date
+            await this.metadataIndex.flush()
+            
             // Get candidate IDs from metadata index
             const candidateIds = await this.metadataIndex.getIdsForFilter(options.metadata)
             if (candidateIds.length > 0) {
@@ -4717,7 +4761,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       const searchResults = await this.index.search(queryVector, k * 2)
 
       // Get all verbs for filtering
-      const allVerbs = await this.storage!.getAllVerbs()
+      const allVerbs = await this.getAllVerbs()
 
       // Create a map of verb IDs for faster lookup
       const verbMap = new Map<string, GraphVerb>()
@@ -4923,6 +4967,39 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       console.error('Failed to search nouns by verbs:', error)
       throw new Error(`Failed to search nouns by verbs: ${error}`)
     }
+  }
+
+  /**
+   * Get available filter values for a field
+   * Useful for building dynamic filter UIs
+   * 
+   * @param field The field name to get values for
+   * @returns Array of available values for that field
+   */
+  public async getFilterValues(field: string): Promise<string[]> {
+    await this.ensureInitialized()
+    
+    if (!this.metadataIndex) {
+      return []
+    }
+    
+    return this.metadataIndex.getFilterValues(field)
+  }
+
+  /**
+   * Get all available filter fields
+   * Useful for discovering what metadata fields are indexed
+   * 
+   * @returns Array of indexed field names
+   */
+  public async getFilterFields(): Promise<string[]> {
+    await this.ensureInitialized()
+    
+    if (!this.metadataIndex) {
+      return []
+    }
+    
+    return this.metadataIndex.getFilterFields()
   }
 
   /**

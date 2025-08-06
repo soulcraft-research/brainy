@@ -5,11 +5,18 @@
  */
 
 import { StorageAdapter } from '../coreTypes.js'
+import { MetadataIndexCache, MetadataIndexCacheConfig } from './metadataIndexCache.js'
 
 export interface MetadataIndexEntry {
   field: string
   value: string | number | boolean
   ids: Set<string>
+  lastUpdated: number
+}
+
+export interface FieldIndexData {
+  // Maps value -> count for quick filter discovery
+  values: Record<string, number>
   lastUpdated: number
 }
 
@@ -39,6 +46,11 @@ export class MetadataIndexManager {
   private indexCache = new Map<string, MetadataIndexEntry>()
   private dirtyEntries = new Set<string>()
   private isRebuilding = false
+  private metadataCache: MetadataIndexCache
+  private fieldIndexes = new Map<string, FieldIndexData>()
+  private dirtyFields = new Set<string>()
+  private lastFlushTime = Date.now()
+  private autoFlushThreshold = 50 // Start with 50, will adapt based on usage
 
   constructor(storage: StorageAdapter, config: MetadataIndexConfig = {}) {
     this.storage = storage
@@ -49,6 +61,13 @@ export class MetadataIndexManager {
       indexedFields: config.indexedFields ?? [],
       excludeFields: config.excludeFields ?? ['id', 'createdAt', 'updatedAt', 'embedding', 'vector', 'embeddings', 'vectors']
     }
+    
+    // Initialize metadata cache with similar config to search cache
+    this.metadataCache = new MetadataIndexCache({
+      maxAge: 5 * 60 * 1000, // 5 minutes
+      maxSize: 500,          // 500 entries (field indexes + value chunks)
+      enabled: true
+    })
   }
 
   /**
@@ -173,7 +192,7 @@ export class MetadataIndexManager {
   /**
    * Add item to metadata indexes
    */
-  async addToIndex(id: string, metadata: any): Promise<void> {
+  async addToIndex(id: string, metadata: any, skipFlush: boolean = false): Promise<void> {
     const fields = this.extractIndexableFields(metadata)
     
     for (const { field, value } of fields) {
@@ -196,7 +215,65 @@ export class MetadataIndexManager {
       entry.ids.add(id)
       entry.lastUpdated = Date.now()
       this.dirtyEntries.add(key)
+      
+      // Update field index
+      await this.updateFieldIndex(field, value, 1)
     }
+    
+    // Adaptive auto-flush based on usage patterns
+    if (!skipFlush) {
+      const timeSinceLastFlush = Date.now() - this.lastFlushTime
+      const shouldAutoFlush = 
+        this.dirtyEntries.size >= this.autoFlushThreshold || // Size threshold
+        (this.dirtyEntries.size > 10 && timeSinceLastFlush > 5000) // Time threshold (5 seconds)
+      
+      if (shouldAutoFlush) {
+        const startTime = Date.now()
+        await this.flush()
+        const flushTime = Date.now() - startTime
+        
+        // Adapt threshold based on flush performance
+        if (flushTime < 50) {
+          // Fast flush, can handle more entries
+          this.autoFlushThreshold = Math.min(200, this.autoFlushThreshold * 1.2)
+        } else if (flushTime > 200) {
+          // Slow flush, reduce batch size
+          this.autoFlushThreshold = Math.max(20, this.autoFlushThreshold * 0.8)
+        }
+      }
+    }
+    
+    // Invalidate cache for these fields
+    for (const { field } of fields) {
+      this.metadataCache.invalidatePattern(`field_values_${field}`)
+    }
+  }
+
+  /**
+   * Update field index with value count
+   */
+  private async updateFieldIndex(field: string, value: any, delta: number): Promise<void> {
+    let fieldIndex = this.fieldIndexes.get(field)
+    
+    if (!fieldIndex) {
+      // Load from storage if not in memory
+      fieldIndex = await this.loadFieldIndex(field) ?? {
+        values: {},
+        lastUpdated: Date.now()
+      }
+      this.fieldIndexes.set(field, fieldIndex)
+    }
+    
+    const normalizedValue = this.normalizeValue(value)
+    fieldIndex.values[normalizedValue] = (fieldIndex.values[normalizedValue] || 0) + delta
+    
+    // Remove if count drops to 0
+    if (fieldIndex.values[normalizedValue] <= 0) {
+      delete fieldIndex.values[normalizedValue]
+    }
+    
+    fieldIndex.lastUpdated = Date.now()
+    this.dirtyFields.add(field)
   }
 
   /**
@@ -220,12 +297,18 @@ export class MetadataIndexManager {
           entry.lastUpdated = Date.now()
           this.dirtyEntries.add(key)
           
+          // Update field index
+          await this.updateFieldIndex(field, value, -1)
+          
           // If no IDs left, mark for cleanup
           if (entry.ids.size === 0) {
             this.indexCache.delete(key)
             await this.deleteIndexEntry(key)
           }
         }
+        
+        // Invalidate cache
+        this.metadataCache.invalidatePattern(`field_values_${field}`)
       }
     } else {
       // Remove from all indexes (slower, requires scanning)
@@ -245,12 +328,19 @@ export class MetadataIndexManager {
   }
 
   /**
-   * Get IDs for a specific field-value combination
+   * Get IDs for a specific field-value combination with caching
    */
   async getIds(field: string, value: any): Promise<string[]> {
     const key = this.getIndexKey(field, value)
     
-    // Try cache first
+    // Check metadata cache first
+    const cacheKey = `ids_${key}`
+    const cachedIds = this.metadataCache.get(cacheKey)
+    if (cachedIds) {
+      return cachedIds
+    }
+    
+    // Try in-memory cache
     let entry = this.indexCache.get(key)
     
     // Load from storage if not cached
@@ -262,7 +352,73 @@ export class MetadataIndexManager {
       }
     }
     
-    return entry ? Array.from(entry.ids) : []
+    const ids = entry ? Array.from(entry.ids) : []
+    
+    // Cache the result
+    this.metadataCache.set(cacheKey, ids)
+    
+    return ids
+  }
+
+  /**
+   * Get all available values for a field (for filter discovery)
+   */
+  async getFilterValues(field: string): Promise<string[]> {
+    // Check cache first
+    const cacheKey = `field_values_${field}`
+    const cachedValues = this.metadataCache.get(cacheKey)
+    if (cachedValues) {
+      return cachedValues
+    }
+    
+    // Check in-memory field indexes first
+    let fieldIndex = this.fieldIndexes.get(field)
+    
+    // If not in memory, load from storage
+    if (!fieldIndex) {
+      const loaded = await this.loadFieldIndex(field)
+      if (loaded) {
+        fieldIndex = loaded
+        this.fieldIndexes.set(field, loaded)
+      }
+    }
+    
+    if (!fieldIndex) {
+      return []
+    }
+    
+    const values = Object.keys(fieldIndex.values)
+    
+    // Cache the result
+    this.metadataCache.set(cacheKey, values)
+    
+    return values
+  }
+
+  /**
+   * Get all indexed fields (for filter discovery)
+   */
+  async getFilterFields(): Promise<string[]> {
+    // Check cache first
+    const cacheKey = 'all_filter_fields'
+    const cachedFields = this.metadataCache.get(cacheKey)
+    if (cachedFields) {
+      return cachedFields
+    }
+    
+    // Get fields from in-memory indexes and storage
+    const fields = new Set<string>(this.fieldIndexes.keys())
+    
+    // Also scan storage for persisted field indexes (in case not loaded)
+    // This would require a new storage method to list field indexes
+    // For now, just use in-memory fields
+    
+    const fieldsArray = Array.from(fields)
+    
+    // Cache the result
+    this.metadataCache.set(cacheKey, fieldsArray)
+    
+    return fieldsArray
   }
 
   /**
@@ -289,6 +445,10 @@ export class MetadataIndexManager {
               }
               break
             case '$eq':
+              criteria.push({ field: key, values: [operand] })
+              break
+            case '$includes':
+              // For $includes, the operand is the value we're looking for in an array field
               criteria.push({ field: key, values: [operand] })
               break
             // For other operators, we can't use index efficiently, skip for now
@@ -376,8 +536,13 @@ export class MetadataIndexManager {
    * Flush dirty entries to storage
    */
   async flush(): Promise<void> {
+    if (this.dirtyEntries.size === 0 && this.dirtyFields.size === 0) {
+      return // Nothing to flush
+    }
+    
     const promises: Promise<void>[] = []
     
+    // Flush value entries
     for (const key of this.dirtyEntries) {
       const entry = this.indexCache.get(key)
       if (entry) {
@@ -385,8 +550,69 @@ export class MetadataIndexManager {
       }
     }
     
+    // Flush field indexes
+    for (const field of this.dirtyFields) {
+      const fieldIndex = this.fieldIndexes.get(field)
+      if (fieldIndex) {
+        promises.push(this.saveFieldIndex(field, fieldIndex))
+      }
+    }
+    
     await Promise.all(promises)
     this.dirtyEntries.clear()
+    this.dirtyFields.clear()
+    this.lastFlushTime = Date.now()
+  }
+
+  /**
+   * Load field index from storage
+   */
+  private async loadFieldIndex(field: string): Promise<FieldIndexData | null> {
+    try {
+      const filename = this.getFieldIndexFilename(field)
+      const cacheKey = `field_index_${filename}`
+      
+      // Check cache first
+      const cached = this.metadataCache.get(cacheKey)
+      if (cached) {
+        return cached
+      }
+      
+      // Load from storage
+      const indexId = `__metadata_field_index__${filename}`
+      const data = await this.storage.getMetadata(indexId)
+      
+      if (data) {
+        const fieldIndex = {
+          values: data.values || {},
+          lastUpdated: data.lastUpdated || Date.now()
+        }
+        
+        // Cache it
+        this.metadataCache.set(cacheKey, fieldIndex)
+        
+        return fieldIndex
+      }
+    } catch (error) {
+      // Field index doesn't exist yet
+    }
+    return null
+  }
+
+  /**
+   * Save field index to storage
+   */
+  private async saveFieldIndex(field: string, fieldIndex: FieldIndexData): Promise<void> {
+    const filename = this.getFieldIndexFilename(field)
+    const indexId = `__metadata_field_index__${filename}`
+    
+    await this.storage.saveMetadata(indexId, {
+      values: fieldIndex.values,
+      lastUpdated: fieldIndex.lastUpdated
+    })
+    
+    // Invalidate cache
+    this.metadataCache.invalidatePattern(`field_index_${filename}`)
   }
 
   /**
@@ -413,7 +639,7 @@ export class MetadataIndexManager {
   }
 
   /**
-   * Rebuild entire index from scratch
+   * Rebuild entire index from scratch using pagination
    */
   async rebuild(): Promise<void> {
     if (this.isRebuilding) return
@@ -423,25 +649,51 @@ export class MetadataIndexManager {
       // Clear existing indexes
       this.indexCache.clear()
       this.dirtyEntries.clear()
+      this.fieldIndexes.clear()
+      this.dirtyFields.clear()
       
-      // Get all nouns and rebuild their metadata indexes
-      const nouns = await this.storage.getAllNouns()
+      // Rebuild noun metadata indexes using pagination
+      let nounOffset = 0
+      const nounLimit = 100
+      let hasMoreNouns = true
       
-      for (const noun of nouns) {
-        const metadata = await this.storage.getMetadata(noun.id)
-        if (metadata) {
-          await this.addToIndex(noun.id, metadata)
+      while (hasMoreNouns) {
+        const result = await this.storage.getNouns({
+          pagination: { offset: nounOffset, limit: nounLimit }
+        })
+        
+        for (const noun of result.items) {
+          const metadata = await this.storage.getMetadata(noun.id)
+          if (metadata) {
+            // Skip flush during rebuild for performance
+            await this.addToIndex(noun.id, metadata, true)
+          }
         }
+        
+        hasMoreNouns = result.hasMore
+        nounOffset += nounLimit
       }
       
-      // Get all verbs and rebuild their metadata indexes
-      const verbs = await this.storage.getAllVerbs()
+      // Rebuild verb metadata indexes using pagination
+      let verbOffset = 0
+      const verbLimit = 100
+      let hasMoreVerbs = true
       
-      for (const verb of verbs) {
-        const metadata = await this.storage.getVerbMetadata(verb.id)
-        if (metadata) {
-          await this.addToIndex(verb.id, metadata)
+      while (hasMoreVerbs) {
+        const result = await this.storage.getVerbs({
+          pagination: { offset: verbOffset, limit: verbLimit }
+        })
+        
+        for (const verb of result.items) {
+          const metadata = await this.storage.getVerbMetadata(verb.id)
+          if (metadata) {
+            // Skip flush during rebuild for performance
+            await this.addToIndex(verb.id, metadata, true)
+          }
         }
+        
+        hasMoreVerbs = result.hasMore
+        verbOffset += verbLimit
       }
       
       // Flush to storage

@@ -169,6 +169,14 @@ describe('Metadata Filtering', () => {
     })
 
     it('should filter with MongoDB operators', async () => {
+      // First verify what we have in the index
+      const allResults = await brainy.searchText('developer', 10)
+      console.log('All results before filtering:', allResults.map(r => ({
+        name: r.metadata?.name,
+        skills: r.metadata?.skills,
+        available: r.metadata?.available
+      })))
+      
       const results = await brainy.searchText('developer', 10, {
         metadata: {
           skills: { $includes: 'React' },
@@ -176,7 +184,23 @@ describe('Metadata Filtering', () => {
         }
       })
       
+      console.log('Filtered results:', results.map(r => ({
+        name: r.metadata?.name,
+        skills: r.metadata?.skills,
+        available: r.metadata?.available
+      })))
+      
       expect(results.length).toBeGreaterThan(0)
+      
+      // Check each result individually for debugging
+      for (const r of results) {
+        const hasReact = r.metadata?.skills?.includes('React')
+        const isAvailable = r.metadata?.available === true
+        if (!hasReact || !isAvailable) {
+          console.log('Failed result:', r.metadata)
+        }
+      }
+      
       expect(results.every(r => 
         r.metadata?.skills?.includes('React') && 
         r.metadata?.available === true

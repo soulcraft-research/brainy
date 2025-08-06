@@ -17,8 +17,6 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
 
   abstract getNoun(id: string): Promise<any | null>
 
-  abstract getAllNouns(): Promise<any[]>
-
   abstract getNounsByNounType(nounType: string): Promise<any[]>
 
   abstract deleteNoun(id: string): Promise<void>
@@ -26,8 +24,6 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
   abstract saveVerb(verb: any): Promise<void>
 
   abstract getVerb(id: string): Promise<any | null>
-
-  abstract getAllVerbs(): Promise<any[]>
 
   abstract getVerbsBySource(sourceId: string): Promise<any[]>
 
@@ -53,6 +49,20 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
     quota: number | null
     details?: Record<string, any>
   }>
+
+  /**
+   * Get all nouns from storage
+   * @returns Promise that resolves to an array of all nouns
+   * @deprecated This method loads all data into memory and may cause performance issues. Use getNouns() with pagination instead.
+   */
+  abstract getAllNouns(): Promise<any[]>
+
+  /**
+   * Get all verbs from storage
+   * @returns Promise that resolves to an array of all HNSWVerbs
+   * @deprecated This method loads all data into memory and may cause performance issues. Use getVerbs() with pagination instead.
+   */
+  abstract getAllVerbs(): Promise<any[]>
 
   /**
    * Get nouns with pagination and filtering

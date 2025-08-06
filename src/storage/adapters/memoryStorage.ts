@@ -84,33 +84,6 @@ export class MemoryStorage extends BaseStorage {
   }
 
   /**
-   * Get all nouns from storage
-   */
-  protected async getAllNouns_internal(): Promise<HNSWNoun[]> {
-    const allNouns: HNSWNoun[] = []
-
-    // Iterate through all nouns in the nouns map
-    for (const [nounId, noun] of this.nouns.entries()) {
-      // Return a deep copy to avoid reference issues
-      const nounCopy: HNSWNoun = {
-        id: noun.id,
-        vector: [...noun.vector],
-        connections: new Map(),
-        level: noun.level || 0
-      }
-
-      // Copy connections
-      for (const [level, connections] of noun.connections.entries()) {
-        nounCopy.connections.set(level, new Set(connections))
-      }
-
-      allNouns.push(nounCopy)
-    }
-
-    return allNouns
-  }
-
-  /**
    * Get nouns with pagination and filtering
    * @param options Pagination and filtering options
    * @returns Promise that resolves to a paginated result of nouns
@@ -295,32 +268,6 @@ export class MemoryStorage extends BaseStorage {
     }
 
     return verbCopy
-  }
-
-  /**
-   * Get all verbs from storage
-   */
-  protected async getAllVerbs_internal(): Promise<HNSWVerb[]> {
-    const allVerbs: HNSWVerb[] = []
-
-    // Iterate through all verbs in the verbs map
-    for (const [verbId, verb] of this.verbs.entries()) {
-      // Create a deep copy of the HNSWVerb
-      const verbCopy: HNSWVerb = {
-        id: verb.id,
-        vector: [...verb.vector],
-        connections: new Map()
-      }
-
-      // Copy connections
-      for (const [level, connections] of verb.connections.entries()) {
-        verbCopy.connections.set(level, new Set(connections))
-      }
-
-      allVerbs.push(verbCopy)
-    }
-
-    return allVerbs
   }
 
   /**

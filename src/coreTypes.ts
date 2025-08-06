@@ -340,13 +340,6 @@ export interface StorageAdapter {
   getNoun(id: string): Promise<HNSWNoun | null>
 
   /**
-   * Get all nouns from storage
-   * @deprecated Use getNouns() with pagination instead for better scalability
-   * @returns Promise that resolves to an array of all nouns
-   */
-  getAllNouns(): Promise<HNSWNoun[]>
-
-  /**
    * Get nouns with pagination and filtering
    * @param options Pagination and filtering options
    * @returns Promise that resolves to a paginated result of nouns
@@ -382,13 +375,6 @@ export interface StorageAdapter {
   saveVerb(verb: GraphVerb): Promise<void>
 
   getVerb(id: string): Promise<GraphVerb | null>
-
-  /**
-   * Get all verbs from storage
-   * @deprecated Use getVerbs() with pagination instead for better scalability
-   * @returns Promise that resolves to an array of all verbs
-   */
-  getAllVerbs(): Promise<GraphVerb[]>
 
   /**
    * Get verbs with pagination and filtering
@@ -562,4 +548,18 @@ export interface StorageAdapter {
    * @returns Promise that resolves to an array of changes
    */
   getChangesSince?(timestamp: number, limit?: number): Promise<any[]>
+
+  /**
+   * Get all nouns from storage
+   * @returns Promise that resolves to an array of all nouns
+   * @deprecated This method loads all data into memory and may cause performance issues. Use getNouns() with pagination instead.
+   */
+  getAllNouns(): Promise<HNSWNoun[]>
+
+  /**
+   * Get all verbs from storage
+   * @returns Promise that resolves to an array of all HNSWVerbs
+   * @deprecated This method loads all data into memory and may cause performance issues. Use getVerbs() with pagination instead.
+   */
+  getAllVerbs(): Promise<HNSWVerb[]>
 }

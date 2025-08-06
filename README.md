@@ -11,7 +11,26 @@
 
 </div>
 
-## 🔥 MAJOR UPDATES: What's New in v0.46+ & v0.48+
+## 🔥 MAJOR UPDATES: What's New in v0.49, v0.48 & v0.46+
+
+### 🎯 **v0.49: Filter Discovery & Performance Improvements**
+
+**Discover available filters and scale to millions of items!**
+
+```javascript
+// Discover what filters are available
+const categories = await brainy.getFilterValues('category')
+// Returns: ['electronics', 'books', 'clothing', ...]
+
+const fields = await brainy.getFilterFields()
+// Returns: ['category', 'price', 'brand', 'rating', ...]
+```
+
+- ✅ **Filter Discovery API**: See what values are available for filtering
+- ✅ **Improved Performance**: Removed deprecated methods, now uses pagination everywhere
+- ✅ **Better Scalability**: Hybrid indexing approach handles millions of items
+- ✅ **Smart Caching**: LRU cache for frequently accessed filters
+- ✅ **Zero Configuration**: Everything auto-optimizes based on usage patterns
 
 ### 🚀 **v0.48: MongoDB-Style Metadata Filtering**
 

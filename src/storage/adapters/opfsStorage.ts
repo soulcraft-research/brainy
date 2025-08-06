@@ -255,46 +255,6 @@ export class OPFSStorage extends BaseStorage {
     }
   }
 
-  /**
-   * Get all nouns from storage
-   */
-  protected async getAllNouns_internal(): Promise<HNSWNoun_internal[]> {
-    await this.ensureInitialized()
-
-    const allNouns: HNSWNoun_internal[] = []
-    try {
-      // Iterate through all files in the nouns directory
-      for await (const [name, handle] of this.nounsDir!.entries()) {
-        if (handle.kind === 'file') {
-          try {
-            // Read the noun data from the file
-            const file = await safeGetFile(handle)
-            const text = await file.text()
-            const data = JSON.parse(text)
-
-            // Convert serialized connections back to Map<number, Set<string>>
-            const connections = new Map<number, Set<string>>()
-            for (const [level, nounIds] of Object.entries(data.connections)) {
-              connections.set(Number(level), new Set(nounIds as string[]))
-            }
-
-            allNouns.push({
-              id: data.id,
-              vector: data.vector,
-              connections,
-              level: data.level || 0
-            })
-          } catch (error) {
-            console.error(`Error reading noun file ${name}:`, error)
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error reading nouns directory:', error)
-    }
-
-    return allNouns
-  }
 
   /**
    * Get nouns by noun type (internal implementation)
@@ -469,12 +429,6 @@ export class OPFSStorage extends BaseStorage {
     }
   }
 
-  /**
-   * Get all verbs from storage (internal implementation)
-   */
-  protected async getAllVerbs_internal(): Promise<HNSWVerb[]> {
-    return this.getAllEdges()
-  }
 
   /**
    * Get all edges from storage

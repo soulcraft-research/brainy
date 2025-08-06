@@ -250,12 +250,24 @@ async function validateDatabase() {
   
   console.log('Validating database...');
   
-  // Get all nouns
-  const nouns = await db.getAllNouns();
-  console.log(`Found ${nouns.length} nouns.`);
+  // Get nouns using pagination (v0.49+)
+  let allNouns = [];
+  let offset = 0;
+  const limit = 100;
+  let hasMore = true;
   
-  // Check dimensions
-  const dimensionMismatches = nouns.filter(noun => noun.vector.length !== 512);
+  while (hasMore) {
+    const result = await db.getNouns({ 
+      pagination: { offset, limit } 
+    });
+    allNouns = allNouns.concat(result.items);
+    hasMore = result.hasMore;
+    offset += limit;
+  }
+  console.log(`Found ${allNouns.length} nouns.`);
+  
+  // Check dimensions (now 384 for Transformers.js, was 512 for TensorFlow)
+  const dimensionMismatches = allNouns.filter(noun => noun.vector.length !== 384);
   
   if (dimensionMismatches.length > 0) {
     console.warn(`Found ${dimensionMismatches.length} nouns with dimension mismatches.`);

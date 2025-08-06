@@ -155,6 +155,37 @@ console.log(`Search completed in ${Date.now() - start}ms`)
 - [ ] Performance monitoring shows expected improvements
 - [ ] All existing tests continue to pass
 
+## 🧠 Additional Optimization: LRU Cache for Metadata Indexes
+
+**Priority: MEDIUM** | **Complexity: Low** | **Est. Time: 1-2 hours**
+
+### The Opportunity
+Add LRU caching to metadata indexes similar to HNSW index caching:
+
+```typescript
+// Reuse existing infrastructure
+this.metadataCache = new LRUCache<string, any>({
+  maxSize: config.maxCacheSize ?? 1000,
+  ttl: config.cacheTTL ?? 300000  // 5 minutes
+})
+
+// Cache field indexes and value chunks
+const cachedFieldIndex = this.metadataCache.get(`field_${field}`)
+```
+
+### Expected Benefits
+- **10-100x faster** repeated filter discovery
+- **Zero latency** for common filter UI operations  
+- **90% code reuse** from existing HNSW cache system
+- **Automatic learning** of usage patterns
+
+### Implementation
+1. Extend existing LRU cache to metadata indexes
+2. Cache field indexes (`field_category.json`)
+3. Cache hot value chunks (`category_electronics_chunk0.json`)
+4. Add cache invalidation on metadata updates
+5. Reuse existing cache statistics and monitoring
+
 ## 📝 Files to Modify
 
 1. `/home/dpsifr/Projects/brainy/src/brainyData.ts` (selectivity calculation)
