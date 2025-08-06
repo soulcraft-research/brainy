@@ -2,13 +2,13 @@ import { describe, it, expect } from 'vitest'
 import { euclideanDistance } from '../src/utils/distance.js'
 
 /**
- * Helper function to create a 512-dimensional vector for testing
+ * Helper function to create a 384-dimensional vector for testing
  * @param primaryIndex The index to set to 1.0, all other indices will be 0.0
- * @returns A 512-dimensional vector with a single 1.0 value at the specified index
+ * @returns A 384-dimensional vector with a single 1.0 value at the specified index
  */
 function createTestVector(primaryIndex: number = 0): number[] {
   const vector = new Array(384).fill(0)
-  vector[primaryIndex % 512] = 1.0
+  vector[primaryIndex % 384] = 1.0
   return vector
 }
 
@@ -29,7 +29,7 @@ describe('Vector Operations', () => {
     })
 
     expect(db).toBeDefined()
-    expect(db.dimensions).toBe(512)
+    expect(db.dimensions).toBe(384)
 
     await db.init()
     // If we get here without throwing, initialization was successful
