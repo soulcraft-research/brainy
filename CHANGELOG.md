@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.48.0](https://github.com/soulcraft-research/brainy/compare/v0.47.0...v0.48.0) (2025-08-06)
+
+
+### Added
+
+* add GPU acceleration for embeddings with smart device auto-detection ([56c5641](https://github.com/soulcraft-research/brainy/commit/56c564143dda512c59da87c3108bf40c311c06c0))
+
 ## [0.47.0](https://github.com/soulcraft-research/brainy/compare/v0.46.0...v0.47.0) (2025-08-06)
 
 
