@@ -303,66 +303,68 @@ export class RobustModelLoader {
         }
       }
 
-      // Second, try to use @soulcraft/brainy-models package if available
+      // Second, try to use @tensorflow-models/universal-sentence-encoder if available
+      // This package includes the tokenizer which is required for the model to work
       try {
-        console.log('Checking for @soulcraft/brainy-models package...')
-        // Use dynamic import with string literal to avoid TypeScript compilation errors for optional dependency
-        const packageName = '@soulcraft/brainy-models'
-        const brainyModels = await import(packageName).catch(() => null)
+        console.log('Checking for @tensorflow-models/universal-sentence-encoder package...')
+        const usePackageName = '@tensorflow-models/universal-sentence-encoder'
+        const use = await import(usePackageName).catch(() => null)
         
-        if (brainyModels?.BundledUniversalSentenceEncoder) {
-          console.log('✅ Found @soulcraft/brainy-models package installed')
-          console.log('   Using local bundled model for maximum performance and reliability')
+        if (use && use.load) {
+          console.log('✅ Found @tensorflow-models/universal-sentence-encoder package')
+          
+          // Check if we have local model files from @soulcraft/brainy-models
+          let modelUrl: string | undefined = undefined
+          let vocabUrl: string | undefined = undefined
           
           try {
-            const encoder = new brainyModels.BundledUniversalSentenceEncoder({ 
-              verbose: this.options.verbose,
-              preferCompressed: false 
-            })
+            // Try to find local model files
+            const pathModule = 'path'
+            const fsModule = 'fs'
+            const path = await import(/* @vite-ignore */ pathModule)
+            const fs = await import(/* @vite-ignore */ fsModule)
             
-            // Log metadata if available
-            if (encoder.metadata) {
-              console.log('📋 Model metadata:', encoder.metadata)
-            }
-            
-            await encoder.load()
-            console.log('✅ Local Universal Sentence Encoder model loaded successfully')
-            
-            // Return a wrapper that matches the Universal Sentence Encoder interface
-            return {
-              init: async () => {
-                // Already initialized
-              },
-              embed: async (sentences: string | string[]) => {
-                const input = Array.isArray(sentences) ? sentences : [sentences]
-                const embeddings = await encoder.embedToArrays(input)
+            // Check for brainy-models package
+            try {
+              const brainyModelsPath = require.resolve('@soulcraft/brainy-models/package.json')
+              const brainyModelsDir = path.dirname(brainyModelsPath)
+              const modelDir = path.join(brainyModelsDir, 'models', 'universal-sentence-encoder')
+              const modelJsonPath = path.join(modelDir, 'model.json')
+              
+              if (fs.existsSync(modelJsonPath)) {
+                // Use file:// URL for local model
+                modelUrl = `file://${modelJsonPath}`
+                console.log(`📁 Using local model files from: ${modelDir}`)
                 
-                // Return the first embedding as a Vector (number[])
-                return embeddings[0] || []
-              },
-              dispose: async () => {
-                encoder.dispose()
+                // Check for vocab file
+                const vocabPath = path.join(brainyModelsDir, 'models', 'vocab.json')
+                if (fs.existsSync(vocabPath)) {
+                  vocabUrl = `file://${vocabPath}`
+                  console.log(`📁 Using local vocab file from: ${vocabPath}`)
+                }
               }
+            } catch (e) {
+              // brainy-models not found, will use remote models
             }
+          } catch (e) {
+            // Not in Node.js environment or files not found
+          }
+          
+          try {
+            // Load the USE model with tokenizer
+            console.log('Loading Universal Sentence Encoder with tokenizer...')
+            const model = await use.load({ modelUrl, vocabUrl })
+            console.log('✅ Universal Sentence Encoder loaded successfully with tokenizer')
+            
+            // The loaded model already has the correct interface
+            return model
           } catch (loadError) {
-            console.error('Failed to load bundled model:', loadError)
-            // Try alternative loading method if available
-            if (brainyModels.loadUniversalSentenceEncoder) {
-              console.log('Trying alternative loading method...')
-              try {
-                const model = await brainyModels.loadUniversalSentenceEncoder({
-                  verbose: this.options.verbose
-                })
-                console.log('✅ Loaded via alternative method')
-                return model
-              } catch (altError) {
-                console.error('Alternative loading failed:', altError)
-              }
-            }
+            console.error('Failed to load USE with tokenizer:', loadError)
+            // Fall through to try other methods
           }
         }
       } catch (importError) {
-        this.log(`@soulcraft/brainy-models not available: ${importError}`)
+        this.log(`@tensorflow-models/universal-sentence-encoder not available: ${importError}`)
       }
 
       // Check if we're in Node.js environment
