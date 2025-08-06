@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for Brainy with embedded models
-FROM node:24-alpine AS builder
+FROM node:24-slim AS builder
 
 # Set working directory
 WORKDIR /app
@@ -26,7 +26,7 @@ RUN mkdir -p /app/models && \
     fi
 
 # Production stage
-FROM node:24-alpine AS production
+FROM node:24-slim AS production
 
 # Set working directory
 WORKDIR /app

@@ -510,7 +510,7 @@ Brainy automatically detects and optimizes for:
 
 ```dockerfile
 # One line extracts models automatically during build
-RUN npm run extract-models
+RUN npm run download-models
 
 # Deploy anywhere: Google Cloud, AWS, Azure, Cloudflare, etc.
 ```
@@ -712,7 +712,7 @@ const brainy = createAutoBrainy({
 2. **Add to your Dockerfile:**
    ```dockerfile
    # Extract models during build (zero configuration!)
-   RUN npm run extract-models
+   RUN npm run download-models
    
    # Include models in final image
    COPY --from=builder /app/models ./models
@@ -730,15 +730,15 @@ const brainy = createAutoBrainy({
 ### Universal Dockerfile Template
 
 ```dockerfile
-FROM node:24-alpine AS builder
+FROM node:24-slim AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-RUN npm run extract-models  # ← Automatic model extraction
+RUN npm run download-models  # ← Automatic model download
 RUN npm run build
 
-FROM node:24-alpine AS production  
+FROM node:24-slim AS production  
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production --omit=optional
@@ -1241,7 +1241,7 @@ export const searchHandler = async (req, res) => {
 
 ```dockerfile
 # Dockerfile
-FROM node:20-alpine
+FROM node:24-slim
 USER node
 WORKDIR /app
 COPY package*.json ./
@@ -1337,7 +1337,7 @@ serve(async (req) => {
 ### Docker Container
 
 ```dockerfile
-FROM node:20-alpine
+FROM node:24-slim
 USER node
 WORKDIR /app
 COPY package*.json ./

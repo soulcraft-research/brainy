@@ -5,7 +5,7 @@ This is the **simplest possible** way to deploy Brainy applications with embedde
 ## 🎯 How It Works
 
 1. **Install @soulcraft/brainy-models** in your project
-2. **Add one line** to your Dockerfile: `RUN npm run extract-models`
+2. **Add one line** to your Dockerfile: `RUN npm run download-models`
 3. **Deploy anywhere** - Google Cloud, AWS, Azure, Cloudflare, etc.
 4. **Models load automatically** - zero configuration needed!
 
@@ -20,15 +20,15 @@ npm install @soulcraft/brainy-models
 ### Step 2: Create Dockerfile
 
 ```dockerfile
-FROM node:24-alpine AS builder
+FROM node:24-slim AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-RUN npm run extract-models  # ← This line extracts models automatically!
+RUN npm run download-models  # ← This line downloads models automatically!
 RUN npm run build
 
-FROM node:24-alpine AS production
+FROM node:24-slim AS production
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production --omit=optional
@@ -62,7 +62,7 @@ az container create --image your-image
 
 ## 🏗️ What Happens During Build
 
-1. `npm run extract-models` finds @soulcraft/brainy-models
+1. `npm run download-models` finds @soulcraft/brainy-models
 2. Copies models to `./models` directory
 3. Creates marker file for runtime detection
 4. Brainy automatically finds models at startup
@@ -74,7 +74,7 @@ After deployment, check your logs for:
 
 ✅ **Success (what you want to see)**:
 ```
-🎯 Auto-detected extracted models at: /app/models
+🎯 Auto-detected downloaded models at: /app/models
 ✅ Successfully loaded model from custom directory
    Using custom model path for Docker/production deployment
 ```
@@ -148,7 +148,7 @@ export default {
 ### "Models not found" error
 
 1. **Check package.json**: Ensure `@soulcraft/brainy-models` is in `dependencies`
-2. **Check Dockerfile**: Ensure `RUN npm run extract-models` runs
+2. **Check Dockerfile**: Ensure `RUN npm run download-models` runs
 3. **Check image**: `docker run -it your-image ls -la /app/models`
 
 ### Memory issues
@@ -176,9 +176,9 @@ Increase container memory:
 
 ## 🎉 That's It!
 
-With just `npm install @soulcraft/brainy-models` and `RUN npm run extract-models` in your Dockerfile, you get:
+With just `npm install @soulcraft/brainy-models` and `RUN npm run download-models` in your Dockerfile, you get:
 
-- ✅ Automatic model extraction
+- ✅ Automatic model download
 - ✅ Universal cloud compatibility  
 - ✅ Zero configuration required
 - ✅ Maximum performance
