@@ -123,191 +123,90 @@ export async function calculateDistancesBatch(
   }
 
   try {
-    // Function to be executed in a worker thread
-    const distanceCalculator = async (args: {
+    // Function for optimized batch distance calculation
+    const distanceCalculator = (args: {
       queryVector: Vector
       vectors: Vector[]
       distanceFnString: string
     }) => {
       const { queryVector, vectors, distanceFnString } = args
 
-      // Use TensorFlow.js with CPU processing
-      const useTensorFlow = async () => {
-        // TensorFlow.js will use its default EPSILON value
+      // Optimized JavaScript implementations for different distance functions
+      let distances: number[]
 
-        // Use the importTensorFlow function if available (in worker context)
-        // or directly import TensorFlow.js (in main thread)
-        let tf
-        if (
-          typeof self !== 'undefined' &&
-          typeof self.importTensorFlow === 'function'
-        ) {
-          // In worker context, use the importTensorFlow function
-          tf = await self.importTensorFlow()
-        } else {
-          // CRITICAL: Ensure TextEncoder/TextDecoder are available before TensorFlow.js loads
-          try {
-            // Use dynamic imports for all environments to ensure TensorFlow loads after patch
-            if (typeof process !== 'undefined' && process.versions && process.versions.node) {
-              // Ensure TextEncoder/TextDecoder are globally available in Node.js
-              const util = await import('util')
-              if (typeof global.TextEncoder === 'undefined') {
-                global.TextEncoder = util.TextEncoder as unknown as typeof TextEncoder
-              }
-              if (typeof global.TextDecoder === 'undefined') {
-                global.TextDecoder = util.TextDecoder as unknown as typeof TextDecoder
-              }
-            }
-
-            // Apply the TensorFlow.js patch
-            const { applyTensorFlowPatch } = await import('./textEncoding.js')
-            await applyTensorFlowPatch()
-
-            // Now load TensorFlow.js core module using dynamic imports
-            tf = await import('@tensorflow/tfjs-core')
-            await import('@tensorflow/tfjs-backend-cpu')
-            await tf.setBackend('cpu')
-          } catch (error) {
-            console.error('Failed to initialize TensorFlow.js:', error)
-            throw error
+      if (distanceFnString.includes('euclideanDistance')) {
+        // Euclidean distance: sqrt(sum((a - b)^2))
+        distances = vectors.map((vector) => {
+          let sum = 0
+          for (let i = 0; i < queryVector.length; i++) {
+            const diff = queryVector[i] - vector[i]
+            sum += diff * diff
           }
-        }
-
-        // Convert vectors to tensors
-        const queryTensor = tf.tensor2d([queryVector])
-        const vectorsTensor = tf.tensor2d(vectors)
-
-        let distances: number[]
-
-        // Calculate distances based on the distance function type
-        if (distanceFnString.includes('euclideanDistance')) {
-          // Euclidean distance using GPU-optimized operations
-          // Formula: sqrt(sum((a - b)^2))
-          const expanded = tf.sub(
-            (queryTensor as any).expandDims(1),
-            (vectorsTensor as any).expandDims(0)
-          )
-          const squaredDiff = tf.square(expanded)
-          const sumSquaredDiff = tf.sum(squaredDiff, -1)
-          const distancesTensor = tf.sqrt(sumSquaredDiff)
-          distances = (await (distancesTensor as any)
-            .squeeze()
-            .array()) as number[]
-
-          // Clean up tensors
-          queryTensor.dispose()
-          vectorsTensor.dispose()
-          expanded.dispose()
-          squaredDiff.dispose()
-          sumSquaredDiff.dispose()
-          distancesTensor.dispose()
-        } else if (distanceFnString.includes('cosineDistance')) {
-          // Cosine distance using GPU-optimized operations
-          // Formula: 1 - (a·b / (||a|| * ||b||))
-          const dotProduct = tf.matMul(
-            queryTensor,
-            (vectorsTensor as any).transpose()
-          )
-
-          const queryNorm = tf.norm(queryTensor, 2, 1)
-          const vectorsNorm = tf.norm(vectorsTensor, 2, 1)
-
-          const normProduct = tf.outerProduct(
-            queryNorm as any,
-            vectorsNorm as any
-          )
-          const cosineSimilarity = tf.div(dotProduct, normProduct)
-          const distancesTensor = tf.sub(tf.scalar(1), cosineSimilarity)
-
-          distances = (await (distancesTensor as any)
-            .squeeze()
-            .array()) as number[]
-
-          // Clean up tensors
-          queryTensor.dispose()
-          vectorsTensor.dispose()
-          dotProduct.dispose()
-          queryNorm.dispose()
-          vectorsNorm.dispose()
-          normProduct.dispose()
-          cosineSimilarity.dispose()
-          distancesTensor.dispose()
-        } else if (distanceFnString.includes('manhattanDistance')) {
-          // Manhattan distance using GPU-optimized operations
-          // Formula: sum(|a - b|)
-          const diff = tf.sub(
-            (queryTensor as any).expandDims(1),
-            (vectorsTensor as any).expandDims(0)
-          )
-          const absDiff = tf.abs(diff)
-          const distancesTensor = tf.sum(absDiff, -1)
-
-          distances = (await (distancesTensor as any)
-            .squeeze()
-            .array()) as number[]
-
-          // Clean up tensors
-          queryTensor.dispose()
-          vectorsTensor.dispose()
-          diff.dispose()
-          absDiff.dispose()
-          distancesTensor.dispose()
-        } else if (distanceFnString.includes('dotProductDistance')) {
-          // Dot product distance using GPU-optimized operations
-          // Formula: -sum(a * b)
-          const dotProduct = tf.matMul(
-            queryTensor,
-            (vectorsTensor as any).transpose()
-          )
-          const distancesTensor = tf.neg(dotProduct)
-
-          distances = (await (distancesTensor as any)
-            .squeeze()
-            .array()) as number[]
-
-          // Clean up tensors
-          queryTensor.dispose()
-          vectorsTensor.dispose()
-          dotProduct.dispose()
-          distancesTensor.dispose()
-        } else {
-          // For unknown distance functions, fall back to direct CPU implementation
-          throw new Error(
-            'Unsupported distance function for TensorFlow optimization'
-          )
-        }
-
-        return {
-          distances
-        }
-      }
-
-      // Try to use TensorFlow.js with CPU optimization
-      try {
-        return await useTensorFlow()
-      } catch (error) {
-        // Fall back to direct CPU implementation if TensorFlow.js fails
-        // Recreate the distance function from its string representation
+          return Math.sqrt(sum)
+        })
+      } else if (distanceFnString.includes('cosineDistance')) {
+        // Cosine distance: 1 - (a·b / (||a|| * ||b||))
+        distances = vectors.map((vector) => {
+          let dotProduct = 0
+          let queryNorm = 0
+          let vectorNorm = 0
+          
+          for (let i = 0; i < queryVector.length; i++) {
+            dotProduct += queryVector[i] * vector[i]
+            queryNorm += queryVector[i] * queryVector[i]
+            vectorNorm += vector[i] * vector[i]
+          }
+          
+          queryNorm = Math.sqrt(queryNorm)
+          vectorNorm = Math.sqrt(vectorNorm)
+          
+          if (queryNorm === 0 || vectorNorm === 0) {
+            return 1 // Maximum distance for zero vectors
+          }
+          
+          const cosineSimilarity = dotProduct / (queryNorm * vectorNorm)
+          return 1 - cosineSimilarity
+        })
+      } else if (distanceFnString.includes('manhattanDistance')) {
+        // Manhattan distance: sum(|a - b|)
+        distances = vectors.map((vector) => {
+          let sum = 0
+          for (let i = 0; i < queryVector.length; i++) {
+            sum += Math.abs(queryVector[i] - vector[i])
+          }
+          return sum
+        })
+      } else if (distanceFnString.includes('dotProductDistance')) {
+        // Dot product distance: -sum(a * b)
+        distances = vectors.map((vector) => {
+          let dotProduct = 0
+          for (let i = 0; i < queryVector.length; i++) {
+            dotProduct += queryVector[i] * vector[i]
+          }
+          return -dotProduct
+        })
+      } else {
+        // For unknown distance functions, use the provided function
         const distanceFunction = new Function(
           'return ' + distanceFnString
         )() as DistanceFunction
 
-        // Calculate distances for all vectors
-        const distances = vectors.map((vector) =>
+        distances = vectors.map((vector) =>
           distanceFunction(queryVector, vector)
         )
-
-        return {
-          distances
-        }
       }
+
+      return { distances }
     }
 
-    // Threading is not available, so we'll always use the main thread implementation
-    // This comment is kept for clarity about the removed code
+    // Use the optimized distance calculator
+    const result = distanceCalculator({
+      queryVector,
+      vectors,
+      distanceFnString: distanceFunction.toString()
+    })
 
-    // If threading is not available or failed, calculate distances in the main thread
-    return vectors.map((vector) => distanceFunction(queryVector, vector))
+    return result.distances
   } catch (error) {
     // If anything fails, fall back to the standard distance function
     console.error('Batch distance calculation failed:', error)

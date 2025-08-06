@@ -11,7 +11,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
  * @returns A 512-dimensional vector with a single 1.0 value at the specified index
  */
 function createTestVector(primaryIndex: number = 0): number[] {
-  const vector = new Array(512).fill(0)
+  const vector = new Array(384).fill(0)
   vector[primaryIndex % 512] = 1.0
   return vector
 }
@@ -56,7 +56,7 @@ describe('Brainy Core Functionality', () => {
       const data = new brainy.BrainyData({})
 
       expect(data).toBeDefined()
-      expect(data.dimensions).toBe(512)
+      expect(data.dimensions).toBe(384)
     })
 
     it('should create instance with full configuration', () => {
@@ -68,7 +68,7 @@ describe('Brainy Core Functionality', () => {
       })
 
       expect(data).toBeDefined()
-      expect(data.dimensions).toBe(512)
+      expect(data.dimensions).toBe(384)
     })
 
     it('should not throw with valid configuration parameters', () => {
@@ -89,7 +89,7 @@ describe('Brainy Core Functionality', () => {
     it('should use default values for optional parameters', () => {
       const data = new brainy.BrainyData({})
 
-      expect(data.dimensions).toBe(512)
+      expect(data.dimensions).toBe(384)
       // Should have reasonable defaults for other parameters
       expect(data.maxConnections).toBeGreaterThan(0)
       expect(data.efConstruction).toBeGreaterThan(0)
@@ -184,7 +184,7 @@ describe('Brainy Core Functionality', () => {
 
         const data = new brainy.BrainyData({
           embeddingFunction,
-          dimensions: 512, // Universal Sentence Encoder produces 512-dimensional vectors
+          dimensions: 384, // Universal Sentence Encoder produces 512-dimensional vectors
           metric: 'cosine',
           storage: {
             forceMemoryStorage: true
@@ -214,7 +214,7 @@ describe('Brainy Core Functionality', () => {
 
         const data = new brainy.BrainyData({
           embeddingFunction,
-          dimensions: 512, // Universal Sentence Encoder produces 512-dimensional vectors
+          dimensions: 384, // Universal Sentence Encoder produces 512-dimensional vectors
           metric: 'cosine'
         })
 

@@ -160,10 +160,14 @@ describe('Custom Models Path', () => {
       // Expected in test environment without actual models
     }
 
-    // Check that the warning mentions the custom path option
+    // Check that the warning mentions the custom path option or brainy-models
     const warnCalls = consoleSpy.mock.calls.flat()
     const hasCustomPathMention = warnCalls.some(call => 
-      typeof call === 'string' && call.includes('BRAINY_MODELS_PATH')
+      typeof call === 'string' && (
+        call.includes('BRAINY_MODELS_PATH') ||
+        call.includes('customModelsPath') ||
+        call.includes('@soulcraft/brainy-models')
+      )
     )
 
     expect(hasCustomPathMention).toBe(true)

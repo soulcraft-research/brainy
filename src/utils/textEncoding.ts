@@ -1,7 +1,7 @@
 import { isNode } from './environment.js'
 
-// This module must be run BEFORE any TensorFlow.js code initializes
-// It directly patches the global environment to fix TextEncoder/TextDecoder issues
+// This module provides TextEncoder/TextDecoder utilities
+// Previously needed for TensorFlow.js compatibility, now simplified for Transformers.js
 
 // Also extend the globalThis interface
 interface GlobalThis {
@@ -90,80 +90,7 @@ if (typeof globalThis !== 'undefined' && isNode()) {
       // Ignore if util module is not available
     }
 
-    // CRITICAL: Patch Float32Array to handle buffer alignment issues
-    // This fixes the "byte length of Float32Array should be a multiple of 4" error
-    // Get the appropriate global object for the current environment
-    const globalObj = (() => {
-      if (typeof globalThis !== 'undefined') return globalThis
-      if (typeof global !== 'undefined') return global
-      if (typeof self !== 'undefined') return self
-      if (typeof window !== 'undefined') return window
-      return {} as any // Fallback for unknown environments
-    })()
-
-    if (globalObj && globalObj.Float32Array) {
-      const originalFloat32Array = globalObj.Float32Array
-
-      // Create a patched Float32Array class that handles alignment issues
-      const PatchedFloat32Array = class extends originalFloat32Array {
-        constructor(arg?: any, byteOffset?: number, length?: number) {
-          if (arg instanceof ArrayBuffer) {
-            // Ensure buffer is properly aligned for Float32Array (multiple of 4 bytes)
-            const alignedByteOffset = byteOffset || 0
-            const alignedLength =
-              length !== undefined
-                ? length
-                : (arg.byteLength - alignedByteOffset) / 4
-
-            // Check if the buffer slice is properly aligned
-            if (
-              (arg.byteLength - alignedByteOffset) % 4 !== 0 &&
-              length === undefined
-            ) {
-              try {
-                // Create a new aligned buffer if the original isn't properly aligned
-                const alignedByteLength =
-                  Math.floor((arg.byteLength - alignedByteOffset) / 4) * 4
-                const alignedBuffer = new ArrayBuffer(alignedByteLength)
-                const sourceView = new Uint8Array(
-                  arg,
-                  alignedByteOffset,
-                  alignedByteLength
-                )
-                const targetView = new Uint8Array(alignedBuffer)
-                targetView.set(sourceView)
-                super(alignedBuffer)
-              } catch (error) {
-                // If alignment fails, try the original approach
-                console.warn('Float32Array alignment failed, using original constructor:', error)
-                super(arg, alignedByteOffset, alignedLength)
-              }
-            } else {
-              super(arg, alignedByteOffset, alignedLength)
-            }
-          } else {
-            super(arg, byteOffset, length)
-          }
-        }
-      } as any
-
-      // Apply the patch to the global object
-      try {
-        // Preserve static methods and properties
-        Object.setPrototypeOf(PatchedFloat32Array, originalFloat32Array)
-        Object.defineProperty(PatchedFloat32Array, 'name', {
-          value: 'Float32Array'
-        })
-        Object.defineProperty(PatchedFloat32Array, 'BYTES_PER_ELEMENT', {
-          value: 4
-        })
-
-        // Replace the global Float32Array with our patched version
-        globalObj.Float32Array = PatchedFloat32Array
-      } catch (error) {
-        console.warn('Failed to patch Float32Array:', error)
-      }
-    }
+    // Float32Array patching removed - not needed for Transformers.js + ONNX Runtime
 
     // CRITICAL: Patch any empty util shims that bundlers might create
     // This handles cases where bundlers provide empty shims for Node.js modules
@@ -255,24 +182,24 @@ if (typeof globalThis !== 'undefined' && isNode()) {
     }
 
     console.log(
-      'Brainy: Successfully patched TensorFlow.js PlatformNode at module load time'
+      'Brainy: Successfully applied TextEncoder/TextDecoder patches for Node.js compatibility'
     )
     patchApplied = true
   } catch (error) {
     console.warn(
-      'Brainy: Failed to apply early TensorFlow.js platform patch:',
+      'Brainy: Failed to apply early TextEncoder/TextDecoder patch:',
       error
     )
   }
 }
 
 /**
- * Apply the TensorFlow.js platform patch if it hasn't been applied already
+ * Apply TextEncoder/TextDecoder patches for Node.js compatibility
  * This is a safety measure in case the module-level patch didn't run
- * Now works across all environments: browser, Node.js, and serverless/server
+ * Simplified from previous TensorFlow.js requirements
  */
 export async function applyTensorFlowPatch(): Promise<void> {
-  // Apply patches for all non-browser environments that might need TensorFlow.js compatibility
+  // Apply patches for all non-browser environments that might need TextEncoder/TextDecoder
   // This includes Node.js, serverless environments, and other server environments
   const isBrowserEnv = typeof window !== 'undefined' && typeof document !== 'undefined'
   if (isBrowserEnv) {
@@ -299,11 +226,11 @@ export async function applyTensorFlowPatch(): Promise<void> {
 
   try {
     console.log(
-      'Brainy: Applying TensorFlow.js platform patch via function call'
+      'Brainy: Applying TextEncoder/TextDecoder patch via function call'
     )
 
     // CRITICAL FIX: Patch the global environment to ensure TextEncoder/TextDecoder are available
-    // This approach works by ensuring the global constructors are available before TensorFlow.js loads
+    // This approach works by ensuring the global constructors are available
     // Now works across all environments: Node.js, serverless, and other server environments
 
     // Make sure TextEncoder and TextDecoder are available globally
@@ -318,9 +245,9 @@ export async function applyTensorFlowPatch(): Promise<void> {
     ;(globalObj as any).__TextEncoder__ = TextEncoder
     ;(globalObj as any).__TextDecoder__ = TextDecoder
 
-    // Also patch process.versions to ensure TensorFlow.js detects Node.js correctly
+    // Ensure process.versions is properly set for Node.js detection
     if (typeof process !== 'undefined' && process.versions) {
-      // Ensure TensorFlow.js sees this as a Node.js environment
+      // Ensure libraries see this as a Node.js environment
       if (!process.versions.node) {
         process.versions.node = process.version
       }
@@ -338,7 +265,7 @@ export async function applyTensorFlowPatch(): Promise<void> {
 
     patchApplied = true
   } catch (error) {
-    console.warn('Brainy: Failed to apply TensorFlow.js platform patch:', error)
+    console.warn('Brainy: Failed to apply TextEncoder/TextDecoder patch:', error)
   }
 }
 
@@ -352,5 +279,5 @@ export function getTextDecoder(): TextDecoder {
 
 // Apply patch immediately
 applyTensorFlowPatch().catch((error) => {
-  console.warn('Failed to apply TensorFlow patch at module load:', error)
+  console.warn('Failed to apply TextEncoder/TextDecoder patch at module load:', error)
 })

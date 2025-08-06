@@ -11,7 +11,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
  * @returns A 512-dimensional vector with a single 1.0 value at the specified index
  */
 function createTestVector(primaryIndex: number = 0): number[] {
-  const vector = new Array(512).fill(0)
+  const vector = new Array(384).fill(0)
   vector[primaryIndex % 512] = 1.0
   return vector
 }

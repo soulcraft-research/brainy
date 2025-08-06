@@ -92,7 +92,8 @@
     "_workflow:minor": "node scripts/release-workflow.js minor",
     "_workflow:major": "node scripts/release-workflow.js major",
     "_workflow:dry-run": "npm run build && npm test && npm run _release:dry-run",
-    "_dry-run": "npm pack --dry-run"
+    "_dry-run": "npm pack --dry-run",
+    "download-models": "node scripts/download-models.cjs"
   },
   "keywords": [
     "vector-database",
@@ -128,7 +129,9 @@
     "!dist/framework.min.js.map",
     "LICENSE",
     "README.md",
-    "brainy.png"
+    "brainy.png",
+    "scripts/download-models.cjs",
+    "OFFLINE_MODELS.md"
   ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",
@@ -159,22 +162,10 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.540.0",
-    "@tensorflow/tfjs": "^4.22.0",
-    "@tensorflow/tfjs-backend-cpu": "^4.22.0",
-    "@tensorflow/tfjs-backend-webgl": "^4.22.0",
-    "@tensorflow/tfjs-converter": "^4.22.0",
-    "@tensorflow/tfjs-core": "^4.22.0",
+    "@huggingface/transformers": "^3.1.0",
     "buffer": "^6.0.3",
     "dotenv": "^16.4.5",
     "uuid": "^9.0.1"
-  },
-  "peerDependencies": {
-    "@soulcraft/brainy-models": ">=0.7.0"
-  },
-  "peerDependenciesMeta": {
-    "@soulcraft/brainy-models": {
-      "optional": true
-    }
   },
   "prettier": {
     "arrowParens": "always",
