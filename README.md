@@ -78,7 +78,7 @@ easy-to-use package.
   environment and optimizes itself
 - **🌍 True Write-Once, Run-Anywhere** - Same code runs in Angular, React, Vue, Node.js, Deno, Bun, serverless, edge
   workers, and web workers with automatic environment detection
-- **⚡ Scary Fast** - Handles millions of vectors with sub-millisecond search. Built-in GPU acceleration when available
+- **⚡ Scary Fast** - Handles millions of vectors with sub-millisecond search. GPU acceleration for embeddings, optimized CPU for distance calculations
 - **🎯 Self-Learning** - Like having a database that goes to the gym. Gets faster and smarter the more you use it
 - **🔮 AI-First Design** - Built for the age of embeddings, RAG, and semantic search. Your LLMs will thank you
 - **🎮 Actually Fun to Use** - Clean API, great DX, and it does the heavy lifting so you can build cool stuff

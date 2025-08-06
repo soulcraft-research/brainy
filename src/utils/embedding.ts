@@ -9,6 +9,54 @@ import { isBrowser } from './environment.js'
 import { pipeline, env } from '@huggingface/transformers'
 
 /**
+ * Detect the best available GPU device for the current environment
+ */
+export async function detectBestDevice(): Promise<'cpu' | 'webgpu' | 'cuda'> {
+  // Browser environment - check for WebGPU support
+  if (isBrowser()) {
+    if (typeof navigator !== 'undefined' && 'gpu' in navigator) {
+      try {
+        const adapter = await (navigator as any).gpu?.requestAdapter()
+        if (adapter) {
+          return 'webgpu'
+        }
+      } catch (error) {
+        // WebGPU not available or failed to initialize
+      }
+    }
+    return 'cpu'
+  }
+
+  // Node.js environment - check for CUDA support
+  try {
+    // Check if ONNX Runtime GPU packages are available
+    // This is a simple heuristic - in production you might want more sophisticated detection
+    const hasGpu = process.env.CUDA_VISIBLE_DEVICES !== undefined ||
+                   process.env.ONNXRUNTIME_GPU_ENABLED === 'true'
+    return hasGpu ? 'cuda' : 'cpu'
+  } catch (error) {
+    return 'cpu'
+  }
+}
+
+/**
+ * Resolve device string to actual device configuration
+ */
+export async function resolveDevice(device: string = 'auto'): Promise<string> {
+  if (device === 'auto') {
+    return await detectBestDevice()
+  }
+  
+  // Map 'gpu' to appropriate GPU type for current environment
+  if (device === 'gpu') {
+    const detected = await detectBestDevice()
+    return detected === 'cpu' ? 'cpu' : detected
+  }
+  
+  return device
+}
+
+/**
  * Transformers.js Sentence Encoder embedding model
  * Uses ONNX Runtime for fast, offline embeddings with smaller models
  * Default model: all-MiniLM-L6-v2 (384 dimensions, ~90MB)
@@ -24,6 +72,8 @@ export interface TransformerEmbeddingOptions {
   localFilesOnly?: boolean
   /** Quantization setting (fp32, fp16, q8, q4) */
   dtype?: 'fp32' | 'fp16' | 'q8' | 'q4'
+  /** Device to run inference on - 'auto' detects best available */
+  device?: 'auto' | 'cpu' | 'webgpu' | 'cuda' | 'gpu'
 }
 
 export class TransformerEmbedding implements EmbeddingModel {
@@ -40,9 +90,10 @@ export class TransformerEmbedding implements EmbeddingModel {
     this.options = {
       model: options.model || 'Xenova/all-MiniLM-L6-v2',
       verbose: this.verbose,
-      cacheDir: options.cacheDir || this.getDefaultCacheDir(),
+      cacheDir: options.cacheDir || './models', // Will be resolved async in init()
       localFilesOnly: options.localFilesOnly !== undefined ? options.localFilesOnly : !isBrowser(),
-      dtype: options.dtype || 'fp32'
+      dtype: options.dtype || 'fp32',
+      device: options.device || 'auto'
     }
 
     // Configure transformers.js environment
@@ -67,7 +118,7 @@ export class TransformerEmbedding implements EmbeddingModel {
   /**
    * Get the default cache directory for models
    */
-  private getDefaultCacheDir(): string {
+  private async getDefaultCacheDir(): Promise<string> {
     if (isBrowser()) {
       return './models' // Browser default
     }
@@ -87,6 +138,10 @@ export class TransformerEmbedding implements EmbeddingModel {
     // Check if we're in Node.js and try to find the bundled models
     if (typeof process !== 'undefined' && process.versions?.node) {
       try {
+        // Use dynamic import instead of require for ES modules compatibility
+        const { createRequire } = await import('module')
+        const require = createRequire(import.meta.url)
+        
         const path = require('path')
         const fs = require('fs')
 
@@ -113,7 +168,7 @@ export class TransformerEmbedding implements EmbeddingModel {
           }
         }
       } catch (error) {
-        this.logger('warn', 'Could not auto-detect bundled models directory:', error)
+        // Silently fall back to default path if module detection fails
       }
     }
 
@@ -149,23 +204,46 @@ export class TransformerEmbedding implements EmbeddingModel {
     // Always use real implementation - no mocking
 
     try {
-      this.logger('log', `Loading Transformer model: ${this.options.model}`)
+      // Resolve device configuration and cache directory
+      const device = await resolveDevice(this.options.device)
+      const cacheDir = this.options.cacheDir === './models' 
+        ? await this.getDefaultCacheDir() 
+        : this.options.cacheDir
+        
+      this.logger('log', `Loading Transformer model: ${this.options.model} on device: ${device}`)
       
       const startTime = Date.now()
       
-      // Load the feature extraction pipeline
-      // In browsers, never use local_files_only to avoid conflicts
-      const pipelineOptions = {
-        cache_dir: this.options.cacheDir,
+      // Load the feature extraction pipeline with GPU support
+      const pipelineOptions: any = {
+        cache_dir: cacheDir,
         local_files_only: isBrowser() ? false : this.options.localFilesOnly,
         dtype: this.options.dtype
+      }
+      
+      // Add device configuration for GPU acceleration
+      if (device !== 'cpu') {
+        pipelineOptions.device = device
+        this.logger('log', `🚀 GPU acceleration enabled: ${device}`)
       }
       
       if (this.verbose) {
         this.logger('log', `Pipeline options: ${JSON.stringify(pipelineOptions)}`)
       }
       
-      this.extractor = await pipeline('feature-extraction', this.options.model, pipelineOptions)
+      try {
+        this.extractor = await pipeline('feature-extraction', this.options.model, pipelineOptions)
+      } catch (gpuError: any) {
+        // Fallback to CPU if GPU initialization fails
+        if (device !== 'cpu') {
+          this.logger('warn', `GPU initialization failed, falling back to CPU: ${gpuError?.message || gpuError}`)
+          const cpuOptions = { ...pipelineOptions }
+          delete cpuOptions.device
+          this.extractor = await pipeline('feature-extraction', this.options.model, cpuOptions)
+        } else {
+          throw gpuError
+        }
+      }
 
       const loadTime = Date.now() - startTime
       this.logger('log', `✅ Model loaded successfully in ${loadTime}ms`)

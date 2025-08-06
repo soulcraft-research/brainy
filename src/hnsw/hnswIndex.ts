@@ -60,7 +60,7 @@ export class HNSWIndex {
   /**
    * Calculate distances between a query vector and multiple vectors in parallel
    * This is used to optimize performance for search operations
-   * Uses GPU acceleration when available for optimal performance
+   * Uses optimized batch processing for optimal performance
    *
    * @param queryVector The query vector
    * @param vectors Array of vectors to compare against
@@ -82,7 +82,7 @@ export class HNSWIndex {
       // Extract just the vectors from the input array
       const vectorsOnly = vectors.map((item) => item.vector)
 
-      // Use GPU-accelerated distance calculation when possible
+      // Use optimized batch distance calculation
       const distances = await calculateDistancesBatch(
         queryVector,
         vectorsOnly,
@@ -96,11 +96,11 @@ export class HNSWIndex {
       }))
     } catch (error) {
       console.error(
-        'Error in GPU-accelerated distance calculation, falling back to sequential processing:',
+        'Error in batch distance calculation, falling back to sequential processing:',
         error
       )
 
-      // Fall back to sequential processing if GPU acceleration fails
+      // Fall back to sequential processing if batch calculation fails
       return vectors.map((item) => ({
         id: item.id,
         distance: this.distanceFunction(queryVector, item.vector)

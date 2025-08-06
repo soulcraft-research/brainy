@@ -1,7 +1,7 @@
 /**
  * Distance functions for vector similarity calculations
- * Optimized for Node.js 23.11+ using enhanced array methods
- * GPU-accelerated versions available for high-performance computing
+ * Optimized pure JavaScript implementations using enhanced array methods
+ * Faster than GPU for small vectors (384 dims) due to no transfer overhead
  */
 
 import { DistanceFunction, Vector } from '../coreTypes.js'
@@ -104,8 +104,8 @@ export const dotProductDistance: DistanceFunction = (
 }
 
 /**
- * Batch distance calculation
- * Uses TensorFlow.js with CPU backend for optimized performance
+ * Batch distance calculation using optimized JavaScript
+ * More efficient than GPU for small vectors due to no memory transfer overhead
  *
  * @param queryVector The query vector to compare against all vectors
  * @param vectors Array of vectors to compare against
