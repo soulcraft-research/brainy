@@ -4178,6 +4178,154 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   }
 
   /**
+   * List all services that have written data to the database
+   * @returns Array of service statistics
+   */
+  public async listServices(): Promise<import('./coreTypes.js').ServiceStatistics[]> {
+    await this.ensureInitialized()
+
+    try {
+      const stats = await this.storage!.getStatistics()
+      if (!stats) {
+        return []
+      }
+
+      // Get unique service names from all counters
+      const services = new Set<string>()
+      Object.keys(stats.nounCount).forEach(s => services.add(s))
+      Object.keys(stats.verbCount).forEach(s => services.add(s))
+      Object.keys(stats.metadataCount).forEach(s => services.add(s))
+
+      // Build service statistics for each service
+      const result: import('./coreTypes.js').ServiceStatistics[] = []
+      
+      for (const service of services) {
+        const serviceStats: import('./coreTypes.js').ServiceStatistics = {
+          name: service,
+          totalNouns: stats.nounCount[service] || 0,
+          totalVerbs: stats.verbCount[service] || 0,
+          totalMetadata: stats.metadataCount[service] || 0
+        }
+
+        // Add activity timestamps if available
+        if (stats.serviceActivity && stats.serviceActivity[service]) {
+          const activity = stats.serviceActivity[service]
+          serviceStats.firstActivity = activity.firstActivity
+          serviceStats.lastActivity = activity.lastActivity
+          serviceStats.operations = {
+            adds: activity.totalOperations,
+            updates: 0,
+            deletes: 0
+          }
+        }
+
+        // Determine status based on recent activity
+        if (serviceStats.lastActivity) {
+          const lastActivityTime = new Date(serviceStats.lastActivity).getTime()
+          const now = Date.now()
+          const hourAgo = now - 3600000
+          
+          if (lastActivityTime > hourAgo) {
+            serviceStats.status = 'active'
+          } else {
+            serviceStats.status = 'inactive'
+          }
+        } else {
+          serviceStats.status = 'inactive'
+        }
+
+        // Check if service is read-only (has no write operations)
+        if (serviceStats.totalNouns === 0 && serviceStats.totalVerbs === 0) {
+          serviceStats.status = 'read-only'
+        }
+
+        result.push(serviceStats)
+      }
+
+      // Sort by last activity (most recent first)
+      result.sort((a, b) => {
+        if (!a.lastActivity && !b.lastActivity) return 0
+        if (!a.lastActivity) return 1
+        if (!b.lastActivity) return -1
+        return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime()
+      })
+
+      return result
+    } catch (error) {
+      console.error('Failed to list services:', error)
+      throw new Error(`Failed to list services: ${error}`)
+    }
+  }
+
+  /**
+   * Get statistics for a specific service
+   * @param service The service name to get statistics for
+   * @returns Service statistics or null if service not found
+   */
+  public async getServiceStatistics(
+    service: string
+  ): Promise<import('./coreTypes.js').ServiceStatistics | null> {
+    await this.ensureInitialized()
+
+    try {
+      const stats = await this.storage!.getStatistics()
+      if (!stats) {
+        return null
+      }
+
+      // Check if service exists in any counter
+      const hasData = 
+        (stats.nounCount[service] || 0) > 0 ||
+        (stats.verbCount[service] || 0) > 0 ||
+        (stats.metadataCount[service] || 0) > 0
+
+      if (!hasData && !stats.serviceActivity?.[service]) {
+        return null
+      }
+
+      const serviceStats: import('./coreTypes.js').ServiceStatistics = {
+        name: service,
+        totalNouns: stats.nounCount[service] || 0,
+        totalVerbs: stats.verbCount[service] || 0,
+        totalMetadata: stats.metadataCount[service] || 0
+      }
+
+      // Add activity timestamps if available
+      if (stats.serviceActivity && stats.serviceActivity[service]) {
+        const activity = stats.serviceActivity[service]
+        serviceStats.firstActivity = activity.firstActivity
+        serviceStats.lastActivity = activity.lastActivity
+        serviceStats.operations = {
+          adds: activity.totalOperations,
+          updates: 0,
+          deletes: 0
+        }
+      }
+
+      // Determine status
+      if (serviceStats.lastActivity) {
+        const lastActivityTime = new Date(serviceStats.lastActivity).getTime()
+        const now = Date.now()
+        const hourAgo = now - 3600000
+        
+        serviceStats.status = lastActivityTime > hourAgo ? 'active' : 'inactive'
+      } else {
+        serviceStats.status = 'inactive'
+      }
+
+      // Check if service is read-only
+      if (serviceStats.totalNouns === 0 && serviceStats.totalVerbs === 0) {
+        serviceStats.status = 'read-only'
+      }
+
+      return serviceStats
+    } catch (error) {
+      console.error(`Failed to get statistics for service ${service}:`, error)
+      throw new Error(`Failed to get statistics for service ${service}: ${error}`)
+    }
+  }
+
+  /**
    * Check if the database is in read-only mode
    * @returns True if the database is in read-only mode, false otherwise
    */

@@ -18,6 +18,7 @@ Comprehensive guides for using Brainy features.
 - **[Search and Metadata Guide](user-guides/SEARCH_AND_METADATA_GUIDE.md)** - Advanced search techniques
 - **[Write-Only Mode](user-guides/WRITEONLY_MODE_IMPLEMENTATION.md)** - Optimized data ingestion
 - **[Read-Only & Frozen Modes](guides/readonly-frozen-modes.md)** - Immutability control for production
+- **[Per-Service Statistics](guides/per-service-statistics.md)** - Multi-service tracking and monitoring
 - **[Cache Configuration](guides/cache-configuration.md)** - Memory and caching optimization
 - **[JSON Document Search](guides/json-document-search.md)** - Searching within JSON documents
 - **[HNSW Field Search](guides/hnsw-field-search.md)** - Field-specific vector search
