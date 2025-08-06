@@ -1276,4 +1276,253 @@ export class OPFSStorage extends BaseStorage {
       throw new Error(`Failed to get statistics data: ${error}`)
     }
   }
+
+  /**
+   * Get nouns with pagination support
+   * @param options Pagination and filter options
+   * @returns Promise that resolves to a paginated result of nouns
+   */
+  public async getNounsWithPagination(options: {
+    limit?: number
+    cursor?: string
+    filter?: {
+      nounType?: string | string[]
+      service?: string | string[]
+      metadata?: Record<string, any>
+    }
+  } = {}): Promise<{
+    items: HNSWNoun[]
+    totalCount?: number
+    hasMore: boolean
+    nextCursor?: string
+  }> {
+    await this.ensureInitialized()
+    
+    const limit = options.limit || 100
+    const cursor = options.cursor
+    
+    // Get all noun files
+    const nounFiles: string[] = []
+    if (this.nounsDir) {
+      for await (const [name, handle] of this.nounsDir.entries()) {
+        if (handle.kind === 'file' && name.endsWith('.json')) {
+          nounFiles.push(name)
+        }
+      }
+    }
+    
+    // Sort files for consistent ordering
+    nounFiles.sort()
+    
+    // Apply cursor-based pagination
+    let startIndex = 0
+    if (cursor) {
+      const cursorIndex = nounFiles.findIndex(file => file > cursor)
+      if (cursorIndex >= 0) {
+        startIndex = cursorIndex
+      }
+    }
+    
+    // Get the subset of files for this page
+    const pageFiles = nounFiles.slice(startIndex, startIndex + limit)
+    
+    // Load nouns from files
+    const items: HNSWNoun[] = []
+    for (const fileName of pageFiles) {
+      const id = fileName.replace('.json', '')
+      const noun = await this.getNoun_internal(id)
+      if (noun) {
+        // Apply filters if provided
+        if (options.filter) {
+          const metadata = await this.getNounMetadata(id)
+          
+          // Filter by noun type
+          if (options.filter.nounType) {
+            const nounTypes = Array.isArray(options.filter.nounType)
+              ? options.filter.nounType
+              : [options.filter.nounType]
+            if (metadata && !nounTypes.includes(metadata.type || metadata.noun)) {
+              continue
+            }
+          }
+          
+          // Filter by service
+          if (options.filter.service) {
+            const services = Array.isArray(options.filter.service)
+              ? options.filter.service
+              : [options.filter.service]
+            if (metadata && !services.includes(metadata.createdBy?.augmentation)) {
+              continue
+            }
+          }
+          
+          // Filter by metadata
+          if (options.filter.metadata) {
+            if (!metadata) continue
+            let matches = true
+            for (const [key, value] of Object.entries(options.filter.metadata)) {
+              if (metadata[key] !== value) {
+                matches = false
+                break
+              }
+            }
+            if (!matches) continue
+          }
+        }
+        
+        items.push(noun)
+      }
+    }
+    
+    // Determine if there are more items
+    const hasMore = startIndex + limit < nounFiles.length
+    
+    // Generate next cursor if there are more items
+    const nextCursor = hasMore && pageFiles.length > 0
+      ? pageFiles[pageFiles.length - 1]
+      : undefined
+    
+    return {
+      items,
+      totalCount: nounFiles.length,
+      hasMore,
+      nextCursor
+    }
+  }
+
+  /**
+   * Get verbs with pagination support
+   * @param options Pagination and filter options
+   * @returns Promise that resolves to a paginated result of verbs
+   */
+  public async getVerbsWithPagination(options: {
+    limit?: number
+    cursor?: string
+    filter?: {
+      verbType?: string | string[]
+      sourceId?: string | string[]
+      targetId?: string | string[]
+      service?: string | string[]
+      metadata?: Record<string, any>
+    }
+  } = {}): Promise<{
+    items: GraphVerb[]
+    totalCount?: number
+    hasMore: boolean
+    nextCursor?: string
+  }> {
+    await this.ensureInitialized()
+    
+    const limit = options.limit || 100
+    const cursor = options.cursor
+    
+    // Get all verb files
+    const verbFiles: string[] = []
+    if (this.verbsDir) {
+      for await (const [name, handle] of this.verbsDir.entries()) {
+        if (handle.kind === 'file' && name.endsWith('.json')) {
+          verbFiles.push(name)
+        }
+      }
+    }
+    
+    // Sort files for consistent ordering
+    verbFiles.sort()
+    
+    // Apply cursor-based pagination
+    let startIndex = 0
+    if (cursor) {
+      const cursorIndex = verbFiles.findIndex(file => file > cursor)
+      if (cursorIndex >= 0) {
+        startIndex = cursorIndex
+      }
+    }
+    
+    // Get the subset of files for this page
+    const pageFiles = verbFiles.slice(startIndex, startIndex + limit)
+    
+    // Load verbs from files and convert to GraphVerb
+    const items: GraphVerb[] = []
+    for (const fileName of pageFiles) {
+      const id = fileName.replace('.json', '')
+      const hnswVerb = await this.getVerb_internal(id)
+      if (hnswVerb) {
+        // Convert HNSWVerb to GraphVerb
+        const graphVerb = await this.convertHNSWVerbToGraphVerb(hnswVerb)
+        if (graphVerb) {
+          // Apply filters if provided
+          if (options.filter) {
+            // Filter by verb type
+            if (options.filter.verbType) {
+              const verbTypes = Array.isArray(options.filter.verbType)
+                ? options.filter.verbType
+                : [options.filter.verbType]
+              if (graphVerb.verb && !verbTypes.includes(graphVerb.verb)) {
+                continue
+              }
+            }
+            
+            // Filter by source ID
+            if (options.filter.sourceId) {
+              const sourceIds = Array.isArray(options.filter.sourceId)
+                ? options.filter.sourceId
+                : [options.filter.sourceId]
+              if (graphVerb.source && !sourceIds.includes(graphVerb.source)) {
+                continue
+              }
+            }
+            
+            // Filter by target ID
+            if (options.filter.targetId) {
+              const targetIds = Array.isArray(options.filter.targetId)
+                ? options.filter.targetId
+                : [options.filter.targetId]
+              if (graphVerb.target && !targetIds.includes(graphVerb.target)) {
+                continue
+              }
+            }
+            
+            // Filter by service
+            if (options.filter.service) {
+              const services = Array.isArray(options.filter.service)
+                ? options.filter.service
+                : [options.filter.service]
+              if (graphVerb.createdBy?.augmentation && !services.includes(graphVerb.createdBy.augmentation)) {
+                continue
+              }
+            }
+            
+            // Filter by metadata
+            if (options.filter.metadata && graphVerb.metadata) {
+              let matches = true
+              for (const [key, value] of Object.entries(options.filter.metadata)) {
+                if (graphVerb.metadata[key] !== value) {
+                  matches = false
+                  break
+                }
+              }
+              if (!matches) continue
+            }
+          }
+          
+          items.push(graphVerb)
+        }
+      }
+    }
+    
+    // Determine if there are more items
+    const hasMore = startIndex + limit < verbFiles.length
+    
+    // Generate next cursor if there are more items
+    const nextCursor = hasMore && pageFiles.length > 0
+      ? pageFiles[pageFiles.length - 1]
+      : undefined
+    
+    return {
+      items,
+      totalCount: verbFiles.length,
+      hasMore,
+      nextCursor
+    }
+  }
 }
