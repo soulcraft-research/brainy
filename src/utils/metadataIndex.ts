@@ -50,7 +50,7 @@ export class MetadataIndexManager {
   private fieldIndexes = new Map<string, FieldIndexData>()
   private dirtyFields = new Set<string>()
   private lastFlushTime = Date.now()
-  private autoFlushThreshold = 50 // Start with 50, will adapt based on usage
+  private autoFlushThreshold = 10 // Start with 10 for more frequent non-blocking flushes
 
   constructor(storage: StorageAdapter, config: MetadataIndexConfig = {}) {
     this.storage = storage
@@ -195,7 +195,8 @@ export class MetadataIndexManager {
   async addToIndex(id: string, metadata: any, skipFlush: boolean = false): Promise<void> {
     const fields = this.extractIndexableFields(metadata)
     
-    for (const { field, value } of fields) {
+    for (let i = 0; i < fields.length; i++) {
+      const { field, value } = fields[i]
       const key = this.getIndexKey(field, value)
       
       // Get or create index entry
@@ -218,6 +219,11 @@ export class MetadataIndexManager {
       
       // Update field index
       await this.updateFieldIndex(field, value, 1)
+      
+      // Yield to event loop every 5 fields to prevent blocking
+      if (i % 5 === 4) {
+        await this.yieldToEventLoop()
+      }
     }
     
     // Adaptive auto-flush based on usage patterns
@@ -240,6 +246,9 @@ export class MetadataIndexManager {
           // Slow flush, reduce batch size
           this.autoFlushThreshold = Math.max(20, this.autoFlushThreshold * 0.8)
         }
+        
+        // Yield to event loop after flush to prevent blocking
+        await this.yieldToEventLoop()
       }
     }
     
@@ -533,35 +542,63 @@ export class MetadataIndexManager {
   }
 
   /**
-   * Flush dirty entries to storage
+   * Flush dirty entries to storage (non-blocking version)
    */
   async flush(): Promise<void> {
     if (this.dirtyEntries.size === 0 && this.dirtyFields.size === 0) {
       return // Nothing to flush
     }
     
-    const promises: Promise<void>[] = []
+    // Process in smaller batches to avoid blocking
+    const BATCH_SIZE = 20
+    const allPromises: Promise<void>[] = []
     
-    // Flush value entries
-    for (const key of this.dirtyEntries) {
-      const entry = this.indexCache.get(key)
-      if (entry) {
-        promises.push(this.saveIndexEntry(key, entry))
+    // Flush value entries in batches
+    const dirtyEntriesArray = Array.from(this.dirtyEntries)
+    for (let i = 0; i < dirtyEntriesArray.length; i += BATCH_SIZE) {
+      const batch = dirtyEntriesArray.slice(i, i + BATCH_SIZE)
+      const batchPromises = batch.map(key => {
+        const entry = this.indexCache.get(key)
+        return entry ? this.saveIndexEntry(key, entry) : Promise.resolve()
+      })
+      allPromises.push(...batchPromises)
+      
+      // Yield to event loop between batches
+      if (i + BATCH_SIZE < dirtyEntriesArray.length) {
+        await this.yieldToEventLoop()
       }
     }
     
-    // Flush field indexes
-    for (const field of this.dirtyFields) {
-      const fieldIndex = this.fieldIndexes.get(field)
-      if (fieldIndex) {
-        promises.push(this.saveFieldIndex(field, fieldIndex))
+    // Flush field indexes in batches  
+    const dirtyFieldsArray = Array.from(this.dirtyFields)
+    for (let i = 0; i < dirtyFieldsArray.length; i += BATCH_SIZE) {
+      const batch = dirtyFieldsArray.slice(i, i + BATCH_SIZE)
+      const batchPromises = batch.map(field => {
+        const fieldIndex = this.fieldIndexes.get(field)
+        return fieldIndex ? this.saveFieldIndex(field, fieldIndex) : Promise.resolve()
+      })
+      allPromises.push(...batchPromises)
+      
+      // Yield to event loop between batches
+      if (i + BATCH_SIZE < dirtyFieldsArray.length) {
+        await this.yieldToEventLoop()
       }
     }
     
-    await Promise.all(promises)
+    // Wait for all operations to complete
+    await Promise.all(allPromises)
+    
     this.dirtyEntries.clear()
     this.dirtyFields.clear()
     this.lastFlushTime = Date.now()
+  }
+  
+  /**
+   * Yield control back to the Node.js event loop
+   * Prevents blocking during long-running operations
+   */
+  private async yieldToEventLoop(): Promise<void> {
+    return new Promise(resolve => setImmediate(resolve))
   }
 
   /**
@@ -640,12 +677,15 @@ export class MetadataIndexManager {
 
   /**
    * Rebuild entire index from scratch using pagination
+   * Non-blocking version that yields control back to event loop
    */
   async rebuild(): Promise<void> {
     if (this.isRebuilding) return
     
     this.isRebuilding = true
     try {
+      console.log('🔄 Starting non-blocking metadata index rebuild...')
+      
       // Clear existing indexes
       this.indexCache.clear()
       this.dirtyEntries.clear()
@@ -654,50 +694,84 @@ export class MetadataIndexManager {
       
       // Rebuild noun metadata indexes using pagination
       let nounOffset = 0
-      const nounLimit = 100
+      const nounLimit = 50 // Smaller batches to reduce blocking
       let hasMoreNouns = true
+      let totalNounsProcessed = 0
       
       while (hasMoreNouns) {
         const result = await this.storage.getNouns({
           pagination: { offset: nounOffset, limit: nounLimit }
         })
         
-        for (const noun of result.items) {
+        // Process batch with event loop yields
+        for (let i = 0; i < result.items.length; i++) {
+          const noun = result.items[i]
           const metadata = await this.storage.getMetadata(noun.id)
           if (metadata) {
             // Skip flush during rebuild for performance
             await this.addToIndex(noun.id, metadata, true)
           }
+          
+          // Yield to event loop every 10 items to prevent blocking
+          if (i % 10 === 9) {
+            await this.yieldToEventLoop()
+          }
         }
         
+        totalNounsProcessed += result.items.length
         hasMoreNouns = result.hasMore
         nounOffset += nounLimit
+        
+        // Progress logging and event loop yield after each batch
+        if (totalNounsProcessed % 100 === 0 || !hasMoreNouns) {
+          console.log(`📊 Indexed ${totalNounsProcessed} nouns...`)
+        }
+        await this.yieldToEventLoop()
       }
       
       // Rebuild verb metadata indexes using pagination
       let verbOffset = 0
-      const verbLimit = 100
+      const verbLimit = 50 // Smaller batches to reduce blocking
       let hasMoreVerbs = true
+      let totalVerbsProcessed = 0
       
       while (hasMoreVerbs) {
         const result = await this.storage.getVerbs({
           pagination: { offset: verbOffset, limit: verbLimit }
         })
         
-        for (const verb of result.items) {
+        // Process batch with event loop yields
+        for (let i = 0; i < result.items.length; i++) {
+          const verb = result.items[i]
           const metadata = await this.storage.getVerbMetadata(verb.id)
           if (metadata) {
             // Skip flush during rebuild for performance
             await this.addToIndex(verb.id, metadata, true)
           }
+          
+          // Yield to event loop every 10 items to prevent blocking
+          if (i % 10 === 9) {
+            await this.yieldToEventLoop()
+          }
         }
         
+        totalVerbsProcessed += result.items.length
         hasMoreVerbs = result.hasMore
         verbOffset += verbLimit
+        
+        // Progress logging and event loop yield after each batch
+        if (totalVerbsProcessed % 100 === 0 || !hasMoreVerbs) {
+          console.log(`🔗 Indexed ${totalVerbsProcessed} verbs...`)
+        }
+        await this.yieldToEventLoop()
       }
       
-      // Flush to storage
+      // Flush to storage with final yield
+      console.log('💾 Flushing metadata index to storage...')
       await this.flush()
+      await this.yieldToEventLoop()
+      
+      console.log(`✅ Metadata index rebuild completed! Processed ${totalNounsProcessed} nouns and ${totalVerbsProcessed} verbs`)
       
     } finally {
       this.isRebuilding = false
