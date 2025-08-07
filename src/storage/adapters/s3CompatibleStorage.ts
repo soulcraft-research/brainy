@@ -94,6 +94,13 @@ export class S3CompatibleStorage extends BaseStorage {
   // Statistics caching for better performance
   protected statisticsCache: StatisticsData | null = null
 
+  // Throttling detection and adaptation
+  private throttlingDetected = false
+  private throttlingBackoffMs = 1000 // Start with 1 second
+  private maxBackoffMs = 30000 // Max 30 seconds
+  private consecutiveThrottleErrors = 0
+  private lastThrottleTime = 0
+
   // Distributed locking for concurrent access control
   private lockPrefix: string = 'locks/'
   private activeLocks: Set<string> = new Set()
@@ -345,6 +352,70 @@ export class S3CompatibleStorage extends BaseStorage {
       throw new Error(
         `Failed to initialize ${this.serviceType} storage: ${error}`
       )
+    }
+  }
+
+  /**
+   * Detect and handle storage throttling (429, 503, timeouts)
+   */
+  private isThrottlingError(error: any): boolean {
+    const statusCode = error.$metadata?.httpStatusCode || error.statusCode
+    const message = error.message?.toLowerCase() || ''
+    
+    return (
+      statusCode === 429 || // Too Many Requests
+      statusCode === 503 || // Service Unavailable / Slow Down
+      message.includes('throttl') ||
+      message.includes('slow down') ||
+      message.includes('rate limit') ||
+      message.includes('too many requests')
+    )
+  }
+
+  /**
+   * Handle throttling by implementing exponential backoff
+   */
+  private async handleThrottling(error: any): Promise<void> {
+    if (this.isThrottlingError(error)) {
+      this.throttlingDetected = true
+      this.consecutiveThrottleErrors++
+      this.lastThrottleTime = Date.now()
+      
+      // Exponential backoff: 1s, 2s, 4s, 8s, etc. up to maxBackoffMs
+      this.throttlingBackoffMs = Math.min(
+        this.throttlingBackoffMs * 2,
+        this.maxBackoffMs
+      )
+      
+      prodLog.warn(`🐌 Storage throttling detected (${error.$metadata?.httpStatusCode || 'timeout'}). Backing off for ${this.throttlingBackoffMs}ms`)
+      
+      await new Promise(resolve => setTimeout(resolve, this.throttlingBackoffMs))
+    } else {
+      // Reset throttling detection on successful non-throttling operation
+      if (this.consecutiveThrottleErrors > 0) {
+        this.consecutiveThrottleErrors = 0
+        this.throttlingBackoffMs = 1000 // Reset to initial backoff
+        if (this.throttlingDetected) {
+          prodLog.info('✅ Storage throttling cleared')
+          this.throttlingDetected = false
+        }
+      }
+    }
+  }
+
+  /**
+   * Smart delay based on current throttling status
+   */
+  private async smartDelay(): Promise<void> {
+    if (this.throttlingDetected) {
+      // If currently throttled, add a preventive delay
+      const timeSinceThrottle = Date.now() - this.lastThrottleTime
+      if (timeSinceThrottle < 60000) { // Within 1 minute of throttling
+        await new Promise(resolve => setTimeout(resolve, Math.min(this.throttlingBackoffMs / 2, 5000)))
+      }
+    } else {
+      // Normal yield
+      await new Promise(resolve => setImmediate(resolve))
     }
   }
 
@@ -1941,9 +2012,13 @@ export class S3CompatibleStorage extends BaseStorage {
           ])
           return { id, metadata }
         } catch (error) {
-          // Enhanced error handling for minor socket issues
+          // Handle throttling and enhanced error handling
+          await this.handleThrottling(error)
+          
           const errorMessage = error instanceof Error ? error.message : String(error)
-          if (errorMessage.includes('timeout') || errorMessage.includes('ECONNRESET')) {
+          if (this.isThrottlingError(error)) {
+            // Throttling errors are already logged in handleThrottling
+          } else if (errorMessage.includes('timeout') || errorMessage.includes('ECONNRESET')) {
             this.logger.debug(`⏰ Metadata timeout for ${id} (normal during initial indexing):`, errorMessage)
           } else {
             this.logger.debug(`Failed to read metadata for ${id}:`, error)
@@ -1964,19 +2039,21 @@ export class S3CompatibleStorage extends BaseStorage {
         }
       }
       
-      // Adaptive delay based on error rates (helps with S3 rate limiting)
+      // Smart delay based on error rates and throttling status
       const errorRate = errorCount / batch.length
       if (errorRate > 0.5) {
-        // High error rate - add extra delay
-        await new Promise(resolve => setTimeout(resolve, 2000)) // 2 second delay
-        prodLog.debug(`🐌 High error rate (${(errorRate * 100).toFixed(1)}%) - adding extra delay`)
+        // High error rate - use smart delay with throttling awareness
+        await this.smartDelay()
+        await new Promise(resolve => setTimeout(resolve, 2000)) // Extra delay for high error rates
+        prodLog.debug(`🐌 High error rate (${(errorRate * 100).toFixed(1)}%) - adding smart delay`)
       } else if (errorRate > 0.2) {
-        // Moderate error rate - add modest delay  
-        await new Promise(resolve => setTimeout(resolve, 500)) // 500ms delay
-        prodLog.debug(`⚡ Moderate error rate (${(errorRate * 100).toFixed(1)}%) - adding modest delay`)
+        // Moderate error rate - smart delay
+        await this.smartDelay()
+        await new Promise(resolve => setTimeout(resolve, 500)) // Modest extra delay
+        prodLog.debug(`⚡ Moderate error rate (${(errorRate * 100).toFixed(1)}%) - adding smart delay`)
       } else {
-        // Low error rate - normal yield
-        await new Promise(resolve => setImmediate(resolve))
+        // Low error rate - just smart delay (respects throttling status)
+        await this.smartDelay()
       }
     }
     
