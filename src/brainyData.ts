@@ -47,6 +47,7 @@ import {
 import { IntelligentVerbScoring } from './augmentations/intelligentVerbScoring.js'
 import { BrainyDataInterface } from './types/brainyDataInterface.js'
 import { augmentationPipeline } from './augmentationPipeline.js'
+import { prodLog } from './utils/logger.js'
 import {
   prepareJsonForVectorization,
   extractFieldFromJson
@@ -683,7 +684,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       }
 
       if (this.loggingConfig?.verbose) {
-        console.log(this.cacheAutoConfigurator.getConfigExplanation(autoConfig))
+        prodLog.info(this.cacheAutoConfigurator.getConfigExplanation(autoConfig))
       }
     }
 
@@ -751,7 +752,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     // If the database is frozen, do not start real-time updates
     if (this.frozen) {
       if (this.loggingConfig?.verbose) {
-        console.log('Real-time updates disabled: database is frozen')
+        prodLog.info('Real-time updates disabled: database is frozen')
       }
       return
     }
@@ -767,7 +768,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         this.lastKnownNounCount = count
       })
       .catch((error) => {
-        console.warn(
+        prodLog.warn(
           'Failed to get initial noun count for real-time updates:',
           error
         )
@@ -776,12 +777,12 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     // Start the update timer
     this.updateTimerId = setInterval(() => {
       this.checkForUpdates().catch((error) => {
-        console.warn('Error during real-time update check:', error)
+        prodLog.warn('Error during real-time update check:', error)
       })
     }, this.realtimeUpdateConfig.interval)
 
     if (this.loggingConfig?.verbose) {
-      console.log(
+      prodLog.info(
         `Real-time updates started with interval: ${this.realtimeUpdateConfig.interval}ms`
       )
     }
@@ -801,7 +802,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     this.updateTimerId = null
 
     if (this.loggingConfig?.verbose) {
-      console.log('Real-time updates stopped')
+      prodLog.info('Real-time updates stopped')
     }
   }
 
@@ -849,7 +850,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       try {
         await this.metadataIndex!.flush()
       } catch (error) {
-        console.warn('Error flushing metadata index:', error)
+        prodLog.warn('Error flushing metadata index:', error)
       }
     }, 30000) // Flush every 30 seconds
     
@@ -922,7 +923,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       // Cleanup expired cache entries (defensive mechanism for distributed scenarios)
       const expiredCount = this.searchCache.cleanupExpiredEntries()
       if (expiredCount > 0 && this.loggingConfig?.verbose) {
-        console.log(`Cleaned up ${expiredCount} expired cache entries`)
+        prodLog.debug(`Cleaned up ${expiredCount} expired cache entries`)
       }
 
       // Adapt cache configuration based on performance (every few updates)
@@ -940,10 +941,10 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
       if (this.loggingConfig?.verbose) {
         const duration = this.lastUpdateTime - startTime
-        console.log(`Real-time update completed in ${duration}ms`)
+        prodLog.debug(`Real-time update completed in ${duration}ms`)
       }
     } catch (error) {
-      console.error('Failed to check for updates:', error)
+      prodLog.error('Failed to check for updates:', error)
       // Don't rethrow the error to avoid disrupting the update timer
     }
   }
@@ -977,7 +978,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
                 // Check if the vector dimensions match the expected dimensions
                 if (noun.vector.length !== this._dimensions) {
-                  console.warn(
+                  prodLog.warn(
                     `Skipping noun ${noun.id} due to dimension mismatch: expected ${this._dimensions}, got ${noun.vector.length}`
                   )
                   continue
@@ -996,7 +997,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
                 }
 
                 if (this.loggingConfig?.verbose) {
-                  console.log(
+                  prodLog.debug(
                     `${change.operation === 'add' ? 'Added' : 'Updated'} noun ${noun.id} in index during real-time update`
                   )
                 }

@@ -81,6 +81,7 @@ Claude: [Commits and pushes]
 
 ## Release and Publishing Workflow
 - When publishing: always commit and push, then update version appropriately, then do github release, then publish
+- **Always let me approve commit message before pushing, releasing or deploying**
 
 ## Architecture Overview
 

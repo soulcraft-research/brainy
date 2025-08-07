@@ -4,6 +4,7 @@
  */
 
 import { isBrowser, isNode } from './environment.js'
+import { prodLog } from './logger.js'
 
 // Worker pool to reuse workers
 const workerPool: Map<string, any> = new Map()

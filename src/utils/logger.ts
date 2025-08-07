@@ -1,7 +1,10 @@
 /**
  * Centralized logging utility for Brainy
  * Provides configurable log levels and consistent logging across the codebase
+ * Automatically reduces logging in production environments to minimize costs
  */
+
+import { isProductionEnvironment, getLogLevel } from './environment.js'
 
 export enum LogLevel {
   ERROR = 0,
@@ -28,13 +31,16 @@ export interface LoggerConfig {
 class Logger {
   private static instance: Logger
   private config: LoggerConfig = {
-    level: LogLevel.WARN, // Default to WARN - only critical messages
-    timestamps: true,
+    level: LogLevel.ERROR, // Default to ERROR in production for cost optimization
+    timestamps: false, // Disable timestamps in production to reduce log size
     includeModule: true
   }
   
   private constructor() {
-    // Set log level from environment variable if available
+    // Auto-detect production environment and set appropriate defaults
+    this.applyEnvironmentDefaults()
+    
+    // Set log level from environment variable if available (overrides auto-detection)
     const envLogLevel = process.env.BRAINY_LOG_LEVEL
     if (envLogLevel) {
       const level = LogLevel[envLogLevel.toUpperCase() as keyof typeof LogLevel]
@@ -51,6 +57,40 @@ class Logger {
       } catch (e) {
         // Ignore parsing errors
       }
+    }
+  }
+  
+  private applyEnvironmentDefaults(): void {
+    const envLogLevel = getLogLevel()
+    
+    // Convert environment log level to Logger LogLevel
+    switch (envLogLevel) {
+      case 'silent':
+        this.config.level = -1 as LogLevel // Below ERROR to silence all logs
+        break
+      case 'error':
+        this.config.level = LogLevel.ERROR
+        this.config.timestamps = false // Minimize log size in production
+        break
+      case 'warn':
+        this.config.level = LogLevel.WARN
+        this.config.timestamps = false
+        break
+      case 'info':
+        this.config.level = LogLevel.INFO
+        this.config.timestamps = true
+        break
+      case 'verbose':
+        this.config.level = LogLevel.DEBUG
+        this.config.timestamps = true
+        break
+    }
+    
+    // In production environments, be extra conservative to minimize costs
+    if (isProductionEnvironment()) {
+      this.config.level = Math.min(this.config.level, LogLevel.ERROR)
+      this.config.timestamps = false
+      this.config.includeModule = false // Reduce log size
     }
   }
   
@@ -164,4 +204,65 @@ export function createModuleLogger(module: string) {
 // Export function to configure logger
 export function configureLogger(config: Partial<LoggerConfig>) {
   logger.configure(config)
+}
+
+/**
+ * Smart console replacement that automatically reduces logging in production
+ * Dramatically reduces Google Cloud Run logging costs
+ * 
+ * Usage: Replace console.log with smartConsole.log, etc.
+ */
+export const smartConsole = {
+  log: (message?: any, ...args: any[]) => {
+    if (logger['shouldLog'](LogLevel.INFO, 'console')) {
+      console.log(message, ...args)
+    }
+  },
+  
+  info: (message?: any, ...args: any[]) => {
+    if (logger['shouldLog'](LogLevel.INFO, 'console')) {
+      console.info(message, ...args)
+    }
+  },
+  
+  warn: (message?: any, ...args: any[]) => {
+    if (logger['shouldLog'](LogLevel.WARN, 'console')) {
+      console.warn(message, ...args)
+    }
+  },
+  
+  error: (message?: any, ...args: any[]) => {
+    if (logger['shouldLog'](LogLevel.ERROR, 'console')) {
+      console.error(message, ...args)
+    }
+  },
+  
+  debug: (message?: any, ...args: any[]) => {
+    if (logger['shouldLog'](LogLevel.DEBUG, 'console')) {
+      console.debug(message, ...args)
+    }
+  },
+  
+  trace: (message?: any, ...args: any[]) => {
+    if (logger['shouldLog'](LogLevel.TRACE, 'console')) {
+      console.trace(message, ...args)
+    }
+  }
+}
+
+/**
+ * Production-optimized logging functions
+ * These only log in non-production environments or when explicitly enabled
+ */
+export const prodLog = {
+  // Only log errors in production (always visible)
+  error: (message?: any, ...args: any[]) => {
+    console.error(message, ...args)
+  },
+  
+  // These are suppressed in production unless BRAINY_LOG_LEVEL is set
+  warn: (message?: any, ...args: any[]) => smartConsole.warn(message, ...args),
+  info: (message?: any, ...args: any[]) => smartConsole.info(message, ...args),
+  debug: (message?: any, ...args: any[]) => smartConsole.debug(message, ...args),
+  log: (message?: any, ...args: any[]) => smartConsole.log(message, ...args)
 }
