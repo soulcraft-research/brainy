@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.52.0](https://github.com/soulcraft-research/brainy/compare/v0.49.0...v0.52.0) (2025-08-07)
+
+
+### Fixed
+
+* restore Brainy logo in README header ([59d6344](https://github.com/soulcraft-research/brainy/commit/59d6344b8d38a8a5c6431701f8c62c05b5022238))
+
+
+### Changed
+
+* bump version to 0.50.0 ([1964607](https://github.com/soulcraft-research/brainy/commit/196460724222dbfd77ba24bd825304657797b1ed))
+* bump version to 0.51.0 ([cef71a9](https://github.com/soulcraft-research/brainy/commit/cef71a96edd8e3b9f65a0a0993d54a04ded73b85))
+* bump version to 0.51.1 ([e0cbe2e](https://github.com/soulcraft-research/brainy/commit/e0cbe2e4f8c42397f655f0180f56f748b6949cfa))
+* bump version to 0.51.2 ([82f20b0](https://github.com/soulcraft-research/brainy/commit/82f20b054b8e19123966eeaca53e744a17dd2eac))
+* remove unused rollup dependencies ([e197c1e](https://github.com/soulcraft-research/brainy/commit/e197c1e0c3ece998547177f95325749c401d8e1f))
+
+
+### Added
+
+* add automatic high-volume handling for S3 storage adapter ([680ee10](https://github.com/soulcraft-research/brainy/commit/680ee103e2810a3771b33e3191b4863a056d47c8))
+* add intelligent verb scoring system for automatic relationship weighting ([bf89b01](https://github.com/soulcraft-research/brainy/commit/bf89b01cb7b774f3d4948b0b6d7e80d108088426))
+* add zero-configuration Brainy service template with augmentation-first architecture ([b605d8a](https://github.com/soulcraft-research/brainy/commit/b605d8a133fd3915309a5a6fdcdbb6ca69bcab04))
+* establish Brainy as world's only true Vector + Graph database ([c5e2f2c](https://github.com/soulcraft-research/brainy/commit/c5e2f2c72af8df83aa0cb38014d954517a39775b))
+* restore comprehensive feature sections to README ([5541c0a](https://github.com/soulcraft-research/brainy/commit/5541c0afc4759a89707d110715a03f84271828aa))
+* restore developer-friendly sections and personality ([0481b76](https://github.com/soulcraft-research/brainy/commit/0481b763b840e234b864418e43e5bbce171ba99b))
+* revolutionize README with problem-focused approach ([afbeccd](https://github.com/soulcraft-research/brainy/commit/afbeccd6d9f91e5857d7e814361dbb6815dbecf8))
+
 ## [0.48.0](https://github.com/soulcraft-research/brainy/compare/v0.47.0...v0.48.0) (2025-08-06)
 
 
