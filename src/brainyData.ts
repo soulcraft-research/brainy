@@ -44,6 +44,7 @@ import {
   AugmentationType,
   IAugmentation
 } from './types/augmentations.js'
+import { IntelligentVerbScoring } from './augmentations/intelligentVerbScoring.js'
 import { BrainyDataInterface } from './types/brainyDataInterface.js'
 import { augmentationPipeline } from './augmentationPipeline.js'
 import {
@@ -375,6 +376,67 @@ export interface BrainyDataConfig {
       prefetchStrategy?: 'conservative' | 'moderate' | 'aggressive'
     }
   }
+
+  /**
+   * Intelligent verb scoring configuration
+   * Automatically generates weight and confidence scores for verb relationships
+   * Off by default - enable by setting enabled: true
+   */
+  intelligentVerbScoring?: {
+    /**
+     * Whether to enable intelligent verb scoring
+     * Default: false (off by default)
+     */
+    enabled?: boolean
+
+    /**
+     * Enable semantic proximity scoring based on entity embeddings
+     * Default: true
+     */
+    enableSemanticScoring?: boolean
+
+    /**
+     * Enable frequency-based weight amplification
+     * Default: true
+     */
+    enableFrequencyAmplification?: boolean
+
+    /**
+     * Enable temporal decay for weights
+     * Default: true
+     */
+    enableTemporalDecay?: boolean
+
+    /**
+     * Decay rate per day for temporal scoring (0-1)
+     * Default: 0.01 (1% decay per day)
+     */
+    temporalDecayRate?: number
+
+    /**
+     * Minimum weight threshold
+     * Default: 0.1
+     */
+    minWeight?: number
+
+    /**
+     * Maximum weight threshold
+     * Default: 1.0
+     */
+    maxWeight?: number
+
+    /**
+     * Base confidence score for new relationships
+     * Default: 0.5
+     */
+    baseConfidence?: number
+
+    /**
+     * Learning rate for adaptive scoring (0-1)
+     * Default: 0.1
+     */
+    learningRate?: number
+  }
 }
 
 export class BrainyData<T = any> implements BrainyDataInterface<T> {
@@ -424,6 +486,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   private remoteServerConfig: BrainyDataConfig['remoteServer'] | null = null
   private serverSearchConduit: ServerSearchConduitAugmentation | null = null
   private serverConnection: WebSocketConnection | null = null
+  private intelligentVerbScoring: IntelligentVerbScoring | null = null
 
   // Distributed mode properties
   private distributedConfig: DistributedConfig | null = null
@@ -614,6 +677,12 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
     // Initialize search cache with final configuration
     this.searchCache = new SearchCache<T>(finalSearchCacheConfig)
+
+    // Initialize intelligent verb scoring if enabled
+    if (config.intelligentVerbScoring?.enabled) {
+      this.intelligentVerbScoring = new IntelligentVerbScoring(config.intelligentVerbScoring)
+      this.intelligentVerbScoring.enabled = true
+    }
   }
 
   /**
@@ -1050,6 +1119,66 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   }
 
   /**
+   * Provide feedback to the intelligent verb scoring system for learning
+   * This allows the system to learn from user corrections or validation
+   * 
+   * @param sourceId - Source entity ID
+   * @param targetId - Target entity ID  
+   * @param verbType - Relationship type
+   * @param feedbackWeight - The corrected/validated weight (0-1)
+   * @param feedbackConfidence - The corrected/validated confidence (0-1)
+   * @param feedbackType - Type of feedback ('correction', 'validation', 'enhancement')
+   */
+  public async provideFeedbackForVerbScoring(
+    sourceId: string,
+    targetId: string,
+    verbType: string,
+    feedbackWeight: number,
+    feedbackConfidence?: number,
+    feedbackType: 'correction' | 'validation' | 'enhancement' = 'correction'
+  ): Promise<void> {
+    if (this.intelligentVerbScoring?.enabled) {
+      await this.intelligentVerbScoring.provideFeedback(
+        sourceId,
+        targetId,
+        verbType,
+        feedbackWeight,
+        feedbackConfidence,
+        feedbackType
+      )
+    }
+  }
+
+  /**
+   * Get learning statistics from the intelligent verb scoring system
+   */
+  public getVerbScoringStats(): any {
+    if (this.intelligentVerbScoring?.enabled) {
+      return this.intelligentVerbScoring.getLearningStats()
+    }
+    return null
+  }
+
+  /**
+   * Export learning data from the intelligent verb scoring system
+   */
+  public exportVerbScoringLearningData(): string | null {
+    if (this.intelligentVerbScoring?.enabled) {
+      return this.intelligentVerbScoring.exportLearningData()
+    }
+    return null
+  }
+
+  /**
+   * Import learning data into the intelligent verb scoring system
+   */
+  public importVerbScoringLearningData(jsonData: string): void {
+    if (this.intelligentVerbScoring?.enabled) {
+      this.intelligentVerbScoring.importLearningData(jsonData)
+    }
+  }
+
+  /**
    * Get the current augmentation name if available
    * This is used to auto-detect the service performing data operations
    * @returns The name of the current augmentation or 'default' if none is detected
@@ -1318,6 +1447,15 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
             }
           }
         }
+      }
+
+      // Initialize intelligent verb scoring augmentation if enabled
+      if (this.intelligentVerbScoring) {
+        await this.intelligentVerbScoring.initialize()
+        this.intelligentVerbScoring.setBrainyInstance(this)
+        
+        // Register with augmentation pipeline
+        augmentationPipeline.register(this.intelligentVerbScoring)
       }
 
       this.isInitialized = true
@@ -3621,6 +3759,36 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         connections: new Map()
       }
 
+      // Apply intelligent verb scoring if enabled and weight/confidence not provided
+      let finalWeight = options.weight
+      let finalConfidence: number | undefined
+      let scoringReasoning: string[] = []
+
+      if (this.intelligentVerbScoring?.enabled && (!options.weight || options.weight === 0.5)) {
+        try {
+          const scores = await this.intelligentVerbScoring.computeVerbScores(
+            sourceId,
+            targetId,
+            verbType,
+            options.weight,
+            options.metadata
+          )
+          finalWeight = scores.weight
+          finalConfidence = scores.confidence
+          scoringReasoning = scores.reasoning
+
+          if (this.loggingConfig?.verbose && scoringReasoning.length > 0) {
+            console.log(`Intelligent verb scoring for ${sourceId}-${verbType}-${targetId}:`, scoringReasoning)
+          }
+        } catch (error) {
+          if (this.loggingConfig?.verbose) {
+            console.warn('Error in intelligent verb scoring:', error)
+          }
+          // Fall back to original weight
+          finalWeight = options.weight
+        }
+      }
+
       // Create complete verb metadata separately
       const verbMetadata = {
         sourceId: sourceId,
@@ -3629,7 +3797,12 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         target: targetId,
         verb: verbType as VerbType,
         type: verbType, // Set the type property to match the verb type
-        weight: options.weight,
+        weight: finalWeight,
+        confidence: finalConfidence, // Add confidence to metadata
+        intelligentScoring: scoringReasoning.length > 0 ? {
+          reasoning: scoringReasoning,
+          computedAt: new Date().toISOString()
+        } : undefined,
         createdAt: timestamp,
         updatedAt: timestamp,
         createdBy: getAugmentationVersion(service),
