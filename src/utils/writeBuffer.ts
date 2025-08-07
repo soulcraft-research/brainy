@@ -31,10 +31,10 @@ export class WriteBuffer<T> {
   // Buffer storage
   private buffer = new Map<string, BufferedWrite<T>>()
   
-  // Configuration
-  private maxBufferSize = 1000      // Maximum items before forced flush
-  private flushInterval = 1000      // Flush every second
-  private minFlushSize = 100        // Minimum items to flush (unless timeout)
+  // Configuration - More aggressive for high volume
+  private maxBufferSize = 2000      // Allow larger buffers
+  private flushInterval = 500       // Flush more frequently (0.5 seconds)
+  private minFlushSize = 50         // Lower minimum to flush sooner
   private maxRetries = 3            // Maximum retry attempts
   
   // State
@@ -114,6 +114,11 @@ export class WriteBuffer<T> {
     }
     
     this.totalWrites++
+    
+    // Log buffer growth periodically
+    if (this.totalWrites % 100 === 0) {
+      this.logger.info(`📈 BUFFER GROWTH: ${this.buffer.size} ${this.type} items buffered (${this.totalWrites} total writes, ${this.duplicatesRemoved} deduplicated)`)
+    }
     
     // Check if we should flush
     this.checkFlush()
@@ -203,7 +208,7 @@ export class WriteBuffer<T> {
       this.buffer.delete(id)
     }
     
-    this.logger.debug(`Flushing ${itemsToFlush.size} ${this.type} items - reason: ${reason}`)
+    this.logger.warn(`🔄 BUFFERING: Flushing ${itemsToFlush.size} ${this.type} items (buffer had ${this.buffer.size + itemsToFlush.size}) - reason: ${reason}`)
     
     try {
       // Request permission from backpressure system
@@ -220,7 +225,7 @@ export class WriteBuffer<T> {
         this.lastFlush = Date.now()
         
         const duration = Date.now() - startTime
-        this.logger.info(`Flushed ${itemsToFlush.size} items in ${duration}ms`)
+        this.logger.warn(`🚀 BATCH FLUSH: ${itemsToFlush.size} ${this.type} items → 1 bulk S3 operation (${duration}ms, reason: ${reason})`)
         
         return {
           successful: itemsToFlush.size,
