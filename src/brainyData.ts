@@ -1428,8 +1428,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         // Ignore errors loading existing statistics
       }
 
-      // Initialize metadata index if not in write-only mode
-      if (!this.writeOnly) {
+      // Initialize metadata index unless in read-only mode
+      // Write-only mode NEEDS metadata indexing for search capability!
+      if (!this.readOnly) {
         this.metadataIndex = new MetadataIndexManager(
           this.storage!,
           this.config.metadataIndex
@@ -1909,8 +1910,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
           await this.storage!.saveMetadata(id, metadataToSave)
 
-          // Update metadata index
-          if (this.metadataIndex && !this.readOnly && !this.frozen) {
+          // Update metadata index (write-only mode should build indices!)
+          if (this.metadataIndex && !this.frozen) {
             await this.metadataIndex.addToIndex(id, metadataToSave)
           }
 
@@ -3362,8 +3363,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         // Get metadata before removing for index cleanup
         const existingMetadata = await this.storage!.getMetadata(actualId)
         
-        // Remove from metadata index
-        if (this.metadataIndex && existingMetadata && !this.readOnly && !this.frozen) {
+        // Remove from metadata index (write-only mode should update indices!)
+        if (this.metadataIndex && existingMetadata && !this.frozen) {
           await this.metadataIndex.removeFromIndex(actualId, existingMetadata)
         }
         
@@ -3478,8 +3479,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       // Update metadata
       await this.storage!.saveMetadata(id, metadata)
 
-      // Update metadata index
-      if (this.metadataIndex && !this.readOnly && !this.frozen) {
+      // Update metadata index (write-only mode should build indices!)
+      if (this.metadataIndex && !this.frozen) {
         // Remove old metadata from index if it exists
         const oldMetadata = await this.storage!.getMetadata(id)
         if (oldMetadata) {
