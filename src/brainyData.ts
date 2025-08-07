@@ -1448,19 +1448,29 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           try {
             const testResult = await this.storage!.getNouns({ pagination: { offset: 0, limit: 1 }})
             if (testResult.items.length > 0) {
-              if (this.loggingConfig?.verbose) {
-                console.log('Rebuilding metadata index for existing data...')
-              }
-              await this.metadataIndex.rebuild()
-              if (this.loggingConfig?.verbose) {
-                const newStats = await this.metadataIndex.getStats()
-                console.log(`Metadata index rebuilt: ${newStats.totalEntries} entries, ${newStats.fieldsIndexed.length} fields`)
+              // Only rebuild metadata index if explicitly requested or if we have very few items
+              const shouldRebuild = process.env.BRAINY_REBUILD_INDEX === 'true'
+              
+              if (shouldRebuild) {
+                if (this.loggingConfig?.verbose) {
+                  console.log('🔄 Rebuilding metadata index for existing data...')
+                }
+                await this.metadataIndex.rebuild()
+                if (this.loggingConfig?.verbose) {
+                  const newStats = await this.metadataIndex.getStats()
+                  console.log(`✅ Metadata index rebuilt: ${newStats.totalEntries} entries, ${newStats.fieldsIndexed.length} fields`)
+                }
+              } else {
+                if (this.loggingConfig?.verbose) {
+                  console.log('⏭️  Skipping metadata index rebuild (set BRAINY_REBUILD_INDEX=true to force)')
+                }
+                // Build index incrementally as items are accessed instead
               }
             }
           } catch (error) {
             // If getNouns fails, skip rebuild
             if (this.loggingConfig?.verbose) {
-              console.log('Skipping metadata index rebuild:', error)
+              console.log('⚠️  Skipping metadata index rebuild due to error:', error)
             }
           }
         }
