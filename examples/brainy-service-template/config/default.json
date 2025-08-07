@@ -1,0 +1,52 @@
+{
+  "service": {
+    "name": "brainy-service-template",
+    "port": 3000,
+    "cors": {
+      "enabled": true,
+      "origins": ["http://localhost:3000", "http://localhost:3001"]
+    },
+    "rateLimit": {
+      "windowMs": 900000,
+      "maxRequests": 100
+    }
+  },
+  "brainy": {
+    "storage": {
+      "type": "filesystem",
+      "path": "./data"
+    },
+    "features": {
+      "intelligentVerbScoring": false,
+      "realTimeUpdates": false,
+      "distributedMode": false,
+      "metadataIndexing": true
+    },
+    "intelligentVerbScoring": {
+      "enabled": false,
+      "enableSemanticScoring": true,
+      "enableFrequencyAmplification": true,
+      "enableTemporalDecay": true,
+      "temporalDecayRate": 0.01,
+      "minWeight": 0.1,
+      "maxWeight": 1.0,
+      "baseConfidence": 0.5,
+      "learningRate": 0.1
+    },
+    "cache": {
+      "autoTune": true,
+      "hotCacheMaxSize": 5000
+    },
+    "logging": {
+      "verbose": false
+    }
+  },
+  "logging": {
+    "level": "info",
+    "format": "json",
+    "timestamp": true
+  },
+  "health": {
+    "timeout": 5000
+  }
+}

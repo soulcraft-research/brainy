@@ -1,0 +1,20 @@
+{
+  "service": {
+    "port": 3000
+  },
+  "brainy": {
+    "features": {
+      "intelligentVerbScoring": true
+    },
+    "intelligentVerbScoring": {
+      "enabled": true,
+      "baseConfidence": 0.6
+    },
+    "logging": {
+      "verbose": true
+    }
+  },
+  "logging": {
+    "level": "debug"
+  }
+}

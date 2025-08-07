@@ -1,0 +1,28 @@
+{
+  "service": {
+    "cors": {
+      "origins": ["https://yourdomain.com"]
+    },
+    "rateLimit": {
+      "windowMs": 900000,
+      "maxRequests": 1000
+    }
+  },
+  "brainy": {
+    "storage": {
+      "type": "s3",
+      "s3": {
+        "bucketName": "${BRAINY_S3_BUCKET}",
+        "region": "${BRAINY_S3_REGION}",
+        "accessKeyId": "${BRAINY_S3_ACCESS_KEY}",
+        "secretAccessKey": "${BRAINY_S3_SECRET_KEY}"
+      }
+    },
+    "cache": {
+      "hotCacheMaxSize": 50000
+    }
+  },
+  "logging": {
+    "level": "warn"
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "name": "brainy-service-template",
+  "version": "2.0.0",
+  "description": "Zero-configuration, intelligent service template using Brainy's native augmentation system",
+  "main": "src/app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js --ignore tests/",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "build": "echo 'No build step required - zero configuration!'",
+    "lint": "eslint src/ --ext .js",
+    "format": "prettier --write src/",
+    "docker:build": "docker build -t brainy-service .",
+    "docker:run": "docker run -p 3000:3000 -p 3001:3001 -p 3002:3002 brainy-service",
+    "docker:compose": "docker-compose up",
+    "download-models": "node -e \"import('@soulcraft/brainy').then(brainy => brainy.downloadModels())\"",
+    "health-check": "curl -f http://localhost:3000/health || exit 1"
+  },
+  "keywords": [
+    "brainy",
+    "vector-database",
+    "graph-database",
+    "semantic-search",
+    "ai",
+    "machine-learning",
+    "template",
+    "service",
+    "augmentation",
+    "websocket",
+    "webrtc",
+    "zero-config",
+    "intelligent-adaptation",
+    "real-time",
+    "peer-to-peer",
+    "universal-compatibility"
+  ],
+  "dependencies": {
+    "@soulcraft/brainy": "^0.51.2",
+    "ws": "^8.14.2",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "compression": "^1.7.4",
+    "winston": "^3.11.0",
+    "config": "^3.3.9"
+  },
+  "devDependencies": {
+    "vitest": "^1.0.4",
+    "supertest": "^6.3.3",
+    "@vitest/coverage-v8": "^1.0.4",
+    "nodemon": "^3.0.2",
+    "eslint": "^8.56.0",
+    "prettier": "^3.1.1"
+  },
+  "brainyConfig": {
+    "augmentations": [
+      "websocket",
+      "webrtc", 
+      "http",
+      "autoDiscovery",
+      "adaptiveStorage",
+      "environmentAdapter"
+    ],
+    "transports": {
+      "websocket": { "port": 3001, "realtime": true },
+      "webrtc": { "port": 3002, "peerToPeer": true },
+      "http": { "port": 3000, "minimal": true }
+    },
+    "features": {
+      "zeroConfiguration": true,
+      "intelligentAdaptation": true,
+      "intelligentVerbScoring": true,
+      "autoDiscovery": true,
+      "adaptivePerformance": true
+    }
+  },
+  "author": "David Snelling (david@soulcraft.com)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
