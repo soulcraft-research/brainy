@@ -175,8 +175,8 @@ function handlePutObject(command: any) {
       const parsedBody = JSON.parse(bodyContent)
       console.log(`Parsed JSON body:`, parsedBody)
       
-      // If this is a noun or verb, ensure it has an id property
-      if (Key.includes('/nouns/') || Key.includes('/verbs/')) {
+      // If this is a noun or verb (but NOT metadata), ensure it has an id property
+      if ((Key.includes('/nouns/') || Key.includes('/verbs/')) && !Key.includes('/metadata/')) {
         if (!parsedBody.id) {
           console.error(`Warning: Object ${Key} does not have an id property`)
           // Add id property based on the key name
@@ -255,8 +255,8 @@ function handleGetObject(command: any) {
       const parsedBody = JSON.parse(bodyContent)
       console.log(`Parsed JSON body for ${Key}:`, parsedBody)
       
-      // If this is a noun or verb, ensure it has an id property
-      if (Key.includes('/nouns/') || Key.includes('/verbs/')) {
+      // If this is a noun or verb (but NOT metadata), ensure it has an id property
+      if ((Key.includes('/nouns/') || Key.includes('/verbs/')) && !Key.includes('/metadata/')) {
         if (!parsedBody.id) {
           console.error(`Warning: Object ${Key} does not have an id property`)
           // Add id property based on the key name
