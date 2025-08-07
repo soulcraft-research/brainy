@@ -97,6 +97,16 @@ export class S3CompatibleStorage extends BaseStorage {
   // Change log for efficient synchronization
   private changeLogPrefix: string = 'change-log/'
 
+  // Backpressure and performance management
+  private pendingOperations: number = 0
+  private maxConcurrentOperations: number = 100
+  private baseBatchSize: number = 10
+  private currentBatchSize: number = 10
+  private lastMemoryCheck: number = 0
+  private memoryCheckInterval: number = 5000 // Check every 5 seconds
+  private consecutiveErrors: number = 0
+  private lastErrorReset: number = Date.now()
+
   // Operation executors for timeout and retry handling
   private operationExecutors: StorageOperationExecutors
   
@@ -168,6 +178,17 @@ export class S3CompatibleStorage extends BaseStorage {
     try {
       // Import AWS SDK modules only when needed
       const { S3Client } = await import('@aws-sdk/client-s3')
+      const { NodeHttpHandler } = await import('@smithy/node-http-handler')
+      const https = await import('https')
+
+      // Configure HTTP agent with high socket limits for high-volume scenarios
+      // This prevents socket exhaustion without requiring user configuration
+      const httpAgent = new https.Agent({
+        keepAlive: true,
+        maxSockets: 500,  // Increased from default 50 to handle high volume
+        maxFreeSockets: 100,  // Keep more sockets alive for reuse
+        timeout: 60000  // 60 second timeout
+      })
 
       // Configure the S3 client based on the service type
       const clientConfig: any = {
@@ -175,7 +196,16 @@ export class S3CompatibleStorage extends BaseStorage {
         credentials: {
           accessKeyId: this.accessKeyId,
           secretAccessKey: this.secretAccessKey
-        }
+        },
+        // Use custom HTTP handler with optimized socket management
+        requestHandler: new NodeHttpHandler({
+          httpsAgent: httpAgent,
+          connectionTimeout: 10000,  // 10 second connection timeout
+          socketTimeout: 60000  // 60 second socket timeout
+        }),
+        // Retry configuration for resilience
+        maxAttempts: 5,  // Retry up to 5 times
+        retryMode: 'adaptive'  // Use adaptive retry with backoff
       }
 
       // Add session token if provided
@@ -212,7 +242,7 @@ export class S3CompatibleStorage extends BaseStorage {
         getMany: async (ids: string[]) => {
           const result = new Map<string, HNSWNode>()
           // Process in batches to avoid overwhelming the S3 API
-          const batchSize = 10
+          const batchSize = this.getBatchSize()
           const batches: string[][] = []
           
           // Split into batches
@@ -253,7 +283,7 @@ export class S3CompatibleStorage extends BaseStorage {
         getMany: async (ids: string[]) => {
           const result = new Map<string, Edge>()
           // Process in batches to avoid overwhelming the S3 API
-          const batchSize = 10
+          const batchSize = this.getBatchSize()
           const batches: string[][] = []
           
           // Split into batches
@@ -302,6 +332,91 @@ export class S3CompatibleStorage extends BaseStorage {
   }
 
   /**
+   * Dynamically adjust batch size based on memory pressure and error rates
+   */
+  private adjustBatchSize(): void {
+    const now = Date.now()
+    
+    // Check memory pressure periodically
+    if (now - this.lastMemoryCheck > this.memoryCheckInterval) {
+      this.lastMemoryCheck = now
+      const memUsage = process.memoryUsage()
+      const heapUsedPercent = (memUsage.heapUsed / memUsage.heapTotal) * 100
+      
+      // Adjust batch size based on memory pressure
+      if (heapUsedPercent > 80) {
+        // High memory pressure - reduce batch size
+        this.currentBatchSize = Math.max(1, Math.floor(this.currentBatchSize * 0.5))
+        this.maxConcurrentOperations = Math.max(10, Math.floor(this.maxConcurrentOperations * 0.5))
+        this.logger.warn(`High memory pressure (${heapUsedPercent.toFixed(1)}%), reducing batch size to ${this.currentBatchSize}`)
+      } else if (heapUsedPercent < 50 && this.consecutiveErrors === 0) {
+        // Low memory pressure and no errors - gradually increase batch size
+        this.currentBatchSize = Math.min(this.baseBatchSize * 2, this.currentBatchSize + 1)
+        this.maxConcurrentOperations = Math.min(200, this.maxConcurrentOperations + 10)
+      }
+    }
+    
+    // Reset error counter periodically if no recent errors
+    if (now - this.lastErrorReset > 60000 && this.consecutiveErrors > 0) {
+      this.consecutiveErrors = Math.max(0, this.consecutiveErrors - 1)
+      this.lastErrorReset = now
+    }
+    
+    // Adjust based on error rate
+    if (this.consecutiveErrors > 5) {
+      this.currentBatchSize = Math.max(1, Math.floor(this.currentBatchSize * 0.7))
+      this.maxConcurrentOperations = Math.max(10, Math.floor(this.maxConcurrentOperations * 0.7))
+      this.logger.warn(`High error rate, reducing batch size to ${this.currentBatchSize}`)
+    }
+  }
+
+  /**
+   * Apply backpressure when system is under load
+   */
+  private async applyBackpressure(): Promise<void> {
+    // Wait if too many operations are pending
+    while (this.pendingOperations >= this.maxConcurrentOperations) {
+      const memUsage = process.memoryUsage()
+      const heapUsedPercent = (memUsage.heapUsed / memUsage.heapTotal) * 100
+      
+      if (heapUsedPercent > 85) {
+        // Critical memory pressure - wait longer
+        await new Promise(resolve => setTimeout(resolve, 100))
+      } else {
+        // Normal backpressure - short wait
+        await new Promise(resolve => setImmediate(resolve))
+      }
+    }
+    
+    this.pendingOperations++
+  }
+
+  /**
+   * Release backpressure after operation completes
+   */
+  private releaseBackpressure(success: boolean = true): void {
+    this.pendingOperations = Math.max(0, this.pendingOperations - 1)
+    
+    if (!success) {
+      this.consecutiveErrors++
+    } else if (this.consecutiveErrors > 0) {
+      // Gradually reduce error count on success
+      this.consecutiveErrors = Math.max(0, this.consecutiveErrors - 0.5)
+    }
+    
+    // Adjust batch size based on current conditions
+    this.adjustBatchSize()
+  }
+
+  /**
+   * Get current batch size for operations
+   */
+  private getBatchSize(): number {
+    this.adjustBatchSize()
+    return this.currentBatchSize
+  }
+
+  /**
    * Save a noun to storage (internal implementation)
    */
   protected async saveNoun_internal(noun: HNSWNoun): Promise<void> {
@@ -313,6 +428,9 @@ export class S3CompatibleStorage extends BaseStorage {
    */
   protected async saveNode(node: HNSWNode): Promise<void> {
     await this.ensureInitialized()
+
+    // Apply backpressure before starting operation
+    await this.applyBackpressure()
 
     try {
       this.logger.trace(`Saving node ${node.id}`)
@@ -380,7 +498,11 @@ export class S3CompatibleStorage extends BaseStorage {
           verifyError
         )
       }
+      // Release backpressure on success
+      this.releaseBackpressure(true)
     } catch (error) {
+      // Release backpressure on error
+      this.releaseBackpressure(false)
       this.logger.error(`Failed to save node ${node.id}:`, error)
       throw new Error(`Failed to save node ${node.id}: ${error}`)
     }
@@ -726,6 +848,9 @@ export class S3CompatibleStorage extends BaseStorage {
   protected async saveEdge(edge: Edge): Promise<void> {
     await this.ensureInitialized()
 
+    // Apply backpressure before starting operation
+    await this.applyBackpressure()
+
     try {
       // Convert connections Map to a serializable format
       const serializableEdge = {
@@ -758,7 +883,12 @@ export class S3CompatibleStorage extends BaseStorage {
           vector: edge.vector
         }
       })
+      
+      // Release backpressure on success
+      this.releaseBackpressure(true)
     } catch (error) {
+      // Release backpressure on error
+      this.releaseBackpressure(false)
       this.logger.error(`Failed to save edge ${edge.id}:`, error)
       throw new Error(`Failed to save edge ${edge.id}: ${error}`)
     }
@@ -1197,6 +1327,9 @@ export class S3CompatibleStorage extends BaseStorage {
   public async saveMetadata(id: string, metadata: any): Promise<void> {
     await this.ensureInitialized()
 
+    // Apply backpressure before starting operation
+    await this.applyBackpressure()
+
     try {
       // Import the PutObjectCommand only when needed
       const { PutObjectCommand } = await import('@aws-sdk/client-s3')
@@ -1250,7 +1383,12 @@ export class S3CompatibleStorage extends BaseStorage {
           verifyError
         )
       }
+      
+      // Release backpressure on success
+      this.releaseBackpressure(true)
     } catch (error) {
+      // Release backpressure on error
+      this.releaseBackpressure(false)
       this.logger.error(`Failed to save metadata for ${id}:`, error)
       throw new Error(`Failed to save metadata for ${id}: ${error}`)
     }
