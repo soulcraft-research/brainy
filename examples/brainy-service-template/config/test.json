@@ -1,0 +1,35 @@
+{
+  "service": {
+    "name": "brainy-service-test",
+    "port": 0
+  },
+  "brainy": {
+    "storage": {
+      "type": "memory"
+    },
+    "features": {
+      "intelligentVerbScoring": true,
+      "realTimeUpdates": false,
+      "distributedMode": false
+    },
+    "intelligentVerbScoring": {
+      "enabled": true,
+      "enableSemanticScoring": true,
+      "enableFrequencyAmplification": true,
+      "enableTemporalDecay": false,
+      "baseConfidence": 0.6,
+      "learningRate": 0.1
+    },
+    "cache": {
+      "autoTune": false,
+      "hotCacheMaxSize": 1000
+    },
+    "logging": {
+      "level": "error"
+    }
+  },
+  "logging": {
+    "level": "error",
+    "format": "json"
+  }
+}

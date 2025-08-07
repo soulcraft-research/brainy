@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  brainy-service:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+    volumes:
+      - brainy_data:/app/data
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health/liveness"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    
+  # Example with S3-compatible storage (MinIO)
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - s3
+
+  # Brainy service with S3 storage
+  brainy-service-s3:
+    build: .
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - BRAINY_STORAGE_TYPE=s3
+      - BRAINY_S3_BUCKET=brainy-data
+      - BRAINY_S3_ENDPOINT=http://minio:9000
+      - BRAINY_S3_ACCESS_KEY_ID=minioadmin
+      - BRAINY_S3_SECRET_ACCESS_KEY=minioadmin123
+      - BRAINY_S3_REGION=us-east-1
+    depends_on:
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health/liveness"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    profiles:
+      - s3
+
+volumes:
+  brainy_data:
+    driver: local
+  minio_data:
+    driver: local
+
+networks:
+  default:
+    driver: bridge
