@@ -124,10 +124,11 @@ export class S3CompatibleStorage extends BaseStorage {
   // Request coalescer for deduplication
   private requestCoalescer: RequestCoalescer | null = null
   
-  // High-volume mode detection
+  // High-volume mode detection - MUCH more aggressive
   private highVolumeMode = false
   private lastVolumeCheck = 0
-  private volumeCheckInterval = 5000
+  private volumeCheckInterval = 1000  // Check every second, not 5
+  private forceHighVolumeMode = false  // Environment variable override
 
   // Operation executors for timeout and retry handling
   private operationExecutors: StorageOperationExecutors
@@ -397,32 +398,67 @@ export class S3CompatibleStorage extends BaseStorage {
     
     this.lastVolumeCheck = now
     
-    // Check pending operations
+    // Check environment variable override
+    const envThreshold = process.env.BRAINY_BUFFER_THRESHOLD
+    const threshold = envThreshold ? parseInt(envThreshold) : 1  // Default to 1!
+    
+    // Force enable from environment
+    if (process.env.BRAINY_FORCE_BUFFERING === 'true') {
+      this.forceHighVolumeMode = true
+    }
+    
+    // Get metrics
     const backpressureStatus = this.backpressure.getStatus()
     const socketMetrics = this.socketManager.getMetrics()
     
+    // MUCH more aggressive detection - trigger on almost any load
     const shouldEnableHighVolume = 
-      backpressureStatus.queueLength > 100 ||
-      socketMetrics.pendingRequests > 50 ||
-      this.pendingOperations > 20
+      this.forceHighVolumeMode ||                           // Environment override
+      backpressureStatus.queueLength > threshold ||        // Configurable threshold
+      socketMetrics.pendingRequests > threshold ||         // Socket pressure
+      this.pendingOperations > threshold ||                // Any pending ops
+      socketMetrics.socketUtilization > 0.1 ||             // Even 10% socket usage
+      (socketMetrics.requestsPerSecond > 10) ||            // High request rate
+      (this.consecutiveErrors > 0)                         // Any errors at all
     
     if (shouldEnableHighVolume && !this.highVolumeMode) {
       this.highVolumeMode = true
-      this.logger.info('Enabling high-volume mode for optimized batching')
+      this.logger.warn(`🚨 HIGH-VOLUME MODE ACTIVATED 🚨`)
+      this.logger.warn(`  Queue Length: ${backpressureStatus.queueLength}`)
+      this.logger.warn(`  Pending Requests: ${socketMetrics.pendingRequests}`)
+      this.logger.warn(`  Pending Operations: ${this.pendingOperations}`)
+      this.logger.warn(`  Socket Utilization: ${(socketMetrics.socketUtilization * 100).toFixed(1)}%`)
+      this.logger.warn(`  Requests/sec: ${socketMetrics.requestsPerSecond}`)
+      this.logger.warn(`  Consecutive Errors: ${this.consecutiveErrors}`)
+      this.logger.warn(`  Threshold: ${threshold}`)
       
       // Adjust buffer parameters for high volume
+      const queueLength = Math.max(backpressureStatus.queueLength, socketMetrics.pendingRequests, 100)
+      
       if (this.nounWriteBuffer) {
-        this.nounWriteBuffer.adjustForLoad(backpressureStatus.queueLength)
+        this.nounWriteBuffer.adjustForLoad(queueLength)
+        const stats = this.nounWriteBuffer.getStats()
+        this.logger.warn(`  Noun Buffer: ${stats.bufferSize} items, ${stats.totalWrites} total writes`)
       }
       if (this.verbWriteBuffer) {
-        this.verbWriteBuffer.adjustForLoad(backpressureStatus.queueLength)
+        this.verbWriteBuffer.adjustForLoad(queueLength)
+        const stats = this.verbWriteBuffer.getStats()
+        this.logger.warn(`  Verb Buffer: ${stats.bufferSize} items, ${stats.totalWrites} total writes`)
       }
       if (this.requestCoalescer) {
-        this.requestCoalescer.adjustParameters(backpressureStatus.queueLength)
+        this.requestCoalescer.adjustParameters(queueLength)
+        const sizes = this.requestCoalescer.getQueueSizes()
+        this.logger.warn(`  Coalescer: ${sizes.total} queued operations`)
       }
-    } else if (!shouldEnableHighVolume && this.highVolumeMode) {
+      
+    } else if (!shouldEnableHighVolume && this.highVolumeMode && !this.forceHighVolumeMode) {
       this.highVolumeMode = false
-      this.logger.info('Disabling high-volume mode')
+      this.logger.info('✅ High-volume mode deactivated - load normalized')
+    }
+    
+    // Log current status every 10 checks when in high-volume mode
+    if (this.highVolumeMode && (now % 10000) < this.volumeCheckInterval) {
+      this.logger.info(`📊 High-volume mode status: Queue=${backpressureStatus.queueLength}, Pending=${socketMetrics.pendingRequests}, Sockets=${(socketMetrics.socketUtilization * 100).toFixed(1)}%`)
     }
   }
   
@@ -698,13 +734,16 @@ export class S3CompatibleStorage extends BaseStorage {
   protected async saveNode(node: HNSWNode): Promise<void> {
     await this.ensureInitialized()
     
-    // Check if we should use high-volume mode
+    // ALWAYS check if we should use high-volume mode (critical for detection)
     this.checkVolumeMode()
     
     // Use write buffer in high-volume mode
     if (this.highVolumeMode && this.nounWriteBuffer) {
+      this.logger.trace(`📝 BUFFERING: Adding noun ${node.id} to write buffer (high-volume mode active)`)
       await this.nounWriteBuffer.add(node.id, node)
       return
+    } else if (!this.highVolumeMode) {
+      this.logger.trace(`📝 DIRECT WRITE: Saving noun ${node.id} directly (high-volume mode inactive)`)
     }
 
     // Apply backpressure before starting operation
@@ -1126,13 +1165,16 @@ export class S3CompatibleStorage extends BaseStorage {
   protected async saveEdge(edge: Edge): Promise<void> {
     await this.ensureInitialized()
     
-    // Check if we should use high-volume mode
+    // ALWAYS check if we should use high-volume mode (critical for detection)
     this.checkVolumeMode()
     
     // Use write buffer in high-volume mode
     if (this.highVolumeMode && this.verbWriteBuffer) {
+      this.logger.trace(`📝 BUFFERING: Adding verb ${edge.id} to write buffer (high-volume mode active)`)
       await this.verbWriteBuffer.add(edge.id, edge)
       return
+    } else if (!this.highVolumeMode) {
+      this.logger.trace(`📝 DIRECT WRITE: Saving verb ${edge.id} directly (high-volume mode inactive)`)
     }
 
     // Apply backpressure before starting operation
