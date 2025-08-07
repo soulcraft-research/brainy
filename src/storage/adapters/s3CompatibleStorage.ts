@@ -23,6 +23,8 @@ import {
 import { BrainyError } from '../../errors/brainyError.js'
 import { CacheManager } from '../cacheManager.js'
 import { createModuleLogger } from '../../utils/logger.js'
+import { getGlobalSocketManager } from '../../utils/adaptiveSocketManager.js'
+import { getGlobalBackpressure } from '../../utils/adaptiveBackpressure.js'
 
 // Type aliases for better readability
 type HNSWNode = HNSWNoun
@@ -106,6 +108,12 @@ export class S3CompatibleStorage extends BaseStorage {
   private memoryCheckInterval: number = 5000 // Check every 5 seconds
   private consecutiveErrors: number = 0
   private lastErrorReset: number = Date.now()
+  
+  // Adaptive socket manager for automatic optimization
+  private socketManager = getGlobalSocketManager()
+  
+  // Adaptive backpressure for automatic flow control
+  private backpressure = getGlobalBackpressure()
 
   // Operation executors for timeout and retry handling
   private operationExecutors: StorageOperationExecutors
@@ -178,17 +186,6 @@ export class S3CompatibleStorage extends BaseStorage {
     try {
       // Import AWS SDK modules only when needed
       const { S3Client } = await import('@aws-sdk/client-s3')
-      const { NodeHttpHandler } = await import('@smithy/node-http-handler')
-      const https = await import('https')
-
-      // Configure HTTP agent with high socket limits for high-volume scenarios
-      // This prevents socket exhaustion without requiring user configuration
-      const httpAgent = new https.Agent({
-        keepAlive: true,
-        maxSockets: 500,  // Increased from default 50 to handle high volume
-        maxFreeSockets: 100,  // Keep more sockets alive for reuse
-        timeout: 60000  // 60 second timeout
-      })
 
       // Configure the S3 client based on the service type
       const clientConfig: any = {
@@ -197,12 +194,8 @@ export class S3CompatibleStorage extends BaseStorage {
           accessKeyId: this.accessKeyId,
           secretAccessKey: this.secretAccessKey
         },
-        // Use custom HTTP handler with optimized socket management
-        requestHandler: new NodeHttpHandler({
-          httpsAgent: httpAgent,
-          connectionTimeout: 10000,  // 10 second connection timeout
-          socketTimeout: 60000  // 60 second socket timeout
-        }),
+        // Use adaptive socket manager for automatic optimization
+        requestHandler: this.socketManager.getHttpHandler(),
         // Retry configuration for resilience
         maxAttempts: 5,  // Retry up to 5 times
         retryMode: 'adaptive'  // Use adaptive retry with backoff
@@ -335,67 +328,59 @@ export class S3CompatibleStorage extends BaseStorage {
    * Dynamically adjust batch size based on memory pressure and error rates
    */
   private adjustBatchSize(): void {
-    const now = Date.now()
+    // Let the adaptive socket manager handle batch size optimization
+    this.currentBatchSize = this.socketManager.getBatchSize()
     
-    // Check memory pressure periodically
-    if (now - this.lastMemoryCheck > this.memoryCheckInterval) {
-      this.lastMemoryCheck = now
-      const memUsage = process.memoryUsage()
-      const heapUsedPercent = (memUsage.heapUsed / memUsage.heapTotal) * 100
-      
-      // Adjust batch size based on memory pressure
-      if (heapUsedPercent > 80) {
-        // High memory pressure - reduce batch size
-        this.currentBatchSize = Math.max(1, Math.floor(this.currentBatchSize * 0.5))
-        this.maxConcurrentOperations = Math.max(10, Math.floor(this.maxConcurrentOperations * 0.5))
-        this.logger.warn(`High memory pressure (${heapUsedPercent.toFixed(1)}%), reducing batch size to ${this.currentBatchSize}`)
-      } else if (heapUsedPercent < 50 && this.consecutiveErrors === 0) {
-        // Low memory pressure and no errors - gradually increase batch size
-        this.currentBatchSize = Math.min(this.baseBatchSize * 2, this.currentBatchSize + 1)
-        this.maxConcurrentOperations = Math.min(200, this.maxConcurrentOperations + 10)
-      }
-    }
+    // Get adaptive configuration for concurrent operations
+    const config = this.socketManager.getConfig()
+    this.maxConcurrentOperations = Math.min(config.maxSockets * 2, 500)
+    
+    // Track metrics for the socket manager
+    const now = Date.now()
     
     // Reset error counter periodically if no recent errors
     if (now - this.lastErrorReset > 60000 && this.consecutiveErrors > 0) {
       this.consecutiveErrors = Math.max(0, this.consecutiveErrors - 1)
       this.lastErrorReset = now
     }
-    
-    // Adjust based on error rate
-    if (this.consecutiveErrors > 5) {
-      this.currentBatchSize = Math.max(1, Math.floor(this.currentBatchSize * 0.7))
-      this.maxConcurrentOperations = Math.max(10, Math.floor(this.maxConcurrentOperations * 0.7))
-      this.logger.warn(`High error rate, reducing batch size to ${this.currentBatchSize}`)
-    }
   }
 
   /**
    * Apply backpressure when system is under load
    */
-  private async applyBackpressure(): Promise<void> {
-    // Wait if too many operations are pending
-    while (this.pendingOperations >= this.maxConcurrentOperations) {
-      const memUsage = process.memoryUsage()
-      const heapUsedPercent = (memUsage.heapUsed / memUsage.heapTotal) * 100
-      
-      if (heapUsedPercent > 85) {
-        // Critical memory pressure - wait longer
-        await new Promise(resolve => setTimeout(resolve, 100))
-      } else {
-        // Normal backpressure - short wait
-        await new Promise(resolve => setImmediate(resolve))
-      }
-    }
+  private async applyBackpressure(): Promise<string> {
+    // Generate unique request ID for tracking
+    const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     
-    this.pendingOperations++
+    try {
+      // Use adaptive backpressure system
+      await this.backpressure.requestPermission(requestId, 1)
+      
+      // Track with socket manager
+      this.socketManager.trackRequestStart(requestId)
+      
+      this.pendingOperations++
+      return requestId
+    } catch (error) {
+      // If backpressure rejects, throw a more informative error
+      const message = error instanceof Error ? error.message : String(error)
+      throw new Error(`System overloaded: ${message}`)
+    }
   }
 
   /**
    * Release backpressure after operation completes
    */
-  private releaseBackpressure(success: boolean = true): void {
+  private releaseBackpressure(success: boolean = true, requestId?: string): void {
     this.pendingOperations = Math.max(0, this.pendingOperations - 1)
+    
+    if (requestId) {
+      // Track with socket manager
+      this.socketManager.trackRequestComplete(requestId, success)
+      
+      // Release from backpressure system
+      this.backpressure.releasePermission(requestId, success)
+    }
     
     if (!success) {
       this.consecutiveErrors++
@@ -412,8 +397,8 @@ export class S3CompatibleStorage extends BaseStorage {
    * Get current batch size for operations
    */
   private getBatchSize(): number {
-    this.adjustBatchSize()
-    return this.currentBatchSize
+    // Use adaptive socket manager's batch size
+    return this.socketManager.getBatchSize()
   }
 
   /**
@@ -430,7 +415,7 @@ export class S3CompatibleStorage extends BaseStorage {
     await this.ensureInitialized()
 
     // Apply backpressure before starting operation
-    await this.applyBackpressure()
+    const requestId = await this.applyBackpressure()
 
     try {
       this.logger.trace(`Saving node ${node.id}`)
@@ -499,10 +484,10 @@ export class S3CompatibleStorage extends BaseStorage {
         )
       }
       // Release backpressure on success
-      this.releaseBackpressure(true)
+      this.releaseBackpressure(true, requestId)
     } catch (error) {
       // Release backpressure on error
-      this.releaseBackpressure(false)
+      this.releaseBackpressure(false, requestId)
       this.logger.error(`Failed to save node ${node.id}:`, error)
       throw new Error(`Failed to save node ${node.id}: ${error}`)
     }
@@ -849,7 +834,7 @@ export class S3CompatibleStorage extends BaseStorage {
     await this.ensureInitialized()
 
     // Apply backpressure before starting operation
-    await this.applyBackpressure()
+    const requestId = await this.applyBackpressure()
 
     try {
       // Convert connections Map to a serializable format
@@ -885,10 +870,10 @@ export class S3CompatibleStorage extends BaseStorage {
       })
       
       // Release backpressure on success
-      this.releaseBackpressure(true)
+      this.releaseBackpressure(true, requestId)
     } catch (error) {
       // Release backpressure on error
-      this.releaseBackpressure(false)
+      this.releaseBackpressure(false, requestId)
       this.logger.error(`Failed to save edge ${edge.id}:`, error)
       throw new Error(`Failed to save edge ${edge.id}: ${error}`)
     }
@@ -1328,7 +1313,7 @@ export class S3CompatibleStorage extends BaseStorage {
     await this.ensureInitialized()
 
     // Apply backpressure before starting operation
-    await this.applyBackpressure()
+    const requestId = await this.applyBackpressure()
 
     try {
       // Import the PutObjectCommand only when needed
@@ -1385,10 +1370,10 @@ export class S3CompatibleStorage extends BaseStorage {
       }
       
       // Release backpressure on success
-      this.releaseBackpressure(true)
+      this.releaseBackpressure(true, requestId)
     } catch (error) {
       // Release backpressure on error
-      this.releaseBackpressure(false)
+      this.releaseBackpressure(false, requestId)
       this.logger.error(`Failed to save metadata for ${id}:`, error)
       throw new Error(`Failed to save metadata for ${id}: ${error}`)
     }

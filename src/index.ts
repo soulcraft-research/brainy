@@ -49,6 +49,22 @@ import {
   createModuleLogger 
 } from './utils/logger.js'
 
+// Export performance and optimization utilities
+import {
+  getGlobalSocketManager,
+  AdaptiveSocketManager
+} from './utils/adaptiveSocketManager.js'
+
+import {
+  getGlobalBackpressure,
+  AdaptiveBackpressure
+} from './utils/adaptiveBackpressure.js'
+
+import {
+  getGlobalPerformanceMonitor,
+  PerformanceMonitor
+} from './utils/performanceMonitor.js'
+
 // Export environment utilities
 import {
   isBrowser,
@@ -87,7 +103,15 @@ export {
   logger,
   LogLevel,
   configureLogger,
-  createModuleLogger
+  createModuleLogger,
+  
+  // Performance and optimization utilities
+  getGlobalSocketManager,
+  AdaptiveSocketManager,
+  getGlobalBackpressure,
+  AdaptiveBackpressure,
+  getGlobalPerformanceMonitor,
+  PerformanceMonitor
 }
 
 // Export storage adapters
