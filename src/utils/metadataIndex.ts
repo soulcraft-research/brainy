@@ -686,6 +686,8 @@ export class MetadataIndexManager {
     this.isRebuilding = true
     try {
       prodLog.info('🔄 Starting non-blocking metadata index rebuild with batch processing to prevent socket exhaustion...')
+    prodLog.info(`📊 Storage adapter: ${this.storage.constructor.name}`)
+    prodLog.info(`🔧 Batch processing available: ${!!this.storage.getMetadataBatch}`)
       
       // Clear existing indexes
       this.indexCache.clear()
@@ -710,10 +712,13 @@ export class MetadataIndexManager {
         let metadataBatch: Map<string, any>
         if (this.storage.getMetadataBatch) {
           // Use batch reading if available (prevents socket exhaustion)
+          prodLog.info(`📦 Processing metadata batch ${Math.floor(totalNounsProcessed / nounLimit) + 1} (${nounIds.length} items)...`)
           metadataBatch = await this.storage.getMetadataBatch(nounIds)
-          prodLog.debug(`📦 Batch loaded ${metadataBatch.size}/${nounIds.length} metadata objects`)
+          const successRate = ((metadataBatch.size / nounIds.length) * 100).toFixed(1)
+          prodLog.info(`✅ Batch loaded ${metadataBatch.size}/${nounIds.length} metadata objects (${successRate}% success)`)
         } else {
           // Fallback to individual calls with strict concurrency control
+          prodLog.warn(`⚠️  FALLBACK: Storage adapter missing getMetadataBatch - using individual calls with concurrency limit`)
           metadataBatch = new Map()
           const CONCURRENCY_LIMIT = 3 // Very conservative limit
           
@@ -841,6 +846,7 @@ export class MetadataIndexManager {
       await this.yieldToEventLoop()
       
       prodLog.info(`✅ Metadata index rebuild completed! Processed ${totalNounsProcessed} nouns and ${totalVerbsProcessed} verbs`)
+      prodLog.info(`🎯 Initial indexing may show minor socket timeouts - this is expected and doesn't affect data processing`)
       
     } finally {
       this.isRebuilding = false

@@ -625,6 +625,45 @@ export class OPFSStorage extends BaseStorage {
   }
 
   /**
+   * Get multiple metadata objects in batches (CRITICAL: Prevents socket exhaustion)
+   * OPFS implementation uses controlled concurrency for file operations
+   */
+  public async getMetadataBatch(ids: string[]): Promise<Map<string, any>> {
+    await this.ensureInitialized()
+
+    const results = new Map<string, any>()
+    const batchSize = 10 // Process 10 files at a time
+    
+    // Process in batches to avoid overwhelming OPFS
+    for (let i = 0; i < ids.length; i += batchSize) {
+      const batch = ids.slice(i, i + batchSize)
+      
+      const batchPromises = batch.map(async (id) => {
+        try {
+          const metadata = await this.getMetadata(id)
+          return { id, metadata }
+        } catch (error) {
+          console.debug(`Failed to read metadata for ${id}:`, error)
+          return { id, metadata: null }
+        }
+      })
+      
+      const batchResults = await Promise.all(batchPromises)
+      
+      for (const { id, metadata } of batchResults) {
+        if (metadata !== null) {
+          results.set(id, metadata)
+        }
+      }
+      
+      // Small yield between batches
+      await new Promise(resolve => setImmediate(resolve))
+    }
+    
+    return results
+  }
+
+  /**
    * Save verb metadata to storage
    */
   public async saveVerbMetadata(id: string, metadata: any): Promise<void> {

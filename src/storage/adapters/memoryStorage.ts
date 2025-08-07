@@ -482,6 +482,25 @@ export class MemoryStorage extends BaseStorage {
   }
 
   /**
+   * Get multiple metadata objects in batches (CRITICAL: Prevents socket exhaustion)
+   * Memory storage implementation is simple since all data is already in memory
+   */
+  public async getMetadataBatch(ids: string[]): Promise<Map<string, any>> {
+    const results = new Map<string, any>()
+    
+    // Memory storage can handle all IDs at once since it's in-memory
+    for (const id of ids) {
+      const metadata = this.metadata.get(id)
+      if (metadata) {
+        // Deep clone to prevent mutation
+        results.set(id, JSON.parse(JSON.stringify(metadata)))
+      }
+    }
+    
+    return results
+  }
+
+  /**
    * Save noun metadata to storage
    */
   public async saveNounMetadata(id: string, metadata: any): Promise<void> {
