@@ -69,6 +69,160 @@ const results = await brainy.search("AI language models", 5, {
 
 **That's it. You just built a knowledge graph with semantic search and faceted filtering in 8 lines.**
 
+## ⚙️ Configuration Options
+
+Brainy works great with **zero configuration**, but you can customize it for your specific needs:
+
+### 🚀 Quick Start (Recommended)
+```javascript
+const brainy = new BrainyData()  // Auto-detects everything
+await brainy.init()              // Zero config needed
+```
+
+### 🎯 Specialized Configurations
+
+#### Writer Service with Deduplication
+Perfect for high-throughput data ingestion with smart caching:
+```javascript
+const brainy = new BrainyData({
+  writeOnly: true,        // Skip search index loading
+  allowDirectReads: true  // Enable ID-based lookups for deduplication
+})
+// ✅ Can: add(), get(), has(), exists(), getMetadata(), getBatch()
+// ❌ Cannot: search(), similar(), query() (saves memory & startup time)
+```
+
+#### Pure Writer Service
+For maximum performance data ingestion only:
+```javascript
+const brainy = new BrainyData({
+  writeOnly: true,         // No search capabilities
+  allowDirectReads: false  // No read operations at all
+})
+// ✅ Can: add(), addBatch(), relate()
+// ❌ Cannot: Any read operations (fastest startup)
+```
+
+#### Read-Only Service
+For search-only applications with immutable data:
+```javascript
+const brainy = new BrainyData({
+  readOnly: true,    // Block all write operations
+  frozen: true       // Block statistics updates and optimizations
+})
+// ✅ Can: All search operations
+// ❌ Cannot: add(), update(), delete()
+```
+
+#### Custom Storage & Performance
+```javascript
+const brainy = new BrainyData({
+  // Storage options
+  storage: {
+    type: 's3',                    // 's3', 'memory', 'filesystem'
+    requestPersistentStorage: true, // Browser: request persistent storage
+    s3Storage: {
+      bucketName: 'my-vectors',
+      region: 'us-east-1'
+    }
+  },
+  
+  // Performance tuning
+  hnsw: {
+    maxConnections: 16,      // Higher = better search quality
+    efConstruction: 200,     // Higher = better index quality
+    useOptimized: true       // Enable disk-based storage
+  },
+  
+  // Embedding customization
+  embeddingFunction: myCustomEmbedder,
+  distanceFunction: 'euclidean'  // 'cosine', 'euclidean', 'manhattan'
+})
+```
+
+#### Distributed Services
+```javascript
+// Microservice A (Writer)
+const writerService = new BrainyData({
+  writeOnly: true,
+  allowDirectReads: true,  // For deduplication
+  defaultService: 'data-ingestion'
+})
+
+// Microservice B (Reader) 
+const readerService = new BrainyData({
+  readOnly: true,
+  defaultService: 'search-api'
+})
+
+// Full-featured service
+const hybridService = new BrainyData({
+  writeOnly: false,  // Can read and write
+  defaultService: 'full-stack-app'
+})
+```
+
+### 🔧 All Configuration Options
+
+<details>
+<summary>Click to see complete configuration reference</summary>
+
+```javascript
+const brainy = new BrainyData({
+  // === Operation Modes ===
+  writeOnly?: boolean              // Disable search operations, enable fast ingestion
+  allowDirectReads?: boolean       // Enable ID lookups in writeOnly mode
+  readOnly?: boolean              // Disable write operations
+  frozen?: boolean                // Disable all optimizations and statistics
+  lazyLoadInReadOnlyMode?: boolean // Load index on-demand
+  
+  // === Storage Configuration ===
+  storage?: {
+    type?: 'auto' | 'memory' | 'filesystem' | 's3' | 'opfs'
+    requestPersistentStorage?: boolean  // Browser persistent storage
+    
+    // Cloud storage options
+    s3Storage?: {
+      bucketName: string
+      region?: string
+      accessKeyId?: string
+      secretAccessKey?: string
+    },
+    
+    r2Storage?: { /* Cloudflare R2 options */ },
+    gcsStorage?: { /* Google Cloud Storage options */ }
+  },
+  
+  // === Performance Tuning ===
+  hnsw?: {
+    maxConnections?: number        // Default: 16
+    efConstruction?: number        // Default: 200  
+    efSearch?: number             // Default: 50
+    useOptimized?: boolean        // Default: true
+    useDiskBasedIndex?: boolean   // Default: auto-detected
+  },
+  
+  // === Embedding & Distance ===
+  embeddingFunction?: EmbeddingFunction
+  distanceFunction?: 'cosine' | 'euclidean' | 'manhattan'
+  
+  // === Service Identity ===
+  defaultService?: string          // Default service name for operations
+  
+  // === Advanced Options ===
+  logging?: {
+    verbose?: boolean             // Enable detailed logging
+  },
+  
+  timeouts?: {
+    embedding?: number            // Embedding timeout (ms)
+    search?: number              // Search timeout (ms)
+  }
+})
+```
+
+</details>
+
 ## 🔥 MAJOR UPDATES: What's New in v0.51, v0.49 & v0.48
 
 ### 🎯 **v0.51: Revolutionary Developer Experience** 
