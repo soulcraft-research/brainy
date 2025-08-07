@@ -168,6 +168,14 @@ export interface BrainyDataConfig {
   writeOnly?: boolean
 
   /**
+   * Allow direct storage reads in write-only mode
+   * When true and writeOnly is also true, enables direct ID-based lookups (get, has, exists, getMetadata, getBatch, getVerb)
+   * that don't require search indexes. Search operations (search, similar, query, findRelated) remain disabled.
+   * This is useful for writer services that need deduplication without loading expensive search indexes.
+   */
+  allowDirectReads?: boolean
+
+  /**
    * Remote server configuration for search operations
    */
   remoteServer?: {
@@ -452,6 +460,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   private frozen: boolean
   private lazyLoadInReadOnlyMode: boolean
   private writeOnly: boolean
+  private allowDirectReads: boolean
   private storageConfig: BrainyDataConfig['storage'] = {}
   private config: BrainyDataConfig
   private useOptimizedIndex: boolean = false
@@ -583,6 +592,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     // Set write-only flag
     this.writeOnly = config.writeOnly || false
 
+    // Set allowDirectReads flag
+    this.allowDirectReads = config.allowDirectReads || false
+
     // Validate that readOnly and writeOnly are not both true
     if (this.readOnly && this.writeOnly) {
       throw new Error('Database cannot be both read-only and write-only')
@@ -712,12 +724,16 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   /**
    * Check if the database is in write-only mode and throw an error if it is
    * @param allowExistenceChecks If true, allows existence checks (get operations) in write-only mode
+   * @param isDirectStorageOperation If true, allows the operation when allowDirectReads is enabled
    * @throws Error if the database is in write-only mode and operation is not allowed
    */
-  private checkWriteOnly(allowExistenceChecks: boolean = false): void {
-    if (this.writeOnly && !allowExistenceChecks) {
+  private checkWriteOnly(allowExistenceChecks: boolean = false, isDirectStorageOperation: boolean = false): void {
+    if (this.writeOnly && !allowExistenceChecks && !(isDirectStorageOperation && this.allowDirectReads)) {
       throw new Error(
-        'Cannot perform search operation: database is in write-only mode. Use get() for existence checks.'
+        'Cannot perform search operation: database is in write-only mode. ' +
+        (this.allowDirectReads 
+          ? 'Direct storage operations (get, has, exists, getMetadata, getBatch, getVerb) are allowed.' 
+          : 'Use get() for existence checks or enable allowDirectReads for direct storage operations.')
       )
     }
   }
@@ -3025,6 +3041,112 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   }
 
   /**
+   * Check if a document with the given ID exists
+   * This is a direct storage operation that works in write-only mode when allowDirectReads is enabled
+   * @param id The ID to check for existence
+   * @returns Promise<boolean> True if the document exists, false otherwise
+   */
+  public async has(id: string): Promise<boolean> {
+    if (id === null || id === undefined) {
+      throw new Error('ID cannot be null or undefined')
+    }
+    await this.ensureInitialized()
+    
+    // This is a direct storage operation - check if allowed in write-only mode
+    if (this.writeOnly && !this.allowDirectReads) {
+      throw new Error(
+        'Cannot perform has() operation: database is in write-only mode. Enable allowDirectReads for direct storage operations.'
+      )
+    }
+
+    try {
+      // Always query storage directly for existence check
+      const noun = await this.storage!.getNoun(id)
+      return noun !== null
+    } catch (error) {
+      // If storage lookup fails, the item doesn't exist
+      return false
+    }
+  }
+
+  /**
+   * Check if a document with the given ID exists (alias for has)
+   * This is a direct storage operation that works in write-only mode when allowDirectReads is enabled
+   * @param id The ID to check for existence
+   * @returns Promise<boolean> True if the document exists, false otherwise
+   */
+  public async exists(id: string): Promise<boolean> {
+    return this.has(id)
+  }
+
+  /**
+   * Get metadata for a document by ID
+   * This is a direct storage operation that works in write-only mode when allowDirectReads is enabled
+   * @param id The ID of the document
+   * @returns Promise<T | null> The metadata object or null if not found
+   */
+  public async getMetadata(id: string): Promise<T | null> {
+    if (id === null || id === undefined) {
+      throw new Error('ID cannot be null or undefined')
+    }
+    await this.ensureInitialized()
+    
+    // This is a direct storage operation - check if allowed in write-only mode
+    if (this.writeOnly && !this.allowDirectReads) {
+      throw new Error(
+        'Cannot perform getMetadata() operation: database is in write-only mode. Enable allowDirectReads for direct storage operations.'
+      )
+    }
+
+    try {
+      const metadata = await this.storage!.getMetadata(id)
+      return metadata as T | null
+    } catch (error) {
+      console.error(`Failed to get metadata for ${id}:`, error)
+      return null
+    }
+  }
+
+  /**
+   * Get multiple documents by their IDs
+   * This is a direct storage operation that works in write-only mode when allowDirectReads is enabled
+   * @param ids Array of IDs to retrieve
+   * @returns Promise<Array<VectorDocument<T> | null>> Array of documents (null for missing IDs)
+   */
+  public async getBatch(ids: string[]): Promise<Array<VectorDocument<T> | null>> {
+    if (!Array.isArray(ids)) {
+      throw new Error('IDs must be provided as an array')
+    }
+    await this.ensureInitialized()
+    
+    // This is a direct storage operation - check if allowed in write-only mode
+    if (this.writeOnly && !this.allowDirectReads) {
+      throw new Error(
+        'Cannot perform getBatch() operation: database is in write-only mode. Enable allowDirectReads for direct storage operations.'
+      )
+    }
+
+    const results: Array<VectorDocument<T> | null> = []
+    
+    for (const id of ids) {
+      if (id === null || id === undefined) {
+        results.push(null)
+        continue
+      }
+      
+      try {
+        const result = await this.get(id)
+        results.push(result)
+      } catch (error) {
+        console.error(`Failed to get document ${id} in batch:`, error)
+        results.push(null)
+      }
+    }
+    
+    return results
+  }
+
+  /**
    * Get all nouns in the database
    * @returns Array of vector documents
    */
@@ -3875,9 +3997,17 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
   /**
    * Get a verb by ID
+   * This is a direct storage operation that works in write-only mode when allowDirectReads is enabled
    */
   public async getVerb(id: string): Promise<GraphVerb | null> {
     await this.ensureInitialized()
+    
+    // This is a direct storage operation - check if allowed in write-only mode
+    if (this.writeOnly && !this.allowDirectReads) {
+      throw new Error(
+        'Cannot perform getVerb() operation: database is in write-only mode. Enable allowDirectReads for direct storage operations.'
+      )
+    }
 
     try {
       // Get the lightweight verb from storage
