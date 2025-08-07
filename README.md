@@ -13,6 +13,24 @@
 
 ---
 
+# 🆕 Introducing Cortex - Configuration & Coordination Command Center
+
+**Never manage .env files again!** Cortex brings encrypted configuration management and distributed coordination to Brainy:
+
+```bash
+# Store all your configs encrypted in Brainy
+npx cortex init
+cortex config set DATABASE_URL postgres://localhost/mydb
+cortex config set STRIPE_KEY sk_live_... --encrypt
+
+# In your app - just one line!
+await brainy.loadEnvironment()  # All configs loaded & decrypted!
+```
+
+[📖 **Full Cortex Documentation**](CORTEX.md) | **Zero dependencies** | **Works everywhere**
+
+---
+
 # The Search Problem Every Developer Faces
 
 **"I need to find similar content, explore relationships, AND filter by metadata - but that means juggling 3+ databases"**
@@ -330,6 +348,51 @@ const results = await brainy.search("wireless headphones", 10, {
 **🛡️ Fraud Detection** - Find patterns humans can't see. Anomaly detection on steroids  
 **🌐 Real-Time Collaboration** - Sync vector data across devices. Figma for AI data  
 **🏥 Medical Diagnosis Tools** - Match symptoms to conditions using embedding similarity
+
+## 🧠 Cortex - Configuration & Coordination Command Center
+
+Transform your DevOps with Cortex, Brainy's built-in CLI for configuration management and distributed coordination:
+
+### 🔐 Encrypted Configuration Management
+```bash
+# Initialize Cortex
+npx cortex init
+
+# Store configs (replaces .env files!)
+cortex config set DATABASE_URL postgres://localhost/mydb
+cortex config set API_KEY sk-abc123 --encrypt
+cortex config import .env.production  # Import existing
+
+# In your app - just one line!
+await brainy.loadEnvironment()  # All configs loaded!
+```
+
+### 🔄 Distributed Storage Migration
+```bash
+# Coordinate migration across all services
+cortex migrate --to s3://new-bucket --strategy gradual
+
+# All services detect and migrate automatically!
+# No code changes, no downtime, no manual coordination
+```
+
+### 📊 Database Management
+```bash
+cortex query "user:john"          # Query data
+cortex stats                      # View statistics
+cortex backup --compress          # Create backups
+cortex health                     # Health check
+cortex shell                      # Interactive mode
+```
+
+### 🚀 Why Cortex?
+- **No more .env files** - Encrypted configs in Brainy
+- **No more deployment complexity** - Configs follow your app
+- **No more manual coordination** - Services sync automatically
+- **Zero dependencies** - Uses Brainy's existing storage
+- **Works everywhere** - Any environment, any storage
+
+[📖 **Full Cortex Documentation**](CORTEX.md)
 
 ## 🌍 Works Everywhere - Same Code
 
