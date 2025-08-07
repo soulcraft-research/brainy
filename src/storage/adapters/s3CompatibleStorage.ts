@@ -1929,29 +1929,55 @@ export class S3CompatibleStorage extends BaseStorage {
     for (let i = 0; i < ids.length; i += batchSize) {
       const batch = ids.slice(i, i + batchSize)
       
-      // Process batch with concurrency control
+      // Process batch with concurrency control and enhanced retry logic
       const batchPromises = batch.map(async (id) => {
         try {
-          const metadata = await this.getMetadata(id)
+          // Add timeout wrapper for individual metadata reads
+          const metadata = await Promise.race([
+            this.getMetadata(id),
+            new Promise<null>((_, reject) => 
+              setTimeout(() => reject(new Error('Metadata read timeout')), 5000) // 5 second timeout
+            )
+          ])
           return { id, metadata }
         } catch (error) {
-          // Don't fail entire batch if one metadata read fails
-          this.logger.debug(`Failed to read metadata for ${id}:`, error)
+          // Enhanced error handling for minor socket issues
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          if (errorMessage.includes('timeout') || errorMessage.includes('ECONNRESET')) {
+            this.logger.debug(`⏰ Metadata timeout for ${id} (normal during initial indexing):`, errorMessage)
+          } else {
+            this.logger.debug(`Failed to read metadata for ${id}:`, error)
+          }
           return { id, metadata: null }
         }
       })
       
       const batchResults = await Promise.all(batchPromises)
       
-      // Add results to map
+      // Track error rates to adjust delays
+      let errorCount = 0
       for (const { id, metadata } of batchResults) {
         if (metadata !== null) {
           results.set(id, metadata)
+        } else {
+          errorCount++
         }
       }
       
-      // Yield to prevent socket exhaustion between batches
-      await new Promise(resolve => setImmediate(resolve))
+      // Adaptive delay based on error rates (helps with S3 rate limiting)
+      const errorRate = errorCount / batch.length
+      if (errorRate > 0.5) {
+        // High error rate - add extra delay
+        await new Promise(resolve => setTimeout(resolve, 2000)) // 2 second delay
+        prodLog.debug(`🐌 High error rate (${(errorRate * 100).toFixed(1)}%) - adding extra delay`)
+      } else if (errorRate > 0.2) {
+        // Moderate error rate - add modest delay  
+        await new Promise(resolve => setTimeout(resolve, 500)) // 500ms delay
+        prodLog.debug(`⚡ Moderate error rate (${(errorRate * 100).toFixed(1)}%) - adding modest delay`)
+      } else {
+        // Low error rate - normal yield
+        await new Promise(resolve => setImmediate(resolve))
+      }
     }
     
     return results
