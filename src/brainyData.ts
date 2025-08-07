@@ -6407,6 +6407,144 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     // Clean up worker pools
     await cleanupWorkerPools()
   }
+
+  /**
+   * Load environment variables from Cortex configuration
+   * This enables services to automatically load all their configs from Brainy
+   * @returns Promise that resolves when environment is loaded
+   */
+  async loadEnvironment(): Promise<void> {
+    // Skip in browser environment - Cortex is Node.js only
+    if (typeof window !== 'undefined' || typeof process === 'undefined') {
+      prodLog.debug('Cortex not available in browser environment')
+      return
+    }
+    
+    try {
+      // Import Cortex dynamically to avoid circular dependencies
+      const { CortexConfig } = await import('./cortex/config.js')
+      const cortex = CortexConfig.getInstance()
+      
+      // Load using current storage
+      cortex['brainy'] = this
+      cortex['config'] = { 
+        storage: this.storage ? { type: 'existing' } : { type: 'memory' },
+        environments: { current: process.env.NODE_ENV || 'development' }
+      }
+      
+      // Load all configurations as environment variables
+      const env = await cortex.loadEnvironment()
+      
+      // Apply to process.env
+      Object.assign(process.env, env)
+      
+      prodLog.info(`✅ Loaded ${Object.keys(env).length} environment variables from Cortex`)
+    } catch (error) {
+      // Cortex not configured, skip silently (backwards compatibility)
+      prodLog.debug('Cortex not configured, skipping environment loading')
+    }
+  }
+
+  /**
+   * Set a configuration value in Cortex
+   * @param key Configuration key
+   * @param value Configuration value
+   * @param options Options including encryption
+   */
+  async setConfig(key: string, value: any, options?: { encrypt?: boolean }): Promise<void> {
+    // Skip in browser environment - Cortex is Node.js only
+    if (typeof window !== 'undefined' || typeof process === 'undefined') {
+      prodLog.warn('Cortex not available in browser environment')
+      return
+    }
+    
+    try {
+      const { CortexConfig } = await import('./cortex/config.js')
+      const cortex = CortexConfig.getInstance()
+      cortex['brainy'] = this
+      await cortex.set(key, value, options)
+    } catch (error) {
+      prodLog.warn('Cortex not available, config not saved')
+    }
+  }
+
+  /**
+   * Get a configuration value from Cortex
+   * @param key Configuration key
+   * @returns Configuration value or undefined
+   */
+  async getConfig(key: string): Promise<any> {
+    // Skip in browser environment - Cortex is Node.js only
+    if (typeof window !== 'undefined' || typeof process === 'undefined') {
+      prodLog.debug('Cortex not available in browser environment')
+      return undefined
+    }
+    
+    try {
+      const { CortexConfig } = await import('./cortex/config.js')
+      const cortex = CortexConfig.getInstance()
+      cortex['brainy'] = this
+      return await cortex.get(key)
+    } catch (error) {
+      prodLog.debug('Cortex not available')
+      return undefined
+    }
+  }
+
+  /**
+   * Coordinate storage migration across distributed services
+   * @param options Migration options
+   */
+  async coordinateStorageMigration(options: {
+    newStorage: any
+    strategy?: 'immediate' | 'gradual' | 'test'
+    message?: string
+  }): Promise<void> {
+    const coordinationPlan = {
+      version: 1,
+      timestamp: new Date().toISOString(),
+      migration: {
+        enabled: true,
+        target: options.newStorage,
+        strategy: options.strategy || 'gradual',
+        phase: 'testing',
+        message: options.message
+      }
+    }
+
+    // Store coordination plan in _system directory
+    await this.addNoun({
+      id: '_system/coordination',
+      type: 'cortex_coordination',
+      metadata: coordinationPlan
+    })
+
+    prodLog.info('📋 Storage migration coordination plan created')
+    prodLog.info('All services will automatically detect and execute the migration')
+  }
+
+  /**
+   * Check for coordination updates
+   * Services should call this periodically or on startup
+   */
+  async checkCoordination(): Promise<any> {
+    try {
+      const coordination = await this.getNoun('_system/coordination')
+      return coordination?.metadata
+    } catch (error) {
+      return null
+    }
+  }
+
+  /**
+   * Rebuild metadata index
+   * Exposed for Cortex reindex command
+   */
+  async rebuildMetadataIndex(): Promise<void> {
+    if (this.metadataIndex) {
+      await this.metadataIndex.rebuild()
+    }
+  }
 }
 
 // Export distance functions for convenience
