@@ -6414,35 +6414,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
    * @returns Promise that resolves when environment is loaded
    */
   async loadEnvironment(): Promise<void> {
-    // Skip in browser environment - Cortex is Node.js only
-    if (typeof window !== 'undefined' || typeof process === 'undefined') {
-      prodLog.debug('Cortex not available in browser environment')
-      return
-    }
-    
-    try {
-      // Import Cortex dynamically to avoid circular dependencies
-      const { CortexConfig } = await import('./cortex/config.js')
-      const cortex = CortexConfig.getInstance()
-      
-      // Load using current storage
-      cortex['brainy'] = this
-      cortex['config'] = { 
-        storage: this.storage ? { type: 'existing' } : { type: 'memory' },
-        environments: { current: process.env.NODE_ENV || 'development' }
-      }
-      
-      // Load all configurations as environment variables
-      const env = await cortex.loadEnvironment()
-      
-      // Apply to process.env
-      Object.assign(process.env, env)
-      
-      prodLog.info(`✅ Loaded ${Object.keys(env).length} environment variables from Cortex`)
-    } catch (error) {
-      // Cortex not configured, skip silently (backwards compatibility)
-      prodLog.debug('Cortex not configured, skipping environment loading')
-    }
+    // Cortex integration coming in next release
+    prodLog.debug('Cortex integration coming soon')
   }
 
   /**
@@ -6452,20 +6425,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
    * @param options Options including encryption
    */
   async setConfig(key: string, value: any, options?: { encrypt?: boolean }): Promise<void> {
-    // Skip in browser environment - Cortex is Node.js only
-    if (typeof window !== 'undefined' || typeof process === 'undefined') {
-      prodLog.warn('Cortex not available in browser environment')
-      return
-    }
-    
-    try {
-      const { CortexConfig } = await import('./cortex/config.js')
-      const cortex = CortexConfig.getInstance()
-      cortex['brainy'] = this
-      await cortex.set(key, value, options)
-    } catch (error) {
-      prodLog.warn('Cortex not available, config not saved')
-    }
+    // Cortex integration coming in next release
+    prodLog.debug('Cortex integration coming soon')
   }
 
   /**
@@ -6474,21 +6435,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
    * @returns Configuration value or undefined
    */
   async getConfig(key: string): Promise<any> {
-    // Skip in browser environment - Cortex is Node.js only
-    if (typeof window !== 'undefined' || typeof process === 'undefined') {
-      prodLog.debug('Cortex not available in browser environment')
-      return undefined
-    }
-    
-    try {
-      const { CortexConfig } = await import('./cortex/config.js')
-      const cortex = CortexConfig.getInstance()
-      cortex['brainy'] = this
-      return await cortex.get(key)
-    } catch (error) {
-      prodLog.debug('Cortex not available')
-      return undefined
-    }
+    // Cortex integration coming in next release
+    prodLog.debug('Cortex integration coming soon')
+    return undefined
   }
 
   /**
@@ -6513,7 +6462,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     }
 
     // Store coordination plan in _system directory
-    await this.addNoun({
+    await this.add({
       id: '_system/coordination',
       type: 'cortex_coordination',
       metadata: coordinationPlan
@@ -6529,7 +6478,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
    */
   async checkCoordination(): Promise<any> {
     try {
-      const coordination = await this.getNoun('_system/coordination')
+      const coordination = await this.get('_system/coordination')
       return coordination?.metadata
     } catch (error) {
       return null
