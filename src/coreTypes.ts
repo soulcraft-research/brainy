@@ -432,6 +432,13 @@ export interface StorageAdapter {
   getMetadata(id: string): Promise<any | null>
 
   /**
+   * Get multiple metadata objects in batches (prevents socket exhaustion)
+   * @param ids Array of IDs to get metadata for
+   * @returns Promise that resolves to a Map of id -> metadata
+   */
+  getMetadataBatch?(ids: string[]): Promise<Map<string, any>>
+
+  /**
    * Save verb metadata to storage
    * @param id The ID of the verb
    * @param metadata The metadata to save

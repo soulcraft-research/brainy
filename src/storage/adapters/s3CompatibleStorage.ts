@@ -22,7 +22,7 @@ import {
 } from '../../utils/operationUtils.js'
 import { BrainyError } from '../../errors/brainyError.js'
 import { CacheManager } from '../cacheManager.js'
-import { createModuleLogger } from '../../utils/logger.js'
+import { createModuleLogger, prodLog } from '../../utils/logger.js'
 import { getGlobalSocketManager } from '../../utils/adaptiveSocketManager.js'
 import { getGlobalBackpressure } from '../../utils/adaptiveBackpressure.js'
 import { getWriteBuffer, WriteBuffer } from '../../utils/writeBuffer.js'
@@ -335,6 +335,9 @@ export class S3CompatibleStorage extends BaseStorage {
       // Initialize request coalescer
       this.initializeCoalescer()
       
+      // Auto-cleanup legacy /index folder on initialization
+      await this.cleanupLegacyIndexFolder()
+      
       this.isInitialized = true
       this.logger.info(`Initialized ${this.serviceType} storage with bucket ${this.bucketName}`)
     } catch (error) {
@@ -342,6 +345,72 @@ export class S3CompatibleStorage extends BaseStorage {
       throw new Error(
         `Failed to initialize ${this.serviceType} storage: ${error}`
       )
+    }
+  }
+
+  /**
+   * Auto-cleanup legacy /index folder during initialization
+   * This removes old index data that has been migrated to _system
+   */
+  private async cleanupLegacyIndexFolder(): Promise<void> {
+    try {
+      // Check if there are any objects in the legacy index folder
+      const { ListObjectsV2Command } = await import('@aws-sdk/client-s3')
+      
+      const listResponse = await this.s3Client!.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucketName,
+          Prefix: this.indexPrefix,
+          MaxKeys: 1 // Just check if anything exists
+        })
+      )
+
+      // If there are objects in the legacy index folder, clean them up
+      if (listResponse.Contents && listResponse.Contents.length > 0) {
+        prodLog.info(`🧹 Cleaning up legacy /index folder during initialization...`)
+        
+        // Use the existing deleteObjectsWithPrefix function logic
+        const { ListObjectsV2Command, DeleteObjectsCommand } = await import('@aws-sdk/client-s3')
+        
+        let continuationToken: string | undefined = undefined
+        let totalDeleted = 0
+        
+        do {
+          const listResponseBatch: any = await this.s3Client!.send(
+            new ListObjectsV2Command({
+              Bucket: this.bucketName,
+              Prefix: this.indexPrefix,
+              ContinuationToken: continuationToken
+            })
+          )
+          
+          if (listResponseBatch.Contents && listResponseBatch.Contents.length > 0) {
+            const objectsToDelete = listResponseBatch.Contents.map((obj: any) => ({
+              Key: obj.Key!
+            }))
+            
+            await this.s3Client!.send(
+              new DeleteObjectsCommand({
+                Bucket: this.bucketName,
+                Delete: {
+                  Objects: objectsToDelete
+                }
+              })
+            )
+            
+            totalDeleted += objectsToDelete.length
+          }
+          
+          continuationToken = listResponseBatch.NextContinuationToken
+        } while (continuationToken)
+        
+        prodLog.info(`✅ Cleaned up ${totalDeleted} legacy index objects`)
+      } else {
+        prodLog.debug('No legacy /index folder found - already clean')
+      }
+    } catch (error) {
+      // Don't fail initialization if cleanup fails
+      prodLog.warn('Failed to cleanup legacy /index folder:', error)
     }
   }
 
@@ -1847,6 +1916,89 @@ export class S3CompatibleStorage extends BaseStorage {
   }
 
   /**
+   * Get multiple metadata objects in batches (CRITICAL: Prevents socket exhaustion)
+   * This is the solution to the metadata reading socket exhaustion during initialization
+   */
+  public async getMetadataBatch(ids: string[]): Promise<Map<string, any>> {
+    await this.ensureInitialized()
+
+    const results = new Map<string, any>()
+    const batchSize = Math.min(this.getBatchSize(), 10) // Smaller batches for metadata to prevent socket exhaustion
+    
+    // Process in smaller batches to avoid socket exhaustion
+    for (let i = 0; i < ids.length; i += batchSize) {
+      const batch = ids.slice(i, i + batchSize)
+      
+      // Process batch with concurrency control
+      const batchPromises = batch.map(async (id) => {
+        try {
+          const metadata = await this.getMetadata(id)
+          return { id, metadata }
+        } catch (error) {
+          // Don't fail entire batch if one metadata read fails
+          this.logger.debug(`Failed to read metadata for ${id}:`, error)
+          return { id, metadata: null }
+        }
+      })
+      
+      const batchResults = await Promise.all(batchPromises)
+      
+      // Add results to map
+      for (const { id, metadata } of batchResults) {
+        if (metadata !== null) {
+          results.set(id, metadata)
+        }
+      }
+      
+      // Yield to prevent socket exhaustion between batches
+      await new Promise(resolve => setImmediate(resolve))
+    }
+    
+    return results
+  }
+
+  /**
+   * Get multiple verb metadata objects in batches (prevents socket exhaustion)
+   */
+  public async getVerbMetadataBatch(ids: string[]): Promise<Map<string, any>> {
+    await this.ensureInitialized()
+
+    const results = new Map<string, any>()
+    const batchSize = Math.min(this.getBatchSize(), 10) // Smaller batches for metadata to prevent socket exhaustion
+    
+    // Process in smaller batches to avoid socket exhaustion
+    for (let i = 0; i < ids.length; i += batchSize) {
+      const batch = ids.slice(i, i + batchSize)
+      
+      // Process batch with concurrency control
+      const batchPromises = batch.map(async (id) => {
+        try {
+          const metadata = await this.getVerbMetadata(id)
+          return { id, metadata }
+        } catch (error) {
+          // Don't fail entire batch if one metadata read fails
+          this.logger.debug(`Failed to read verb metadata for ${id}:`, error)
+          return { id, metadata: null }
+        }
+      })
+      
+      const batchResults = await Promise.all(batchPromises)
+      
+      // Add results to map
+      for (const { id, metadata } of batchResults) {
+        if (metadata !== null) {
+          results.set(id, metadata)
+        }
+      }
+      
+      // Yield to prevent socket exhaustion between batches
+      await new Promise(resolve => setImmediate(resolve))
+    }
+    
+    return results
+  }
+
+  /**
    * Get noun metadata from storage
    */
   public async getNounMetadata(id: string): Promise<any | null> {
@@ -1915,9 +2067,9 @@ export class S3CompatibleStorage extends BaseStorage {
         // Import the GetObjectCommand only when needed
         const { GetObjectCommand } = await import('@aws-sdk/client-s3')
 
-        console.log(`Getting metadata for ${id} from bucket ${this.bucketName}`)
+        prodLog.debug(`Getting metadata for ${id} from bucket ${this.bucketName}`)
         const key = `${this.metadataPrefix}${id}.json`
-        console.log(`Looking for metadata at key: ${key}`)
+        prodLog.debug(`Looking for metadata at key: ${key}`)
 
         // Try to get the metadata from the metadata directory
         const response = await this.s3Client!.send(
@@ -1929,24 +2081,24 @@ export class S3CompatibleStorage extends BaseStorage {
 
         // Check if response is null or undefined (can happen in mock implementations)
         if (!response || !response.Body) {
-          console.log(`No metadata found for ${id}`)
+          prodLog.debug(`No metadata found for ${id}`)
           return null
         }
 
         // Convert the response body to a string
         const bodyContents = await response.Body.transformToString()
-        console.log(`Retrieved metadata body: ${bodyContents}`)
+        prodLog.debug(`Retrieved metadata body: ${bodyContents}`)
 
         // Parse the JSON string
         try {
           const parsedMetadata = JSON.parse(bodyContents)
-          console.log(
+          prodLog.debug(
             `Successfully retrieved metadata for ${id}:`,
             parsedMetadata
           )
           return parsedMetadata
         } catch (parseError) {
-          console.error(`Failed to parse metadata for ${id}:`, parseError)
+          prodLog.error(`Failed to parse metadata for ${id}:`, parseError)
           return null
         }
       } catch (error: any) {
@@ -1960,7 +2112,7 @@ export class S3CompatibleStorage extends BaseStorage {
               error.message.includes('not found') ||
               error.message.includes('does not exist')))
         ) {
-          console.log(`Metadata not found for ${id}`)
+          prodLog.debug(`Metadata not found for ${id}`)
           return null
         }
 
@@ -2033,7 +2185,7 @@ export class S3CompatibleStorage extends BaseStorage {
       this.statisticsCache = null
       this.statisticsModified = false
     } catch (error) {
-      console.error('Failed to clear storage:', error)
+      prodLog.error('Failed to clear storage:', error)
       throw new Error(`Failed to clear storage: ${error}`)
     }
   }
@@ -2159,8 +2311,9 @@ export class S3CompatibleStorage extends BaseStorage {
   }
 
   /**
-   * Get the legacy statistics key (for backward compatibility)
+   * Get the legacy statistics key (DEPRECATED - /index folder is auto-cleaned)
    * @returns The legacy statistics key
+   * @deprecated Legacy /index folder is automatically cleaned on initialization
    */
   private getLegacyStatisticsKey(): string {
     return `${this.indexPrefix}${STATISTICS_KEY}.json`
@@ -2433,11 +2586,12 @@ export class S3CompatibleStorage extends BaseStorage {
       const { GetObjectCommand } = await import('@aws-sdk/client-s3')
 
       // Try statistics locations in order of preference (but with timeout)
+      // NOTE: Legacy /index folder is auto-cleaned on init, so only check _system
       const keys = [
         this.getCurrentStatisticsKey(),
         // Only try yesterday if it's within 2 hours of midnight to avoid unnecessary calls
-        ...(this.shouldTryYesterday() ? [this.getStatisticsKeyForDate(this.getYesterday())] : []),
-        this.getLegacyStatisticsKey()
+        ...(this.shouldTryYesterday() ? [this.getStatisticsKeyForDate(this.getYesterday())] : [])
+        // Legacy fallback removed - /index folder is auto-cleaned on initialization
       ]
       
       let statistics: StatisticsData | null = null

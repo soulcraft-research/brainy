@@ -6,6 +6,7 @@
 
 import { StorageAdapter } from '../coreTypes.js'
 import { MetadataIndexCache, MetadataIndexCacheConfig } from './metadataIndexCache.js'
+import { prodLog } from './logger.js'
 
 export interface MetadataIndexEntry {
   field: string
@@ -684,7 +685,7 @@ export class MetadataIndexManager {
     
     this.isRebuilding = true
     try {
-      console.log('🔄 Starting non-blocking metadata index rebuild...')
+      prodLog.info('🔄 Starting non-blocking metadata index rebuild with batch processing to prevent socket exhaustion...')
       
       // Clear existing indexes
       this.indexCache.clear()
@@ -694,7 +695,7 @@ export class MetadataIndexManager {
       
       // Rebuild noun metadata indexes using pagination
       let nounOffset = 0
-      const nounLimit = 50 // Smaller batches to reduce blocking
+      const nounLimit = 25 // Even smaller batches during initialization to prevent socket exhaustion
       let hasMoreNouns = true
       let totalNounsProcessed = 0
       
@@ -703,20 +704,54 @@ export class MetadataIndexManager {
           pagination: { offset: nounOffset, limit: nounLimit }
         })
         
-        // Process batch with event loop yields
-        for (let i = 0; i < result.items.length; i++) {
-          const noun = result.items[i]
-          const metadata = await this.storage.getMetadata(noun.id)
+        // CRITICAL FIX: Use batch metadata reading to prevent socket exhaustion
+        const nounIds = result.items.map(noun => noun.id)
+        
+        let metadataBatch: Map<string, any>
+        if (this.storage.getMetadataBatch) {
+          // Use batch reading if available (prevents socket exhaustion)
+          metadataBatch = await this.storage.getMetadataBatch(nounIds)
+          prodLog.debug(`📦 Batch loaded ${metadataBatch.size}/${nounIds.length} metadata objects`)
+        } else {
+          // Fallback to individual calls with strict concurrency control
+          metadataBatch = new Map()
+          const CONCURRENCY_LIMIT = 3 // Very conservative limit
+          
+          for (let i = 0; i < nounIds.length; i += CONCURRENCY_LIMIT) {
+            const batch = nounIds.slice(i, i + CONCURRENCY_LIMIT)
+            const batchPromises = batch.map(async (id) => {
+              try {
+                const metadata = await this.storage.getMetadata(id)
+                return { id, metadata }
+              } catch (error) {
+                prodLog.debug(`Failed to read metadata for ${id}:`, error)
+                return { id, metadata: null }
+              }
+            })
+            
+            const batchResults = await Promise.all(batchPromises)
+            for (const { id, metadata } of batchResults) {
+              if (metadata) {
+                metadataBatch.set(id, metadata)
+              }
+            }
+            
+            // Yield between batches to prevent socket exhaustion
+            await this.yieldToEventLoop()
+          }
+        }
+        
+        // Process the metadata batch
+        for (const noun of result.items) {
+          const metadata = metadataBatch.get(noun.id)
           if (metadata) {
             // Skip flush during rebuild for performance
             await this.addToIndex(noun.id, metadata, true)
           }
-          
-          // Yield to event loop every 10 items to prevent blocking
-          if (i % 10 === 9) {
-            await this.yieldToEventLoop()
-          }
         }
+        
+        // Yield after processing the entire batch
+        await this.yieldToEventLoop()
         
         totalNounsProcessed += result.items.length
         hasMoreNouns = result.hasMore
@@ -724,14 +759,14 @@ export class MetadataIndexManager {
         
         // Progress logging and event loop yield after each batch
         if (totalNounsProcessed % 100 === 0 || !hasMoreNouns) {
-          console.log(`📊 Indexed ${totalNounsProcessed} nouns...`)
+          prodLog.debug(`📊 Indexed ${totalNounsProcessed} nouns...`)
         }
         await this.yieldToEventLoop()
       }
       
       // Rebuild verb metadata indexes using pagination
       let verbOffset = 0
-      const verbLimit = 50 // Smaller batches to reduce blocking
+      const verbLimit = 25 // Even smaller batches during initialization to prevent socket exhaustion
       let hasMoreVerbs = true
       let totalVerbsProcessed = 0
       
@@ -740,20 +775,54 @@ export class MetadataIndexManager {
           pagination: { offset: verbOffset, limit: verbLimit }
         })
         
-        // Process batch with event loop yields
-        for (let i = 0; i < result.items.length; i++) {
-          const verb = result.items[i]
-          const metadata = await this.storage.getVerbMetadata(verb.id)
+        // CRITICAL FIX: Use batch verb metadata reading to prevent socket exhaustion
+        const verbIds = result.items.map(verb => verb.id)
+        
+        let verbMetadataBatch: Map<string, any>
+        if ((this.storage as any).getVerbMetadataBatch) {
+          // Use batch reading if available (prevents socket exhaustion)
+          verbMetadataBatch = await (this.storage as any).getVerbMetadataBatch(verbIds)
+          prodLog.debug(`📦 Batch loaded ${verbMetadataBatch.size}/${verbIds.length} verb metadata objects`)
+        } else {
+          // Fallback to individual calls with strict concurrency control
+          verbMetadataBatch = new Map()
+          const CONCURRENCY_LIMIT = 3 // Very conservative limit to prevent socket exhaustion
+          
+          for (let i = 0; i < verbIds.length; i += CONCURRENCY_LIMIT) {
+            const batch = verbIds.slice(i, i + CONCURRENCY_LIMIT)
+            const batchPromises = batch.map(async (id) => {
+              try {
+                const metadata = await this.storage.getVerbMetadata(id)
+                return { id, metadata }
+              } catch (error) {
+                prodLog.debug(`Failed to read verb metadata for ${id}:`, error)
+                return { id, metadata: null }
+              }
+            })
+            
+            const batchResults = await Promise.all(batchPromises)
+            for (const { id, metadata } of batchResults) {
+              if (metadata) {
+                verbMetadataBatch.set(id, metadata)
+              }
+            }
+            
+            // Yield between batches to prevent socket exhaustion
+            await this.yieldToEventLoop()
+          }
+        }
+        
+        // Process the verb metadata batch
+        for (const verb of result.items) {
+          const metadata = verbMetadataBatch.get(verb.id)
           if (metadata) {
             // Skip flush during rebuild for performance
             await this.addToIndex(verb.id, metadata, true)
           }
-          
-          // Yield to event loop every 10 items to prevent blocking
-          if (i % 10 === 9) {
-            await this.yieldToEventLoop()
-          }
         }
+        
+        // Yield after processing the entire batch
+        await this.yieldToEventLoop()
         
         totalVerbsProcessed += result.items.length
         hasMoreVerbs = result.hasMore
@@ -761,17 +830,17 @@ export class MetadataIndexManager {
         
         // Progress logging and event loop yield after each batch
         if (totalVerbsProcessed % 100 === 0 || !hasMoreVerbs) {
-          console.log(`🔗 Indexed ${totalVerbsProcessed} verbs...`)
+          prodLog.debug(`🔗 Indexed ${totalVerbsProcessed} verbs...`)
         }
         await this.yieldToEventLoop()
       }
       
       // Flush to storage with final yield
-      console.log('💾 Flushing metadata index to storage...')
+      prodLog.debug('💾 Flushing metadata index to storage...')
       await this.flush()
       await this.yieldToEventLoop()
       
-      console.log(`✅ Metadata index rebuild completed! Processed ${totalNounsProcessed} nouns and ${totalVerbsProcessed} verbs`)
+      prodLog.info(`✅ Metadata index rebuild completed! Processed ${totalNounsProcessed} nouns and ${totalVerbsProcessed} verbs`)
       
     } finally {
       this.isRebuilding = false
