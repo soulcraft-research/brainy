@@ -15,16 +15,23 @@
 
 # 🆕 Coming Soon: Talk to Your Data with Brainy Chat! 
 
-**Transform your database into an AI that understands your data:**
+**Transform your database into an AI that understands your data - with just ONE simple method:**
 
 ```javascript
-// Coming in v0.56!
-const chat = await BrainyChat.create(brainy)
+// Coming in v0.56 - Impossibly simple API!
+const chat = new BrainyChat(brainy)  // That's it!
 const answer = await chat.ask("What patterns do you see in customer behavior?")
-// → AI analyzes YOUR data and relationships to provide insights
+// → Works instantly with zero config!
+
+// Want smarter responses? Just add an optional LLM:
+const smartChat = new BrainyChat(brainy, { llm: 'Xenova/LaMini-Flan-T5-77M' })
+const smartAnswer = await smartChat.ask("Analyze our Q4 performance")
+// → Same simple API, but now with LLM-powered insights!
 ```
 
-[📖 **Learn More About Brainy Chat**](BRAINY-CHAT.md) | **Zero extra dependencies** | **Uses existing embeddings**
+**🎯 One interface. Optional LLM. Zero complexity.**
+
+[📖 **Learn More About Brainy Chat**](BRAINY-CHAT.md) | **Zero extra dependencies** | **Works without LLM, better with it**
 
 ---
 
