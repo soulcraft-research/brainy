@@ -25,6 +25,8 @@ import { CacheManager } from '../cacheManager.js'
 import { createModuleLogger } from '../../utils/logger.js'
 import { getGlobalSocketManager } from '../../utils/adaptiveSocketManager.js'
 import { getGlobalBackpressure } from '../../utils/adaptiveBackpressure.js'
+import { getWriteBuffer, WriteBuffer } from '../../utils/writeBuffer.js'
+import { getCoalescer, RequestCoalescer } from '../../utils/requestCoalescer.js'
 
 // Type aliases for better readability
 type HNSWNode = HNSWNoun
@@ -114,6 +116,18 @@ export class S3CompatibleStorage extends BaseStorage {
   
   // Adaptive backpressure for automatic flow control
   private backpressure = getGlobalBackpressure()
+  
+  // Write buffers for bulk operations
+  private nounWriteBuffer: WriteBuffer<HNSWNode> | null = null
+  private verbWriteBuffer: WriteBuffer<Edge> | null = null
+  
+  // Request coalescer for deduplication
+  private requestCoalescer: RequestCoalescer | null = null
+  
+  // High-volume mode detection
+  private highVolumeMode = false
+  private lastVolumeCheck = 0
+  private volumeCheckInterval = 5000
 
   // Operation executors for timeout and retry handling
   private operationExecutors: StorageOperationExecutors
@@ -314,6 +328,12 @@ export class S3CompatibleStorage extends BaseStorage {
       this.nounCacheManager.setStorageAdapters(nounStorageAdapter, nounStorageAdapter)
       this.verbCacheManager.setStorageAdapters(verbStorageAdapter, verbStorageAdapter)
 
+      // Initialize write buffers for high-volume scenarios
+      this.initializeBuffers()
+      
+      // Initialize request coalescer
+      this.initializeCoalescer()
+      
       this.isInitialized = true
       this.logger.info(`Initialized ${this.serviceType} storage with bucket ${this.bucketName}`)
     } catch (error) {
@@ -322,6 +342,270 @@ export class S3CompatibleStorage extends BaseStorage {
         `Failed to initialize ${this.serviceType} storage: ${error}`
       )
     }
+  }
+
+  /**
+   * Initialize write buffers for high-volume scenarios
+   */
+  private initializeBuffers(): void {
+    const storageId = `${this.serviceType}-${this.bucketName}`
+    
+    // Create noun write buffer
+    this.nounWriteBuffer = getWriteBuffer<HNSWNode>(
+      `${storageId}-nouns`,
+      'noun',
+      async (items) => {
+        // Bulk write nouns to S3
+        await this.bulkWriteNouns(items)
+      }
+    )
+    
+    // Create verb write buffer
+    this.verbWriteBuffer = getWriteBuffer<Edge>(
+      `${storageId}-verbs`,
+      'verb',
+      async (items) => {
+        // Bulk write verbs to S3
+        await this.bulkWriteVerbs(items)
+      }
+    )
+  }
+  
+  /**
+   * Initialize request coalescer
+   */
+  private initializeCoalescer(): void {
+    const storageId = `${this.serviceType}-${this.bucketName}`
+    
+    this.requestCoalescer = getCoalescer(
+      storageId,
+      async (batch) => {
+        // Process coalesced operations
+        await this.processCoalescedBatch(batch)
+      }
+    )
+  }
+  
+  /**
+   * Check if we should enable high-volume mode
+   */
+  private checkVolumeMode(): void {
+    const now = Date.now()
+    if (now - this.lastVolumeCheck < this.volumeCheckInterval) {
+      return
+    }
+    
+    this.lastVolumeCheck = now
+    
+    // Check pending operations
+    const backpressureStatus = this.backpressure.getStatus()
+    const socketMetrics = this.socketManager.getMetrics()
+    
+    const shouldEnableHighVolume = 
+      backpressureStatus.queueLength > 100 ||
+      socketMetrics.pendingRequests > 50 ||
+      this.pendingOperations > 20
+    
+    if (shouldEnableHighVolume && !this.highVolumeMode) {
+      this.highVolumeMode = true
+      this.logger.info('Enabling high-volume mode for optimized batching')
+      
+      // Adjust buffer parameters for high volume
+      if (this.nounWriteBuffer) {
+        this.nounWriteBuffer.adjustForLoad(backpressureStatus.queueLength)
+      }
+      if (this.verbWriteBuffer) {
+        this.verbWriteBuffer.adjustForLoad(backpressureStatus.queueLength)
+      }
+      if (this.requestCoalescer) {
+        this.requestCoalescer.adjustParameters(backpressureStatus.queueLength)
+      }
+    } else if (!shouldEnableHighVolume && this.highVolumeMode) {
+      this.highVolumeMode = false
+      this.logger.info('Disabling high-volume mode')
+    }
+  }
+  
+  /**
+   * Bulk write nouns to S3
+   */
+  private async bulkWriteNouns(items: Map<string, HNSWNode>): Promise<void> {
+    const { PutObjectCommand } = await import('@aws-sdk/client-s3')
+    
+    // Process in parallel with limited concurrency
+    const promises: Promise<void>[] = []
+    const batchSize = 10  // Process 10 at a time
+    const entries = Array.from(items.entries())
+    
+    for (let i = 0; i < entries.length; i += batchSize) {
+      const batch = entries.slice(i, i + batchSize)
+      
+      const batchPromise = Promise.all(
+        batch.map(async ([id, node]) => {
+          const serializableNode = {
+            ...node,
+            connections: this.mapToObject(node.connections, (set) =>
+              Array.from(set as Set<string>)
+            )
+          }
+          
+          const key = `${this.nounPrefix}${id}.json`
+          const body = JSON.stringify(serializableNode, null, 2)
+          
+          await this.s3Client!.send(
+            new PutObjectCommand({
+              Bucket: this.bucketName,
+              Key: key,
+              Body: body,
+              ContentType: 'application/json'
+            })
+          )
+        })
+      ).then(() => {}) // Convert Promise<void[]> to Promise<void>
+      
+      promises.push(batchPromise)
+    }
+    
+    await Promise.all(promises)
+  }
+  
+  /**
+   * Bulk write verbs to S3
+   */
+  private async bulkWriteVerbs(items: Map<string, Edge>): Promise<void> {
+    const { PutObjectCommand } = await import('@aws-sdk/client-s3')
+    
+    // Process in parallel with limited concurrency
+    const promises: Promise<void>[] = []
+    const batchSize = 10
+    const entries = Array.from(items.entries())
+    
+    for (let i = 0; i < entries.length; i += batchSize) {
+      const batch = entries.slice(i, i + batchSize)
+      
+      const batchPromise = Promise.all(
+        batch.map(async ([id, edge]) => {
+          const serializableEdge = {
+            ...edge,
+            connections: this.mapToObject(edge.connections, (set) =>
+              Array.from(set as Set<string>)
+            )
+          }
+          
+          const key = `${this.verbPrefix}${id}.json`
+          const body = JSON.stringify(serializableEdge, null, 2)
+          
+          await this.s3Client!.send(
+            new PutObjectCommand({
+              Bucket: this.bucketName,
+              Key: key,
+              Body: body,
+              ContentType: 'application/json'
+            })
+          )
+        })
+      ).then(() => {}) // Convert Promise<void[]> to Promise<void>
+      
+      promises.push(batchPromise)
+    }
+    
+    await Promise.all(promises)
+  }
+  
+  /**
+   * Process coalesced batch of operations
+   */
+  private async processCoalescedBatch(batch: any[]): Promise<void> {
+    // Group operations by type
+    const writes: any[] = []
+    const reads: any[] = []
+    const deletes: any[] = []
+    
+    for (const op of batch) {
+      if (op.type === 'write') {
+        writes.push(op)
+      } else if (op.type === 'read') {
+        reads.push(op)
+      } else if (op.type === 'delete') {
+        deletes.push(op)
+      }
+    }
+    
+    // Process in order: deletes, writes, reads
+    if (deletes.length > 0) {
+      await this.processBulkDeletes(deletes)
+    }
+    if (writes.length > 0) {
+      await this.processBulkWrites(writes)
+    }
+    if (reads.length > 0) {
+      await this.processBulkReads(reads)
+    }
+  }
+  
+  /**
+   * Process bulk deletes
+   */
+  private async processBulkDeletes(deletes: any[]): Promise<void> {
+    const { DeleteObjectCommand } = await import('@aws-sdk/client-s3')
+    
+    await Promise.all(
+      deletes.map(async (op) => {
+        await this.s3Client!.send(
+          new DeleteObjectCommand({
+            Bucket: this.bucketName,
+            Key: op.key
+          })
+        )
+      })
+    )
+  }
+  
+  /**
+   * Process bulk writes
+   */
+  private async processBulkWrites(writes: any[]): Promise<void> {
+    const { PutObjectCommand } = await import('@aws-sdk/client-s3')
+    
+    await Promise.all(
+      writes.map(async (op) => {
+        await this.s3Client!.send(
+          new PutObjectCommand({
+            Bucket: this.bucketName,
+            Key: op.key,
+            Body: JSON.stringify(op.data),
+            ContentType: 'application/json'
+          })
+        )
+      })
+    )
+  }
+  
+  /**
+   * Process bulk reads
+   */
+  private async processBulkReads(reads: any[]): Promise<void> {
+    const { GetObjectCommand } = await import('@aws-sdk/client-s3')
+    
+    await Promise.all(
+      reads.map(async (op) => {
+        try {
+          const response = await this.s3Client!.send(
+            new GetObjectCommand({
+              Bucket: this.bucketName,
+              Key: op.key
+            })
+          )
+          
+          if (response.Body) {
+            const data = await response.Body.transformToString()
+            op.data = JSON.parse(data)
+          }
+        } catch (error) {
+          op.data = null
+        }
+      })
+    )
   }
 
   /**
@@ -413,6 +697,15 @@ export class S3CompatibleStorage extends BaseStorage {
    */
   protected async saveNode(node: HNSWNode): Promise<void> {
     await this.ensureInitialized()
+    
+    // Check if we should use high-volume mode
+    this.checkVolumeMode()
+    
+    // Use write buffer in high-volume mode
+    if (this.highVolumeMode && this.nounWriteBuffer) {
+      await this.nounWriteBuffer.add(node.id, node)
+      return
+    }
 
     // Apply backpressure before starting operation
     const requestId = await this.applyBackpressure()
@@ -832,6 +1125,15 @@ export class S3CompatibleStorage extends BaseStorage {
    */
   protected async saveEdge(edge: Edge): Promise<void> {
     await this.ensureInitialized()
+    
+    // Check if we should use high-volume mode
+    this.checkVolumeMode()
+    
+    // Use write buffer in high-volume mode
+    if (this.highVolumeMode && this.verbWriteBuffer) {
+      await this.verbWriteBuffer.add(edge.id, edge)
+      return
+    }
 
     // Apply backpressure before starting operation
     const requestId = await this.applyBackpressure()
