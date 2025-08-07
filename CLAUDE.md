@@ -79,6 +79,9 @@ Claude: [Commits and pushes]
 - `chore`: Maintenance tasks
 - `revert`: Revert previous commit
 
+## Release and Publishing Workflow
+- When publishing: always commit and push, then update version appropriately, then do github release, then publish
+
 ## Architecture Overview
 
 Brainy is a vector graph database with HNSW indexing that works across multiple environments (browser, Node.js, serverless). The architecture follows a modular design with clear separation of concerns:

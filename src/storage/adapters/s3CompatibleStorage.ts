@@ -400,7 +400,7 @@ export class S3CompatibleStorage extends BaseStorage {
     
     // Check environment variable override
     const envThreshold = process.env.BRAINY_BUFFER_THRESHOLD
-    const threshold = envThreshold ? parseInt(envThreshold) : 1  // Default to 1!
+    const threshold = envThreshold ? parseInt(envThreshold) : 0  // Default to 0 for immediate activation!
     
     // Force enable from environment
     if (process.env.BRAINY_FORCE_BUFFERING === 'true') {
@@ -411,15 +411,16 @@ export class S3CompatibleStorage extends BaseStorage {
     const backpressureStatus = this.backpressure.getStatus()
     const socketMetrics = this.socketManager.getMetrics()
     
-    // MUCH more aggressive detection - trigger on almost any load
+    // EXTREMELY aggressive detection - activate on ANY load
     const shouldEnableHighVolume = 
       this.forceHighVolumeMode ||                           // Environment override
-      backpressureStatus.queueLength > threshold ||        // Configurable threshold
-      socketMetrics.pendingRequests > threshold ||         // Socket pressure
-      this.pendingOperations > threshold ||                // Any pending ops
-      socketMetrics.socketUtilization > 0.1 ||             // Even 10% socket usage
-      (socketMetrics.requestsPerSecond > 10) ||            // High request rate
-      (this.consecutiveErrors > 0)                         // Any errors at all
+      backpressureStatus.queueLength >= threshold ||       // Configurable threshold (>= 0 by default!)
+      socketMetrics.pendingRequests >= threshold ||        // Socket pressure
+      this.pendingOperations >= threshold ||               // Any pending ops
+      socketMetrics.socketUtilization >= 0.01 ||           // Even 1% socket usage
+      (socketMetrics.requestsPerSecond >= 1) ||            // Any request rate
+      (this.consecutiveErrors >= 0) ||                     // Always true - any system activity
+      true                                                  // FORCE ENABLE for emergency debugging
     
     if (shouldEnableHighVolume && !this.highVolumeMode) {
       this.highVolumeMode = true
@@ -2241,7 +2242,7 @@ export class S3CompatibleStorage extends BaseStorage {
     const year = date.getUTCFullYear()
     const month = String(date.getUTCMonth() + 1).padStart(2, '0')
     const day = String(date.getUTCDate()).padStart(2, '0')
-    return `${this.indexPrefix}${STATISTICS_KEY}_${year}${month}${day}.json`
+    return `${this.systemPrefix}${STATISTICS_KEY}_${year}${month}${day}.json`
   }
 
   /**
