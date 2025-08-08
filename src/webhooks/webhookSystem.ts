@@ -180,7 +180,8 @@ export class WebhookSystem extends EventEmitter {
         throw new Error(response.error || `HTTP ${response.statusCode}`)
       }
     } catch (error) {
-      console.error(`❌ Webhook failed: ${id} → ${error.message}`)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error(`❌ Webhook failed: ${id} → ${errorMessage}`)
       
       // Retry logic
       if (retryCount < config.retryPolicy!.maxRetries) {
@@ -196,7 +197,7 @@ export class WebhookSystem extends EventEmitter {
         }, backoff)
       } else {
         console.error(`❌ Webhook ${id} failed after ${retryCount} retries`)
-        this.emit('webhook:failed', { id, payload, error: error.message })
+        this.emit('webhook:failed', { id, payload, error: errorMessage })
         
         // Add to dead letter queue
         this.retryQueues.get(id)?.push({ payload, failedAt: new Date() })

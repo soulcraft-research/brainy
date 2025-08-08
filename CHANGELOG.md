@@ -2,6 +2,68 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.56.0](https://github.com/soulcraft-research/brainy/compare/v0.55.0...v0.56.0) (2025-08-08)
+
+### Added
+
+* **Cortex CLI**: Complete command center for Brainy database management
+  - Interactive configuration wizard with atomic age aesthetics
+  - Import/export system supporting CSV, JSON, and YAML formats
+  - Backup and restore with compression (tar.gz)
+  - Neural Import augmentation for AI-powered data understanding  
+  - Performance monitoring and health dashboard
+  - Cloudflare R2 storage configuration support
+  - Premium feature integration hooks for Quantum Vault
+  - Chat functionality with OpenAI, Anthropic, and Ollama support
+
+* **BrainyChat**: Real-time AI-powered conversations with vector + graph context
+  - Natural language queries against your database
+  - Multiple LLM provider support (OpenAI, Anthropic, Ollama)
+  - Context-aware responses using vector similarity search
+  - Chat history and session management
+
+* **Neural Import**: Default SENSE augmentation for intelligent data processing
+  - AI-powered entity extraction and relationship mapping
+  - Automatic data structuring and categorization
+  - Confidence scoring and insight generation
+  - Batch processing with intelligent caching
+
+* **Quantum Vault**: Premium closed-source repository (private)
+  - Enterprise-grade connectors (Notion, Salesforce, Slack, Asana)
+  - Advanced licensing system with trial support
+  - Neural enhancement packs for specialized domains
+  - Revenue projections: $127.5M over 3 years
+
+### Fixed
+
+* Fixed TypeScript compilation errors in Cortex CLI
+* Fixed color and emoji property issues in terminal output
+* Resolved augmentation system type definitions
+* Fixed error handling for unknown error types
+* Corrected CortexConfig interface definition
+
+### Documentation
+
+* Added comprehensive Brainy Chat implementation guide
+* Created performance impact documentation proving zero overhead
+* Added launch checklist for Quantum Vault
+* Created aggressive revenue projections ($127.5M target)
+* Reorganized README for better flow and clarity
+
+### Security
+
+* Removed sensitive pitch deck from Git history completely
+* Added .gitignore rules to prevent future sensitive file commits
+* Implemented proper error handling for secure operations
+
+## [0.55.0](https://github.com/soulcraft-research/brainy/compare/v0.52.0...v0.55.0) (2025-08-08)
+
+### Added
+
+* **Cortex CLI**: Initial implementation of command center
+  - Basic structure and configuration management
+  - Atomic age inspired UI with retro terminal aesthetics
+
 ## [0.52.0](https://github.com/soulcraft-research/brainy/compare/v0.49.0...v0.52.0) (2025-08-07)
 
 
