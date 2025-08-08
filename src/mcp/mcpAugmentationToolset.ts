@@ -5,7 +5,7 @@
  * It provides methods for getting available tools and executing tools.
  */
 
-import { v4 as uuidv4 } from 'uuid'
+import { v4 as uuidv4 } from '../universal/uuid.js'
 import { 
   MCPResponse, 
   MCPToolExecutionRequest,

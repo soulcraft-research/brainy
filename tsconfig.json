@@ -26,6 +26,9 @@
   "exclude": [
     "node_modules",
     "dist",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "src/cortex/**/*",
+    "src/augmentations/cortexSense.ts",
+    "src/augmentations/llmAugmentations.ts"
   ]
 }

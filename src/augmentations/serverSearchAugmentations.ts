@@ -14,7 +14,7 @@ import {
   WebSocketConnection
 } from '../types/augmentations.js'
 import { WebSocketConduitAugmentation } from './conduitAugmentations.js'
-import { v4 as uuidv4 } from 'uuid'
+import { v4 as uuidv4 } from '../universal/uuid.js'
 import { BrainyDataInterface } from '../types/brainyDataInterface.js'
 
 /**

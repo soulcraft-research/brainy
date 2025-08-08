@@ -3,7 +3,7 @@
  * Main class that provides the vector database functionality
  */
 
-import { v4 as uuidv4 } from 'uuid'
+import { v4 as uuidv4 } from './universal/uuid.js'
 import { HNSWIndex } from './hnsw/hnswIndex.js'
 import {
   HNSWIndexOptimized,
@@ -6071,7 +6071,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           // Configure HNSW with disk-based storage when a storage adapter is provided
           const hnswConfig = data.hnswIndex.config || {}
           if (this.storage) {
-            hnswConfig.useDiskBasedIndex = true
+            ;(hnswConfig as any).useDiskBasedIndex = true
           }
 
           this.index = new HNSWIndexOptimized(

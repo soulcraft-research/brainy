@@ -3,7 +3,7 @@
  * Manages shared configuration in S3 for distributed Brainy instances
  */
 
-import { v4 as uuidv4 } from 'uuid'
+import { v4 as uuidv4 } from '../universal/uuid.js'
 import { 
   DistributedConfig, 
   SharedConfig, 
