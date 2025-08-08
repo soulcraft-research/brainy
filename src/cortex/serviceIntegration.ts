@@ -6,8 +6,8 @@
 
 import { BrainyData } from '../brainyData.js'
 import { Cortex } from './cortex.js'
-import * as fs from 'fs/promises'
-import * as path from 'path'
+import * as fs from '../universal/fs.js'
+import * as path from '../universal/path.js'
 
 export interface ServiceConfig {
   name: string

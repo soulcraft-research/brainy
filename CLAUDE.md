@@ -2,6 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## User Preferences (IMPORTANT)
+
+### Monetization Philosophy
+**David strongly prefers abundance over scarcity-based monetization:**
+- ❌ NO freemium with limited functionality
+- ❌ NO artificial restrictions to force upgrades  
+- ❌ NO feature gating behind paywalls
+- ✅ Core features should be unlimited and free
+- ✅ Charge for services that cost money (cloud hosting, support)
+- ✅ Add value through optional services, not restrictions
+- ✅ See MONETIZATION_PHILOSOPHY.md for details
+
+**Remember**: "We don't limit features to make money. We add value to earn it."
+
 ## Essential Commands
 
 ### Build and Development

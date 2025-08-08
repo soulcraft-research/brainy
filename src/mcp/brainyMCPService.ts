@@ -7,7 +7,7 @@
  * for external model access.
  */
 
-import { v4 as uuidv4 } from 'uuid'
+import { v4 as uuidv4 } from '../universal/uuid.js'
 import { BrainyDataInterface } from '../types/brainyDataInterface.js'
 import {
   MCPRequest,

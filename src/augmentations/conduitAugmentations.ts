@@ -5,7 +5,7 @@ import {
   AugmentationResponse,
   WebSocketConnection
 } from '../types/augmentations.js'
-import { v4 as uuidv4 } from 'uuid'
+import { v4 as uuidv4 } from '../universal/uuid.js'
 
 /**
  * Base class for conduit augmentations that provide data synchronization between Brainy instances
