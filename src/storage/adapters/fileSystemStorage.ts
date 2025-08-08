@@ -588,6 +588,93 @@ export class FileSystemStorage extends BaseStorage {
   }
 
   /**
+   * Get nouns with pagination support
+   * @param options Pagination options
+   */
+  public async getNounsWithPagination(options: {
+    limit?: number
+    cursor?: string
+    filter?: any
+  } = {}): Promise<{
+    items: HNSWNoun[]
+    totalCount: number
+    hasMore: boolean
+    nextCursor?: string
+  }> {
+    await this.ensureInitialized()
+    
+    const limit = options.limit || 100
+    const cursor = options.cursor
+    
+    try {
+      // Get all noun files
+      const files = await fs.promises.readdir(this.nounsDir)
+      const nounFiles = files.filter((f: string) => f.endsWith('.json'))
+      
+      // Sort for consistent pagination
+      nounFiles.sort()
+      
+      // Find starting position
+      let startIndex = 0
+      if (cursor) {
+        startIndex = nounFiles.findIndex((f: string) => f.replace('.json', '') > cursor)
+        if (startIndex === -1) startIndex = nounFiles.length
+      }
+      
+      // Get page of files
+      const pageFiles = nounFiles.slice(startIndex, startIndex + limit)
+      
+      // Load nouns
+      const items: HNSWNoun[] = []
+      for (const file of pageFiles) {
+        try {
+          const data = await fs.promises.readFile(
+            path.join(this.nounsDir, file),
+            'utf-8'
+          )
+          const noun = JSON.parse(data)
+          
+          // Apply filter if provided
+          if (options.filter) {
+            // Simple filter implementation
+            let matches = true
+            for (const [key, value] of Object.entries(options.filter)) {
+              if (noun.metadata && noun.metadata[key] !== value) {
+                matches = false
+                break
+              }
+            }
+            if (!matches) continue
+          }
+          
+          items.push(noun)
+        } catch (error) {
+          console.warn(`Failed to read noun file ${file}:`, error)
+        }
+      }
+      
+      const hasMore = startIndex + limit < nounFiles.length
+      const nextCursor = hasMore && pageFiles.length > 0
+        ? pageFiles[pageFiles.length - 1].replace('.json', '')
+        : undefined
+      
+      return {
+        items,
+        totalCount: nounFiles.length,
+        hasMore,
+        nextCursor
+      }
+    } catch (error) {
+      console.error('Error getting nouns with pagination:', error)
+      return {
+        items: [],
+        totalCount: 0,
+        hasMore: false
+      }
+    }
+  }
+
+  /**
    * Clear all data from storage
    */
   public async clear(): Promise<void> {
