@@ -63,7 +63,7 @@ Throughput:                        10K+ queries/second
 - **Zero config** - no setup files, no tuning parameters
 
 ### 🧠 Built-in AI Intelligence (FREE)
-- **Neural Import**: AI understands your data structure automatically
+- **Cortex Augmentation**: AI understands your data structure automatically
 - **Entity Detection**: Identifies people, companies, locations
 - **Relationship Mapping**: Discovers connections between entities
 - **Chat Interface**: Talk to your data naturally (v0.56+)
@@ -145,23 +145,23 @@ const custom = new BrainyData({
 
 </details>
 
-## 🎮 Cortex CLI - Command Center for Everything
+## 🎮 Brainy CLI - Command Center for Everything
 
 ```bash
 # Talk to your data
-cortex chat "What patterns do you see?"
+brainy chat "What patterns do you see?"
 
 # AI-powered data import
-cortex neural import data.csv --confidence 0.8
+brainy import data.csv --cortex --confidence 0.8
 
 # Real-time monitoring
-cortex monitor --dashboard
+brainy monitor --dashboard
 
 # Start premium trials
-cortex license trial notion
+brainy license trial notion
 ```
 
-[📖 **Full Cortex Documentation**](/docs/cortex.md)
+[📖 **Full CLI Documentation**](/docs/brainy-cli.md)
 
 ## ⚙️ Configuration (Optional)
 
@@ -193,7 +193,7 @@ Brainy works with **zero configuration**, but you can customize
 - **Asana** ($44/mo) - Project management
 
 ```bash
-cortex license trial notion  # Start free trial
+brainy license trial notion  # Start free trial
 ```
 
 **No vendor lock-in. Your data stays yours.**
@@ -306,7 +306,7 @@ Deploy anywhere: AWS, GCP, Azure, Cloudflare
 - [Quick Start](docs/getting-started/)
 - [API Reference](docs/api-reference/)
 - [Examples](docs/examples/)
-- [Cortex CLI](docs/cortex.md)
+- [Brainy CLI](docs/brainy-cli.md)
 - [Performance Guide](docs/optimization-guides/)
 
 ## ❓ Does Brainy Impact Performance?

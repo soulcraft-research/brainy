@@ -1,7 +1,7 @@
 /**
- * Neural Import SENSE Augmentation - Atomic Age AI-Powered Data Understanding
+ * Cortex SENSE Augmentation - Atomic Age AI-Powered Data Understanding
  * 
- * 🧠 The brain-in-jar's sensory system for perceiving and structuring data
+ * 🧠 The cerebral cortex layer for intelligent data processing
  * ⚛️ Complete with confidence scoring and relationship weight calculation
  */
 
@@ -11,12 +11,12 @@ import { NounType, VerbType } from '../types/graphTypes.js'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 
-// Neural Import Types
-export interface NeuralAnalysisResult {
+// Cortex Analysis Types
+export interface CortexAnalysisResult {
   detectedEntities: DetectedEntity[]
   detectedRelationships: DetectedRelationship[]
   confidence: number
-  insights: NeuralInsight[]
+  insights: CortexInsight[]
 }
 
 export interface DetectedEntity {
@@ -39,7 +39,7 @@ export interface DetectedRelationship {
   metadata?: Record<string, any>
 }
 
-export interface NeuralInsight {
+export interface CortexInsight {
   type: 'hierarchy' | 'cluster' | 'pattern' | 'anomaly' | 'opportunity'
   description: string
   confidence: number
@@ -47,7 +47,7 @@ export interface NeuralInsight {
   recommendation?: string
 }
 
-export interface NeuralImportSenseConfig {
+export interface CortexSenseConfig {
   confidenceThreshold: number
   enableWeights: boolean
   skipDuplicates: boolean
@@ -57,15 +57,15 @@ export interface NeuralImportSenseConfig {
 /**
  * Neural Import SENSE Augmentation - The Brain's Perceptual System
  */
-export class NeuralImportSenseAugmentation implements ISenseAugmentation {
-  readonly name: string = 'neural-import-sense'
-  readonly description: string = 'AI-powered data understanding and structuring augmentation'
+export class CortexSenseAugmentation implements ISenseAugmentation {
+  readonly name: string = 'cortex-sense'
+  readonly description: string = 'AI-powered cortex for intelligent data understanding'
   enabled: boolean = true
 
   private brainy: BrainyData
-  private config: NeuralImportSenseConfig
+  private config: CortexSenseConfig
 
-  constructor(brainy: BrainyData, config: Partial<NeuralImportSenseConfig> = {}) {
+  constructor(brainy: BrainyData, config: Partial<CortexSenseConfig> = {}) {
     this.brainy = brainy
     this.config = {
       confidenceThreshold: 0.7,
@@ -76,8 +76,8 @@ export class NeuralImportSenseAugmentation implements ISenseAugmentation {
   }
 
   async initialize(): Promise<void> {
-    // Initialize the neural analysis system
-    console.log('🧠 Neural Import SENSE augmentation initialized')
+    // Initialize the cortex analysis system
+    console.log('🧠 Cortex SENSE augmentation initialized')
   }
 
   async shutDown(): Promise<void> {
@@ -125,7 +125,7 @@ export class NeuralImportSenseAugmentation implements ISenseAugmentation {
           nouns,
           verbs,
           confidence: analysis.confidence,
-          insights: analysis.insights.map(insight => ({
+          insights: analysis.insights.map((insight: any) => ({
             type: insight.type,
             description: insight.description,
             confidence: insight.confidence
@@ -286,7 +286,7 @@ export class NeuralImportSenseAugmentation implements ISenseAugmentation {
       const suggestions: string[] = []
 
       // Check for low confidence entities
-      const lowConfidenceEntities = analysis.detectedEntities.filter(e => e.confidence < 0.5)
+      const lowConfidenceEntities = analysis.detectedEntities.filter((e: any) => e.confidence < 0.5)
       if (lowConfidenceEntities.length > 0) {
         issues.push({
           type: 'confidence',
@@ -318,7 +318,7 @@ export class NeuralImportSenseAugmentation implements ISenseAugmentation {
       }
 
       // Check for data completeness
-      const incompleteEntities = analysis.detectedEntities.filter(e => 
+      const incompleteEntities = analysis.detectedEntities.filter((e: any) => 
         !e.originalData || Object.keys(e.originalData).length < 2
       )
       if (incompleteEntities.length > 0) {
@@ -360,7 +360,7 @@ export class NeuralImportSenseAugmentation implements ISenseAugmentation {
   /**
    * Get the full neural analysis result (custom method for Cortex integration)
    */
-  async getNeuralAnalysis(rawData: Buffer | string, dataType: string): Promise<NeuralAnalysisResult> {
+  async getNeuralAnalysis(rawData: Buffer | string, dataType: string): Promise<CortexAnalysisResult> {
     const parsedData = await this.parseRawData(rawData, dataType)
     return await this.performNeuralAnalysis(parsedData)
   }
@@ -421,7 +421,7 @@ export class NeuralImportSenseAugmentation implements ISenseAugmentation {
   /**
    * Perform neural analysis on parsed data
    */
-  private async performNeuralAnalysis(parsedData: any[], config = this.config): Promise<NeuralAnalysisResult> {
+  private async performNeuralAnalysis(parsedData: any[], config = this.config): Promise<CortexAnalysisResult> {
     // Phase 1: Neural Entity Detection
     const detectedEntities = await this.detectEntitiesWithNeuralAnalysis(parsedData, config)
     
@@ -429,7 +429,7 @@ export class NeuralImportSenseAugmentation implements ISenseAugmentation {
     const detectedRelationships = await this.detectRelationshipsWithNeuralAnalysis(detectedEntities, parsedData, config)
     
     // Phase 3: Neural Insights Generation
-    const insights = await this.generateNeuralInsights(detectedEntities, detectedRelationships)
+    const insights = await this.generateCortexInsights(detectedEntities, detectedRelationships)
     
     // Phase 4: Confidence Scoring
     const overallConfidence = this.calculateOverallConfidence(detectedEntities, detectedRelationships)
@@ -698,8 +698,8 @@ export class NeuralImportSenseAugmentation implements ISenseAugmentation {
   /**
    * Generate Neural Insights - The Intelligence Layer
    */
-  private async generateNeuralInsights(entities: DetectedEntity[], relationships: DetectedRelationship[]): Promise<NeuralInsight[]> {
-    const insights: NeuralInsight[] = []
+  private async generateCortexInsights(entities: DetectedEntity[], relationships: DetectedRelationship[]): Promise<CortexInsight[]> {
+    const insights: CortexInsight[] = []
 
     // Detect hierarchies
     const hierarchies = this.detectHierarchies(relationships)
@@ -842,13 +842,13 @@ export class NeuralImportSenseAugmentation implements ISenseAugmentation {
 
   private calculateOverallConfidence(entities: DetectedEntity[], relationships: DetectedRelationship[]): number {
     if (entities.length === 0) return 0
-    const entityConfidence = entities.reduce((sum, e) => sum + e.confidence, 0) / entities.length
+    const entityConfidence = entities.reduce((sum: number, e: any) => sum + e.confidence, 0) / entities.length
     if (relationships.length === 0) return entityConfidence
-    const relationshipConfidence = relationships.reduce((sum, r) => sum + r.confidence, 0) / relationships.length
+    const relationshipConfidence = relationships.reduce((sum: number, r: any) => sum + r.confidence, 0) / relationships.length
     return (entityConfidence + relationshipConfidence) / 2
   }
 
-  private async storeNeuralAnalysis(analysis: NeuralAnalysisResult): Promise<void> {
+  private async storeNeuralAnalysis(analysis: CortexAnalysisResult): Promise<void> {
     // Store the full analysis result for later retrieval by Cortex or other systems
     // This could be stored in the brainy instance metadata or a separate analysis store
   }
@@ -886,7 +886,7 @@ export class NeuralImportSenseAugmentation implements ISenseAugmentation {
   /**
    * Assess data quality metrics
    */
-  private assessDataQuality(parsedData: any[], analysis: NeuralAnalysisResult): {
+  private assessDataQuality(parsedData: any[], analysis: CortexAnalysisResult): {
     completeness: number
     consistency: number
     accuracy: number
@@ -921,7 +921,7 @@ export class NeuralImportSenseAugmentation implements ISenseAugmentation {
 
     // Accuracy: average confidence of detected entities
     const accuracy = analysis.detectedEntities.length > 0 ? 
-      analysis.detectedEntities.reduce((sum, e) => sum + e.confidence, 0) / analysis.detectedEntities.length : 
+      analysis.detectedEntities.reduce((sum: number, e: any) => sum + e.confidence, 0) / analysis.detectedEntities.length : 
       0
 
     return {
@@ -936,7 +936,7 @@ export class NeuralImportSenseAugmentation implements ISenseAugmentation {
    */
   private generateRecommendations(
     parsedData: any[], 
-    analysis: NeuralAnalysisResult,
+    analysis: CortexAnalysisResult,
     entityTypes: Array<{ type: string; count: number; confidence: number }>,
     relationshipTypes: Array<{ type: string; count: number; confidence: number }>
   ): string[] {

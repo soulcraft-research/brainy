@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Cortex CLI - Beautiful command center for Brainy
+ * Brainy CLI - Beautiful command center for the vector + graph database
  */
 
 // @ts-ignore

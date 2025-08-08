@@ -1,13 +1,13 @@
 {
   "name": "@soulcraft/brainy",
-  "version": "0.56.0",
+  "version": "0.57.0",
   "description": "A vector graph database using HNSW indexing with Origin Private File System storage",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
   "bin": {
-    "cortex": "./bin/cortex.js"
+    "brainy": "./bin/brainy.js"
   },
   "sideEffects": [
     "./dist/setup.js",

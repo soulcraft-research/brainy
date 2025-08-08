@@ -24,7 +24,7 @@
 | Component | Size | When Loaded | Impact |
 |-----------|------|------------|---------|
 | Core Brainy | 643KB | Always | Baseline |
-| Neural Import | +12KB | On demand | Optional |
+| Cortex | +12KB | On demand | Optional |
 | Premium Connectors | +8KB each | Never (external) | **0%** |
 | Monitoring | +5KB | On demand | Optional |
 | Chat Interface | +7KB | On demand | Optional |
@@ -70,7 +70,7 @@ const brainy = new BrainyData({
 ## 📈 Actually IMPROVES Performance
 
 ### 1. Smarter Caching
-- Neural Import pre-processes data for faster searches
+- Cortex pre-processes data for faster searches
 - Augmentation pipeline can cache intermediate results
 - 95%+ cache hit rates on repeated operations
 
@@ -187,7 +187,7 @@ const brainy = new BrainyData({
 ### Customer C: AI Chat Platform
 - **Dataset**: 100K documents
 - **Usage**: RAG with chat interface
-- **Impact**: 30% faster responses (Neural Import preprocessing)
+- **Impact**: 30% faster responses (Cortex preprocessing)
 
 ---
 
