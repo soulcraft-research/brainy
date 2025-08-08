@@ -99,6 +99,8 @@ const answer = await chat.ask("What patterns do you see in customer behavior?")
 // → AI-powered insights from your knowledge graph!
 ```
 
+<sub>**How it works:** Combines vector embeddings for semantic understanding • Graph relationships for connection patterns • Metadata filtering for structured analysis • Optional LLM for natural language insights</sub>
+
 **One line. Zero complexity. Optional LLM for genius-level responses.**  
 [📖 **Learn More About Brainy Chat**](BRAINY-CHAT.md)
 
