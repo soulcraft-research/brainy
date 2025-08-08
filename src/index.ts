@@ -54,8 +54,8 @@ import { BrainyChat, ChatOptions } from './chat/brainyChat.js'
 export { BrainyChat }
 export type { ChatOptions }
 
-// Export Cortex CLI functionality
-export { Cortex } from './cortex/cortex.js'
+// Export Cortex CLI functionality - commented out for core MIT build
+// export { Cortex } from './cortex/cortex.js'
 
 // Export performance and optimization utilities
 import {
@@ -246,6 +246,7 @@ export {
   createAugmentationRegistryRollupPlugin
 }
 export type { AugmentationRegistryLoaderOptions, AugmentationLoadResult }
+
 
 // Export augmentation implementations
 import {

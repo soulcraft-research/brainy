@@ -6,8 +6,8 @@
  */
 
 import { BrainyData } from '../brainyData.js'
-import * as fs from 'fs/promises'
-import * as path from 'path'
+import * as fs from '../universal/fs.js'
+import * as path from '../universal/path.js'
 // @ts-ignore
 import chalk from 'chalk'
 // @ts-ignore

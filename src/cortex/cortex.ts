@@ -8,7 +8,7 @@ import { BrainyData } from '../brainyData.js'
 import { BrainyChat } from '../chat/brainyChat.js'
 import { PerformanceMonitor } from './performanceMonitor.js'
 import { HealthCheck } from './healthCheck.js'
-import { LicensingSystem } from './licensingSystem.js'
+// Licensing system moved to quantum-vault
 import * as readline from 'readline'
 import * as fs from 'fs/promises'
 import * as path from 'path'
@@ -81,7 +81,7 @@ export class Cortex {
   private chatInstance?: BrainyChat
   private performanceMonitor?: PerformanceMonitor
   private healthCheck?: HealthCheck
-  private licensingSystem?: LicensingSystem
+  // private licensingSystem?: LicensingSystem // Moved to quantum-vault
   private configPath: string
   private config: CortexConfig
   private encryptionKey?: Buffer
@@ -1734,8 +1734,8 @@ export class Cortex {
     this.healthCheck = new HealthCheck(this.brainy)
     
     // Initialize licensing system
-    this.licensingSystem = new LicensingSystem()
-    await this.licensingSystem.initialize()
+    // Licensing system moved to quantum-vault for premium features
+    // Open source version has full functionality available
   }
 
   private async saveConfig(): Promise<void> {

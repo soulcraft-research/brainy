@@ -1,31 +1,34 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "esModuleInterop": true,
-    "strict": true,
-    "declaration": false,
-    "outDir": "./dist",
-    "rootDir": ".",
-    "lib": [
-      "DOM",
-      "ESNext",
-      "DOM.Asynciterable"
-    ],
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "noEmit": false,
-    "preserveConstEnums": true,
-    "sourceMap": true
+    "outDir": "./dist/browser-build"
   },
   "include": [
-    "src/**/*",
-    "demo/**/*"
+    "src/brainyData.ts",
+    "src/browserFramework.ts",
+    "src/universal/**/*",
+    "src/types/graphTypes.ts",
+    "src/coreTypes.ts",
+    "src/utils/embedding.ts",
+    "src/utils/environment.ts",
+    "src/utils/logger.ts",
+    "src/utils/index.ts",
+    "src/hnsw/**/*",
+    "src/storage/**/*",
+    "src/setup.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "src/cortex/**/*",
+    "src/augmentations/**/*",
+    "src/pipeline.ts",
+    "src/sequentialPipeline.ts",
+    "src/augmentationFactory.ts",
+    "src/augmentationRegistry.ts",
+    "src/augmentationRegistryLoader.ts",
+    "src/chat/**/*",
+    "src/mcp/**/*"
   ]
 }
