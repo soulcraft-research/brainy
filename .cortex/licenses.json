@@ -1,0 +1,52 @@
+[
+  {
+    "id": "lic_7d6102f68619197f368063cfa481c03f",
+    "type": "trial",
+    "product": "slack-connector",
+    "tier": "basic",
+    "status": "active",
+    "issuedTo": "test@example.com",
+    "issuedAt": "2025-08-08T00:17:08.684Z",
+    "expiresAt": "2025-08-15T00:17:08.684Z",
+    "features": [
+      "slack-connector"
+    ],
+    "limits": {
+      "apiCallsPerMonth": 1000,
+      "dataVolumeGB": 10,
+      "concurrentConnections": 3,
+      "customConnectors": 0
+    },
+    "metadata": {
+      "customerName": "Test User",
+      "customerEmail": "test@example.com",
+      "paymentStatus": "active"
+    },
+    "signature": "f4e0f68c7ff746a0e8c6c33b9cb480368c964ef0cf1a4af885d59be5a991d3a4"
+  },
+  {
+    "id": "lic_ce65e516ed64b24c319a2b68482b8df5",
+    "type": "trial",
+    "product": "asana-connector",
+    "tier": "basic",
+    "status": "active",
+    "issuedTo": "pm@company.com",
+    "issuedAt": "2025-08-08T00:20:22.589Z",
+    "expiresAt": "2025-08-22T00:20:22.589Z",
+    "features": [
+      "asana-connector"
+    ],
+    "limits": {
+      "apiCallsPerMonth": 1000,
+      "dataVolumeGB": 10,
+      "concurrentConnections": 3,
+      "customConnectors": 0
+    },
+    "metadata": {
+      "customerName": "Project Manager",
+      "customerEmail": "pm@company.com",
+      "paymentStatus": "active"
+    },
+    "signature": "58548dd8fee1a0ca590194cee47eac35f8fa4df8ac78bf2207cb91fd343dec99"
+  }
+]

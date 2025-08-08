@@ -79,3 +79,10 @@ debug*.ts
 
 # Downloaded models (temporary)
 /models-download/
+
+# Sensitive files - NEVER commit
+*.pdf
+*pitch*deck*
+*investor*deck*
+*confidential*
+*private*
