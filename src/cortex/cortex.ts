@@ -86,10 +86,90 @@ export class Cortex {
   private config: CortexConfig
   private encryptionKey?: Buffer
   private masterKeySource?: 'env' | 'passphrase' | 'generated'
+  
+  // UI properties for terminal output
+  private emojis = {
+    check: '✅',
+    cross: '❌',
+    info: 'ℹ️',
+    warning: '⚠️',
+    rocket: '🚀',
+    brain: '🧠',
+    atom: '⚛️',
+    lock: '🔒',
+    key: '🔑',
+    package: '📦',
+    chart: '📊',
+    sparkles: '✨',
+    fire: '🔥',
+    zap: '⚡',
+    gear: '⚙️',
+    robot: '🤖',
+    shield: '🛡️',
+    wrench: '🔧',
+    clipboard: '📋',
+    folder: '📁',
+    database: '🗄️',
+    lightning: '⚡',
+    checkmark: '✅',
+    repair: '🔧',
+    health: '🏥'
+  }
+  
+  private colors = {
+    reset: '\x1b[0m',
+    bright: '\x1b[1m',
+    // Helper methods
+    dim: (text: string) => `\x1b[2m${text}\x1b[0m`,
+    red: (text: string) => `\x1b[31m${text}\x1b[0m`,
+    green: (text: string) => `\x1b[32m${text}\x1b[0m`,
+    yellow: (text: string) => `\x1b[33m${text}\x1b[0m`,
+    blue: (text: string) => `\x1b[34m${text}\x1b[0m`,
+    magenta: (text: string) => `\x1b[35m${text}\x1b[0m`,
+    cyan: (text: string) => `\x1b[36m${text}\x1b[0m`,
+    white: (text: string) => `\x1b[37m${text}\x1b[0m`,
+    gray: (text: string) => `\x1b[90m${text}\x1b[0m`,
+    retro: (text: string) => `\x1b[36m${text}\x1b[0m`,
+    success: (text: string) => `\x1b[32m${text}\x1b[0m`,
+    warning: (text: string) => `\x1b[33m${text}\x1b[0m`,
+    error: (text: string) => `\x1b[31m${text}\x1b[0m`,
+    info: (text: string) => `\x1b[34m${text}\x1b[0m`,
+    brain: (text: string) => `\x1b[35m${text}\x1b[0m`,
+    accent: (text: string) => `\x1b[36m${text}\x1b[0m`,
+    premium: (text: string) => `\x1b[33m${text}\x1b[0m`,
+    highlight: (text: string) => `\x1b[1m${text}\x1b[0m`
+  }
 
   constructor() {
     this.configPath = path.join(process.cwd(), '.cortex', 'config.json')
     this.config = {} as CortexConfig
+  }
+
+  /**
+   * Load configuration
+   */
+  private async loadConfig(): Promise<CortexConfig> {
+    try {
+      await fs.mkdir(path.dirname(this.configPath), { recursive: true })
+      const configData = await fs.readFile(this.configPath, 'utf-8')
+      this.config = JSON.parse(configData)
+      return this.config
+    } catch {
+      // Config doesn't exist yet, return empty config
+      this.config = {} as CortexConfig
+      return this.config
+    }
+  }
+
+  /**
+   * Ensure Brainy is initialized
+   */
+  private async ensureBrainy(): Promise<void> {
+    if (!this.brainy) {
+      const config = await this.loadConfig()
+      this.brainy = new BrainyData(config.brainyOptions || {})
+      await this.brainy.init()
+    }
   }
 
   /**
@@ -2272,7 +2352,7 @@ export class Cortex {
       // Check Neural Import health (default augmentation)
       const neuralHealth = await registry.checkNeuralImportHealth()
       
-      console.log(`\n${this.emojis.sparkle} ${this.colors.accent('Default Augmentations:')}`)
+      console.log(`\n${this.emojis.sparkles} ${this.colors.accent('Default Augmentations:')}`)
       console.log(`  ${this.emojis.brain} Neural Import: ${neuralHealth.available ? this.colors.success('Active') : this.colors.error('Inactive')}`)
       if (neuralHealth.version) {
         console.log(`    ${this.colors.dim('Version:')} ${neuralHealth.version}`)
@@ -2283,7 +2363,7 @@ export class Cortex {
       
       // Check for premium augmentations if license exists
       if (this.licensingSystem) {
-        console.log(`\n${this.emojis.sparkle} ${this.colors.premium('Premium Augmentations:')}`)
+        console.log(`\n${this.emojis.sparkles} ${this.colors.premium('Premium Augmentations:')}`)
         
         // Check each premium feature from our licensing system
         const premiumFeatures = [
@@ -2324,7 +2404,7 @@ export class Cortex {
       }
       
     } catch (error) {
-      console.error(`${this.emojis.cross} Failed to get augmentation status:`, error.message)
+      console.error(`${this.emojis.cross} Failed to get augmentation status:`, error instanceof Error ? error.message : String(error))
     }
   }
 
@@ -2702,6 +2782,7 @@ interface CortexConfig {
   gcsBucket?: string
   initialized: boolean
   createdAt: string
+  brainyOptions?: any
 }
 
 interface InitOptions {
