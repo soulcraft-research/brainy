@@ -25,25 +25,25 @@ export class DefaultAugmentationRegistry {
   async initializeDefaults(): Promise<void> {
     console.log('🧠⚛️ Initializing default augmentations...')
 
-    // Register Neural Import as default SENSE augmentation
-    await this.registerNeuralImport()
+    // Register Cortex as default SENSE augmentation
+    await this.registerCortex()
 
     console.log('🧠⚛️ Default augmentations initialized')
   }
 
   /**
-   * Neural Import - Default SENSE Augmentation
+   * Cortex - Default SENSE Augmentation
    * AI-powered data understanding and entity extraction
    */
-  private async registerNeuralImport(): Promise<void> {
+  private async registerCortex(): Promise<void> {
     try {
-      // Import the Neural Import augmentation
-      const { NeuralImportSenseAugmentation } = await import('../augmentations/neuralImportSense.js')
+      // Import the Cortex augmentation
+      const { CortexSenseAugmentation } = await import('../augmentations/cortexSense.js')
       
       // Note: The actual registration is commented out since BrainyData doesn't have addAugmentation method yet
       // This would create instance with default configuration
       /*
-      const neuralImport = new NeuralImportSenseAugmentation(this.brainy as any, {
+      const cortex = new CortexSenseAugmentation(this.brainy as any, {
         confidenceThreshold: 0.7,
         enableWeights: true,
         skipDuplicates: true
@@ -51,38 +51,38 @@ export class DefaultAugmentationRegistry {
 
       // Add as SENSE augmentation to Brainy (when method is available)
       if (this.brainy.addAugmentation) {
-        await this.brainy.addAugmentation('SENSE', neuralImport, {
+        await this.brainy.addAugmentation('SENSE', cortex, {
           position: 1, // First in the SENSE pipeline
-          name: 'neural-import',
+          name: 'cortex',
           autoStart: true
         })
       }
       */
       
-      console.log('🧠⚛️ Neural Import module loaded (awaiting BrainyData augmentation support)')
+      console.log('🧠⚛️ Cortex module loaded (awaiting BrainyData augmentation support)')
 
     } catch (error) {
-      console.error('❌ Failed to register Neural Import:', error instanceof Error ? error.message : String(error))
+      console.error('❌ Failed to register Cortex:', error instanceof Error ? error.message : String(error))
       // Don't throw - Brainy should still work without Neural Import
     }
   }
 
   /**
-   * Check if Neural Import is available and working
+   * Check if Cortex is available and working
    */
-  async checkNeuralImportHealth(): Promise<{
+  async checkCortexHealth(): Promise<{
     available: boolean
     status: string
     version?: string
   }> {
     try {
-      // Check if Neural Import is registered as an augmentation
+      // Check if Cortex is registered as an augmentation
       // Note: hasAugmentation method doesn't exist yet in BrainyData
-      const hasNeuralImport = false // this.brainy.hasAugmentation && this.brainy.hasAugmentation('SENSE', 'neural-import')
+      const hasCortex = false // this.brainy.hasAugmentation && this.brainy.hasAugmentation('SENSE', 'cortex')
       
       return {
-        available: hasNeuralImport || false,
-        status: hasNeuralImport ? 'active' : 'not registered (awaiting BrainyData support)',
+        available: hasCortex || false,
+        status: hasCortex ? 'active' : 'not registered (awaiting BrainyData support)',
         version: '1.0.0'
       }
     } catch (error) {
@@ -94,16 +94,16 @@ export class DefaultAugmentationRegistry {
   }
 
   /**
-   * Reinstall Neural Import if it's missing or corrupted
+   * Reinstall Cortex if it's missing or corrupted
    */
-  async reinstallNeuralImport(): Promise<void> {
+  async reinstallCortex(): Promise<void> {
     try {
       // Remove existing if present
       // Note: removeAugmentation method doesn't exist yet in BrainyData
       /*
       if (this.brainy.removeAugmentation) {
         try {
-          await this.brainy.removeAugmentation('SENSE', 'neural-import')
+          await this.brainy.removeAugmentation('SENSE', 'cortex')
         } catch (error) {
           // Ignore errors if augmentation doesn't exist
         }
@@ -111,11 +111,11 @@ export class DefaultAugmentationRegistry {
       */
 
       // Re-register
-      await this.registerNeuralImport()
+      await this.registerCortex()
       
-      console.log('🧠⚛️ Neural Import reinstalled successfully')
+      console.log('🧠⚛️ Cortex reinstalled successfully')
     } catch (error) {
-      throw new Error(`Failed to reinstall Neural Import: ${error instanceof Error ? error.message : String(error)}`)
+      throw new Error(`Failed to reinstall Cortex: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 }
