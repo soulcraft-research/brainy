@@ -163,7 +163,7 @@ export class CortexSenseAugmentation implements ISenseAugmentation {
       const watcher = fsWatch.watch(filePath, async (eventType: string) => {
         if (eventType === 'change') {
           try {
-            const fileContent = await fs.readFile(filePath, 'utf8')
+            const fileContent = await fs.readFile(filePath)
             const result = await this.processRawData(fileContent, this.getDataTypeFromPath(filePath))
             
             if (result.success) {
