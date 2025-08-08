@@ -2,6 +2,54 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.57.0](https://github.com/soulcraft-research/brainy/compare/v0.56.0...v0.57.0) (2025-08-08)
+
+### ⚠ BREAKING CHANGES
+
+* CLI command renamed from `cortex` to `brainy`
+* Neural Import renamed to Cortex augmentation
+
+### Changed
+
+* **CLI**: Renamed from `cortex` to `brainy` for better package alignment
+  - Now use `brainy chat` instead of `cortex chat`
+  - `npx @soulcraft/brainy` now works automatically
+  - Better alignment with package name
+
+* **Cortex Augmentation**: Renamed from Neural Import
+  - Better conceptual clarity: Cortex = AI intelligence layer
+  - Class renamed: `CortexSenseAugmentation` (was `NeuralImportSenseAugmentation`)
+  - Augmentation name: `cortex-sense` (was `neural-import-sense`)
+  - The cortex is where thinking happens - perfect metaphor for AI processing
+
+### Migration Guide
+
+#### CLI Commands
+```bash
+# Old
+cortex chat "What's in my data?"
+cortex neural import data.csv
+
+# New  
+brainy chat "What's in my data?"
+brainy import data.csv --cortex
+```
+
+#### Code Changes
+```typescript
+// Old
+import { NeuralImportSenseAugmentation } from '@soulcraft/brainy'
+
+// New
+import { CortexSenseAugmentation } from '@soulcraft/brainy'
+```
+
+### Why These Changes?
+
+1. **CLI Alignment**: `brainy` command matches the package name `@soulcraft/brainy`
+2. **Better Metaphor**: Cortex (brain's processing layer) better represents AI intelligence than generic "neural"
+3. **Clearer Architecture**: CLI = brainy, AI = Cortex, Database = BrainyData
+
 ## [0.56.0](https://github.com/soulcraft-research/brainy/compare/v0.55.0...v0.56.0) (2025-08-08)
 
 ### Added

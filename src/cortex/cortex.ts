@@ -1893,14 +1893,14 @@ export class Cortex {
   }
 
   /**
-   * Neural Import System - AI-Powered Data Understanding
+   * Cortex Augmentation System - AI-Powered Data Understanding
    */
   async neuralImport(filePath: string, options: any = {}): Promise<void> {
     await this.ensureInitialized()
     
-    // Import and create the Neural Import SENSE augmentation
-    const { NeuralImportSenseAugmentation } = await import('../augmentations/neuralImportSense.js')
-    const neuralSense = new NeuralImportSenseAugmentation(this.brainy!, options)
+    // Import and create the Cortex SENSE augmentation
+    const { CortexSenseAugmentation } = await import('../augmentations/cortexSense.js')
+    const neuralSense = new CortexSenseAugmentation(this.brainy!, options)
     
     // Initialize the augmentation
     await neuralSense.initialize()
@@ -1915,7 +1915,7 @@ export class Cortex {
       const result = await neuralSense.processRawData(fileContent, dataType, options)
       
       if (result.success) {
-        console.log(colors.success('✅ Neural import completed successfully'))
+        console.log(colors.success('✅ Cortex import completed successfully'))
         
         // Display summary
         console.log(colors.primary(`📊 Processed: ${result.data.nouns.length} entities, ${result.data.verbs.length} relationships`))
@@ -1926,12 +1926,12 @@ export class Cortex {
         
         if (result.data.insights && result.data.insights.length > 0) {
           console.log(colors.brain('\n🧠 Neural Insights:'))
-          result.data.insights.forEach(insight => {
+          result.data.insights.forEach((insight: any) => {
             console.log(`  ${colors.accent('◆')} ${insight.description} (${(insight.confidence * 100).toFixed(1)}%)`)
           })
         }
       } else {
-        console.error(colors.error('❌ Neural import failed:'), result.error)
+        console.error(colors.error('❌ Cortex import failed:'), result.error)
       }
       
     } finally {
@@ -1942,8 +1942,8 @@ export class Cortex {
   async neuralAnalyze(filePath: string): Promise<void> {
     await this.ensureInitialized()
     
-    const { NeuralImportSenseAugmentation } = await import('../augmentations/neuralImportSense.js')
-    const neuralSense = new NeuralImportSenseAugmentation(this.brainy!)
+    const { CortexSenseAugmentation } = await import('../augmentations/cortexSense.js')
+    const neuralSense = new CortexSenseAugmentation(this.brainy!)
     
     await neuralSense.initialize()
     
@@ -1966,7 +1966,7 @@ export class Cortex {
         
         if (result.data.recommendations.length > 0) {
           console.log(colors.brain('\n💡 Recommendations:'))
-          result.data.recommendations.forEach(rec => {
+          result.data.recommendations.forEach((rec: any) => {
             console.log(`  ${colors.accent('◆')} ${rec}`)
           })
         }
@@ -1982,8 +1982,8 @@ export class Cortex {
   async neuralValidate(filePath: string): Promise<void> {
     await this.ensureInitialized()
     
-    const { NeuralImportSenseAugmentation } = await import('../augmentations/neuralImportSense.js')
-    const neuralSense = new NeuralImportSenseAugmentation(this.brainy!)
+    const { CortexSenseAugmentation } = await import('../augmentations/cortexSense.js')
+    const neuralSense = new CortexSenseAugmentation(this.brainy!)
     
     await neuralSense.initialize()
     
@@ -2009,7 +2009,7 @@ export class Cortex {
         
         if (result.data.issues.length > 0) {
           console.log(colors.warning('\n⚠️  Issues:'))
-          result.data.issues.forEach(issue => {
+          result.data.issues.forEach((issue: any) => {
             const severityColor = issue.severity === 'high' ? colors.error : 
                                 issue.severity === 'medium' ? colors.warning : colors.dim
             console.log(`  ${severityColor(`[${issue.severity.toUpperCase()}]`)} ${issue.description}`)
@@ -2018,7 +2018,7 @@ export class Cortex {
         
         if (result.data.suggestions.length > 0) {
           console.log(colors.brain('\n💡 Suggestions:'))
-          result.data.suggestions.forEach(suggestion => {
+          result.data.suggestions.forEach((suggestion: any) => {
             console.log(`  ${colors.accent('◆')} ${suggestion}`)
           })
         }
@@ -2056,7 +2056,7 @@ export class Cortex {
       console.log(`  ${colors.primary('•')} ${key}: ${colors.dim(value)}`)
     })
 
-    console.log(`\n${colors.dim('Use')} ${colors.primary('cortex neural import <file>')} ${colors.dim('to leverage the full type system!')}`)
+    console.log(`\n${colors.dim('Use')} ${colors.primary('brainy import --cortex <file>')} ${colors.dim('to leverage the full AI type system!')}`)
   }
 
   /**
@@ -2349,15 +2349,15 @@ export class Cortex {
       const { DefaultAugmentationRegistry } = await import('../shared/default-augmentations.js')
       const registry = new DefaultAugmentationRegistry(this.brainy!)
       
-      // Check Neural Import health (default augmentation)
-      const neuralHealth = await registry.checkNeuralImportHealth()
+      // Check Cortex health (default augmentation)
+      const cortexHealth = await registry.checkCortexHealth()
       
       console.log(`\n${this.emojis.sparkles} ${this.colors.accent('Default Augmentations:')}`)
-      console.log(`  ${this.emojis.brain} Neural Import: ${neuralHealth.available ? this.colors.success('Active') : this.colors.error('Inactive')}`)
-      if (neuralHealth.version) {
-        console.log(`    ${this.colors.dim('Version:')} ${neuralHealth.version}`)
+      console.log(`  ${this.emojis.brain} Cortex: ${cortexHealth.available ? this.colors.success('Active') : this.colors.error('Inactive')}`)
+      if (cortexHealth.version) {
+        console.log(`    ${this.colors.dim('Version:')} ${cortexHealth.version}`)
       }
-      console.log(`    ${this.colors.dim('Status:')} ${neuralHealth.status}`)
+      console.log(`    ${this.colors.dim('Status:')} ${cortexHealth.status}`)
       console.log(`    ${this.colors.dim('Category:')} SENSE (AI-powered data understanding)`)
       console.log(`    ${this.colors.dim('License:')} Open Source (included by default)`)
       
@@ -2386,7 +2386,7 @@ export class Cortex {
       
       // Augmentation pipeline health
       console.log(`\n${this.emojis.health} ${this.colors.accent('Pipeline Health:')}`)
-      console.log(`  ${this.emojis.check} SENSE Pipeline: ${this.colors.success('1 active')} (Neural Import)`)
+      console.log(`  ${this.emojis.check} SENSE Pipeline: ${this.colors.success('1 active')} (Cortex)`)
       console.log(`  ${this.emojis.info} CONDUIT Pipeline: ${this.colors.dim('0 active')} (Premium connectors available)`)
       console.log(`  ${this.emojis.info} COGNITION Pipeline: ${this.colors.dim('0 active')}`)
       console.log(`  ${this.emojis.info} MEMORY Pipeline: ${this.colors.dim('0 active')}`)
