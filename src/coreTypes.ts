@@ -321,6 +321,44 @@ export interface StatisticsData {
   services?: ServiceStatistics[]
 
   /**
+   * Throttling metrics for storage operations
+   */
+  throttlingMetrics?: {
+    /**
+     * Storage-level throttling information
+     */
+    storage?: {
+      currentlyThrottled: boolean
+      lastThrottleTime?: string
+      consecutiveThrottleEvents: number
+      currentBackoffMs: number
+      totalThrottleEvents: number
+      throttleEventsByHour?: number[]  // Last 24 hours
+      throttleReasons?: Record<string, number>  // Count by reason (429, 503, timeout, etc.)
+    }
+    
+    /**
+     * Operation impact metrics
+     */
+    operationImpact?: {
+      delayedOperations: number
+      retriedOperations: number
+      failedDueToThrottling: number
+      averageDelayMs: number
+      totalDelayMs: number
+    }
+    
+    /**
+     * Service-level throttling breakdown
+     */
+    serviceThrottling?: Record<string, {
+      throttleCount: number
+      lastThrottle: string
+      status: 'normal' | 'throttled' | 'recovering'
+    }>
+  }
+
+  /**
    * Last updated timestamp
    */
   lastUpdated: string

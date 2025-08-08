@@ -4577,8 +4577,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         await this.storage.flushStatisticsToStorage()
       }
 
-      // Get statistics from storage
-      const stats = await this.storage!.getStatistics()
+      // Get statistics from storage (including throttling metrics if available)
+      const stats = await (this.storage as any).getStatisticsWithThrottling?.() || 
+                    await this.storage!.getStatistics()
 
       // If statistics are available, use them
       if (stats) {
@@ -4684,6 +4685,11 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           // Add enhanced statistics from collector
           const collectorStats = this.statisticsCollector.getStatistics()
           Object.assign(result as any, collectorStats)
+          
+          // Preserve throttling metrics from storage if available
+          if (stats.throttlingMetrics) {
+            (result as any).throttlingMetrics = stats.throttlingMetrics
+          }
 
           // Update storage sizes if needed (only periodically for performance)
           await this.updateStorageSizesIfNeeded()

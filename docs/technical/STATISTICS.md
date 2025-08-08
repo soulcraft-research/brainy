@@ -290,6 +290,8 @@ Statistics will also be automatically flushed when the database is shut down, en
 2. **Use Meaningful Service Names**: Choose service names that clearly identify the source of the data
 3. **Monitor Growth**: Regularly check statistics to monitor database growth and identify potential issues
 4. **Filter When Needed**: Use service filtering to focus on specific parts of your data
+5. **Monitor Throttling**: Check throttling metrics to detect and respond to rate limiting (see [Throttling Metrics](./THROTTLING_METRICS.md))
+6. **Optimize Based on Metrics**: Use throttling patterns to optimize batch sizes and operation timing
 5. **Consider Scalability**: For high-volume scenarios, implement the scalability improvements described above
 6. **Flush When Needed**: Call `flushStatistics()` after batch operations to ensure statistics are up-to-date
 

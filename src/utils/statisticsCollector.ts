@@ -41,6 +41,26 @@ export class StatisticsCollector {
     }
   }
   
+  // Throttling metrics
+  private throttlingMetrics = {
+    currentlyThrottled: false,
+    lastThrottleTime: 0,
+    consecutiveThrottleEvents: 0,
+    currentBackoffMs: 1000,
+    totalThrottleEvents: 0,
+    throttleEventsByHour: new Array(24).fill(0),
+    throttleReasons: new Map<string, number>(),
+    delayedOperations: 0,
+    retriedOperations: 0,
+    failedDueToThrottling: 0,
+    totalDelayMs: 0,
+    serviceThrottling: new Map<string, {
+      throttleCount: number
+      lastThrottle: number
+      status: 'normal' | 'throttled' | 'recovering'
+    }>()
+  }
+  
   private readonly MAX_TIMESTAMPS = 1000 // Keep last 1000 timestamps
   private readonly MAX_SEARCH_TERMS = 100 // Track top 100 search terms
   private readonly SIZE_UPDATE_INTERVAL = 60000 // Update sizes every minute
@@ -122,6 +142,125 @@ export class StatisticsCollector {
   }
   
   /**
+   * Track a throttling event
+   */
+  trackThrottlingEvent(reason: string, service?: string): void {
+    this.throttlingMetrics.currentlyThrottled = true
+    this.throttlingMetrics.consecutiveThrottleEvents++
+    this.throttlingMetrics.lastThrottleTime = Date.now()
+    this.throttlingMetrics.totalThrottleEvents++
+    
+    // Track by hour
+    const hourIndex = new Date().getHours()
+    this.throttlingMetrics.throttleEventsByHour[hourIndex]++
+    
+    // Track reason
+    const reasonCount = this.throttlingMetrics.throttleReasons.get(reason) || 0
+    this.throttlingMetrics.throttleReasons.set(reason, reasonCount + 1)
+    
+    // Track service-level throttling
+    if (service) {
+      const serviceInfo = this.throttlingMetrics.serviceThrottling.get(service) || {
+        throttleCount: 0,
+        lastThrottle: 0,
+        status: 'normal' as const
+      }
+      
+      serviceInfo.throttleCount++
+      serviceInfo.lastThrottle = Date.now()
+      serviceInfo.status = 'throttled'
+      
+      this.throttlingMetrics.serviceThrottling.set(service, serviceInfo)
+    }
+    
+    // Exponential backoff
+    this.throttlingMetrics.currentBackoffMs = Math.min(
+      this.throttlingMetrics.currentBackoffMs * 2,
+      30000 // Max 30 seconds
+    )
+  }
+  
+  /**
+   * Clear throttling state after successful operations
+   */
+  clearThrottlingState(): void {
+    if (this.throttlingMetrics.consecutiveThrottleEvents > 0) {
+      this.throttlingMetrics.consecutiveThrottleEvents = 0
+      this.throttlingMetrics.currentBackoffMs = 1000 // Reset to initial backoff
+      this.throttlingMetrics.currentlyThrottled = false
+      
+      // Update service statuses
+      for (const [, info] of this.throttlingMetrics.serviceThrottling) {
+        if (info.status === 'throttled') {
+          info.status = 'recovering'
+        } else if (info.status === 'recovering') {
+          const timeSinceThrottle = Date.now() - info.lastThrottle
+          if (timeSinceThrottle > 60000) { // 1 minute recovery period
+            info.status = 'normal'
+          }
+        }
+      }
+    }
+  }
+  
+  /**
+   * Track delayed operation
+   */
+  trackDelayedOperation(delayMs: number): void {
+    this.throttlingMetrics.delayedOperations++
+    this.throttlingMetrics.totalDelayMs += delayMs
+  }
+  
+  /**
+   * Track retried operation
+   */
+  trackRetriedOperation(): void {
+    this.throttlingMetrics.retriedOperations++
+  }
+  
+  /**
+   * Track operation failed due to throttling
+   */
+  trackFailedDueToThrottling(): void {
+    this.throttlingMetrics.failedDueToThrottling++
+  }
+  
+  /**
+   * Update throttling metrics from storage adapter
+   */
+  updateThrottlingMetrics(metrics: {
+    currentlyThrottled: boolean
+    lastThrottleTime: number
+    consecutiveThrottleEvents: number
+    currentBackoffMs: number
+    totalThrottleEvents: number
+    throttleEventsByHour: number[]
+    throttleReasons: Record<string, number>
+    delayedOperations: number
+    retriedOperations: number
+    failedDueToThrottling: number
+    totalDelayMs: number
+  }): void {
+    this.throttlingMetrics.currentlyThrottled = metrics.currentlyThrottled
+    this.throttlingMetrics.lastThrottleTime = metrics.lastThrottleTime
+    this.throttlingMetrics.consecutiveThrottleEvents = metrics.consecutiveThrottleEvents
+    this.throttlingMetrics.currentBackoffMs = metrics.currentBackoffMs
+    this.throttlingMetrics.totalThrottleEvents = metrics.totalThrottleEvents
+    this.throttlingMetrics.throttleEventsByHour = [...metrics.throttleEventsByHour]
+    
+    // Update throttle reasons map
+    this.throttlingMetrics.throttleReasons.clear()
+    for (const [reason, count] of Object.entries(metrics.throttleReasons)) {
+      this.throttlingMetrics.throttleReasons.set(reason, count)
+    }
+    
+    this.throttlingMetrics.delayedOperations = metrics.delayedOperations
+    this.throttlingMetrics.retriedOperations = metrics.retriedOperations
+    this.throttlingMetrics.failedDueToThrottling = metrics.failedDueToThrottling
+    this.throttlingMetrics.totalDelayMs = metrics.totalDelayMs
+  }
+  
+  /**
    * Get comprehensive statistics
    */
   getStatistics(): Partial<StatisticsData> {
@@ -172,6 +311,26 @@ export class StatisticsCollector {
     // Calculate storage metrics
     const totalSize = Object.values(this.storageSizeCache.sizes).reduce((a, b) => a + b, 0)
     
+    // Calculate average delay for throttling
+    const averageDelayMs = this.throttlingMetrics.delayedOperations > 0 
+      ? this.throttlingMetrics.totalDelayMs / this.throttlingMetrics.delayedOperations 
+      : 0
+    
+    // Convert service throttling map to record
+    const serviceThrottlingRecord: Record<string, {
+      throttleCount: number
+      lastThrottle: string
+      status: 'normal' | 'throttled' | 'recovering'
+    }> = {}
+    
+    for (const [service, info] of this.throttlingMetrics.serviceThrottling) {
+      serviceThrottlingRecord[service] = {
+        throttleCount: info.throttleCount,
+        lastThrottle: new Date(info.lastThrottle).toISOString(),
+        status: info.status
+      }
+    }
+    
     return {
       contentTypes: Object.fromEntries(this.contentTypes),
       
@@ -203,6 +362,30 @@ export class StatisticsCollector {
         totalVerbs: Array.from(this.verbTypes.values()).reduce((a, b) => a + b, 0),
         verbTypes: Object.fromEntries(this.verbTypes),
         averageConnectionsPerVerb: 2 // Verbs connect 2 nouns
+      },
+      
+      throttlingMetrics: {
+        storage: {
+          currentlyThrottled: this.throttlingMetrics.currentlyThrottled,
+          lastThrottleTime: this.throttlingMetrics.lastThrottleTime > 0 
+            ? new Date(this.throttlingMetrics.lastThrottleTime).toISOString() 
+            : undefined,
+          consecutiveThrottleEvents: this.throttlingMetrics.consecutiveThrottleEvents,
+          currentBackoffMs: this.throttlingMetrics.currentBackoffMs,
+          totalThrottleEvents: this.throttlingMetrics.totalThrottleEvents,
+          throttleEventsByHour: [...this.throttlingMetrics.throttleEventsByHour],
+          throttleReasons: Object.fromEntries(this.throttlingMetrics.throttleReasons)
+        },
+        operationImpact: {
+          delayedOperations: this.throttlingMetrics.delayedOperations,
+          retriedOperations: this.throttlingMetrics.retriedOperations,
+          failedDueToThrottling: this.throttlingMetrics.failedDueToThrottling,
+          averageDelayMs,
+          totalDelayMs: this.throttlingMetrics.totalDelayMs
+        },
+        serviceThrottling: Object.keys(serviceThrottlingRecord).length > 0 
+          ? serviceThrottlingRecord 
+          : undefined
       }
     }
   }
