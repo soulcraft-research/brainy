@@ -130,6 +130,30 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
   // Maximum time to wait before flushing statistics (30 seconds)
   protected readonly MAX_FLUSH_DELAY_MS = 30000
 
+  // Throttling tracking properties
+  protected throttlingDetected = false
+  protected throttlingBackoffMs = 1000 // Start with 1 second
+  protected maxBackoffMs = 30000 // Max 30 seconds
+  protected consecutiveThrottleEvents = 0
+  protected lastThrottleTime = 0
+  protected totalThrottleEvents = 0
+  protected throttleEventsByHour: number[] = new Array(24).fill(0)
+  protected throttleReasons: Record<string, number> = {}
+  protected lastThrottleHourIndex = -1
+  
+  // Operation impact tracking
+  protected delayedOperations = 0
+  protected retriedOperations = 0
+  protected failedDueToThrottling = 0
+  protected totalDelayMs = 0
+  
+  // Service-level throttling
+  protected serviceThrottling: Map<string, {
+    throttleCount: number
+    lastThrottle: number
+    status: 'normal' | 'throttled' | 'recovering'
+  }> = new Map()
+
   // Statistics-specific methods that must be implemented by subclasses
   protected abstract saveStatisticsData(
     statistics: StatisticsData
@@ -600,5 +624,212 @@ export abstract class BaseStorageAdapter implements StorageAdapter {
       standardFieldMappings: {},
       lastUpdated: new Date().toISOString()
     }
+  }
+
+  /**
+   * Detect if an error is a throttling error
+   * Override this method in specific adapters for custom detection
+   */
+  protected isThrottlingError(error: any): boolean {
+    const statusCode = error.$metadata?.httpStatusCode || error.statusCode || error.code
+    const message = error.message?.toLowerCase() || ''
+    
+    return (
+      statusCode === 429 || // Too Many Requests
+      statusCode === 503 || // Service Unavailable / Slow Down
+      statusCode === 'ECONNRESET' || // Connection reset
+      statusCode === 'ETIMEDOUT' || // Timeout
+      message.includes('throttl') ||
+      message.includes('slow down') ||
+      message.includes('rate limit') ||
+      message.includes('too many requests') ||
+      message.includes('quota exceeded')
+    )
+  }
+
+  /**
+   * Track a throttling event
+   * @param error The error that caused throttling
+   * @param service Optional service that was throttled
+   */
+  protected trackThrottlingEvent(error: any, service?: string): void {
+    this.throttlingDetected = true
+    this.consecutiveThrottleEvents++
+    this.lastThrottleTime = Date.now()
+    this.totalThrottleEvents++
+    
+    // Track by hour
+    const hourIndex = new Date().getHours()
+    if (hourIndex !== this.lastThrottleHourIndex) {
+      // Reset hour tracking if we've moved to a new hour
+      this.throttleEventsByHour = new Array(24).fill(0)
+      this.lastThrottleHourIndex = hourIndex
+    }
+    this.throttleEventsByHour[hourIndex]++
+    
+    // Track throttle reason
+    const reason = this.getThrottleReason(error)
+    this.throttleReasons[reason] = (this.throttleReasons[reason] || 0) + 1
+    
+    // Track service-level throttling
+    if (service) {
+      const serviceInfo = this.serviceThrottling.get(service) || {
+        throttleCount: 0,
+        lastThrottle: 0,
+        status: 'normal' as const
+      }
+      
+      serviceInfo.throttleCount++
+      serviceInfo.lastThrottle = Date.now()
+      serviceInfo.status = 'throttled'
+      
+      this.serviceThrottling.set(service, serviceInfo)
+    }
+    
+    // Exponential backoff
+    this.throttlingBackoffMs = Math.min(
+      this.throttlingBackoffMs * 2,
+      this.maxBackoffMs
+    )
+  }
+
+  /**
+   * Get the reason for throttling from an error
+   */
+  protected getThrottleReason(error: any): string {
+    const statusCode = error.$metadata?.httpStatusCode || error.statusCode || error.code
+    
+    if (statusCode === 429) return '429_TooManyRequests'
+    if (statusCode === 503) return '503_ServiceUnavailable'
+    if (statusCode === 'ECONNRESET') return 'ConnectionReset'
+    if (statusCode === 'ETIMEDOUT') return 'Timeout'
+    
+    const message = error.message?.toLowerCase() || ''
+    if (message.includes('throttl')) return 'Throttled'
+    if (message.includes('slow down')) return 'SlowDown'
+    if (message.includes('rate limit')) return 'RateLimit'
+    if (message.includes('quota exceeded')) return 'QuotaExceeded'
+    
+    return 'Unknown'
+  }
+
+  /**
+   * Clear throttling state after successful operations
+   */
+  protected clearThrottlingState(): void {
+    if (this.consecutiveThrottleEvents > 0) {
+      this.consecutiveThrottleEvents = 0
+      this.throttlingBackoffMs = 1000 // Reset to initial backoff
+      
+      if (this.throttlingDetected) {
+        this.throttlingDetected = false
+        
+        // Update service statuses
+        for (const [service, info] of this.serviceThrottling) {
+          if (info.status === 'throttled') {
+            info.status = 'recovering'
+          } else if (info.status === 'recovering') {
+            const timeSinceThrottle = Date.now() - info.lastThrottle
+            if (timeSinceThrottle > 60000) { // 1 minute recovery period
+              info.status = 'normal'
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Handle throttling by implementing exponential backoff
+   * @param error The error that triggered throttling
+   * @param service Optional service that was throttled
+   */
+  async handleThrottling(error: any, service?: string): Promise<void> {
+    if (this.isThrottlingError(error)) {
+      this.trackThrottlingEvent(error, service)
+      
+      // Add delay for retry
+      const delayMs = this.throttlingBackoffMs
+      this.totalDelayMs += delayMs
+      this.delayedOperations++
+      
+      await new Promise(resolve => setTimeout(resolve, delayMs))
+    } else {
+      // Clear throttling state on non-throttling errors
+      this.clearThrottlingState()
+    }
+  }
+
+  /**
+   * Track a retried operation
+   */
+  protected trackRetriedOperation(): void {
+    this.retriedOperations++
+  }
+
+  /**
+   * Track an operation that failed due to throttling
+   */
+  protected trackFailedDueToThrottling(): void {
+    this.failedDueToThrottling++
+  }
+
+  /**
+   * Get current throttling metrics
+   */
+  protected getThrottlingMetrics(): StatisticsData['throttlingMetrics'] {
+    const averageDelayMs = this.delayedOperations > 0 
+      ? this.totalDelayMs / this.delayedOperations 
+      : 0
+
+    // Convert service throttling map to record
+    const serviceThrottlingRecord: Record<string, {
+      throttleCount: number
+      lastThrottle: string
+      status: 'normal' | 'throttled' | 'recovering'
+    }> = {}
+    
+    for (const [service, info] of this.serviceThrottling) {
+      serviceThrottlingRecord[service] = {
+        throttleCount: info.throttleCount,
+        lastThrottle: new Date(info.lastThrottle).toISOString(),
+        status: info.status
+      }
+    }
+
+    return {
+      storage: {
+        currentlyThrottled: this.throttlingDetected,
+        lastThrottleTime: this.lastThrottleTime > 0 
+          ? new Date(this.lastThrottleTime).toISOString() 
+          : undefined,
+        consecutiveThrottleEvents: this.consecutiveThrottleEvents,
+        currentBackoffMs: this.throttlingBackoffMs,
+        totalThrottleEvents: this.totalThrottleEvents,
+        throttleEventsByHour: [...this.throttleEventsByHour],
+        throttleReasons: { ...this.throttleReasons }
+      },
+      operationImpact: {
+        delayedOperations: this.delayedOperations,
+        retriedOperations: this.retriedOperations,
+        failedDueToThrottling: this.failedDueToThrottling,
+        averageDelayMs,
+        totalDelayMs: this.totalDelayMs
+      },
+      serviceThrottling: Object.keys(serviceThrottlingRecord).length > 0 
+        ? serviceThrottlingRecord 
+        : undefined
+    }
+  }
+
+  /**
+   * Include throttling metrics in statistics
+   */
+  async getStatisticsWithThrottling(): Promise<StatisticsData | null> {
+    const stats = await this.getStatistics()
+    if (stats) {
+      stats.throttlingMetrics = this.getThrottlingMetrics()
+    }
+    return stats
   }
 }
