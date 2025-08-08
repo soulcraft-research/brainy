@@ -94,13 +94,6 @@ export class S3CompatibleStorage extends BaseStorage {
   // Statistics caching for better performance
   protected statisticsCache: StatisticsData | null = null
 
-  // Throttling detection and adaptation
-  private throttlingDetected = false
-  private throttlingBackoffMs = 1000 // Start with 1 second
-  private maxBackoffMs = 30000 // Max 30 seconds
-  private consecutiveThrottleErrors = 0
-  private lastThrottleTime = 0
-
   // Distributed locking for concurrent access control
   private lockPrefix: string = 'locks/'
   private activeLocks: Set<string> = new Set()
@@ -356,50 +349,38 @@ export class S3CompatibleStorage extends BaseStorage {
   }
 
   /**
-   * Detect and handle storage throttling (429, 503, timeouts)
+   * Override base class method to detect S3-specific throttling errors
    */
-  private isThrottlingError(error: any): boolean {
-    const statusCode = error.$metadata?.httpStatusCode || error.statusCode
-    const message = error.message?.toLowerCase() || ''
+  protected isThrottlingError(error: any): boolean {
+    // First check base class detection
+    if (super.isThrottlingError(error)) {
+      return true
+    }
     
+    // Additional S3-specific checks
+    const message = error.message?.toLowerCase() || ''
     return (
-      statusCode === 429 || // Too Many Requests
-      statusCode === 503 || // Service Unavailable / Slow Down
-      message.includes('throttl') ||
-      message.includes('slow down') ||
-      message.includes('rate limit') ||
-      message.includes('too many requests')
+      message.includes('please reduce your request rate') ||
+      message.includes('service unavailable') ||
+      error.Code === 'SlowDown' ||
+      error.Code === 'RequestLimitExceeded' ||
+      error.Code === 'ServiceUnavailable'
     )
   }
 
   /**
-   * Handle throttling by implementing exponential backoff
+   * Override to add S3-specific logging
    */
-  private async handleThrottling(error: any): Promise<void> {
+  async handleThrottling(error: any, service?: string): Promise<void> {
     if (this.isThrottlingError(error)) {
-      this.throttlingDetected = true
-      this.consecutiveThrottleErrors++
-      this.lastThrottleTime = Date.now()
-      
-      // Exponential backoff: 1s, 2s, 4s, 8s, etc. up to maxBackoffMs
-      this.throttlingBackoffMs = Math.min(
-        this.throttlingBackoffMs * 2,
-        this.maxBackoffMs
-      )
-      
-      prodLog.warn(`🐌 Storage throttling detected (${error.$metadata?.httpStatusCode || 'timeout'}). Backing off for ${this.throttlingBackoffMs}ms`)
-      
-      await new Promise(resolve => setTimeout(resolve, this.throttlingBackoffMs))
-    } else {
-      // Reset throttling detection on successful non-throttling operation
-      if (this.consecutiveThrottleErrors > 0) {
-        this.consecutiveThrottleErrors = 0
-        this.throttlingBackoffMs = 1000 // Reset to initial backoff
-        if (this.throttlingDetected) {
-          prodLog.info('✅ Storage throttling cleared')
-          this.throttlingDetected = false
-        }
-      }
+      prodLog.warn(`🐌 S3 storage throttling detected (${error.$metadata?.httpStatusCode || error.Code || 'timeout'}). Backing off...`)
+    }
+    
+    // Call base class implementation
+    await super.handleThrottling(error, service)
+    
+    if (!this.isThrottlingError(error) && this.consecutiveThrottleEvents === 0 && !this.throttlingDetected) {
+      prodLog.info('✅ S3 storage throttling cleared')
     }
   }
 
