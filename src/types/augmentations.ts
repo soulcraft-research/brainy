@@ -110,10 +110,18 @@ export namespace BrainyAugmentations {
      * Processes raw input data into structured nouns and verbs.
      * @param rawData The raw, unstructured data (e.g., text, image buffer, audio stream)
      * @param dataType The type of raw data (e.g., 'text', 'image', 'audio')
+     * @param options Optional processing options (e.g., confidence thresholds, filters)
      */
-    processRawData(rawData: Buffer | string, dataType: string): Promise<AugmentationResponse<{
+    processRawData(rawData: Buffer | string, dataType: string, options?: Record<string, unknown>): Promise<AugmentationResponse<{
       nouns: string[]
       verbs: string[]
+      confidence?: number
+      insights?: Array<{
+        type: string
+        description: string
+        confidence: number
+      }>
+      metadata?: Record<string, unknown>
     }>>
 
     /**
@@ -123,8 +131,36 @@ export namespace BrainyAugmentations {
      */
     listenToFeed(
       feedUrl: string,
-      callback: DataCallback<{ nouns: string[]; verbs: string[] }>
+      callback: DataCallback<{ nouns: string[]; verbs: string[]; confidence?: number }>
     ): Promise<void>
+
+    /**
+     * Analyzes data structure without processing (preview mode).
+     * @param rawData The raw data to analyze
+     * @param dataType The type of raw data
+     * @param options Optional analysis options
+     */
+    analyzeStructure?(rawData: Buffer | string, dataType: string, options?: Record<string, unknown>): Promise<AugmentationResponse<{
+      entityTypes: Array<{ type: string; count: number; confidence: number }>
+      relationshipTypes: Array<{ type: string; count: number; confidence: number }>
+      dataQuality: {
+        completeness: number
+        consistency: number
+        accuracy: number
+      }
+      recommendations: string[]
+    }>>
+
+    /**
+     * Validates data compatibility with current knowledge base.
+     * @param rawData The raw data to validate
+     * @param dataType The type of raw data
+     */
+    validateCompatibility?(rawData: Buffer | string, dataType: string): Promise<AugmentationResponse<{
+      compatible: boolean
+      issues: Array<{ type: string; description: string; severity: 'low' | 'medium' | 'high' }>
+      suggestions: string[]
+    }>>
   }
 
   /**

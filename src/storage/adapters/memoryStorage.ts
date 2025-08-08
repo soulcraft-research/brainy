@@ -190,6 +190,36 @@ export class MemoryStorage extends BaseStorage {
   }
 
   /**
+   * Get nouns with pagination - simplified interface for compatibility
+   */
+  public async getNounsWithPagination(options: {
+    limit?: number
+    cursor?: string
+    filter?: any
+  } = {}): Promise<{
+    items: HNSWNoun[]
+    totalCount: number
+    hasMore: boolean
+    nextCursor?: string
+  }> {
+    // Convert to the getNouns format
+    const result = await this.getNouns({
+      pagination: {
+        offset: options.cursor ? parseInt(options.cursor) : 0,
+        limit: options.limit || 100
+      },
+      filter: options.filter
+    })
+
+    return {
+      items: result.items,
+      totalCount: result.totalCount || 0,
+      hasMore: result.hasMore,
+      nextCursor: result.nextCursor
+    }
+  }
+
+  /**
    * Get nouns by noun type
    * @param nounType The noun type to filter by
    * @returns Promise that resolves to an array of nouns of the specified noun type

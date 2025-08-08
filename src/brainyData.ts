@@ -1486,6 +1486,18 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         augmentationPipeline.register(this.intelligentVerbScoring)
       }
 
+      // Initialize default augmentations (Neural Import, etc.)
+      try {
+        const { initializeDefaultAugmentations } = await import('./shared/default-augmentations.js')
+        await initializeDefaultAugmentations(this)
+        if (this.loggingConfig?.verbose) {
+          console.log('🧠⚛️ Default augmentations initialized')
+        }
+      } catch (error) {
+        console.warn('⚠️  Failed to initialize default augmentations:', error.message)
+        // Don't throw - Brainy should still work without default augmentations
+      }
+
       this.isInitialized = true
       this.isInitializing = false
 
