@@ -25,6 +25,12 @@ jest.config.js
 emocoverage/
 .nyc_output/
 
+# Framework bundles (not needed in npm package)
+dist/framework.js
+dist/framework.min.js
+dist/framework.js.map
+dist/framework.min.js.map
+
 # Large files
 # Include the logo but exclude other PNGs
 !brainy.png
