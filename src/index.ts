@@ -49,6 +49,14 @@ import {
   createModuleLogger 
 } from './utils/logger.js'
 
+// Export BrainyChat for conversational AI
+import { BrainyChat, ChatOptions } from './chat/brainyChat.js'
+export { BrainyChat }
+export type { ChatOptions }
+
+// Export Cortex CLI functionality
+export { Cortex } from './cortex/cortex.js'
+
 // Export performance and optimization utilities
 import {
   getGlobalSocketManager,
