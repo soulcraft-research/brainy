@@ -2905,7 +2905,7 @@ export class Cortex {
 
         if (!accountResponse.hasAccount) {
           console.log('\n' + boxen(
-            `${emojis.sparkle} ${colors.brain('CREATE YOUR ACCOUNT')}\n\n` +
+            `${emojis.sparkles} ${colors.brain('CREATE YOUR ACCOUNT')}\n\n` +
             `${colors.accent('◆')} Visit: ${colors.highlight('https://soulcraftlabs.com/brain-cloud')}\n` +
             `${colors.accent('◆')} Click "Start Free Trial"\n` +
             `${colors.accent('◆')} Get your API key\n` +
@@ -2950,9 +2950,9 @@ export class Cortex {
         `${colors.accent('◆')} ${colors.dim('Claude Desktop:')} ${colors.success('Brain Jar installed')}\n` +
         `${colors.accent('◆')} ${colors.dim('MCP Server:')} ${colors.success('Running')}\n\n` +
         `${colors.retro('Next Steps:')}\n` +
-        `${colors.primary('1.')} Open Claude Desktop\n` +
-        `${colors.primary('2.')} Start a new conversation\n` +
-        `${colors.primary('3.')} Your AI now has persistent memory!\n\n` +
+        `${colors.cyan('1.')} Open Claude Desktop\n` +
+        `${colors.cyan('2.')} Start a new conversation\n` +
+        `${colors.cyan('3.')} Your AI now has persistent memory!\n\n` +
         `${colors.dim('Dashboard:')} ${colors.highlight('brainy brain-jar dashboard')}\n` +
         `${colors.dim('Status:')} ${colors.highlight('brainy status')}`,
         { padding: 1, borderStyle: 'double', borderColor: '#5FD45C' }

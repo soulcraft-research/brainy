@@ -22,11 +22,12 @@ if (isNode()) {
  * Universal file operations interface
  */
 export interface UniversalFS {
-  readFile(path: string): Promise<string>
-  writeFile(path: string, data: string): Promise<void>
+  readFile(path: string, encoding?: string): Promise<string>
+  writeFile(path: string, data: string, encoding?: string): Promise<void>
   mkdir(path: string, options?: { recursive?: boolean }): Promise<void>
   exists(path: string): Promise<boolean>
   readdir(path: string): Promise<string[]>
+  readdir(path: string, options: { withFileTypes: true }): Promise<{ name: string, isDirectory(): boolean, isFile(): boolean }[]>
   unlink(path: string): Promise<void>
   stat(path: string): Promise<{ isFile(): boolean, isDirectory(): boolean }>
   access(path: string, mode?: number): Promise<void>
@@ -68,7 +69,7 @@ class BrowserFS implements UniversalFS {
     return dir
   }
 
-  async readFile(path: string): Promise<string> {
+  async readFile(path: string, encoding?: string): Promise<string> {
     try {
       const fileHandle = await this.getFileHandle(path)
       const file = await fileHandle.getFile()
@@ -78,7 +79,7 @@ class BrowserFS implements UniversalFS {
     }
   }
 
-  async writeFile(path: string, data: string): Promise<void> {
+  async writeFile(path: string, data: string, encoding?: string): Promise<void> {
     const fileHandle = await this.getFileHandle(path, true)
     const writable = await fileHandle.createWritable()
     await writable.write(data)
@@ -103,13 +104,27 @@ class BrowserFS implements UniversalFS {
     }
   }
 
-  async readdir(path: string): Promise<string[]> {
+  async readdir(path: string): Promise<string[]>
+  async readdir(path: string, options: { withFileTypes: true }): Promise<{ name: string, isDirectory(): boolean, isFile(): boolean }[]>
+  async readdir(path: string, options?: { withFileTypes?: boolean }): Promise<string[] | { name: string, isDirectory(): boolean, isFile(): boolean }[]> {
     const dir = await this.getDirHandle(path)
-    const entries: string[] = []
-    for await (const [name] of dir.entries()) {
-      entries.push(name)
+    if (options?.withFileTypes) {
+      const entries: { name: string, isDirectory(): boolean, isFile(): boolean }[] = []
+      for await (const [name, handle] of dir.entries()) {
+        entries.push({
+          name,
+          isDirectory: () => handle.kind === 'directory',
+          isFile: () => handle.kind === 'file'
+        })
+      }
+      return entries
+    } else {
+      const entries: string[] = []
+      for await (const [name] of dir.entries()) {
+        entries.push(name)
+      }
+      return entries
     }
-    return entries
   }
 
   async unlink(path: string): Promise<void> {
@@ -152,12 +167,12 @@ class BrowserFS implements UniversalFS {
  * Node.js implementation using fs/promises
  */
 class NodeFS implements UniversalFS {
-  async readFile(path: string): Promise<string> {
-    return await nodeFs.readFile(path, 'utf-8')
+  async readFile(path: string, encoding = 'utf-8'): Promise<string> {
+    return await nodeFs.readFile(path, encoding)
   }
 
-  async writeFile(path: string, data: string): Promise<void> {
-    await nodeFs.writeFile(path, data, 'utf-8')
+  async writeFile(path: string, data: string, encoding = 'utf-8'): Promise<void> {
+    await nodeFs.writeFile(path, data, encoding)
   }
 
   async mkdir(path: string, options = { recursive: true }): Promise<void> {
@@ -173,7 +188,12 @@ class NodeFS implements UniversalFS {
     }
   }
 
-  async readdir(path: string): Promise<string[]> {
+  async readdir(path: string): Promise<string[]>
+  async readdir(path: string, options: { withFileTypes: true }): Promise<{ name: string, isDirectory(): boolean, isFile(): boolean }[]>
+  async readdir(path: string, options?: { withFileTypes?: boolean }): Promise<string[] | { name: string, isDirectory(): boolean, isFile(): boolean }[]> {
+    if (options?.withFileTypes) {
+      return await nodeFs.readdir(path, { withFileTypes: true })
+    }
     return await nodeFs.readdir(path)
   }
 
@@ -201,7 +221,7 @@ class MemoryFS implements UniversalFS {
   private files = new Map<string, string>()
   private dirs = new Set<string>()
 
-  async readFile(path: string): Promise<string> {
+  async readFile(path: string, encoding?: string): Promise<string> {
     const content = this.files.get(path)
     if (content === undefined) {
       throw new Error(`File not found: ${path}`)
@@ -209,7 +229,7 @@ class MemoryFS implements UniversalFS {
     return content
   }
 
-  async writeFile(path: string, data: string): Promise<void> {
+  async writeFile(path: string, data: string, encoding?: string): Promise<void> {
     this.files.set(path, data)
     // Ensure parent directories exist
     const parts = path.split('/').slice(0, -1)
@@ -232,7 +252,9 @@ class MemoryFS implements UniversalFS {
     return this.files.has(path) || this.dirs.has(path)
   }
 
-  async readdir(path: string): Promise<string[]> {
+  async readdir(path: string): Promise<string[]>
+  async readdir(path: string, options: { withFileTypes: true }): Promise<{ name: string, isDirectory(): boolean, isFile(): boolean }[]>
+  async readdir(path: string, options?: { withFileTypes?: boolean }): Promise<string[] | { name: string, isDirectory(): boolean, isFile(): boolean }[]> {
     const entries = new Set<string>()
     const pathPrefix = path + '/'
     
@@ -250,6 +272,14 @@ class MemoryFS implements UniversalFS {
         const firstSegment = relativePath.split('/')[0]
         if (firstSegment) entries.add(firstSegment)
       }
+    }
+    
+    if (options?.withFileTypes) {
+      return Array.from(entries).map(name => ({
+        name,
+        isDirectory: () => this.dirs.has(path + '/' + name),
+        isFile: () => this.files.has(path + '/' + name)
+      }))
     }
     
     return Array.from(entries)
