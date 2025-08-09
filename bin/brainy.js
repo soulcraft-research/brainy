@@ -174,6 +174,37 @@ program
   }))
 
 // ========================================
+// BRAIN CLOUD INTEGRATION
+// ========================================
+
+program
+  .command('cloud [action]')
+  .description('☁️ Connect to Brain Cloud - AI memory that never forgets')
+  .option('--connect <id>', 'Connect to existing Brain Cloud instance')
+  .option('--migrate', 'Migrate between local and cloud')
+  .action(wrapInteractive(async (action, options) => {
+    // For now, show connection instructions
+    console.log(chalk.cyan('\n⚛️ BRAIN CLOUD - AI Memory That Never Forgets'))
+    console.log(chalk.gray('━'.repeat(50)))
+    
+    if (options.connect) {
+      console.log(chalk.green(`✅ Connecting to Brain Cloud instance: ${options.connect}`))
+      console.log(chalk.yellow('\nNote: Full cloud integration coming soon!'))
+      console.log('\nFor now, visit: ' + chalk.cyan('https://app.soulcraftlabs.com'))
+    } else {
+      console.log(chalk.yellow('📡 Brain Cloud Setup'))
+      console.log('\n1. Sign up at: ' + chalk.cyan('https://app.soulcraftlabs.com'))
+      console.log('2. Get your customer ID')
+      console.log('3. Connect with: ' + chalk.green('brainy cloud --connect YOUR_ID'))
+      console.log('\nBenefits:')
+      console.log('  • ' + chalk.green('Never lose AI context again'))
+      console.log('  • ' + chalk.green('Sync across all devices'))
+      console.log('  • ' + chalk.green('Unlimited memory storage'))
+      console.log('  • ' + chalk.green('$19/month or free trial'))
+    }
+  }))
+
+// ========================================
 // AUGMENTATION MANAGEMENT (Direct Commands)
 // ========================================
 
