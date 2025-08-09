@@ -1,79 +1,14 @@
-# 🧠⚛️ Brainy Connectors - Quantum Vault Integration
+# 🧠 Brainy Connectors - Open Source Interface
 
-**Premium connectors for the atomic-age vector + graph database**
+**Standard connector interface for the Brainy ecosystem**
 
-## 🔒 **Quantum Vault Access Required**
+## 📋 Overview
 
-The full implementations of Brainy's premium connectors are stored in the **Quantum Vault** (`brainy-quantum-vault`) - our secure repository for advanced atomic-age technologies.
+This directory contains the **open source interface** that all Brainy connectors implement. These interfaces provide a standardized way to connect external data sources to your Brainy database.
 
-### **Available Premium Connectors:**
+## 🔧 Interface Definition
 
-| Connector | Description | Pricing | Trial |
-|-----------|-------------|---------|-------|
-| 🔧 **Notion** | Sync pages, databases, and documentation | $39/month | 14 days |
-| 💼 **Salesforce** | Real-time CRM sync with contacts & opportunities | $49/month | 14 days |
-| 💬 **Slack** | Import channels, messages, and team data | $29/month | 7 days |
-| 🎯 **Asana** | Sync tasks, projects, teams, and milestones | $44/month | 14 days |
-| 🎫 **Jira** | Import tickets, projects, and workflows | $34/month | 10 days |
-| 📊 **HubSpot** | Connect deals, contacts, and marketing data | $59/month | 14 days |
-
-## 🚀 **Getting Started**
-
-### **1. Start Your Free Trial**
-```bash
-# Browse available connectors
-cortex license catalog
-
-# Start free trial (no credit card required)
-cortex license trial notion-connector
-
-# Check your trial status
-cortex license status
-```
-
-### **2. Access the Quantum Vault**
-Once you have an active license, you'll receive access to:
-- **Private npm packages** with full connector implementations
-- **Documentation** with setup guides and examples
-- **Priority support** from our atomic-age scientists
-
-### **3. Install and Configure**
-```typescript
-import { NotionConnector } from '@soulcraft/brainy-quantum-vault'
-import { BrainyData } from '@soulcraft/brainy'
-
-const brainy = new BrainyData()
-await brainy.init()
-
-const notion = new NotionConnector({
-  connectorId: 'notion',
-  licenseKey: process.env.BRAINY_LICENSE_KEY,
-  credentials: {
-    accessToken: process.env.NOTION_ACCESS_TOKEN
-  }
-})
-
-await notion.initialize()
-const result = await notion.startSync()
-console.log(`Synced ${result.synced} items from Notion!`)
-```
-
-## 🔧 **Open Source Interface**
-
-This repository contains the **open source interfaces** that all Quantum Vault connectors implement:
-
-- **`IConnector.ts`** - Base connector interface
-- **`types.ts`** - Shared type definitions
-- **`utils.ts`** - Common utility functions
-
-These interfaces allow you to:
-- ✅ **Build your own connectors** using the same patterns
-- ✅ **Understand the API** before purchasing
-- ✅ **Contribute improvements** to the interface design
-
-## 🏗️ **Build Your Own Connector**
-
-Want to create a connector for a service we don't support yet?
+The `IConnector.ts` file defines the standard interface that all connectors must implement:
 
 ```typescript
 import { IConnector, ConnectorConfig, SyncResult } from './interfaces/IConnector'
@@ -96,36 +31,33 @@ export class MyCustomConnector implements IConnector {
 }
 ```
 
-## 💡 **Why Premium Connectors?**
+## 🚀 Building Custom Connectors
 
-### **🔬 Advanced Research & Development**
-- Maintaining OAuth flows and API compatibility
-- Handling rate limits and enterprise security
-- 24/7 monitoring and automatic updates
-- Priority support and bug fixes
+You can build your own connectors using these interfaces:
 
-### **⚡ Production-Ready Quality**
-- Extensive testing with real enterprise data
-- Error handling and retry logic
-- Performance optimization at scale
-- Security audits and compliance
+1. **Implement IConnector** - Follow the interface contract
+2. **Handle Authentication** - Manage your service credentials
+3. **Sync Data** - Pull data from your source
+4. **Transform** - Convert to Brainy's format
+5. **Store** - Save to your Brainy database
 
-### **🧠 Continuous Intelligence**
-- AI-powered relationship detection
-- Semantic understanding of domain-specific data
-- Smart deduplication and conflict resolution
-- Automatic schema evolution
+## 📦 Premium Connectors
 
-## 🎯 **Start Your Atomic Transformation**
+For production-ready connectors with enterprise features, check out **Brain Cloud**:
 
-Ready to unlock the full power of your data?
+- **Notion** - Sync pages and databases
+- **Salesforce** - CRM integration
+- **Slack** - Team communication data
+- **And more** - Coming soon
 
-**[Browse Premium Connectors →](https://soulcraft-research.com/brainy/premium)**
+Learn more at [soulcraftlabs.com/brain-cloud](https://soulcraftlabs.com/brain-cloud)
 
-**[Start Free Trial →](https://soulcraft-research.com/brainy/trial)**
+## 📚 Documentation
 
-**[Contact Sales →](https://soulcraft-research.com/brainy/sales)**
+- [Connector Development Guide](https://docs.soulcraftlabs.com/brainy/connectors)
+- [API Reference](https://docs.soulcraftlabs.com/brainy/api)
+- [Examples](https://github.com/soulcraft/brainy-examples)
 
 ---
 
-*"In the quantum vault, every connection becomes a pathway to atomic-age intelligence."* 🧠⚛️✨
+*Part of the Brainy ecosystem by Soulcraft Labs*

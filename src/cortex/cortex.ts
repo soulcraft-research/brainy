@@ -2593,163 +2593,59 @@ export class Cortex {
   }
 
   /**
-   * Premium Licensing System - Atomic Age Revenue Engine
+   * Premium Features - Redirect to Brain Cloud
    */
   async licenseCatalog(): Promise<void> {
-    await this.ensureInitialized()
-    
-    if (!this.licensingSystem) {
-      console.log(colors.error('Licensing system not initialized'))
-      return
-    }
-
-    await this.licensingSystem.displayFeatureCatalog()
+    console.log(boxen(
+      `${emojis.brain}☁️ ${colors.brain('BRAIN CLOUD PREMIUM FEATURES')}\n\n` +
+      `Premium connectors and features have moved to Brain Cloud!\n\n` +
+      `${colors.accent('◆')} ${colors.dim('Setup Brain Cloud:')} ${colors.highlight('brainy cloud')}\n` +
+      `${colors.accent('◆')} ${colors.dim('Learn more:')} ${colors.highlight('https://soulcraftlabs.com/brain-cloud')}\n\n` +
+      `${colors.retro('Available Tiers:')}\n` +
+      `${colors.success('🫙')} Brain Jar (Free) - Local coordination\n` +
+      `${colors.success('☁️')} Brain Cloud ($19/mo) - Sync everywhere\n` +
+      `${colors.success('🏦')} Brain Bank ($99/mo) - Enterprise features`,
+      { padding: 1, borderStyle: 'round', borderColor: '#D67441' }
+    ))
   }
 
   async licenseStatus(licenseId?: string): Promise<void> {
-    await this.ensureInitialized()
-    
-    if (!this.licensingSystem) {
-      console.log(colors.error('Licensing system not initialized'))
-      return
-    }
-
-    await this.licensingSystem.checkLicenseStatus(licenseId)
+    console.log(colors.info('License management has moved to Brain Cloud'))
+    console.log(colors.dim('Run: brainy cloud'))
   }
 
   async licenseTrial(featureId: string, customerName?: string, customerEmail?: string): Promise<void> {
-    await this.ensureInitialized()
-    
-    if (!this.licensingSystem) {
-      console.log(colors.error('Licensing system not initialized'))
-      return
-    }
-
-    // Get customer info if not provided
-    if (!customerName || !customerEmail) {
-      // @ts-ignore
-      const prompts = (await import('prompts')).default
-      
-      const response = await prompts([
-        {
-          type: 'text',
-          name: 'name',
-          message: 'Your name:',
-          initial: customerName || ''
-        },
-        {
-          type: 'text',
-          name: 'email',
-          message: 'Your email address:',
-          initial: customerEmail || '',
-          validate: (email: string) => email.includes('@') ? true : 'Please enter a valid email'
-        }
-      ])
-
-      if (!response.name || !response.email) {
-        console.log(colors.dim('Trial activation cancelled'))
-        return
-      }
-
-      customerName = response.name
-      customerEmail = response.email
-    }
-
-    // Type guard to ensure values are strings
-    if (!customerName || !customerEmail) {
-      console.log(colors.error('Customer name and email are required'))
-      return
-    }
-
-    const license = await this.licensingSystem.startTrial(featureId, {
-      name: customerName,
-      email: customerEmail
-    })
-
-    if (license) {
-      console.log(boxen(
-        `${emojis.sparkle} ${colors.brain('WELCOME TO BRAINY PREMIUM!')} ${emojis.atom}\n\n` +
-        `${colors.accent('◆')} ${colors.dim('Your trial is now active')}\n` +
-        `${colors.accent('◆')} ${colors.dim('Access premium features immediately')}\n` +
-        `${colors.accent('◆')} ${colors.dim('Upgrade anytime at https://soulcraft-research.com/brainy/premium')}`,
-        { padding: 1, borderStyle: 'round', borderColor: '#FFD700' }
-      ))
-    }
+    console.log(boxen(
+      `${emojis.sparkle} ${colors.brain('START YOUR BRAIN CLOUD TRIAL')}\n\n` +
+      `${colors.accent('◆')} ${colors.dim('14-day free trial')}\n` +
+      `${colors.accent('◆')} ${colors.dim('No credit card required')}\n` +
+      `${colors.accent('◆')} ${colors.dim('Cancel anytime')}\n\n` +
+      `${colors.highlight('Run: brainy cloud')}\n\n` +
+      `Or visit: ${colors.accent('https://soulcraftlabs.com/brain-cloud')}`,
+      { padding: 1, borderStyle: 'round', borderColor: '#FFD700' }
+    ))
   }
 
   async licenseValidate(featureId: string): Promise<boolean> {
-    await this.ensureInitialized()
-    
-    if (!this.licensingSystem) {
-      console.log(colors.error('Licensing system not initialized'))
-      return false
-    }
-
-    const result = await this.licensingSystem.validateFeature(featureId)
-    
-    if (result.valid) {
-      console.log(colors.success(`${emojis.check} Feature '${featureId}' is licensed and available`))
-      
-      if (result.expiresIn && result.expiresIn <= 7) {
-        console.log(colors.warning(`${emojis.warning} License expires in ${result.expiresIn} days`))
-      }
-      
-      return true
-    } else {
-      console.log(colors.error(`${emojis.cross} Feature '${featureId}' is not available: ${result.reason}`))
-      
-      if (result.reason?.includes('No valid license')) {
-        console.log(colors.info(`${emojis.info} Start a free trial: cortex license trial ${featureId}`))
-      }
-      
-      return false
-    }
+    console.log(colors.info('Premium features available in Brain Cloud'))
+    console.log(colors.dim('Setup: brainy cloud'))
+    return false
   }
 
   /**
-   * Check if a premium feature is available before using it
+   * Check if a premium feature is available
    */
   async requirePremiumFeature(featureId: string, silent: boolean = false): Promise<boolean> {
-    if (!this.licensingSystem) {
-      if (!silent) console.log(colors.error('Licensing system not initialized'))
-      return false
+    if (!silent) {
+      console.log(boxen(
+        `${emojis.lock} ${colors.brain('BRAIN CLOUD FEATURE')} ${emojis.atom}\n\n` +
+        `This feature is available in Brain Cloud!\n\n` +
+        `${colors.highlight('Setup: brainy cloud')}\n` +
+        `${colors.dim('Learn more: https://soulcraftlabs.com/brain-cloud')}`,
+        { padding: 1, borderStyle: 'round', borderColor: '#D67441' }
+      ))
     }
-
-    const result = await this.licensingSystem.validateFeature(featureId)
-    
-    if (!result.valid) {
-      if (!silent) {
-        console.log(boxen(
-          `${emojis.lock} ${colors.brain('PREMIUM FEATURE REQUIRED')} ${emojis.atom}\n\n` +
-          `${colors.accent('◆')} ${colors.dim('This feature requires a premium license')}\n` +
-          `${colors.accent('◆')} ${colors.dim('Reason:')} ${colors.warning(result.reason)}\n\n` +
-          `${colors.accent('Start free trial:')} ${colors.highlight('cortex license trial ' + featureId)}\n` +
-          `${colors.accent('Browse catalog:')} ${colors.highlight('cortex license catalog')}`,
-          { padding: 1, borderStyle: 'round', borderColor: '#D67441' }
-        ))
-      }
-      
-      return false
-    }
-
-    // Show usage warnings if approaching limits
-    if (result.usage && result.license) {
-      const limits = result.license.limits
-      
-      if (limits.apiCallsPerMonth && result.usage.apiCalls > limits.apiCallsPerMonth * 0.8) {
-        if (!silent) {
-          console.log(colors.warning(`${emojis.warning} Approaching API call limit: ${result.usage.apiCalls}/${limits.apiCallsPerMonth}`))
-        }
-      }
-      
-      if (limits.dataVolumeGB && result.usage.dataUsed > limits.dataVolumeGB * 0.8) {
-        if (!silent) {
-          console.log(colors.warning(`${emojis.warning} Approaching data usage limit: ${result.usage.dataUsed}GB/${limits.dataVolumeGB}GB`))
-        }
-      }
-    }
-
-    return true
+    return false
   }
 
   /**
@@ -2940,6 +2836,133 @@ export class Cortex {
     } catch (error: any) {
       spinner.fail('Search failed')
       console.error(colors.error('Error:'), error.message)
+    }
+  }
+
+  /**
+   * Brain Cloud Super Command - One command to rule them all
+   */
+  async setupBrainCloud(options: any): Promise<void> {
+    const { prompt } = await import('prompts')
+    const colors = this.colors
+    const emojis = this.emojis
+    
+    console.log(boxen(
+      `${emojis.brain}☁️ ${colors.brain('BRAIN CLOUD SETUP')}\n\n` +
+      `${colors.accent('Transform your AI into a coordinated system')}\n` +
+      `${colors.dim('One command. Global sync. Team coordination.')}\n\n` +
+      `${colors.success('✅')} Install Brain Jar in Claude Desktop\n` +
+      `${colors.success('✅')} Configure cloud sync across devices\n` +
+      `${colors.success('✅')} Setup team workspaces (optional)`,
+      { padding: 1, borderStyle: 'double', borderColor: '#D67441' }
+    ))
+
+    // Interactive mode if not specified
+    if (options.mode === 'interactive') {
+      const response = await prompt([
+        {
+          type: 'select',
+          name: 'tier',
+          message: 'Choose your Brain Cloud tier:',
+          choices: [
+            { title: '🫙 Brain Jar (Free) - Local coordination only', value: 'free' },
+            { title: '☁️ Brain Cloud ($19/mo) - Sync across all devices', value: 'cloud' },
+            { title: '🏦 Brain Bank ($99/mo) - Enterprise features', value: 'bank' }
+          ],
+          initial: 0
+        }
+      ])
+
+      if (!response.tier) {
+        console.log(colors.warning('Setup cancelled'))
+        return
+      }
+
+      options.mode = response.tier
+    }
+
+    const spinner = ora('Setting up Brain Cloud...').start()
+
+    try {
+      // Step 1: Install Brain Jar
+      if (!options.skipInstall) {
+        spinner.text = 'Installing Brain Jar in Claude Desktop...'
+        await this.brainJarInstall(options.mode)
+      }
+
+      // Step 2: Configure based on tier
+      if (options.mode === 'cloud' || options.mode === 'bank') {
+        spinner.text = 'Configuring cloud sync...'
+        
+        const accountResponse = await prompt([
+          {
+            type: 'confirm',
+            name: 'hasAccount',
+            message: 'Do you have a Brain Cloud account?',
+            initial: false
+          }
+        ])
+
+        if (!accountResponse.hasAccount) {
+          console.log('\n' + boxen(
+            `${emojis.sparkle} ${colors.brain('CREATE YOUR ACCOUNT')}\n\n` +
+            `${colors.accent('◆')} Visit: ${colors.highlight('https://soulcraftlabs.com/brain-cloud')}\n` +
+            `${colors.accent('◆')} Click "Start Free Trial"\n` +
+            `${colors.accent('◆')} Get your API key\n` +
+            `${colors.accent('◆')} Return here to continue setup`,
+            { padding: 1, borderStyle: 'round', borderColor: '#FFD700' }
+          ))
+
+          const keyResponse = await prompt([
+            {
+              type: 'text',
+              name: 'apiKey',
+              message: 'Enter your Brain Cloud API key:'
+            }
+          ])
+
+          if (keyResponse.apiKey) {
+            await this.configSet('brain-cloud.apiKey', keyResponse.apiKey, { encrypt: true })
+          }
+        }
+
+        // Enable cloud sync in Brain Jar
+        await this.configSet('brain-jar.cloudSync', 'true', {})
+        await this.configSet('brain-jar.tier', options.mode, {})
+      }
+
+      // Step 3: Start Brain Jar
+      spinner.text = 'Starting Brain Jar coordination...'
+      await this.brainJarStart({})
+
+      spinner.succeed('Brain Cloud setup complete!')
+
+      // Show success message
+      const tierMessages = {
+        free: 'Local AI coordination active',
+        cloud: 'Cloud sync enabled across all devices',
+        bank: 'Enterprise features activated'
+      }
+
+      console.log('\n' + boxen(
+        `${emojis.check}${emojis.brain} ${colors.success('BRAIN CLOUD ACTIVE!')}\n\n` +
+        `${colors.accent('◆')} ${colors.dim('Status:')} ${colors.success(tierMessages[options.mode as keyof typeof tierMessages])}\n` +
+        `${colors.accent('◆')} ${colors.dim('Claude Desktop:')} ${colors.success('Brain Jar installed')}\n` +
+        `${colors.accent('◆')} ${colors.dim('MCP Server:')} ${colors.success('Running')}\n\n` +
+        `${colors.retro('Next Steps:')}\n` +
+        `${colors.primary('1.')} Open Claude Desktop\n` +
+        `${colors.primary('2.')} Start a new conversation\n` +
+        `${colors.primary('3.')} Your AI now has persistent memory!\n\n` +
+        `${colors.dim('Dashboard:')} ${colors.highlight('brainy brain-jar dashboard')}\n` +
+        `${colors.dim('Status:')} ${colors.highlight('brainy status')}`,
+        { padding: 1, borderStyle: 'double', borderColor: '#5FD45C' }
+      ))
+
+    } catch (error: any) {
+      spinner.fail('Setup failed')
+      console.error(colors.error('Error:'), error.message)
+      
+      console.log('\n' + colors.dim('Need help? Visit https://soulcraftlabs.com/brain-cloud/support'))
     }
   }
 
