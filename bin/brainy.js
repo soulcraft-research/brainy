@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Brainy CLI - Beautiful command center for the vector + graph database
+ * Brainy CLI - Redesigned for Better UX
+ * Direct commands + Augmentation system
  */
 
 // @ts-ignore
@@ -19,19 +20,15 @@ const packageJson = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'
 // Create Cortex instance
 const cortex = new Cortex()
 
-// Helper to ensure proper process exit
+// Helper functions
 const exitProcess = (code = 0) => {
-  setTimeout(() => {
-    process.exit(code)
-  }, 100)
+  setTimeout(() => process.exit(code), 100)
 }
 
-// Wrap async actions to ensure proper exit
 const wrapAction = (fn) => {
   return async (...args) => {
     try {
       await fn(...args)
-      // Always exit for non-interactive commands
       exitProcess(0)
     } catch (error) {
       console.error(chalk.red('Error:'), error.message)
@@ -40,7 +37,6 @@ const wrapAction = (fn) => {
   }
 }
 
-// Wrap interactive actions with explicit exit
 const wrapInteractive = (fn) => {
   return async (...args) => {
     try {
@@ -53,38 +49,34 @@ const wrapInteractive = (fn) => {
   }
 }
 
-// Setup program
+// ========================================
+// MAIN PROGRAM SETUP
+// ========================================
+
 program
-  .name('cortex')
-  .description('🧠 Cortex - Command Center for Brainy')
+  .name('brainy')
+  .description('🧠 Brainy - Vector + Graph Database with AI Coordination')
   .version(packageJson.version)
 
-// Initialize command
+// ========================================
+// CORE DATABASE COMMANDS (Direct Access)
+// ========================================
+
 program
   .command('init')
-  .description('Initialize Cortex in your project')
+  .description('🚀 Initialize Brainy in your project')
   .option('-s, --storage <type>', 'Storage type (filesystem, s3, r2, gcs, memory)')
   .option('-e, --encryption', 'Enable encryption for secrets')
   .action(wrapAction(async (options) => {
     await cortex.init(options)
   }))
 
-// Chat commands (simplified - just 'chat', no alias)
-program
-  .command('chat [question]')
-  .description('💬 Chat with your data (interactive mode if no question)')
-  .option('-l, --llm <model>', 'LLM model to use')
-  .action(wrapInteractive(async (question, options) => {
-    await cortex.chat(question)
-  }))
-
-// Data management commands
 program
   .command('add [data]')
   .description('📊 Add data to Brainy')
   .option('-m, --metadata <json>', 'Metadata as JSON')
   .option('-i, --id <id>', 'Custom ID')
-  .action(async (data, options) => {
+  .action(wrapAction(async (data, options) => {
     let metadata = {}
     if (options.metadata) {
       try {
@@ -98,17 +90,16 @@ program
       metadata.id = options.id
     }
     await cortex.add(data, metadata)
-    exitProcess(0)
-  })
+  }))
 
 program
   .command('search <query>')
-  .description('🔍 Search your database with advanced options')
+  .description('🔍 Search your database')
   .option('-l, --limit <number>', 'Number of results', '10')
   .option('-f, --filter <json>', 'MongoDB-style metadata filters')
   .option('-v, --verbs <types>', 'Graph verb types to traverse (comma-separated)')
   .option('-d, --depth <number>', 'Graph traversal depth', '1')
-  .action(async (query, options) => {
+  .action(wrapAction(async (query, options) => {
     const searchOptions = { limit: parseInt(options.limit) }
     
     if (options.filter) {
@@ -126,189 +117,44 @@ program
     }
     
     await cortex.search(query, searchOptions)
-    exitProcess(0)
-  })
+  }))
+
+program
+  .command('chat [question]')
+  .description('💬 Chat with your data (interactive mode if no question)')
+  .option('-l, --llm <model>', 'LLM model to use')
+  .action(wrapInteractive(async (question, options) => {
+    await cortex.chat(question)
+  }))
+
+program
+  .command('stats')
+  .description('📊 Show database statistics')
+  .option('-d, --detailed', 'Show detailed statistics')
+  .action(wrapAction(async (options) => {
+    await cortex.stats(options.detailed)
+  }))
+
+program
+  .command('health')
+  .description('🔋 Check system health')
+  .option('--auto-fix', 'Automatically apply safe repairs')
+  .action(wrapAction(async (options) => {
+    await cortex.health(options)
+  }))
 
 program
   .command('find')
-  .description('🔍 Interactive advanced search with filters and graph traversal')
+  .description('🔍 Interactive advanced search')
   .action(wrapInteractive(async () => {
     await cortex.advancedSearch()
   }))
-
-program
-  .command('update <id> <data>')
-  .description('✏️ Update existing data')
-  .option('-m, --metadata <json>', 'New metadata as JSON')
-  .action(async (id, data, options) => {
-    let metadata = {}
-    if (options.metadata) {
-      try {
-        metadata = JSON.parse(options.metadata)
-      } catch {
-        console.error(chalk.red('Invalid metadata JSON'))
-        process.exit(1)
-      }
-    }
-    await cortex.update(id, data, metadata)
-    exitProcess(0)
-  })
-
-program
-  .command('delete <id>')
-  .description('🗑️ Delete data by ID')
-  .action(wrapAction(async (id) => {
-    await cortex.delete(id)
-  }))
-
-// Graph commands
-program
-  .command('verb <subject> <verb> <object>')
-  .description('🔗 Add graph relationship between nodes')
-  .option('-m, --metadata <json>', 'Relationship metadata')
-  .action(async (subject, verb, object, options) => {
-    let metadata = {}
-    if (options.metadata) {
-      try {
-        metadata = JSON.parse(options.metadata)
-      } catch {
-        console.error(chalk.red('Invalid metadata JSON'))
-        process.exit(1)
-      }
-    }
-    await cortex.addVerb(subject, verb, object, metadata)
-    exitProcess(0)
-  })
 
 program
   .command('explore [nodeId]')
   .description('🗺️ Interactively explore graph connections')
   .action(wrapInteractive(async (nodeId) => {
     await cortex.explore(nodeId)
-  }))
-
-// Configuration commands
-const config = program.command('config')
-  .description('⚙️ Manage configuration')
-
-config
-  .command('set <key> <value>')
-  .description('Set configuration value')
-  .option('-e, --encrypt', 'Encrypt this value')
-  .action(wrapAction(async (key, value, options) => {
-    await cortex.configSet(key, value, options)
-  }))
-
-config
-  .command('get <key>')
-  .description('Get configuration value')
-  .action(async (key) => {
-    const value = await cortex.configGet(key)
-    if (value) {
-      console.log(chalk.green(`${key}: ${value}`))
-    } else {
-      console.log(chalk.yellow(`Key not found: ${key}`))
-    }
-    exitProcess(0)
-  })
-
-config
-  .command('list')
-  .description('List all configuration')
-  .action(wrapAction(async () => {
-    await cortex.configList()
-  }))
-
-config
-  .command('import <file>')
-  .description('Import configuration from .env file')
-  .action(wrapAction(async (file) => {
-    await cortex.importEnv(file)
-  }))
-
-config
-  .command('export <file>')
-  .description('Export configuration to .env file')
-  .action(wrapAction(async (file) => {
-    await cortex.exportEnv(file)
-  }))
-
-config
-  .command('key-rotate')
-  .description('🔄 Rotate master encryption key')
-  .action(wrapInteractive(async () => {
-    await cortex.resetMasterKey()
-  }))
-
-config
-  .command('secrets-patterns')
-  .description('🛡️ List secret detection patterns')
-  .action(wrapAction(async () => {
-    await cortex.listSecretPatterns()
-  }))
-
-config
-  .command('secrets-add <pattern>')
-  .description('➕ Add custom secret detection pattern')
-  .action(wrapAction(async (pattern) => {
-    await cortex.addSecretPattern(pattern)
-  }))
-
-config
-  .command('secrets-remove <pattern>')
-  .description('➖ Remove custom secret detection pattern')
-  .action(wrapAction(async (pattern) => {
-    await cortex.removeSecretPattern(pattern)
-  }))
-
-// Migration commands
-program
-  .command('migrate')
-  .description('📦 Migrate to different storage')
-  .requiredOption('-t, --to <type>', 'Target storage type (filesystem, s3, r2, gcs, memory)')
-  .option('-b, --bucket <name>', 'Bucket name for cloud storage')
-  .option('-s, --strategy <type>', 'Migration strategy', 'immediate')
-  .action(wrapInteractive(async (options) => {
-    await cortex.migrate(options)
-  }))
-
-// Database operations
-program
-  .command('stats')
-  .description('📊 Show database statistics')
-  .option('-d, --detailed', 'Show detailed field statistics')
-  .action(wrapAction(async (options) => {
-    await cortex.stats(options.detailed)
-  }))
-
-program
-  .command('fields')
-  .description('📋 List all searchable fields with samples')
-  .action(wrapAction(async () => {
-    await cortex.listFields()
-  }))
-
-// LLM setup
-program
-  .command('llm [provider]')
-  .description('🤖 Setup or change LLM provider')
-  .action(wrapInteractive(async (provider) => {
-    await cortex.setupLLM(provider)
-  }))
-
-// Embedding utilities
-program
-  .command('embed <text>')
-  .description('✨ Generate embedding vector for text')
-  .action(wrapAction(async (text) => {
-    await cortex.embed(text)
-  }))
-
-program
-  .command('similarity <text1> <text2>')
-  .description('🔍 Calculate semantic similarity between texts')
-  .action(wrapAction(async (text1, text2) => {
-    await cortex.similarity(text1, text2)
   }))
 
 program
@@ -327,266 +173,243 @@ program
     await cortex.restore(file)
   }))
 
-program
-  .command('health')
-  .description('🏥 Check database health')
-  .action(wrapAction(async () => {
-    await cortex.health()
-  }))
-
-// Backup & Restore commands
-program
-  .command('backup')
-  .description('💾 Create atomic vault backup')
-  .option('-c, --compress', 'Enable quantum compression')
-  .option('-o, --output <file>', 'Output file path')
-  .option('--password <password>', 'Encrypt backup with password')
-  .action(wrapAction(async (options) => {
-    await cortex.backup(options)
-  }))
+// ========================================
+// AUGMENTATION MANAGEMENT (Direct Commands)
+// ========================================
 
 program
-  .command('restore <file>')
-  .description('♻️ Restore from atomic vault')
-  .option('--password <password>', 'Decrypt backup with password')
-  .option('--dry-run', 'Simulate restore without making changes')
-  .action(wrapInteractive(async (file, options) => {
-    await cortex.restore(file, options)
-  }))
-
-program
-  .command('backups')
-  .description('📋 List available atomic vault backups')
-  .option('-d, --directory <path>', 'Backup directory', './backups')
-  .action(wrapAction(async (options) => {
-    await cortex.listBackups(options.directory)
-  }))
-
-// Augmentation Management commands
-program
-  .command('augmentations')
-  .description('🧠 Show augmentation status and management')
-  .option('-v, --verbose', 'Show detailed augmentation information')
-  .action(wrapInteractive(async (options) => {
-    await cortex.augmentations(options)
-  }))
-
-// Performance Monitoring & Health Check commands
-program
-  .command('monitor')
-  .description('📊 Monitor vector + graph database performance')
-  .option('-d, --dashboard', 'Launch interactive performance dashboard')
-  .action(wrapInteractive(async (options) => {
-    await cortex.monitor(options)
-  }))
-
-program
-  .command('health')
-  .description('🔋 Check system health and diagnostics')
-  .option('--auto-fix', 'Automatically apply safe repairs')
-  .action(wrapAction(async (options) => {
-    await cortex.health(options)
-  }))
-
-program
-  .command('performance')
-  .description('⚡ Analyze database performance metrics')
-  .option('--analyze', 'Deep performance analysis with trends')
-  .action(wrapAction(async (options) => {
-    await cortex.performance(options)
-  }))
-
-// Premium Licensing commands
-const license = program.command('license')
-  .description('👑 Manage premium licenses and features')
-
-license
-  .command('catalog')
-  .description('📋 Browse premium features catalog')
-  .action(wrapAction(async () => {
-    await cortex.licenseCatalog()
-  }))
-
-license
-  .command('status [license-id]')
-  .description('📊 Check license status and usage')
-  .action(wrapAction(async (licenseId) => {
-    await cortex.licenseStatus(licenseId)
-  }))
-
-license
-  .command('trial <feature>')
-  .description('⏰ Start free trial for premium feature')
-  .option('--name <name>', 'Your name')
-  .option('--email <email>', 'Your email address')
-  .action(wrapAction(async (feature, options) => {
-    await cortex.licenseTrial(feature, options.name, options.email)
-  }))
-
-license
-  .command('validate <feature>')
-  .description('✅ Validate feature license availability')
-  .action(wrapAction(async (feature) => {
-    await cortex.licenseValidate(feature)
-  }))
-
-// Augmentation management commands
-const augment = program.command('augment')
-  .description('🧩 Manage augmentation pipeline')
-
-augment
-  .command('list')
-  .description('📋 List all augmentations and pipeline status')
-  .action(wrapAction(async () => {
-    await cortex.listAugmentations()
-  }))
-
-augment
-  .command('add <type>')
-  .description('➕ Add augmentation to pipeline')
-  .option('-p, --position <number>', 'Pipeline position')
+  .command('install <augmentation>')
+  .description('📦 Install augmentation')
+  .option('-m, --mode <type>', 'Installation mode (free|premium)', 'free')
   .option('-c, --config <json>', 'Configuration as JSON')
-  .action(wrapAction(async (type, options) => {
-    let config = {}
-    if (options.config) {
-      try {
-        config = JSON.parse(options.config)
-      } catch {
-        console.error(chalk.red('Invalid JSON configuration'))
-        process.exit(1)
+  .action(wrapAction(async (augmentation, options) => {
+    if (augmentation === 'brain-jar') {
+      await cortex.brainJarInstall(options.mode)
+    } else {
+      // Generic augmentation install
+      let config = {}
+      if (options.config) {
+        try {
+          config = JSON.parse(options.config)
+        } catch {
+          console.error(chalk.red('Invalid JSON configuration'))
+          process.exit(1)
+        }
       }
+      await cortex.addAugmentation(augmentation, undefined, config)
     }
-    await cortex.addAugmentation(type, options.position ? parseInt(options.position) : undefined, config)
   }))
 
-augment
-  .command('remove <type>')
-  .description('➖ Remove augmentation from pipeline')
-  .action(wrapAction(async (type) => {
-    await cortex.removeAugmentation(type)
-  }))
-
-augment
-  .command('configure <type> <config>')
-  .description('⚙️ Configure existing augmentation')
-  .action(wrapAction(async (type, configJson) => {
-    let config = {}
-    try {
-      config = JSON.parse(configJson)
-    } catch {
-      console.error(chalk.red('Invalid JSON configuration'))
-      process.exit(1)
+program
+  .command('run <augmentation>')
+  .description('⚡ Run augmentation')
+  .option('-c, --config <json>', 'Runtime configuration as JSON')
+  .action(wrapAction(async (augmentation, options) => {
+    if (augmentation === 'brain-jar') {
+      await cortex.brainJarStart(options)
+    } else {
+      // Generic augmentation execution
+      const inputData = options.config ? JSON.parse(options.config) : { run: true }
+      await cortex.executePipelineStep(augmentation, inputData)
     }
-    await cortex.configureAugmentation(type, config)
   }))
 
-augment
-  .command('reset')
-  .description('🔄 Reset pipeline to defaults')
-  .action(wrapInteractive(async () => {
-    await cortex.resetPipeline()
-  }))
-
-augment
-  .command('execute <step> [data]')
-  .description('⚡ Execute specific pipeline step')
-  .action(wrapAction(async (step, data) => {
-    const inputData = data ? JSON.parse(data) : { test: true }
-    await cortex.executePipelineStep(step, inputData)
-  }))
-
-// Neural Import commands - The AI-Powered Data Understanding System
-const neural = program.command('neural')
-  .description('🧠 AI-powered data analysis and import')
-
-neural
-  .command('import <file>')
-  .description('🧠 Smart import with AI analysis')
-  .option('-c, --confidence <threshold>', 'Confidence threshold (0-1)', '0.7')
-  .option('-a, --auto-apply', 'Auto-apply without confirmation')
-  .option('-w, --enable-weights', 'Enable relationship weights', true)
-  .option('--skip-duplicates', 'Skip duplicate detection', true)
-  .action(wrapInteractive(async (file, options) => {
-    const importOptions = {
-      confidenceThreshold: parseFloat(options.confidence),
-      autoApply: options.autoApply,
-      enableWeights: options.enableWeights,
-      skipDuplicates: options.skipDuplicates
+program
+  .command('status [augmentation]')
+  .description('📊 Show augmentation status')
+  .action(wrapAction(async (augmentation) => {
+    if (augmentation === 'brain-jar') {
+      await cortex.brainJarStatus()
+    } else if (augmentation) {
+      // Show specific augmentation status
+      await cortex.listAugmentations()
+    } else {
+      // Show all augmentation status
+      await cortex.listAugmentations()
     }
-    await cortex.neuralImport(file, importOptions)
   }))
 
-neural
-  .command('analyze <file>')
-  .description('🔬 Analyze data structure without importing')
-  .action(wrapAction(async (file) => {
-    await cortex.neuralAnalyze(file)
+program
+  .command('stop [augmentation]')
+  .description('⏹️ Stop augmentation')
+  .action(wrapAction(async (augmentation) => {
+    if (augmentation === 'brain-jar') {
+      await cortex.brainJarStop()
+    } else {
+      console.log(chalk.yellow('Stop functionality for generic augmentations not yet implemented'))
+    }
   }))
 
-neural
-  .command('validate <file>')
-  .description('✅ Validate data import compatibility')
-  .action(wrapAction(async (file) => {
-    await cortex.neuralValidate(file)
+program
+  .command('list')
+  .description('📋 List installed augmentations')
+  .option('-a, --available', 'Show available augmentations')
+  .action(wrapAction(async (options) => {
+    if (options.available) {
+      console.log(chalk.cyan('🧩 Available Augmentations:'))
+      console.log('  • brain-jar - AI coordination and collaboration')
+      console.log('  • encryption - Data encryption and security')
+      console.log('  • neural-import - AI-powered data analysis')
+      console.log('  • performance-monitor - System monitoring')
+      console.log('')
+      console.log(chalk.dim('Install: brainy install <augmentation>'))
+    } else {
+      await cortex.listAugmentations()
+    }
   }))
 
-neural
-  .command('types')
-  .description('📋 Show available noun and verb types')
+// ========================================
+// BRAIN JAR SPECIFIC COMMANDS (Rich UX)
+// ========================================
+
+const brainJar = program.command('brain-jar')
+  .description('🧠🫙 AI coordination and collaboration')
+
+brainJar
+  .command('install')
+  .description('📦 Install Brain Jar coordination')
+  .option('-m, --mode <type>', 'Installation mode (free|premium)', 'free')
+  .action(wrapAction(async (options) => {
+    await cortex.brainJarInstall(options.mode)
+  }))
+
+brainJar
+  .command('start')
+  .description('🚀 Start Brain Jar coordination')
+  .option('-s, --server <url>', 'Custom server URL')
+  .option('-n, --name <name>', 'Agent name')
+  .option('-r, --role <role>', 'Agent role')
+  .action(wrapAction(async (options) => {
+    await cortex.brainJarStart(options)
+  }))
+
+brainJar
+  .command('dashboard')
+  .description('📊 Open Brain Jar dashboard')
+  .option('-o, --open', 'Auto-open in browser', true)
+  .action(wrapAction(async (options) => {
+    await cortex.brainJarDashboard(options.open)
+  }))
+
+brainJar
+  .command('status')
+  .description('🔍 Show Brain Jar status')
   .action(wrapAction(async () => {
-    await cortex.neuralTypes()
+    await cortex.brainJarStatus()
   }))
 
-// Service integration commands
-const service = program.command('service')
-  .description('🛠️ Service integration and management')
-
-service
-  .command('discover')
-  .description('🔍 Discover Brainy services in environment')
+brainJar
+  .command('agents')
+  .description('👥 List connected agents')
   .action(wrapAction(async () => {
-    console.log('🔍 Discovering services...')
-    // This would call CortexServiceIntegration.discoverBrainyInstances()
-    console.log('📋 Service discovery complete (placeholder)')
+    await cortex.brainJarAgents()
   }))
 
-service
-  .command('health-all')
-  .description('🩺 Health check all discovered services')
+brainJar
+  .command('message <text>')
+  .description('📨 Send message to coordination channel')
+  .action(wrapAction(async (text) => {
+    await cortex.brainJarMessage(text)
+  }))
+
+brainJar
+  .command('search <query>')
+  .description('🔍 Search coordination history')
+  .option('-l, --limit <number>', 'Number of results', '10')
+  .action(wrapAction(async (query, options) => {
+    await cortex.brainJarSearch(query, parseInt(options.limit))
+  }))
+
+// ========================================
+// CONFIGURATION COMMANDS
+// ========================================
+
+const config = program.command('config')
+  .description('⚙️ Manage configuration')
+
+config
+  .command('set <key> <value>')
+  .description('Set configuration value')
+  .option('-e, --encrypt', 'Encrypt this value')
+  .action(wrapAction(async (key, value, options) => {
+    await cortex.configSet(key, value, options)
+  }))
+
+config
+  .command('get <key>')
+  .description('Get configuration value')
+  .action(wrapAction(async (key) => {
+    const value = await cortex.configGet(key)
+    if (value) {
+      console.log(chalk.green(`${key}: ${value}`))
+    } else {
+      console.log(chalk.yellow(`Key not found: ${key}`))
+    }
+  }))
+
+config
+  .command('list')
+  .description('List all configuration')
   .action(wrapAction(async () => {
-    console.log('🩺 Running health checks on all services...')
-    // This would call CortexServiceIntegration.healthCheckAll()
-    console.log('✅ Health checks complete (placeholder)')
+    await cortex.configList()
   }))
 
-service
-  .command('migrate-all')
-  .description('🚀 Migrate all services to new storage')
-  .requiredOption('-t, --to <type>', 'Target storage type')
-  .option('-s, --strategy <type>', 'Migration strategy', 'immediate')
-  .action(wrapInteractive(async (options) => {
-    console.log(`🚀 Planning migration to ${options.to}...`)
-    // This would call CortexServiceIntegration.migrateAll()
-    console.log('✅ Migration complete (placeholder)')
+// ========================================
+// LEGACY CORTEX COMMANDS (Backward Compatibility)
+// ========================================
+
+const cortexCmd = program.command('cortex')
+  .description('🔧 Legacy Cortex commands (deprecated - use direct commands)')
+
+cortexCmd
+  .command('chat [question]')
+  .description('💬 Chat with your data')
+  .action(wrapInteractive(async (question) => {
+    console.log(chalk.yellow('⚠️  Deprecated: Use "brainy chat" instead'))
+    await cortex.chat(question)
   }))
 
-// Interactive shell
+cortexCmd
+  .command('add [data]')
+  .description('📊 Add data')
+  .action(wrapAction(async (data) => {
+    console.log(chalk.yellow('⚠️  Deprecated: Use "brainy add" instead'))
+    await cortex.add(data, {})
+  }))
+
+// ========================================
+// INTERACTIVE SHELL
+// ========================================
+
 program
   .command('shell')
-  .description('🐚 Interactive Cortex shell')
-  .action(async () => {
-    console.log(chalk.cyan('🧠 Cortex Interactive Shell'))
+  .description('🐚 Interactive Brainy shell')
+  .action(wrapInteractive(async () => {
+    console.log(chalk.cyan('🧠 Brainy Interactive Shell'))
     console.log(chalk.dim('Type "help" for commands, "exit" to quit\n'))
-    
-    // Start interactive mode
     await cortex.chat()
-    exitProcess(0)
-  })
+  }))
 
-// Parse arguments
+// ========================================
+// PARSE AND HANDLE
+// ========================================
+
 program.parse(process.argv)
 
 // Show help if no command
 if (!process.argv.slice(2).length) {
+  console.log(chalk.cyan('🧠 Brainy - Vector + Graph Database with AI Coordination'))
+  console.log('')
+  console.log(chalk.bold('Quick Start:'))
+  console.log('  brainy init                    # Initialize project')
+  console.log('  brainy add "some data"         # Add data')
+  console.log('  brainy search "query"          # Search data')
+  console.log('  brainy chat                    # Chat with data')
+  console.log('')
+  console.log(chalk.bold('AI Coordination:'))
+  console.log('  brainy install brain-jar       # Install AI coordination')
+  console.log('  brainy brain-jar start         # Start coordination')
+  console.log('  brainy brain-jar dashboard     # View dashboard')
+  console.log('')
   program.outputHelp()
 }
