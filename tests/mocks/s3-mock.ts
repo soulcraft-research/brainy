@@ -240,8 +240,10 @@ function handleGetObject(command: any) {
   
   if (!bucket.objects.has(Key)) {
     console.log(`Object ${Key} not found in bucket ${Bucket}`)
-    // Return null for non-existent objects instead of rejecting
-    return Promise.reject(new Error(`NoSuchKey: The specified key does not exist.`))
+    // Create proper NoSuchKey error that matches AWS SDK structure
+    const error = new Error(`NoSuchKey: The specified key does not exist.`)
+    error.name = 'NoSuchKey'
+    return Promise.reject(error)
   }
   
   const object = bucket.objects.get(Key)!
