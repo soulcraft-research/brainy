@@ -259,6 +259,20 @@ program
   }))
 
 // ========================================
+// BRAIN CLOUD SUPER COMMAND (New!)
+// ========================================
+
+program
+  .command('cloud')
+  .description('☁️ Setup Brain Cloud - AI coordination across all devices')
+  .option('-m, --mode <type>', 'Setup mode (free|premium)', 'interactive')
+  .option('-k, --key <key>', 'License key for premium features')
+  .option('-s, --skip-install', 'Skip Brain Jar installation')
+  .action(wrapInteractive(async (options) => {
+    await cortex.setupBrainCloud(options)
+  }))
+
+// ========================================
 // BRAIN JAR SPECIFIC COMMANDS (Rich UX)
 // ========================================
 
@@ -398,7 +412,10 @@ program.parse(process.argv)
 
 // Show help if no command
 if (!process.argv.slice(2).length) {
-  console.log(chalk.cyan('🧠 Brainy - Vector + Graph Database with AI Coordination'))
+  console.log(chalk.cyan('🧠☁️ Brainy - AI Coordination Service'))
+  console.log('')
+  console.log(chalk.bold('One-Command Setup:'))
+  console.log(chalk.green('  brainy cloud                   # Setup Brain Cloud (recommended!)'))
   console.log('')
   console.log(chalk.bold('Quick Start:'))
   console.log('  brainy init                    # Initialize project')
