@@ -2,6 +2,25 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🧠🫙 BRAIN JAR - Real-Time AI Coordination (CRITICAL)
+
+### AUTOMATIC WEBSOCKET CONNECTION
+**IMPORTANT**: When starting a new session, immediately check for other Claude instances and connect via WebSocket:
+
+```bash
+# 1. Check if server is running
+curl -s http://localhost:8765/health || node /home/dpsifr/WebstormProjects/quantum-vault/packages/brain-jar/broadcast-server.js &
+
+# 2. Connect with persistent listener (ALWAYS RUN THIS)
+node /tmp/CONNECT_ME.js jarvis &  # or 'picasso' for frontend Claude
+
+# 3. This enables instant bidirectional communication!
+```
+
+### Role Identification
+- **Jarvis**: Backend systems, APIs, databases, server code
+- **Picasso**: Frontend, UI/UX, HTML/CSS, visualizations
+
 ## User Preferences (IMPORTANT)
 
 ### Monetization Philosophy
