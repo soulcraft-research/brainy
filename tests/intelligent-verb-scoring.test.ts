@@ -92,21 +92,21 @@ describe('Intelligent Verb Scoring', () => {
   describe('Semantic Scoring', () => {
     it('should compute semantic similarity between entities', async () => {
       // Add semantically similar entities
-      await db.add('developer1', 'John is a software developer who writes JavaScript')
-      await db.add('developer2', 'Jane is a programmer who codes in TypeScript')
+      await db.add(testUtils.createTestVector(384), { id: 'developer1', data: 'John is a software developer who writes JavaScript' })
+      await db.add(testUtils.createTestVector(384), { id: 'developer2', data: 'Jane is a programmer who codes in TypeScript' })
       
       // Add semantically different entities  
-      await db.add('restaurant1', 'Italian restaurant serving pasta')
-      await db.add('car1', 'Red sports car with V8 engine')
+      await db.add(testUtils.createTestVector(384), { id: 'restaurant1', data: 'Italian restaurant serving pasta' })
+      await db.add(testUtils.createTestVector(384), { id: 'car1', data: 'Red sports car with V8 engine' })
       
       // Test similar entities
-      const similarVerbId = await db.addVerb('developer1', 'developer2', 'collaboratesWith', undefined, {
+      const similarVerbId = await db.addVerb('developer1', 'developer2', undefined, { type: 'collaboratesWith',
         autoCreateMissingNouns: true
       })
       const similarVerb = await db.getVerb(similarVerbId)
       
       // Test different entities
-      const differentVerbId = await db.addVerb('developer1', 'restaurant1', 'relatesTo', undefined, {
+      const differentVerbId = await db.addVerb('developer1', 'restaurant1', undefined, { type: 'relatesTo',
         autoCreateMissingNouns: true
       })
       const differentVerb = await db.getVerb(differentVerbId)
@@ -117,11 +117,11 @@ describe('Intelligent Verb Scoring', () => {
     })
 
     it('should not affect explicitly provided weights', async () => {
-      await db.add('entity1', 'Test entity 1')
-      await db.add('entity2', 'Test entity 2')
+      await db.add(testUtils.createTestVector(384), { id: 'entity1', data: 'Test entity 1' })
+      await db.add(testUtils.createTestVector(384), { id: 'entity2', data: 'Test entity 2' })
       
       const explicitWeight = 0.75
-      const verbId = await db.addVerb('entity1', 'entity2', 'hasRelation', undefined, {
+      const verbId = await db.addVerb('entity1', 'entity2', undefined, { type: 'hasRelation',
         weight: explicitWeight
       })
       
@@ -133,21 +133,21 @@ describe('Intelligent Verb Scoring', () => {
 
   describe('Frequency Amplification', () => {
     it('should increase weight for repeated relationships', async () => {
-      await db.add('user1', 'Software engineer')
-      await db.add('project1', 'Web development project')
+      await db.add(testUtils.createTestVector(384), { id: 'user1', data: 'Software engineer' })
+      await db.add(testUtils.createTestVector(384), { id: 'project1', data: 'Web development project' })
       
       // Add the same relationship multiple times
-      const firstVerbId = await db.addVerb('user1', 'project1', 'worksOn', undefined, { autoCreateMissingNouns: true })
+      const firstVerbId = await db.addVerb('user1', 'project1', undefined, { type: 'worksOn', autoCreateMissingNouns: true })
       const firstVerb = await db.getVerb(firstVerbId)
       const firstWeight = firstVerb.metadata.weight
       
       // Add the relationship again (simulating repeated occurrence)
-      const secondVerbId = await db.addVerb('user1', 'project1', 'worksOn', undefined, { autoCreateMissingNouns: true })
+      const secondVerbId = await db.addVerb('user1', 'project1', undefined, { type: 'worksOn', autoCreateMissingNouns: true })
       const secondVerb = await db.getVerb(secondVerbId)
       const secondWeight = secondVerb.metadata.weight
       
       // Third time
-      const thirdVerbId = await db.addVerb('user1', 'project1', 'worksOn', undefined, { autoCreateMissingNouns: true })
+      const thirdVerbId = await db.addVerb('user1', 'project1', undefined, { type: 'worksOn', autoCreateMissingNouns: true })
       const thirdVerb = await db.getVerb(thirdVerbId)
       const thirdWeight = thirdVerb.metadata.weight
       
@@ -159,11 +159,11 @@ describe('Intelligent Verb Scoring', () => {
 
   describe('Learning and Feedback', () => {
     it('should accept and learn from feedback', async () => {
-      await db.add('entity1', 'Test entity 1')
-      await db.add('entity2', 'Test entity 2')
+      await db.add(testUtils.createTestVector(384), { id: 'entity1', data: 'Test entity 1' })
+      await db.add(testUtils.createTestVector(384), { id: 'entity2', data: 'Test entity 2' })
       
       // Add initial relationship
-      await db.addVerb('entity1', 'entity2', 'testRelation', undefined, { autoCreateMissingNouns: true })
+      await db.addVerb('entity1', 'entity2', undefined, { type: 'testRelation', autoCreateMissingNouns: true })
       
       // Provide feedback
       await db.provideFeedbackForVerbScoring(
@@ -174,9 +174,9 @@ describe('Intelligent Verb Scoring', () => {
       )
       
       // Add the same type of relationship again
-      await db.add('entity3', 'Test entity 3')  
-      await db.add('entity4', 'Test entity 4')
-      const newVerbId = await db.addVerb('entity3', 'entity4', 'testRelation', undefined, { autoCreateMissingNouns: true })
+      await db.add(testUtils.createTestVector(384), { id: 'entity3', data: 'Test entity 3' })  
+      await db.add(testUtils.createTestVector(384), { id: 'entity4', data: 'Test entity 4' })
+      const newVerbId = await db.addVerb('entity3', 'entity4', undefined, { type: 'testRelation', autoCreateMissingNouns: true })
       
       const newVerb = await db.getVerb(newVerbId)
       
@@ -185,12 +185,12 @@ describe('Intelligent Verb Scoring', () => {
     })
 
     it('should provide learning statistics', async () => {
-      await db.add('entity1', 'Test entity 1')
-      await db.add('entity2', 'Test entity 2')
+      await db.add(testUtils.createTestVector(384), { id: 'entity1', data: 'Test entity 1' })
+      await db.add(testUtils.createTestVector(384), { id: 'entity2', data: 'Test entity 2' })
       
       // Add some relationships
-      await db.addVerb('entity1', 'entity2', 'relation1', undefined, { autoCreateMissingNouns: true })
-      await db.addVerb('entity2', 'entity1', 'relation2', undefined, { autoCreateMissingNouns: true })
+      await db.addVerb('entity1', 'entity2', undefined, { type: 'relation1', autoCreateMissingNouns: true })
+      await db.addVerb('entity2', 'entity1', undefined, { type: 'relation2', autoCreateMissingNouns: true })
       
       // Provide feedback
       await db.provideFeedbackForVerbScoring('entity1', 'entity2', 'relation1', 0.8)
@@ -204,8 +204,8 @@ describe('Intelligent Verb Scoring', () => {
     })
 
     it('should export and import learning data', async () => {
-      await db.add('entity1', 'Test entity 1')
-      await db.add('entity2', 'Test entity 2')
+      await db.add(testUtils.createTestVector(384), { id: 'entity1', data: 'Test entity 1' })
+      await db.add(testUtils.createTestVector(384), { id: 'entity2', data: 'Test entity 2' })
       
       // Create some learning data
       await db.addVerb('entity1', 'entity2', 'testRelation', undefined, { autoCreateMissingNouns: true })
@@ -248,10 +248,10 @@ describe('Intelligent Verb Scoring', () => {
       })
       
       await temporalDb.init()
-      await temporalDb.add('entity1', 'Test entity 1')
-      await temporalDb.add('entity2', 'Test entity 2')
+      await temporalDb.add(testUtils.createTestVector(384), { id: 'entity1', data: 'Test entity 1' })
+      await temporalDb.add(testUtils.createTestVector(384), { id: 'entity2', data: 'Test entity 2' })
       
-      const verbId = await temporalDb.addVerb('entity1', 'entity2', 'decayingRelation', undefined, { autoCreateMissingNouns: true })
+      const verbId = await temporalDb.addVerb('entity1', 'entity2', undefined, { type: 'decayingRelation', autoCreateMissingNouns: true })
       const verb = await temporalDb.getVerb(verbId)
       
       expect(verb.metadata.intelligentScoring).toBeDefined()
@@ -274,13 +274,13 @@ describe('Intelligent Verb Scoring', () => {
       })
       
       await boundedDb.init()
-      await boundedDb.add('entity1', 'Test entity 1')
-      await boundedDb.add('entity2', 'Test entity 2')
+      await boundedDb.add(testUtils.createTestVector(384), { id: 'entity1', data: 'Test entity 1' })
+      await boundedDb.add(testUtils.createTestVector(384), { id: 'entity2', data: 'Test entity 2' })
       
       // Add multiple relationships to test bounds
       for (let i = 0; i < 5; i++) {
-        await boundedDb.add(`entity${i+3}`, `Test entity ${i+3}`)
-        const verbId = await boundedDb.addVerb('entity1', `entity${i+3}`, 'testRelation', undefined, { autoCreateMissingNouns: true })
+        await boundedDb.add(testUtils.createTestVector(384), { id: `entity${i+3}`, data: `Test entity ${i+3}` })
+        const verbId = await boundedDb.addVerb('entity1', `entity${i+3}`, undefined, { type: 'testRelation', autoCreateMissingNouns: true })
         const verb = await boundedDb.getVerb(verbId)
         
         expect(verb.metadata.weight).toBeGreaterThanOrEqual(0.3)
@@ -291,10 +291,10 @@ describe('Intelligent Verb Scoring', () => {
     })
 
     it('should provide reasoning information', async () => {
-      await db.add('entity1', 'Software developer with expertise in JavaScript')
-      await db.add('entity2', 'React application for web development')
+      await db.add(testUtils.createTestVector(384), { id: 'entity1', data: 'Software developer with expertise in JavaScript' })
+      await db.add(testUtils.createTestVector(384), { id: 'entity2', data: 'React application for web development' })
       
-      const verbId = await db.addVerb('entity1', 'entity2', 'develops', undefined, { autoCreateMissingNouns: true })
+      const verbId = await db.addVerb('entity1', 'entity2', undefined, { type: 'develops', autoCreateMissingNouns: true })
       const verb = await db.getVerb(verbId)
       
       expect(verb.metadata.intelligentScoring).toBeDefined()
@@ -319,11 +319,11 @@ describe('Intelligent Verb Scoring', () => {
       await errorDb.init()
       
       // Try to add verb with potentially problematic data
-      await errorDb.add('entity1', null) // null metadata might cause issues
-      await errorDb.add('entity2', '')   // empty metadata
+      await errorDb.add(testUtils.createTestVector(384), { id: 'entity1', data: null }) // null metadata might cause issues
+      await errorDb.add(testUtils.createTestVector(384), { id: 'entity2', data: '' })   // empty metadata
       
       // Should not throw error, should fall back gracefully
-      const verbId = await errorDb.addVerb('entity1', 'entity2', 'testRelation', undefined, { autoCreateMissingNouns: true })
+      const verbId = await errorDb.addVerb('entity1', 'entity2', undefined, { type: 'testRelation', autoCreateMissingNouns: true })
       const verb = await errorDb.getVerb(verbId)
       
       expect(verbId).toBeTruthy()
@@ -352,17 +352,17 @@ describe('Intelligent Verb Scoring', () => {
 
   describe('Integration with Existing Verbs', () => {
     it('should only score verbs without explicit weights', async () => {
-      await db.add('entity1', 'Test entity 1')
-      await db.add('entity2', 'Test entity 2')
+      await db.add(testUtils.createTestVector(384), { id: 'entity1', data: 'Test entity 1' })
+      await db.add(testUtils.createTestVector(384), { id: 'entity2', data: 'Test entity 2' })
       
       // Add verb with explicit weight
-      const explicitVerbId = await db.addVerb('entity1', 'entity2', 'explicitRel', undefined, {
+      const explicitVerbId = await db.addVerb('entity1', 'entity2', undefined, { type: 'explicitRel',
         weight: 0.6,
         autoCreateMissingNouns: true
       })
       
       // Add verb without weight
-      const smartVerbId = await db.addVerb('entity1', 'entity2', 'smartRel', undefined, { autoCreateMissingNouns: true })
+      const smartVerbId = await db.addVerb('entity1', 'entity2', undefined, { type: 'smartRel', autoCreateMissingNouns: true })
       
       const explicitVerb = await db.getVerb(explicitVerbId)
       const smartVerb = await db.getVerb(smartVerbId)
@@ -377,14 +377,14 @@ describe('Intelligent Verb Scoring', () => {
     })
 
     it('should work with different verb types', async () => {
-      await db.add('person1', 'Software engineer')
-      await db.add('project1', 'Web application')
-      await db.add('company1', 'Technology startup')
+      await db.add(testUtils.createTestVector(384), { id: 'person1', data: 'Software engineer' })
+      await db.add(testUtils.createTestVector(384), { id: 'project1', data: 'Web application' })
+      await db.add(testUtils.createTestVector(384), { id: 'company1', data: 'Technology startup' })
       
       // Test different relationship types
-      const workVerbId = await db.addVerb('person1', 'project1', 'worksOn', undefined, { autoCreateMissingNouns: true })
-      const employVerbId = await db.addVerb('company1', 'person1', 'employs', undefined, { autoCreateMissingNouns: true })
-      const ownVerbId = await db.addVerb('company1', 'project1', 'owns', undefined, { autoCreateMissingNouns: true })
+      const workVerbId = await db.addVerb('person1', 'project1', undefined, { type: 'worksOn', autoCreateMissingNouns: true })
+      const employVerbId = await db.addVerb('company1', 'person1', undefined, { type: 'employs', autoCreateMissingNouns: true })
+      const ownVerbId = await db.addVerb('company1', 'project1', undefined, { type: 'owns', autoCreateMissingNouns: true })
       
       const workVerb = await db.getVerb(workVerbId)
       const employVerb = await db.getVerb(employVerbId)
@@ -408,11 +408,11 @@ describe('Intelligent Verb Scoring', () => {
       
       // Add many entities and relationships
       for (let i = 0; i < 50; i++) {
-        await db.add(`entity${i}`, `Test entity number ${i}`)
+        await db.add(testUtils.createTestVector(384), { id: `entity${i}`, data: `Test entity number ${i}` })
       }
       
       for (let i = 0; i < 50; i++) {
-        await db.addVerb(`entity${i}`, `entity${(i + 1) % 50}`, 'connectsTo', undefined, { autoCreateMissingNouns: true })
+        await db.addVerb(`entity${i}`, `entity${(i + 1) % 50}`, undefined, { type: 'connectsTo', autoCreateMissingNouns: true })
       }
       
       const endTime = performance.now()

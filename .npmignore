@@ -1,6 +1,9 @@
-# Exclude source maps
+# Exclude source maps - multiple patterns for safety
 *.map
 **/*.map
+dist/**/*.map
+*.js.map
+dist/**/*.js.map
 
 # Development files
 node_modules/
@@ -46,3 +49,22 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 test-results.json
+package-lock.json
+
+# Additional large files to exclude
+*.js
+!dist/**/*.js
+!bin/*.js
+
+# Documentation that's not needed for npm package
+CHANGELOG.md
+CORTEX*.md
+METADATA_*.md
+PERFORMANCE_*.md
+IMPLEMENTATION-*.md
+TENSORFLOW_*.md
+MIGRATION_*.md
+BRAIN_CLOUD_*.md
+JARVIS_*.md
+OFFLINE_*.md
+CORTEX-ROADMAP.md
