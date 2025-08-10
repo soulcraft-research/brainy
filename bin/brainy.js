@@ -14,8 +14,7 @@ import { readFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 
-// Import fetch for API calls
-import fetch from 'node-fetch'
+// Use native fetch (available in Node.js 18+)
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const packageJson = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8'))

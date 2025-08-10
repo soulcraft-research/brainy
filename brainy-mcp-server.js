@@ -12,7 +12,7 @@ import {
   ListToolsRequestSchema,
   Tool,
 } from '@modelcontextprotocol/sdk/types.js';
-import fetch from 'node-fetch';
+// Use native fetch (available in Node.js 18+)
 
 // Configuration from environment
 const CUSTOMER_ID = process.env.CUSTOMER_ID || 'demo-test-auto';
