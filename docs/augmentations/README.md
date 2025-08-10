@@ -856,8 +856,8 @@ export class ProductionDataService {
 ## Support
 
 - **Documentation**: https://soulcraft-research.com/brainy/docs
-- **Community**: https://github.com/soulcraft-research/brainy/discussions
-- **Issues**: https://github.com/soulcraft-research/brainy/issues
+- **Community**: https://github.com/soulcraftlabs/brainy/discussions
+- **Issues**: https://github.com/soulcraftlabs/brainy/issues
 - **Premium Support**: support@soulcraft-research.com (license holders)
 
 ---

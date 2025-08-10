@@ -309,7 +309,7 @@ const config = modelConfig[process.env.NODE_ENV] || modelConfig.production
 
 ## Support and Resources
 
-- **GitHub Issues**: [Report deployment issues](https://github.com/soulcraft-research/brainy/issues)
+- **GitHub Issues**: [Report deployment issues](https://github.com/soulcraftlabs/brainy/issues)
 - **Documentation**: Complete API reference and examples
 - **Community**: Join discussions about production deployments
 

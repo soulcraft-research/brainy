@@ -366,10 +366,10 @@ MIT
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please see the main [Brainy repository](https://github.com/soulcraft-research/brainy) for contribution guidelines.
+Contributions are welcome! Please see the main [Brainy repository](https://github.com/soulcraftlabs/brainy) for contribution guidelines.
 
 ## 💬 Support
 
 For issues and questions:
-- [GitHub Issues](https://github.com/soulcraft-research/brainy/issues)
-- [Documentation](https://github.com/soulcraft-research/brainy)
+- [GitHub Issues](https://github.com/soulcraftlabs/brainy/issues)
+- [Documentation](https://github.com/soulcraftlabs/brainy)

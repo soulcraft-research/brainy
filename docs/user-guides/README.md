@@ -118,5 +118,5 @@ Optimize bundle size with selective model loading.
 ## 🆘 Need Help?
 
 - **[Troubleshooting](../troubleshooting/)** - Common issues and solutions
-- **[GitHub Issues](https://github.com/soulcraft-research/brainy/issues)** - Report bugs or request features
-- **[GitHub Discussions](https://github.com/soulcraft-research/brainy/discussions)** - Community support and questions
+- **[GitHub Issues](https://github.com/soulcraftlabs/brainy/issues)** - Report bugs or request features
+- **[GitHub Discussions](https://github.com/soulcraftlabs/brainy/discussions)** - Community support and questions
