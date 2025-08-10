@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "brain-cloud": {
+      "command": "node",
+      "args": [
+        "brainy-mcp-server.js"
+      ],
+      "env": {
+        "CUSTOMER_ID": "demo-test-auto",
+        "BRAIN_CLOUD_URL": "https://brain-cloud.dpsifr.workers.dev"
+      }
+    }
+  }
+}
