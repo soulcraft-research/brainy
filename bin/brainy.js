@@ -260,11 +260,11 @@ program
         } else {
           console.log(chalk.red('❌ Could not connect to Brain Cloud'))
           console.log(chalk.yellow('💡 Make sure you have an active instance'))
-          console.log('\nSign up at: ' + chalk.cyan('https://app.soulcraftlabs.com'))
+          console.log('\nSign up at: ' + chalk.cyan('https://app.soulcraft.com'))
         }
       } catch (error) {
         console.log(chalk.red('❌ Connection failed:'), error.message)
-        console.log('\nSign up at: ' + chalk.cyan('https://app.soulcraftlabs.com'))
+        console.log('\nSign up at: ' + chalk.cyan('https://app.soulcraft.com'))
       }
     } else if (options.export) {
       console.log(chalk.green(`📦 Exporting data from Brain Cloud instance: ${options.export}`))
@@ -322,7 +322,7 @@ program
     } else if (options.dashboard) {
       console.log(chalk.green(`🌐 Opening dashboard for Brain Cloud instance: ${options.dashboard}`))
       
-      const dashboardUrl = `https://app.soulcraftlabs.com/dashboard.html?customer_id=${options.dashboard}`
+      const dashboardUrl = `https://app.soulcraft.com/dashboard.html?customer_id=${options.dashboard}`
       console.log(chalk.cyan(`\n🔗 Dashboard URL: ${dashboardUrl}`))
       console.log(chalk.gray('Opening in your default browser...'))
       
@@ -342,7 +342,7 @@ program
       }
     } else {
       console.log(chalk.yellow('📡 Brain Cloud Setup'))
-      console.log('\n1. Sign up at: ' + chalk.cyan('https://app.soulcraftlabs.com'))
+      console.log('\n1. Sign up at: ' + chalk.cyan('https://app.soulcraft.com'))
       console.log('2. Get your customer ID')
       console.log('3. Connect with: ' + chalk.green('brainy cloud --connect YOUR_ID'))
       console.log('\nBenefits:')
