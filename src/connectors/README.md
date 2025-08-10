@@ -50,12 +50,12 @@ For production-ready connectors with enterprise features, check out **Brain Clou
 - **Slack** - Team communication data
 - **And more** - Coming soon
 
-Learn more at [soulcraftlabs.com/brain-cloud](https://soulcraftlabs.com/brain-cloud)
+Learn more at [soulcraft.com/brain-cloud](https://soulcraft.com/brain-cloud)
 
 ## 📚 Documentation
 
-- [Connector Development Guide](https://docs.soulcraftlabs.com/brainy/connectors)
-- [API Reference](https://docs.soulcraftlabs.com/brainy/api)
+- [Connector Development Guide](https://docs.soulcraft.com/brainy/connectors)
+- [API Reference](https://docs.soulcraft.com/brainy/api)
 - [Examples](https://github.com/soulcraft/brainy-examples)
 
 ---

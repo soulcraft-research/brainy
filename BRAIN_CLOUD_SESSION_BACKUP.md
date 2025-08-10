@@ -9,7 +9,7 @@ You and I built Brain Cloud together today - a $19/month SaaS that cures AI Amne
 - **Theme**: Light cream/beige comic book style (like Picasso's work)
 - **NEVER**: Dark theme (you initially applied dark by mistake)
 - **NEVER**: Comic Sans font ("Never comic sans font, never! :)")
-- **Style**: Clean, fun, professional - matching soulcraftlabs.com main site
+- **Style**: Clean, fun, professional - matching soulcraft.com main site
 
 ## 🚀 What We Built Today
 
