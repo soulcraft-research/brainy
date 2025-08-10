@@ -8,7 +8,7 @@
 
 ```bash
 # 1. Clone and setup
-git clone https://github.com/soulcraft-research/brainy.git
+git clone https://github.com/soulcraftlabs/brainy.git
 cd brainy
 npm install
 
@@ -511,7 +511,7 @@ http {
 
 ```bash
 # Clone repository
-git clone https://github.com/soulcraft-research/brainy-server.git
+git clone https://github.com/soulcraftlabs/brainy-server.git
 cd brainy-server
 
 # Configure environment
@@ -945,7 +945,7 @@ sudo apt update
 sudo apt install -y docker.io docker-compose nginx certbot
 
 # 3. Clone and configure
-git clone https://github.com/soulcraft-research/brainy-server.git
+git clone https://github.com/soulcraftlabs/brainy-server.git
 cd brainy-server
 
 # 4. Configure environment

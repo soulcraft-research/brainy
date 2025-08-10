@@ -1167,7 +1167,7 @@ npm install @soulcraft/brainy-client
 pip install brainy-client
 
 # Go
-go get github.com/soulcraft-research/brainy-client-go
+go get github.com/soulcraftlabs/brainy-client-go
 
 # Java
 implementation 'com.soulcraft:brainy-client:1.0.0'

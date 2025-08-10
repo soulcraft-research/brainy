@@ -227,8 +227,8 @@ Now that you have Brainy running:
 
 ### Get Help
 - **[Troubleshooting](../troubleshooting/)** - Common issues and solutions
-- **[GitHub Issues](https://github.com/soulcraft-research/brainy/issues)** - Bug reports
-- **[GitHub Discussions](https://github.com/soulcraft-research/brainy/discussions)** - Community support
+- **[GitHub Issues](https://github.com/soulcraftlabs/brainy/issues)** - Bug reports
+- **[GitHub Discussions](https://github.com/soulcraftlabs/brainy/discussions)** - Community support
 
 ## 💡 Pro Tips
 

@@ -359,6 +359,6 @@ For optimal performance:
 
 For issues with the optional model bundling package:
 
-- [GitHub Issues](https://github.com/soulcraft-research/brainy/issues)
-- [Main Documentation](https://github.com/soulcraft-research/brainy)
+- [GitHub Issues](https://github.com/soulcraftlabs/brainy/issues)
+- [Main Documentation](https://github.com/soulcraftlabs/brainy)
 - [Model Management Guide](./model-management.md)

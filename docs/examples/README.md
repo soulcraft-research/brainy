@@ -402,7 +402,7 @@ setInterval(() => {
 
 ## 🎯 Example Request Guidelines
 
-**Need a specific example?** Open a [GitHub Issue](https://github.com/soulcraft-research/brainy/issues) with:
+**Need a specific example?** Open a [GitHub Issue](https://github.com/soulcraftlabs/brainy/issues) with:
 
 1. **Use Case**: What you're trying to build
 2. **Environment**: Browser, Node.js, serverless, etc.

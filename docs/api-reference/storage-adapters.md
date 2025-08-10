@@ -325,7 +325,7 @@ Switch storage backends as your requirements evolve - your application code stay
 ## 💡 Need Help?
 
 - **Built-in adapters**: Use File System, S3, OPFS, or Memory storage
-- **Custom adapters**: Follow the examples above or ask in [GitHub Discussions](https://github.com/soulcraft-research/brainy/discussions)
+- **Custom adapters**: Follow the examples above or ask in [GitHub Discussions](https://github.com/soulcraftlabs/brainy/discussions)
 - **Performance tuning**: See [Storage Optimization Guide](../optimization-guides/storage-optimization.md)
 
 **The power is in your hands** - Brainy adapts to your storage, not the other way around! 🚀
