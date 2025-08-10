@@ -7,9 +7,10 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.4.1-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4.5-blue.svg)](https://www.typescriptlang.org/)
 
-# BRAINY: The Brain in a Jar Database™
+# BRAINY: Multi-Dimensional AI Database™
 
-**The world's only Vector + Graph + AI database and realtime data platform**
+**The world's first Multi-Dimensional AI Database**  
+*Vector similarity • Graph relationships • Metadata facets • AI context*
 
 *Zero-to-Smart™ technology that thinks so you don't have to*
 
@@ -48,13 +49,13 @@ const results = await brainy.search("AI language models", 5, {
 Pinecone ($$$) + Neo4j ($$$) + Elasticsearch ($$$) + Sync Hell = 😱
 ```
 
-### ✅ The Brainy Way: One Smart Brain
+### ✅ The Brainy Way: One Multi-Dimensional Brain
 
 ```
-Vector Search + Graph Relations + Metadata Filtering + AI Intelligence = 🧠✨
+Multi-Dimensional AI Database = Vector + Graph + Facets + AI = 🧠✨
 ```
 
-**Your data gets a brain upgrade. No assembly required.**
+**Your data gets a multi-dimensional brain upgrade. No assembly required.**
 
 ## ⚡ QUICK & EASY: From Zero to Smart in 60 Seconds
 
@@ -458,6 +459,7 @@ brainy augment trial notion  # Start 14-day free trial
 
 ### Advanced Topics
 
+- [**🏗️ Storage & Retrieval Architecture**](docs/technical/STORAGE_AND_RETRIEVAL_ARCHITECTURE.md) - Multi-dimensional database internals
 - [**Brainy CLI**](docs/brainy-cli.md) - Command-line superpowers
 - [**Brainy Chat**](BRAINY-CHAT.md) - Conversational AI interface
 - [**Cortex AI**](CORTEX.md) - Intelligence augmentation

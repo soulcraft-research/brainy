@@ -174,42 +174,54 @@ abstract class BaseMemoryAugmentation implements IMemoryAugmentation {
                 }
             }
 
-            // Get all nodes from storage
-            const nodes = await this.storage.getAllNouns()
-
-            // Calculate distances and prepare results
-            const results: Array<{
+            // Process nodes in batches to avoid loading everything into memory
+            const allResults: Array<{
                 id: string;
                 score: number;
                 data: unknown;
             }> = []
 
-            for (const node of nodes) {
-                // Skip nodes that don't have a vector
-                if (!node.vector || !Array.isArray(node.vector)) {
-                    continue
+            let hasMore = true
+            let cursor: string | undefined
+
+            while (hasMore) {
+                // Get a batch of nodes
+                const batchResult = await this.storage.getNouns({
+                    pagination: { limit: 100, cursor }
+                })
+
+                // Process this batch
+                for (const noun of batchResult.items) {
+                    // Skip nodes that don't have a vector
+                    if (!noun.vector || !Array.isArray(noun.vector)) {
+                        continue
+                    }
+
+                    // Get metadata for the node
+                    const metadata = await this.storage.getMetadata(noun.id)
+
+                    // Calculate distance between query vector and node vector
+                    const distance = cosineDistance(queryVector, noun.vector)
+
+                    // Convert distance to similarity score (1 - distance for cosine)
+                    // This way higher scores are better (more similar)
+                    const score = 1 - distance
+
+                    allResults.push({
+                        id: noun.id,
+                        score,
+                        data: metadata
+                    })
                 }
 
-                // Get metadata for the node
-                const metadata = await this.storage.getMetadata(node.id)
-
-                // Calculate distance between query vector and node vector
-                const distance = cosineDistance(queryVector, node.vector)
-
-                // Convert distance to similarity score (1 - distance for cosine)
-                // This way higher scores are better (more similar)
-                const score = 1 - distance
-
-                results.push({
-                    id: node.id,
-                    score,
-                    data: metadata
-                })
+                // Update pagination state
+                hasMore = batchResult.hasMore
+                cursor = batchResult.nextCursor
             }
 
             // Sort results by score (descending) and take top k
-            results.sort((a, b) => b.score - a.score)
-            const topResults = results.slice(0, k)
+            allResults.sort((a, b) => b.score - a.score)
+            const topResults = allResults.slice(0, k)
 
             return {
                 success: true,

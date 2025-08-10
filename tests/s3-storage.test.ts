@@ -187,10 +187,10 @@ describe('S3CompatibleStorage', () => {
     expect(retrievedNoun?.connections.get(0)?.has('test-noun-2')).toBe(true)
     expect(retrievedNoun?.connections.get(0)?.has('test-noun-3')).toBe(true)
     
-    // Test getAllNouns
-    const allNouns = await s3Storage.getAllNouns()
-    expect(allNouns.length).toBe(1)
-    expect(allNouns[0].id).toBe('test-noun-1')
+    // Test getNouns with pagination
+    const nounsResult = await s3Storage.getNouns({ pagination: { limit: 100 } })
+    expect(nounsResult.items.length).toBe(1)
+    expect(nounsResult.items[0].id).toBe('test-noun-1')
     
     // Test deleteNoun
     await s3Storage.deleteNoun('test-noun-1')
@@ -259,10 +259,10 @@ describe('S3CompatibleStorage', () => {
     expect(retrievedVerb?.weight).toBe(0.75)
     expect(retrievedVerb?.metadata).toEqual({ description: 'Test relation' })
     
-    // Test getAllVerbs
-    const allVerbs = await s3Storage.getAllVerbs()
-    expect(allVerbs.length).toBe(1)
-    expect(allVerbs[0].id).toBe('test-verb-1')
+    // Test getVerbs with pagination
+    const verbsResult = await s3Storage.getVerbs({ pagination: { limit: 100 } })
+    expect(verbsResult.items.length).toBe(1)
+    expect(verbsResult.items[0].id).toBe('test-verb-1')
     
     // Test getVerbsBySource
     const verbsBySource = await s3Storage.getVerbsBySource('source-noun-1')
@@ -366,9 +366,9 @@ describe('S3CompatibleStorage', () => {
       await s3Storage.saveNoun(testNoun)
     }
     
-    // Test getAllNouns
-    const allNouns = await s3Storage.getAllNouns()
-    expect(allNouns.length).toBe(nounCount)
+    // Test getNouns with pagination
+    const nounsResult = await s3Storage.getNouns({ pagination: { limit: 100 } })
+    expect(nounsResult.items.length).toBe(nounCount)
     
     // Clean up
     await s3Storage.clear()

@@ -3171,27 +3171,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     return results
   }
 
-  /**
-   * Get all nouns in the database
-   * @returns Array of vector documents
-   */
-  public async getAllNouns(): Promise<VectorDocument<T>[]> {
-    await this.ensureInitialized()
-
-    try {
-      // Use getNouns with no pagination to get all nouns
-      const result = await this.getNouns({
-        pagination: {
-          limit: Number.MAX_SAFE_INTEGER // Request all nouns
-        }
-      })
-
-      return result.items
-    } catch (error) {
-      console.error('Failed to get all nouns:', error)
-      throw new Error(`Failed to get all nouns: ${error}`)
-    }
-  }
+  // getAllNouns() method removed - use getNouns() with pagination instead
+  // This method was dangerous and could cause expensive scans and memory issues
 
   /**
    * Get nouns with pagination and filtering
@@ -3922,7 +3903,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           )
           finalWeight = scores.weight
           finalConfidence = scores.confidence
-          scoringReasoning = scores.reasoning
+          scoringReasoning = scores.reasoning || []
 
           if (this.loggingConfig?.verbose && scoringReasoning.length > 0) {
             console.log(`Intelligent verb scoring for ${sourceId}-${verbType}-${targetId}:`, scoringReasoning)
@@ -3946,8 +3927,8 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         type: verbType, // Set the type property to match the verb type
         weight: finalWeight,
         confidence: finalConfidence, // Add confidence to metadata
-        intelligentScoring: scoringReasoning.length > 0 ? {
-          reasoning: scoringReasoning,
+        intelligentScoring: this.intelligentVerbScoring?.enabled ? {
+          reasoning: scoringReasoning.length > 0 ? scoringReasoning : [`Final weight ${finalWeight}`, `Base confidence ${finalConfidence || 0.5}`],
           computedAt: new Date().toISOString()
         } : undefined,
         createdAt: timestamp,
@@ -4071,7 +4052,12 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         updatedAt: metadata.updatedAt,
         createdBy: metadata.createdBy,
         data: metadata.data,
-        metadata: metadata.data // Alias for backward compatibility
+        metadata: {
+          ...metadata.data,
+          weight: metadata.weight,
+          confidence: metadata.confidence,
+          ...(metadata.intelligentScoring && { intelligentScoring: metadata.intelligentScoring })
+        } // Complete metadata including intelligent scoring when available
       }
 
       return graphVerb
@@ -4082,48 +4068,111 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   }
 
   /**
-   * Get all verbs
-   * @returns Array of all verbs
+   * Internal performance optimization: intelligently load verbs when beneficial
+   * @internal - Used by search, indexing, and caching optimizations
    */
-  public async getAllVerbs(): Promise<GraphVerb[]> {
-    await this.ensureInitialized()
-
-    try {
-      // Get all lightweight verbs from storage
-      const hnswVerbs = await this.storage!.getAllVerbs()
-
-      // Convert each HNSWVerb to GraphVerb by loading metadata
-      const graphVerbs: GraphVerb[] = []
-      for (const hnswVerb of hnswVerbs) {
-        const metadata = await this.storage!.getVerbMetadata(hnswVerb.id)
-        if (metadata) {
-          const graphVerb: GraphVerb = {
-            id: hnswVerb.id,
-            vector: hnswVerb.vector,
-            sourceId: metadata.sourceId,
-            targetId: metadata.targetId,
-            source: metadata.source,
-            target: metadata.target,
-            verb: metadata.verb,
-            type: metadata.type,
-            weight: metadata.weight,
-            createdAt: metadata.createdAt,
-            updatedAt: metadata.updatedAt,
-            createdBy: metadata.createdBy,
-            data: metadata.data,
-            metadata: metadata.data // Alias for backward compatibility
-          }
-          graphVerbs.push(graphVerb)
-        } else {
-          console.warn(`Verb ${hnswVerb.id} found but no metadata - skipping`)
-        }
-      }
-
-      return graphVerbs
-    } catch (error) {
-      console.error('Failed to get all verbs:', error)
-      throw new Error(`Failed to get all verbs: ${error}`)
+  private async _optimizedLoadAllVerbs(): Promise<GraphVerb[]> {
+    // Only load all if it's safe and beneficial
+    if (await this._shouldPreloadAllData()) {
+      const result = await this.getVerbs({
+        pagination: { limit: Number.MAX_SAFE_INTEGER }
+      })
+      return result.items
     }
+    
+    // Fall back to on-demand loading
+    return []
+  }
+
+  /**
+   * Internal performance optimization: intelligently load nouns when beneficial  
+   * @internal - Used by search, indexing, and caching optimizations
+   */
+  private async _optimizedLoadAllNouns(): Promise<VectorDocument<T>[]> {
+    // Only load all if it's safe and beneficial
+    if (await this._shouldPreloadAllData()) {
+      const result = await this.getNouns({
+        pagination: { limit: Number.MAX_SAFE_INTEGER }
+      })
+      return result.items
+    }
+    
+    // Fall back to on-demand loading
+    return []
+  }
+
+  /**
+   * Intelligent decision making for when to preload all data
+   * @internal
+   */
+  private async _shouldPreloadAllData(): Promise<boolean> {
+    // Smart heuristics for performance optimization
+    
+    // 1. Read-only mode is ideal for preloading
+    if (this.readOnly) {
+      return await this._isDatasetSizeReasonable()
+    }
+    
+    // 2. Check available memory (Node.js)
+    if (typeof process !== 'undefined' && process.memoryUsage) {
+      const memUsage = process.memoryUsage()
+      const availableMemory = memUsage.heapTotal - memUsage.heapUsed
+      const memoryMB = availableMemory / (1024 * 1024)
+      
+      // Only preload if we have substantial free memory (>500MB)
+      if (memoryMB < 500) {
+        console.debug('Performance optimization: Skipping preload due to low memory')
+        return false
+      }
+    }
+    
+    // 3. Consider frozen/immutable mode  
+    if (this.frozen) {
+      return await this._isDatasetSizeReasonable()
+    }
+    
+    // 4. For frequent search operations, preloading can be beneficial
+    // TODO: Track search frequency and decide based on access patterns
+    
+    return false // Conservative default for write-heavy workloads
+  }
+
+  /**
+   * Estimate if dataset size is reasonable for in-memory loading
+   * @internal
+   */
+  private async _isDatasetSizeReasonable(): Promise<boolean> {
+    // Implement basic size estimation
+    
+    // Check if we have recent statistics
+    const stats = await this.getStatistics()
+    if (stats) {
+      const totalEntities = Object.values(stats.nounCount || {}).reduce((a, b) => a + b, 0) + 
+                           Object.values(stats.verbCount || {}).reduce((a, b) => a + b, 0)
+      
+      // Conservative thresholds
+      if (totalEntities > 100000) {
+        console.debug('Performance optimization: Dataset too large for preloading')
+        return false
+      }
+      
+      if (totalEntities < 10000) {
+        console.debug('Performance optimization: Small dataset - safe to preload')
+        return true
+      }
+    }
+    
+    // Medium datasets - check memory pressure
+    if (typeof process !== 'undefined' && process.memoryUsage) {
+      const memUsage = process.memoryUsage()
+      const heapUsedPercent = (memUsage.heapUsed / memUsage.heapTotal) * 100
+      
+      // Only preload if heap usage is low
+      return heapUsedPercent < 50
+    }
+    
+    // Default: conservative approach
+    return false
   }
 
   /**
@@ -5094,22 +5143,44 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       // First use the HNSW index to find similar vectors efficiently
       const searchResults = await this.index.search(queryVector, k * 2)
 
-      // Get all verbs for filtering
-      const allVerbs = await this.getAllVerbs()
-
-      // Create a map of verb IDs for faster lookup
-      const verbMap = new Map<string, GraphVerb>()
-      for (const verb of allVerbs) {
-        verbMap.set(verb.id, verb)
+      // Intelligent verb loading: preload all if beneficial, otherwise on-demand
+      let verbMap: Map<string, GraphVerb> | null = null
+      let usePreloadedVerbs = false
+      
+      // Try to intelligently preload verbs for performance
+      const preloadedVerbs = await this._optimizedLoadAllVerbs()
+      if (preloadedVerbs.length > 0) {
+        verbMap = new Map<string, GraphVerb>()
+        for (const verb of preloadedVerbs) {
+          verbMap.set(verb.id, verb)
+        }
+        usePreloadedVerbs = true
+        console.debug(`Performance optimization: Preloaded ${preloadedVerbs.length} verbs for fast lookup`)
+      }
+      
+      // Fallback: on-demand verb loading function
+      const getVerbById = async (verbId: string): Promise<GraphVerb | null> => {
+        if (usePreloadedVerbs && verbMap) {
+          return verbMap.get(verbId) || null
+        }
+        
+        try {
+          const verb = await this.getVerb(verbId)
+          return verb
+        } catch (error) {
+          console.warn(`Failed to load verb ${verbId}:`, error)
+          return null
+        }
       }
 
       // Filter search results to only include verbs
       const verbResults: Array<GraphVerb & { similarity: number }> = []
 
+      // Process search results and load verbs on-demand
       for (const result of searchResults) {
         // Search results are [id, distance] tuples
         const [id, distance] = result
-        const verb = verbMap.get(id)
+        const verb = await getVerbById(id)
         if (verb) {
           // If verb types are specified, check if this verb matches
           if (options.verbTypes && options.verbTypes.length > 0) {
@@ -5147,8 +5218,11 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
             verbs.push(...verbArray)
           }
         } else {
-          // Use all verbs
-          verbs = allVerbs
+          // Get all verbs with pagination
+          const allVerbsResult = await this.getVerbs({
+            pagination: { limit: 10000 }
+          })
+          verbs = allVerbsResult.items
         }
 
         // Calculate similarity for each verb not already in results
@@ -5863,11 +5937,21 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     await this.ensureInitialized()
 
     try {
-      // Get all nouns
-      const nouns = await this.getAllNouns()
+      // Use intelligent loading for backup - this is a legitimate use case for full export
+      console.log('Creating backup - loading all data...')
+      
+      // For backup, we legitimately need all data, so use large pagination
+      const nounsResult = await this.getNouns({
+        pagination: { limit: Number.MAX_SAFE_INTEGER }
+      })
+      const nouns = nounsResult.items
 
-      // Get all verbs
-      const verbs = await this.getAllVerbs()
+      const verbsResult = await this.getVerbs({
+        pagination: { limit: Number.MAX_SAFE_INTEGER }
+      })  
+      const verbs = verbsResult.items
+      
+      console.log(`Backup: Loaded ${nouns.length} nouns and ${verbs.length} verbs`)
 
       // Get all noun types
       const nounTypes = Object.values(NounType)

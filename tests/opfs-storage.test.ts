@@ -97,10 +97,18 @@ describe('OPFSStorage', () => {
     expect(retrievedNoun?.connections.get(0)?.has('test-noun-2')).toBe(true)
     expect(retrievedNoun?.connections.get(0)?.has('test-noun-3')).toBe(true)
     
-    // Test getAllNouns
-    const allNouns = await opfsStorage.getAllNouns()
-    expect(allNouns.length).toBe(1)
-    expect(allNouns[0].id).toBe('test-noun-1')
+    // Check if the noun is actually stored first
+    console.log('DEBUG: Checking if noun exists after save')
+    const storedNoun = await opfsStorage.getNoun('test-noun-1')
+    console.log('DEBUG: storedNoun:', storedNoun ? 'EXISTS' : 'NOT FOUND')
+    
+    // Test getNouns with pagination
+    console.log('DEBUG: About to test getNouns')
+    const nounsResult = await opfsStorage.getNouns({ pagination: { limit: 10 } })
+    console.log('DEBUG: getNouns result:', nounsResult.items.length)
+    
+    expect(nounsResult.items.length).toBe(1)
+    expect(nounsResult.items[0].id).toBe('test-noun-1')
     
     // Test deleteNoun
     await opfsStorage.deleteNoun('test-noun-1')
@@ -163,10 +171,10 @@ describe('OPFSStorage', () => {
       version: '1.0'
     })
     
-    // Test getAllVerbs
-    const allVerbs = await opfsStorage.getAllVerbs()
-    expect(allVerbs.length).toBe(1)
-    expect(allVerbs[0].id).toBe('test-verb-1')
+    // Test getVerbs with pagination
+    const verbsResult = await opfsStorage.getVerbs({ pagination: { limit: 10 } })
+    expect(verbsResult.items.length).toBe(1)
+    expect(verbsResult.items[0].id).toBe('test-verb-1')
     
     // Test getVerbsBySource
     const verbsBySource = await opfsStorage.getVerbsBySource('source-noun-1')
