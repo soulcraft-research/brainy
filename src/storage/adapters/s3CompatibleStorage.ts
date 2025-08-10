@@ -532,16 +532,26 @@ export class S3CompatibleStorage extends BaseStorage {
     const backpressureStatus = this.backpressure.getStatus()
     const socketMetrics = this.socketManager.getMetrics()
     
-    // EXTREMELY aggressive detection - activate on ANY load
+    // Reasonable high-volume detection - only activate under real load
+    const isTestEnvironment = process.env.NODE_ENV === 'test'
+    const explicitlyDisabled = process.env.BRAINY_FORCE_BUFFERING === 'false'
+    
+    // Use reasonable thresholds instead of emergency aggressive ones
+    const reasonableThreshold = Math.max(threshold, 10) // At least 10 pending operations
+    const highSocketUtilization = 0.8  // 80% socket utilization 
+    const highRequestRate = 50         // 50 requests per second
+    const significantErrors = 5        // 5 consecutive errors
+    
     const shouldEnableHighVolume = 
-      this.forceHighVolumeMode ||                           // Environment override
-      backpressureStatus.queueLength >= threshold ||       // Configurable threshold (>= 0 by default!)
-      socketMetrics.pendingRequests >= threshold ||        // Socket pressure
-      this.pendingOperations >= threshold ||               // Any pending ops
-      socketMetrics.socketUtilization >= 0.01 ||           // Even 1% socket usage
-      (socketMetrics.requestsPerSecond >= 1) ||            // Any request rate
-      (this.consecutiveErrors >= 0) ||                     // Always true - any system activity
-      true                                                  // FORCE ENABLE for emergency debugging
+      !isTestEnvironment &&                               // Disable in test environment
+      !explicitlyDisabled &&                              // Allow explicit disabling
+      (this.forceHighVolumeMode ||                         // Environment override
+      backpressureStatus.queueLength >= reasonableThreshold ||      // High queue backlog
+      socketMetrics.pendingRequests >= reasonableThreshold ||       // Many pending requests
+      this.pendingOperations >= reasonableThreshold ||              // Many pending ops
+      socketMetrics.socketUtilization >= highSocketUtilization ||   // High socket pressure
+      (socketMetrics.requestsPerSecond >= highRequestRate) ||       // High request rate
+      (this.consecutiveErrors >= significantErrors))                // Significant error pattern
     
     if (shouldEnableHighVolume && !this.highVolumeMode) {
       this.highVolumeMode = true
@@ -1672,66 +1682,88 @@ export class S3CompatibleStorage extends BaseStorage {
       }
     }
     
+    // Apply filtering at GraphVerb level since HNSWVerb filtering is not supported
+    let filteredGraphVerbs = graphVerbs
+    if (options.filter) {
+      filteredGraphVerbs = graphVerbs.filter((graphVerb) => {
+        // Filter by sourceId
+        if (options.filter!.sourceId) {
+          const sourceIds = Array.isArray(options.filter!.sourceId)
+            ? options.filter!.sourceId
+            : [options.filter!.sourceId]
+          if (!sourceIds.includes(graphVerb.sourceId)) {
+            return false
+          }
+        }
+        
+        // Filter by targetId
+        if (options.filter!.targetId) {
+          const targetIds = Array.isArray(options.filter!.targetId)
+            ? options.filter!.targetId
+            : [options.filter!.targetId]
+          if (!targetIds.includes(graphVerb.targetId)) {
+            return false
+          }
+        }
+        
+        // Filter by verbType (maps to type field)
+        if (options.filter!.verbType) {
+          const verbTypes = Array.isArray(options.filter!.verbType)
+            ? options.filter!.verbType
+            : [options.filter!.verbType]
+          if (graphVerb.type && !verbTypes.includes(graphVerb.type)) {
+            return false
+          }
+        }
+        
+        return true
+      })
+    }
+    
     return {
-      items: graphVerbs,
+      items: filteredGraphVerbs,
       hasMore: result.hasMore,
       nextCursor: result.nextCursor
     }
   }
 
+
+
+
   /**
    * Get verbs by source (internal implementation)
    */
-  protected async getVerbsBySource_internal(
-    sourceId: string
-  ): Promise<GraphVerb[]> {
-    return this.getEdgesBySource(sourceId)
-  }
-
-  /**
-   * Get edges by source
-   */
-  protected async getEdgesBySource(sourceId: string): Promise<GraphVerb[]> {
-    // This method is deprecated and would require loading metadata for each edge
-    // For now, return empty array since this is not efficiently implementable with new storage pattern
-    this.logger.trace('getEdgesBySource is deprecated and not efficiently supported in new storage pattern')
-    return []
+  protected async getVerbsBySource_internal(sourceId: string): Promise<GraphVerb[]> {
+    // Use the paginated approach to properly handle HNSWVerb to GraphVerb conversion
+    const result = await this.getVerbsWithPagination({
+      filter: { sourceId: [sourceId] },
+      limit: Number.MAX_SAFE_INTEGER // Get all matching results
+    })
+    return result.items
   }
 
   /**
    * Get verbs by target (internal implementation)
    */
-  protected async getVerbsByTarget_internal(
-    targetId: string
-  ): Promise<GraphVerb[]> {
-    return this.getEdgesByTarget(targetId)
-  }
-
-  /**
-   * Get edges by target
-   */
-  protected async getEdgesByTarget(targetId: string): Promise<GraphVerb[]> {
-    // This method is deprecated and would require loading metadata for each edge
-    // For now, return empty array since this is not efficiently implementable with new storage pattern
-    this.logger.trace('getEdgesByTarget is deprecated and not efficiently supported in new storage pattern')
-    return []
+  protected async getVerbsByTarget_internal(targetId: string): Promise<GraphVerb[]> {
+    // Use the paginated approach to properly handle HNSWVerb to GraphVerb conversion
+    const result = await this.getVerbsWithPagination({
+      filter: { targetId: [targetId] },
+      limit: Number.MAX_SAFE_INTEGER // Get all matching results
+    })
+    return result.items
   }
 
   /**
    * Get verbs by type (internal implementation)
    */
   protected async getVerbsByType_internal(type: string): Promise<GraphVerb[]> {
-    return this.getEdgesByType(type)
-  }
-
-  /**
-   * Get edges by type
-   */
-  protected async getEdgesByType(type: string): Promise<GraphVerb[]> {
-    // This method is deprecated and would require loading metadata for each edge
-    // For now, return empty array since this is not efficiently implementable with new storage pattern
-    this.logger.trace('getEdgesByType is deprecated and not efficiently supported in new storage pattern')
-    return []
+    // Use the paginated approach to properly handle HNSWVerb to GraphVerb conversion
+    const result = await this.getVerbsWithPagination({
+      filter: { verbType: [type] },
+      limit: Number.MAX_SAFE_INTEGER // Get all matching results
+    })
+    return result.items
   }
 
   /**

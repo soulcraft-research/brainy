@@ -1,0 +1,31 @@
+0 verbose cli /home/dpsifr/.nvm/versions/node/v24.4.1/bin/node /home/dpsifr/.nvm/versions/node/v24.4.1/bin/npm
+1 info using npm@11.4.2
+2 info using node@v24.4.1
+3 silly config load:file:/home/dpsifr/.nvm/versions/node/v24.4.1/lib/node_modules/npm/npmrc
+4 silly config load:file:/home/dpsifr/Projects/brainy/.npmrc
+5 silly config load:file:/home/dpsifr/Projects/brainy/~/.npmrc
+6 silly config load:file:/home/dpsifr/.nvm/versions/node/v24.4.1/etc/npmrc
+7 verbose title npm test 2
+8 verbose argv "test" "2"
+9 verbose logfile logs-max:10 dir:/home/dpsifr/Projects/brainy/~/.npm/_logs/2025-08-10T19_24_37_677Z-
+10 verbose logfile /home/dpsifr/Projects/brainy/~/.npm/_logs/2025-08-10T19_24_37_677Z-debug-0.log
+11 silly logfile done cleaning log files
+12 verbose stack Error: spawn sh ENOENT
+12 verbose stack     at ChildProcess._handle.onexit (node:internal/child_process:286:19)
+12 verbose stack     at onErrorNT (node:internal/child_process:484:16)
+12 verbose stack     at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+13 verbose pkgid @soulcraft/brainy@0.59.2
+14 error code ENOENT
+15 error syscall spawn sh
+16 error path /home/dpsifr/Projects/brainy
+17 error errno -2
+18 error enoent spawn sh ENOENT
+19 error enoent This is related to npm not being able to find a file.
+19 error enoent
+20 verbose cwd /home/dpsifr/Projects/brainy
+21 verbose os Linux 6.14.0-27-generic
+22 verbose node v24.4.1
+23 verbose npm  v11.4.2
+24 verbose exit -2
+25 verbose code -2
+26 error A complete log of this run can be found in: /home/dpsifr/Projects/brainy/~/.npm/_logs/2025-08-10T19_24_37_677Z-debug-0.log
