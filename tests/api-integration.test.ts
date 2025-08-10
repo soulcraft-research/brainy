@@ -19,7 +19,6 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import fetch from 'node-fetch'
 import { BrainyData, createStorage } from '../dist/unified.js'
 
 // Test configuration

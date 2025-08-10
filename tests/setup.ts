@@ -3,7 +3,9 @@
  * No direct TensorFlow references - patches are handled internally by Brainy
  */
 
-import { beforeEach } from 'vitest'
+import { beforeEach, afterEach, afterAll } from 'vitest'
+import { existsSync, rmSync } from 'fs'
+import { join } from 'path'
 
 // Define the test utilities type for reuse
 type TestUtilsType = {
@@ -33,6 +35,37 @@ beforeEach(() => {
   }
   if (typeof global !== 'undefined' && global.__ENV__) {
     delete global.__ENV__
+  }
+  
+  // Clean up test data directory to prevent file accumulation
+  const testDataDir = join(process.cwd(), 'brainy-data')
+  if (existsSync(testDataDir)) {
+    try {
+      rmSync(testDataDir, { recursive: true, force: true })
+    } catch (error) {
+      // Ignore errors during cleanup
+    }
+  }
+})
+
+// Clean up after each test
+afterEach(() => {
+  // Force garbage collection if available (requires --expose-gc flag)
+  if (global.gc) {
+    global.gc()
+  }
+})
+
+// Final cleanup after all tests
+afterAll(() => {
+  // Clean up test data directory
+  const testDataDir = join(process.cwd(), 'brainy-data')
+  if (existsSync(testDataDir)) {
+    try {
+      rmSync(testDataDir, { recursive: true, force: true })
+    } catch (error) {
+      // Ignore errors during cleanup
+    }
   }
 })
 

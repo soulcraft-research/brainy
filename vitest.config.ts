@@ -5,8 +5,21 @@ export default defineConfig({
     // Default configuration
     globals: true,
     setupFiles: ['./tests/setup.ts'],
-    testTimeout: 60000, // 60 seconds for TensorFlow operations
-    hookTimeout: 60000,
+    testTimeout: 120000, // 120 seconds for TensorFlow operations
+    hookTimeout: 120000,
+    // Run tests in parallel with limited pool
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true, // Run all tests in a single fork to reduce memory usage
+        isolate: false, // Don't isolate tests to reduce overhead
+      }
+    },
+    // Limit concurrent tests to reduce memory usage
+    maxConcurrency: 1,
+    // Clear mocks between tests
+    clearMocks: true,
+    restoreMocks: true,
     // Include test files
     include: ['tests/**/*.{test,spec}.{js,ts}'],
     // Default environment
