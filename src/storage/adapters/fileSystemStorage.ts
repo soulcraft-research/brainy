@@ -962,6 +962,9 @@ export class FileSystemStorage extends BaseStorage {
     ttl: number = 30000
   ): Promise<boolean> {
     await this.ensureInitialized()
+    
+    // Ensure lock directory exists
+    await this.ensureDirectoryExists(this.lockDir)
 
     const lockFile = path.join(this.lockDir, `${lockKey}.lock`)
     const lockValue = `${Date.now()}_${Math.random()}_${process.pid || 'unknown'}`
