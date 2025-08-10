@@ -2600,7 +2600,7 @@ export class Cortex {
       `${emojis.brain}☁️ ${colors.brain('BRAIN CLOUD PREMIUM FEATURES')}\n\n` +
       `Premium connectors and features have moved to Brain Cloud!\n\n` +
       `${colors.accent('◆')} ${colors.dim('Setup Brain Cloud:')} ${colors.highlight('brainy cloud')}\n` +
-      `${colors.accent('◆')} ${colors.dim('Learn more:')} ${colors.highlight('https://soulcraftlabs.com/brain-cloud')}\n\n` +
+      `${colors.accent('◆')} ${colors.dim('Learn more:')} ${colors.highlight('https://soulcraft.com/brain-cloud')}\n\n` +
       `${colors.retro('Available Tiers:')}\n` +
       `${colors.success('🫙')} Brain Jar (Free) - Local coordination\n` +
       `${colors.success('☁️')} Brain Cloud ($19/mo) - Sync everywhere\n` +
@@ -2621,7 +2621,7 @@ export class Cortex {
       `${colors.accent('◆')} ${colors.dim('No credit card required')}\n` +
       `${colors.accent('◆')} ${colors.dim('Cancel anytime')}\n\n` +
       `${colors.highlight('Run: brainy cloud')}\n\n` +
-      `Or visit: ${colors.accent('https://soulcraftlabs.com/brain-cloud')}`,
+      `Or visit: ${colors.accent('https://soulcraft.com/brain-cloud')}`,
       { padding: 1, borderStyle: 'round', borderColor: '#FFD700' }
     ))
   }
@@ -2641,7 +2641,7 @@ export class Cortex {
         `${emojis.lock} ${colors.brain('BRAIN CLOUD FEATURE')} ${emojis.atom}\n\n` +
         `This feature is available in Brain Cloud!\n\n` +
         `${colors.highlight('Setup: brainy cloud')}\n` +
-        `${colors.dim('Learn more: https://soulcraftlabs.com/brain-cloud')}`,
+        `${colors.dim('Learn more: https://soulcraft.com/brain-cloud')}`,
         { padding: 1, borderStyle: 'round', borderColor: '#D67441' }
       ))
     }
@@ -2906,7 +2906,7 @@ export class Cortex {
         if (!accountResponse.hasAccount) {
           console.log('\n' + boxen(
             `${emojis.sparkles} ${colors.brain('CREATE YOUR ACCOUNT')}\n\n` +
-            `${colors.accent('◆')} Visit: ${colors.highlight('https://soulcraftlabs.com/brain-cloud')}\n` +
+            `${colors.accent('◆')} Visit: ${colors.highlight('https://soulcraft.com/brain-cloud')}\n` +
             `${colors.accent('◆')} Click "Start Free Trial"\n` +
             `${colors.accent('◆')} Get your API key\n` +
             `${colors.accent('◆')} Return here to continue setup`,
@@ -2962,7 +2962,7 @@ export class Cortex {
       spinner.fail('Setup failed')
       console.error(colors.error('Error:'), error.message)
       
-      console.log('\n' + colors.dim('Need help? Visit https://soulcraftlabs.com/brain-cloud/support'))
+      console.log('\n' + colors.dim('Need help? Visit https://soulcraft.com/brain-cloud/support'))
     }
   }
 

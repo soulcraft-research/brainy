@@ -855,10 +855,10 @@ export class ProductionDataService {
 
 ## Support
 
-- **Documentation**: https://soulcraft-research.com/brainy/docs
+- **Documentation**: https://soulcraft.com/brainy/docs
 - **Community**: https://github.com/soulcraftlabs/brainy/discussions
 - **Issues**: https://github.com/soulcraftlabs/brainy/issues
-- **Premium Support**: support@soulcraft-research.com (license holders)
+- **Premium Support**: support@soulcraft.com (license holders)
 
 ---
 

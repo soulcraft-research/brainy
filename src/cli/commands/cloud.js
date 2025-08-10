@@ -46,12 +46,12 @@ export const cloudCommand = {
       // Show status
       if (config.customerId) {
         console.log(chalk.green('✅ Connected to Brain Cloud'));
-        console.log(`🔗 Instance: ${chalk.cyan(`https://brainy-${config.customerId}.soulcraftlabs.com`)}`);
+        console.log(`🔗 Instance: ${chalk.cyan(`https://brainy-${config.customerId}.soulcraft.com`)}`);
         console.log(`📊 Customer ID: ${chalk.yellow(config.customerId)}`);
       } else {
         console.log(chalk.yellow('📡 Not connected to Brain Cloud'));
         console.log('\nOptions:');
-        console.log('  1. Sign up at: ' + chalk.cyan('https://app.soulcraftlabs.com'));
+        console.log('  1. Sign up at: ' + chalk.cyan('https://app.soulcraft.com'));
         console.log('  2. Connect with: ' + chalk.green('brainy cloud --connect YOUR_ID'));
       }
       return;
@@ -77,7 +77,7 @@ export const cloudCommand = {
       
       // Test connection
       try {
-        const response = await fetch(`https://brainy-${config.customerId}.soulcraftlabs.com/health`);
+        const response = await fetch(`https://brainy-${config.customerId}.soulcraft.com/health`);
         const data = await response.json();
         
         spinner.succeed('✅ Connected to atomic reactor!');
@@ -87,7 +87,7 @@ export const cloudCommand = {
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
         
         console.log(chalk.green('\n🎉 Brain Cloud connection established!'));
-        console.log(`🔗 Your instance: ${chalk.cyan(`https://brainy-${config.customerId}.soulcraftlabs.com`)}`);
+        console.log(`🔗 Your instance: ${chalk.cyan(`https://brainy-${config.customerId}.soulcraft.com`)}`);
         console.log('\nTry these commands:');
         console.log('  ' + chalk.yellow('brainy add "My first atomic memory"'));
         console.log('  ' + chalk.yellow('brainy search "memory"'));
@@ -137,7 +137,7 @@ export const cloudCommand = {
       const spinner = ora('📦 Exporting atomic memories...').start();
       
       try {
-        const response = await fetch(`https://brainy-${config.customerId}.soulcraftlabs.com/export`);
+        const response = await fetch(`https://brainy-${config.customerId}.soulcraft.com/export`);
         const data = await response.json();
         
         const exportPath = `brainy-export-${Date.now()}.json`;
