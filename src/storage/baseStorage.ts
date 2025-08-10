@@ -203,30 +203,24 @@ export abstract class BaseStorage extends BaseStorageAdapter {
   }
 
   /**
-   * Get all verbs from storage
-   * @returns Promise that resolves to an array of all HNSWVerbs
-   * @deprecated This method loads all data into memory and may cause performance issues. Use getVerbs() with pagination instead.
+   * Internal method for loading all verbs - used by performance optimizations
+   * @internal - Do not use directly, use getVerbs() with pagination instead
    */
-  public async getAllVerbs(): Promise<HNSWVerb[]> {
+  protected async _loadAllVerbsForOptimization(): Promise<HNSWVerb[]> {
     await this.ensureInitialized()
     
-    console.warn('getAllVerbs() is deprecated and may cause memory issues with large datasets. Consider using getVerbs() with pagination instead.')
-    
-    // Get all verbs using the paginated method with a very large limit
+    // Only use this for internal optimizations when safe
     const result = await this.getVerbs({
-      pagination: {
-        limit: Number.MAX_SAFE_INTEGER
-      }
+      pagination: { limit: Number.MAX_SAFE_INTEGER }
     })
     
-    // Convert GraphVerbs back to HNSWVerbs since that's what this method should return
+    // Convert GraphVerbs back to HNSWVerbs for internal use
     const hnswVerbs: HNSWVerb[] = []
     for (const graphVerb of result.items) {
-      // Create an HNSWVerb from the GraphVerb (reverse conversion)
       const hnswVerb: HNSWVerb = {
         id: graphVerb.id,
         vector: graphVerb.vector,
-        connections: new Map() // HNSWVerbs need connections, but GraphVerbs don't have them
+        connections: new Map()
       }
       hnswVerbs.push(hnswVerb)
     }
@@ -274,19 +268,15 @@ export abstract class BaseStorage extends BaseStorageAdapter {
   }
 
   /**
-   * Get all nouns from storage
-   * @returns Promise that resolves to an array of all nouns
-   * @deprecated This method loads all data into memory and may cause performance issues. Use getNouns() with pagination instead.
+   * Internal method for loading all nouns - used by performance optimizations
+   * @internal - Do not use directly, use getNouns() with pagination instead
    */
-  public async getAllNouns(): Promise<HNSWNoun[]> {
+  protected async _loadAllNounsForOptimization(): Promise<HNSWNoun[]> {
     await this.ensureInitialized()
     
-    console.warn('getAllNouns() is deprecated and may cause memory issues with large datasets. Consider using getNouns() with pagination instead.')
-    
+    // Only use this for internal optimizations when safe
     const result = await this.getNouns({
-      pagination: {
-        limit: Number.MAX_SAFE_INTEGER
-      }
+      pagination: { limit: Number.MAX_SAFE_INTEGER }
     })
     
     return result.items

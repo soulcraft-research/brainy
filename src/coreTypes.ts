@@ -593,18 +593,7 @@ export interface StorageAdapter {
    * @returns Promise that resolves to an array of changes
    */
   getChangesSince?(timestamp: number, limit?: number): Promise<any[]>
-
-  /**
-   * Get all nouns from storage
-   * @returns Promise that resolves to an array of all nouns
-   * @deprecated This method loads all data into memory and may cause performance issues. Use getNouns() with pagination instead.
-   */
-  getAllNouns(): Promise<HNSWNoun[]>
-
-  /**
-   * Get all verbs from storage
-   * @returns Promise that resolves to an array of all HNSWVerbs
-   * @deprecated This method loads all data into memory and may cause performance issues. Use getVerbs() with pagination instead.
-   */
-  getAllVerbs(): Promise<HNSWVerb[]>
+  
+  // NOTE: getAllNouns and getAllVerbs have been removed to prevent expensive full scans.
+  // Use getNouns() and getVerbs() with pagination instead.
 }

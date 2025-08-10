@@ -206,7 +206,7 @@ export class OPFSStorage extends BaseStorage {
       }
 
       // Create or get the file for this noun
-      const fileHandle = await this.nounsDir!.getFileHandle(noun.id, {
+      const fileHandle = await this.nounsDir!.getFileHandle(`${noun.id}.json`, {
         create: true
       })
 
@@ -230,7 +230,7 @@ export class OPFSStorage extends BaseStorage {
 
     try {
       // Get the file handle for this noun
-      const fileHandle = await this.nounsDir!.getFileHandle(id)
+      const fileHandle = await this.nounsDir!.getFileHandle(`${id}.json`)
 
       // Read the noun data from the file
       const file = await fileHandle.getFile()
@@ -331,7 +331,7 @@ export class OPFSStorage extends BaseStorage {
     await this.ensureInitialized()
 
     try {
-      await this.nounsDir!.removeEntry(id)
+      await this.nounsDir!.removeEntry(`${id}.json`)
     } catch (error: any) {
       // Ignore NotFoundError, which means the file doesn't exist
       if (error.name !== 'NotFoundError') {
@@ -364,7 +364,7 @@ export class OPFSStorage extends BaseStorage {
       }
 
       // Create or get the file for this verb
-      const fileHandle = await this.verbsDir!.getFileHandle(edge.id, {
+      const fileHandle = await this.verbsDir!.getFileHandle(`${edge.id}.json`, {
         create: true
       })
 
@@ -393,7 +393,7 @@ export class OPFSStorage extends BaseStorage {
 
     try {
       // Get the file handle for this edge
-      const fileHandle = await this.verbsDir!.getFileHandle(id)
+      const fileHandle = await this.verbsDir!.getFileHandle(`${id}.json`)
 
       // Read the edge data from the file
       const file = await fileHandle.getFile()
@@ -488,12 +488,12 @@ export class OPFSStorage extends BaseStorage {
   protected async getVerbsBySource_internal(
     sourceId: string
   ): Promise<GraphVerb[]> {
-    // This method is deprecated and would require loading metadata for each edge
-    // For now, return empty array since this is not efficiently implementable with new storage pattern
-    console.warn(
-      'getVerbsBySource_internal is deprecated and not efficiently supported in new storage pattern'
-    )
-    return []
+    // Use the paginated approach to properly handle HNSWVerb to GraphVerb conversion
+    const result = await this.getVerbsWithPagination({
+      filter: { sourceId: [sourceId] },
+      limit: Number.MAX_SAFE_INTEGER // Get all matching results
+    })
+    return result.items
   }
 
   /**
@@ -514,12 +514,12 @@ export class OPFSStorage extends BaseStorage {
   protected async getVerbsByTarget_internal(
     targetId: string
   ): Promise<GraphVerb[]> {
-    // This method is deprecated and would require loading metadata for each edge
-    // For now, return empty array since this is not efficiently implementable with new storage pattern
-    console.warn(
-      'getVerbsByTarget_internal is deprecated and not efficiently supported in new storage pattern'
-    )
-    return []
+    // Use the paginated approach to properly handle HNSWVerb to GraphVerb conversion
+    const result = await this.getVerbsWithPagination({
+      filter: { targetId: [targetId] },
+      limit: Number.MAX_SAFE_INTEGER // Get all matching results
+    })
+    return result.items
   }
 
   /**
@@ -538,12 +538,12 @@ export class OPFSStorage extends BaseStorage {
    * Get verbs by type (internal implementation)
    */
   protected async getVerbsByType_internal(type: string): Promise<GraphVerb[]> {
-    // This method is deprecated and would require loading metadata for each edge
-    // For now, return empty array since this is not efficiently implementable with new storage pattern
-    console.warn(
-      'getVerbsByType_internal is deprecated and not efficiently supported in new storage pattern'
-    )
-    return []
+    // Use the paginated approach to properly handle HNSWVerb to GraphVerb conversion
+    const result = await this.getVerbsWithPagination({
+      filter: { verbType: [type] },
+      limit: Number.MAX_SAFE_INTEGER // Get all matching results
+    })
+    return result.items
   }
 
   /**
@@ -572,7 +572,7 @@ export class OPFSStorage extends BaseStorage {
     await this.ensureInitialized()
 
     try {
-      await this.verbsDir!.removeEntry(id)
+      await this.verbsDir!.removeEntry(`${id}.json`)
     } catch (error: any) {
       // Ignore NotFoundError, which means the file doesn't exist
       if (error.name !== 'NotFoundError') {
@@ -590,7 +590,7 @@ export class OPFSStorage extends BaseStorage {
 
     try {
       // Create or get the file for this metadata
-      const fileHandle = await this.metadataDir!.getFileHandle(id, {
+      const fileHandle = await this.metadataDir!.getFileHandle(`${id}.json`, {
         create: true
       })
 
@@ -612,7 +612,7 @@ export class OPFSStorage extends BaseStorage {
 
     try {
       // Get the file handle for this metadata
-      const fileHandle = await this.metadataDir!.getFileHandle(id)
+      const fileHandle = await this.metadataDir!.getFileHandle(`${id}.json`)
 
       // Read the metadata from the file
       const file = await fileHandle.getFile()

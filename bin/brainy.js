@@ -13,6 +13,7 @@ import chalk from 'chalk'
 import { readFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
+import { createInterface } from 'readline'
 
 // Use native fetch (available in Node.js 18+)
 
@@ -57,7 +58,7 @@ const wrapInteractive = (fn) => {
 
 program
   .name('brainy')
-  .description('🧠 Brainy - Vector + Graph Database with AI Coordination')
+  .description('🧠 Brainy - Multi-Dimensional AI Database')
   .version(packageJson.version)
 
 // ========================================
@@ -66,7 +67,7 @@ program
 
 program
   .command('init')
-  .description('🚀 Initialize Brainy in your project')
+  .description('Initialize Brainy in your project')
   .option('-s, --storage <type>', 'Storage type (filesystem, s3, r2, gcs, memory)')
   .option('-e, --encryption', 'Enable encryption for secrets')
   .action(wrapAction(async (options) => {
@@ -75,8 +76,8 @@ program
 
 program
   .command('add [data]')
-  .description('📊 Add data to Brainy')
-  .option('-m, --metadata <json>', 'Metadata as JSON')
+  .description('Add data across multiple dimensions (vector, graph, facets)')
+  .option('-m, --metadata <json>', 'Metadata facets as JSON')
   .option('-i, --id <id>', 'Custom ID')
   .action(wrapAction(async (data, options) => {
     let metadata = {}
@@ -96,11 +97,11 @@ program
 
 program
   .command('search <query>')
-  .description('🔍 Search your database')
+  .description('Multi-dimensional search across vector, graph, and facets')
   .option('-l, --limit <number>', 'Number of results', '10')
-  .option('-f, --filter <json>', 'MongoDB-style metadata filters')
-  .option('-v, --verbs <types>', 'Graph verb types to traverse (comma-separated)')
-  .option('-d, --depth <number>', 'Graph traversal depth', '1')
+  .option('-f, --filter <json>', 'Filter by metadata facets')
+  .option('-v, --verbs <types>', 'Include related data (comma-separated)')
+  .option('-d, --depth <number>', 'Relationship depth', '1')
   .action(wrapAction(async (query, options) => {
     const searchOptions = { limit: parseInt(options.limit) }
     
@@ -123,7 +124,7 @@ program
 
 program
   .command('chat [question]')
-  .description('💬 Chat with your data (interactive mode if no question)')
+  .description('AI-powered chat with multi-dimensional context')
   .option('-l, --llm <model>', 'LLM model to use')
   .action(wrapInteractive(async (question, options) => {
     await cortex.chat(question)
@@ -131,7 +132,7 @@ program
 
 program
   .command('stats')
-  .description('📊 Show database statistics')
+  .description('Show database statistics and insights')
   .option('-d, --detailed', 'Show detailed statistics')
   .action(wrapAction(async (options) => {
     await cortex.stats(options.detailed)
@@ -139,7 +140,7 @@ program
 
 program
   .command('health')
-  .description('🔋 Check system health')
+  .description('Check system health')
   .option('--auto-fix', 'Automatically apply safe repairs')
   .action(wrapAction(async (options) => {
     await cortex.health(options)
@@ -147,21 +148,21 @@ program
 
 program
   .command('find')
-  .description('🔍 Interactive advanced search')
+  .description('Advanced intelligent search (interactive)')
   .action(wrapInteractive(async () => {
     await cortex.advancedSearch()
   }))
 
 program
   .command('explore [nodeId]')
-  .description('🗺️ Interactively explore graph connections')
+  .description('Explore data relationships interactively')
   .action(wrapInteractive(async (nodeId) => {
     await cortex.explore(nodeId)
   }))
 
 program
   .command('backup')
-  .description('💾 Create database backup')
+  .description('Create database backup')
   .option('-c, --compress', 'Compress backup')
   .option('-o, --output <file>', 'Output file')
   .action(wrapAction(async (options) => {
@@ -170,7 +171,7 @@ program
 
 program
   .command('restore <file>')
-  .description('♻️ Restore from backup')
+  .description('Restore from backup')
   .action(wrapInteractive(async (file) => {
     await cortex.restore(file)
   }))
@@ -181,35 +182,30 @@ program
 
 program
   .command('connect')
-  .description('🔗 Connect me to your Brain Cloud so I remember everything')
+  .description('Connect to Brain Cloud for AI memory')
   .action(wrapInteractive(async () => {
-    console.log(chalk.cyan('\n🧠 Setting Up AI Memory...'))
-    console.log(chalk.gray('━'.repeat(50)))
+    console.log(chalk.cyan('\n🧠 Brain Cloud Setup'))
+    console.log(chalk.gray('━'.repeat(40)))
     
     try {
       // Detect customer ID
       const customerId = await detectCustomerId()
       
       if (customerId) {
-        console.log(chalk.green(`✅ Found your Brain Cloud: ${customerId}`))
-        console.log('\n🔧 I can set up AI memory so I remember our conversations:')
-        console.log(chalk.yellow('  • Update Claude configuration'))
+        console.log(chalk.green(`✅ Found Brain Cloud: ${customerId}`))
+        console.log('\n🔧 Setting up AI memory:')
+        console.log(chalk.yellow('  • Update configuration'))
         console.log(chalk.yellow('  • Add memory instructions'))
         console.log(chalk.yellow('  • Enable cross-session memory'))
         
-        // For now, auto-proceed (in a real CLI environment, user could be prompted)
-        console.log(chalk.cyan('\n🚀 Setting up AI memory...'))
-        const proceed = true
-        
-        if (proceed) {
-          await setupBrainCloudMemory(customerId)
-          console.log(chalk.green('\n🎉 AI Memory Connected!'))
-          console.log(chalk.cyan('Restart Claude Code and I\'ll remember everything!'))
-        }
+        console.log(chalk.cyan('\n🚀 Configuring...'))
+        await setupBrainCloudMemory(customerId)
+        console.log(chalk.green('\n✅ AI memory connected!'))
+        console.log(chalk.cyan('Restart Claude Code to activate memory.'))
       } else {
-        console.log(chalk.yellow('🤔 No Brain Cloud found. Let me help you set one up:'))
-        console.log('\n1. Visit: ' + chalk.cyan('https://app.soulcraftlabs.com'))
-        console.log('2. Sign up for Brain Cloud ($19/month)')
+        console.log(chalk.yellow('No Brain Cloud found. Setting up:'))
+        console.log('\n1. Visit: ' + chalk.cyan('https://soulcraft.com'))
+        console.log('2. Sign up for Brain Cloud')
         console.log('3. Run ' + chalk.green('brainy connect') + ' again')
       }
     } catch (error) {
@@ -219,7 +215,7 @@ program
 
 program
   .command('cloud [action]')
-  .description('☁️ Connect to Brain Cloud - AI memory that never forgets')
+  .description('Manage Brain Cloud connection')
   .option('--connect <id>', 'Connect to existing Brain Cloud instance')
   .option('--export <id>', 'Export all data from Brain Cloud instance')
   .option('--status <id>', 'Check status of Brain Cloud instance')
@@ -363,7 +359,7 @@ program
 
 program
   .command('install <augmentation>')
-  .description('📦 Install augmentation')
+  .description('Install augmentation')
   .option('-m, --mode <type>', 'Installation mode (free|premium)', 'free')
   .option('-c, --config <json>', 'Configuration as JSON')
   .action(wrapAction(async (augmentation, options) => {
@@ -386,7 +382,7 @@ program
 
 program
   .command('run <augmentation>')
-  .description('⚡ Run augmentation')
+  .description('Run augmentation')
   .option('-c, --config <json>', 'Runtime configuration as JSON')
   .action(wrapAction(async (augmentation, options) => {
     if (augmentation === 'brain-jar') {
@@ -400,7 +396,7 @@ program
 
 program
   .command('status [augmentation]')
-  .description('📊 Show augmentation status')
+  .description('Show augmentation status')
   .action(wrapAction(async (augmentation) => {
     if (augmentation === 'brain-jar') {
       await cortex.brainJarStatus()
@@ -415,7 +411,7 @@ program
 
 program
   .command('stop [augmentation]')
-  .description('⏹️ Stop augmentation')
+  .description('Stop augmentation')
   .action(wrapAction(async (augmentation) => {
     if (augmentation === 'brain-jar') {
       await cortex.brainJarStop()
@@ -426,11 +422,11 @@ program
 
 program
   .command('list')
-  .description('📋 List installed augmentations')
+  .description('List installed augmentations')
   .option('-a, --available', 'Show available augmentations')
   .action(wrapAction(async (options) => {
     if (options.available) {
-      console.log(chalk.cyan('🧩 Available Augmentations:'))
+      console.log(chalk.cyan('Available Augmentations:'))
       console.log('  • brain-jar - AI coordination and collaboration')
       console.log('  • encryption - Data encryption and security')
       console.log('  • neural-import - AI-powered data analysis')
@@ -442,30 +438,17 @@ program
     }
   }))
 
-// ========================================
-// BRAIN CLOUD SUPER COMMAND (New!)
-// ========================================
-
-program
-  .command('cloud')
-  .description('☁️ Setup Brain Cloud - AI coordination across all devices')
-  .option('-m, --mode <type>', 'Setup mode (free|premium)', 'interactive')
-  .option('-k, --key <key>', 'License key for premium features')
-  .option('-s, --skip-install', 'Skip Brain Jar installation')
-  .action(wrapInteractive(async (options) => {
-    await cortex.setupBrainCloud(options)
-  }))
 
 // ========================================
 // BRAIN JAR SPECIFIC COMMANDS (Rich UX)
 // ========================================
 
 const brainJar = program.command('brain-jar')
-  .description('🧠🫙 AI coordination and collaboration')
+  .description('AI coordination and collaboration')
 
 brainJar
   .command('install')
-  .description('📦 Install Brain Jar coordination')
+  .description('Install Brain Jar coordination')
   .option('-m, --mode <type>', 'Installation mode (free|premium)', 'free')
   .action(wrapAction(async (options) => {
     await cortex.brainJarInstall(options.mode)
@@ -473,7 +456,7 @@ brainJar
 
 brainJar
   .command('start')
-  .description('🚀 Start Brain Jar coordination')
+  .description('Start Brain Jar coordination')
   .option('-s, --server <url>', 'Custom server URL')
   .option('-n, --name <name>', 'Agent name')
   .option('-r, --role <role>', 'Agent role')
@@ -483,7 +466,7 @@ brainJar
 
 brainJar
   .command('dashboard')
-  .description('📊 Open Brain Jar dashboard')
+  .description('Open Brain Jar dashboard')
   .option('-o, --open', 'Auto-open in browser', true)
   .action(wrapAction(async (options) => {
     await cortex.brainJarDashboard(options.open)
@@ -491,28 +474,28 @@ brainJar
 
 brainJar
   .command('status')
-  .description('🔍 Show Brain Jar status')
+  .description('Show Brain Jar status')
   .action(wrapAction(async () => {
     await cortex.brainJarStatus()
   }))
 
 brainJar
   .command('agents')
-  .description('👥 List connected agents')
+  .description('List connected agents')
   .action(wrapAction(async () => {
     await cortex.brainJarAgents()
   }))
 
 brainJar
   .command('message <text>')
-  .description('📨 Send message to coordination channel')
+  .description('Send message to coordination channel')
   .action(wrapAction(async (text) => {
     await cortex.brainJarMessage(text)
   }))
 
 brainJar
   .command('search <query>')
-  .description('🔍 Search coordination history')
+  .description('Search coordination history')
   .option('-l, --limit <number>', 'Number of results', '10')
   .action(wrapAction(async (query, options) => {
     await cortex.brainJarSearch(query, parseInt(options.limit))
@@ -523,7 +506,7 @@ brainJar
 // ========================================
 
 const config = program.command('config')
-  .description('⚙️ Manage configuration')
+  .description('Manage configuration')
 
 config
   .command('set <key> <value>')
@@ -557,11 +540,11 @@ config
 // ========================================
 
 const cortexCmd = program.command('cortex')
-  .description('🔧 Legacy Cortex commands (deprecated - use direct commands)')
+  .description('Legacy Cortex commands (deprecated - use direct commands)')
 
 cortexCmd
   .command('chat [question]')
-  .description('💬 Chat with your data')
+  .description('Chat with your data')
   .action(wrapInteractive(async (question) => {
     console.log(chalk.yellow('⚠️  Deprecated: Use "brainy chat" instead'))
     await cortex.chat(question)
@@ -569,7 +552,7 @@ cortexCmd
 
 cortexCmd
   .command('add [data]')
-  .description('📊 Add data')
+  .description('Add data')
   .action(wrapAction(async (data) => {
     console.log(chalk.yellow('⚠️  Deprecated: Use "brainy add" instead'))
     await cortex.add(data, {})
@@ -581,7 +564,7 @@ cortexCmd
 
 program
   .command('shell')
-  .description('🐚 Interactive Brainy shell')
+  .description('Interactive Brainy shell')
   .action(wrapInteractive(async () => {
     console.log(chalk.cyan('🧠 Brainy Interactive Shell'))
     console.log(chalk.dim('Type "help" for commands, "exit" to quit\n'))
@@ -596,21 +579,24 @@ program.parse(process.argv)
 
 // Show help if no command
 if (!process.argv.slice(2).length) {
-  console.log(chalk.cyan('🧠☁️ Brainy - AI Coordination Service'))
-  console.log('')
-  console.log(chalk.bold('One-Command Setup:'))
-  console.log(chalk.green('  brainy cloud                   # Setup Brain Cloud (recommended!)'))
-  console.log('')
+  console.log(chalk.cyan('🧠 Brainy - Multi-Dimensional AI Database'))
+  console.log(chalk.gray('Vector similarity, graph relationships, metadata facets, and AI context.\n'))
+  
   console.log(chalk.bold('Quick Start:'))
   console.log('  brainy init                    # Initialize project')
-  console.log('  brainy add "some data"         # Add data')
-  console.log('  brainy search "query"          # Search data')
-  console.log('  brainy chat                    # Chat with data')
+  console.log('  brainy add "some data"         # Add multi-dimensional data')
+  console.log('  brainy search "query"          # Search across all dimensions')
+  console.log('  brainy chat                    # AI chat with full context')
+  console.log('')
+  console.log(chalk.bold('AI Memory:'))
+  console.log(chalk.green('  brainy connect                 # Connect to Brain Cloud'))
+  console.log('  brainy cloud --status <id>     # Check cloud status')
   console.log('')
   console.log(chalk.bold('AI Coordination:'))
-  console.log('  brainy install brain-jar       # Install AI coordination')
+  console.log('  brainy install brain-jar       # Install coordination')
   console.log('  brainy brain-jar start         # Start coordination')
-  console.log('  brainy brain-jar dashboard     # View dashboard')
+  console.log('')
+  console.log(chalk.dim('Learn more: https://soulcraft.com'))
   console.log('')
   program.outputHelp()
 }
