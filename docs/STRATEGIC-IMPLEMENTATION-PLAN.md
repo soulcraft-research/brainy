@@ -61,7 +61,7 @@ Powerful CLI for managing everything:
 
 1. **Create Private GitHub Repository**
 ```bash
-# At github.com/soulcraft-research
+# At github.com/soulcraftlabs
 Create: brainy-quantum-vault (PRIVATE)
 ```
 

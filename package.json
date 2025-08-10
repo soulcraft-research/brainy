@@ -158,13 +158,13 @@
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://github.com/soulcraft-research/brainy",
+  "homepage": "https://github.com/soulcraftlabs/brainy",
   "bugs": {
-    "url": "https://github.com/soulcraft-research/brainy/issues"
+    "url": "https://github.com/soulcraftlabs/brainy/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/soulcraft-research/brainy.git"
+    "url": "git+https://github.com/soulcraftlabs/brainy.git"
   },
   "files": [
     "dist/**/*.js",

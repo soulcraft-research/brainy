@@ -12,9 +12,9 @@
     {"type": "ci", "section": "Continuous Integration", "hidden": true}
   ],
   "releaseCommitMessageFormat": "chore(release): {{currentTag}} [skip ci]",
-  "commitUrlFormat": "https://github.com/soulcraft-research/brainy/commit/{{hash}}",
-  "compareUrlFormat": "https://github.com/soulcraft-research/brainy/compare/{{previousTag}}...{{currentTag}}",
-  "issueUrlFormat": "https://github.com/soulcraft-research/brainy/issues/{{id}}",
+  "commitUrlFormat": "https://github.com/soulcraftlabs/brainy/commit/{{hash}}",
+  "compareUrlFormat": "https://github.com/soulcraftlabs/brainy/compare/{{previousTag}}...{{currentTag}}",
+  "issueUrlFormat": "https://github.com/soulcraftlabs/brainy/issues/{{id}}",
   "userUrlFormat": "https://github.com/{{user}}",
   "skip": {
     "tag": false

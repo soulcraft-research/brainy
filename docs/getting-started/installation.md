@@ -309,8 +309,8 @@ if (!environment.isBrowser) {
 ### Getting Help
 
 - 📚 [Troubleshooting Guide](../troubleshooting/)
-- 🐛 [GitHub Issues](https://github.com/soulcraft-research/brainy/issues)
-- 💬 [GitHub Discussions](https://github.com/soulcraft-research/brainy/discussions)
+- 🐛 [GitHub Issues](https://github.com/soulcraftlabs/brainy/issues)
+- 💬 [GitHub Discussions](https://github.com/soulcraftlabs/brainy/discussions)
 
 ## ✅ Next Steps
 

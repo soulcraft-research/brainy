@@ -113,8 +113,8 @@ Common issues and solutions.
 
 ## 📞 Getting Help
 
-- **[GitHub Issues](https://github.com/soulcraft-research/brainy/issues)** - Bug reports and feature requests
-- **[Discussions](https://github.com/soulcraft-research/brainy/discussions)** - Community support
+- **[GitHub Issues](https://github.com/soulcraftlabs/brainy/issues)** - Bug reports and feature requests
+- **[Discussions](https://github.com/soulcraftlabs/brainy/discussions)** - Community support
 - **[Examples](examples/)** - Code examples and tutorials
 
 ---
