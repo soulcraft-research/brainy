@@ -4,7 +4,8 @@
 
 [![npm version](https://badge.fury.io/js/%40soulcraft%2Fbrainy.svg)](https://badge.fury.io/js/%40soulcraft%2Fbrainy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Try Demo](https://img.shields.io/badge/Try%20Demo-Live-green.svg)](https://soulcraft.com/console)
+[![Try Demo](https://img.shields.io/badge/Try%20Demo-Live-green.svg)](https://soulcraft.com)
+[![Brain Cloud](https://img.shields.io/badge/Brain%20Cloud-Early%20Access-blue.svg)](https://soulcraft.com/brain-cloud)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.4.1-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4.5-blue.svg)](https://www.typescriptlang.org/)
 
@@ -107,6 +108,7 @@ Try Brainy instantly in your browser. No signup. No credit card.
 
 ## ⚡ Quick Start (60 Seconds)
 
+### Open Source (Local Storage)
 ```bash
 npm install @soulcraft/brainy
 ```
@@ -125,6 +127,31 @@ await brain.addVerb("Elon Musk", "founded", "Tesla")
 
 // Search naturally
 const results = await brain.search("companies founded by Elon")
+```
+
+### ☁️ Brain Cloud (AI Memory + Agent Coordination)
+```bash
+# Auto-setup with cloud instance provisioning (RECOMMENDED)
+brainy cloud setup --email your@email.com
+
+# Or install manually
+npm install @soulcraft/brainy @soulcraft/brain-cloud
+```
+
+```javascript
+import { BrainyData, Cortex } from '@soulcraft/brainy'
+import { AIMemory, AgentCoordinator } from '@soulcraft/brain-cloud'
+
+const brain = new BrainyData()
+const cortex = new Cortex()
+
+// Add premium augmentations (requires Early Access license)
+cortex.register(new AIMemory())
+cortex.register(new AgentCoordinator())
+
+// Now your AI remembers everything across all sessions!
+await brain.add("User prefers TypeScript over JavaScript")
+// This memory persists and syncs across all devices
 // Returns: SpaceX and Tesla with relevance scores
 
 // Query relationships
