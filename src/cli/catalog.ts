@@ -178,7 +178,7 @@ export async function showAugmentationInfo(id: string) {
     
     if (details.features) {
       console.log(chalk.bold('Features:'))
-      details.features.forEach(f => console.log(`  ✓ ${f}`))
+      details.features.forEach((f: string) => console.log(`  ✓ ${f}`))
       console.log('')
     }
     
@@ -192,13 +192,13 @@ export async function showAugmentationInfo(id: string) {
     
     if (details.requirements?.config) {
       console.log(chalk.bold('Required Configuration:'))
-      details.requirements.config.forEach(c => console.log(`  • ${c}`))
+      details.requirements.config.forEach((c: string) => console.log(`  • ${c}`))
       console.log('')
     }
     
     if (details.pricing) {
       console.log(chalk.bold('Available in:'))
-      details.pricing.tiers.forEach(t => console.log(`  • ${t}`))
+      details.pricing.tiers.forEach((t: string) => console.log(`  • ${t}`))
       console.log('')
     }
     
@@ -266,7 +266,7 @@ export async function showAvailable(licenseKey?: string) {
     }
   } catch (error) {
     console.log(chalk.red('❌ Could not fetch available augmentations'))
-    console.log(chalk.gray(error.message))
+    console.log(chalk.gray((error as Error).message))
   }
 }
 
