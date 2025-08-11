@@ -5,7 +5,7 @@
  */
 
 import { BrainyData } from '../brainyData.js'
-import { Cortex } from './cortex.js'
+import { Cortex } from './cortex-legacy.js'
 import * as fs from '../universal/fs.js'
 import * as path from '../universal/path.js'
 

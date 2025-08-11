@@ -29,13 +29,48 @@ When working with multiple AI assistants, we automatically coordinate:
 
 ## Known Issues
 
-### Bash Tool 2>&1 Redirection Bug
-A known bug exists in the Bash tool where the `2>&1` stderr redirection operator is sometimes treated as a literal argument, leading to the addition of a "2" in command output.
+### Bash Tool 2>&1 Redirection Bug (Critical)
+**GitHub Issue:** https://github.com/anthropics/claude-code/issues/4711
 
-**Explanation:** When `2>&1` is used with pipes, particularly in direct commands, the system misinterprets it as a separate argument instead of a redirection instruction. This results in the literal "2" being included in the command's output.
+A critical bug exists in the Bash tool where `2>&1` stderr redirection is treated as a literal argument "2", breaking many commands.
 
-**Reproduction Example:** A command like `echo "test" 2>&1 | cat` might incorrectly output "test 2" instead of the expected "test".
+**Impact:** 
+- Commands with stderr redirection fail or produce incorrect output
+- Test runners like `npm test` that use stderr redirection internally fail
+- Build commands may pass "2" as an argument instead of redirecting stderr
 
-**Workaround:** Encapsulating the command within a bash -c wrapper can circumvent this issue. For instance, `bash -c 'echo "test" 2>&1 | cat'` correctly redirects stderr and produces the expected output.
+**Examples of Affected Commands:**
+```bash
+# These will FAIL:
+npm test 2>&1           # Runs "vitest run 2" instead of "vitest run"
+npm build 2>&1          # Runs "tsc 2" instead of "tsc"
+command 2>&1 | grep x   # Passes "2" as argument to command
+```
 
-**Note:** This issue primarily affects direct commands and is not typically observed when executing scripts or commands wrapped with bash -c.
+**Workarounds:**
+
+1. **Use bash -c wrapper (RECOMMENDED):**
+```bash
+# Instead of:
+npm test 2>&1
+
+# Use:
+bash -c 'npm test 2>&1'
+```
+
+2. **Run without stderr redirection:**
+```bash
+# Just run without capturing stderr:
+npm test
+npm build
+```
+
+3. **Use script wrapper:**
+```bash
+# Create a wrapper script
+echo 'npm test' > run-tests.sh
+chmod +x run-tests.sh
+./run-tests.sh
+```
+
+**Note:** This affects ALL commands in Claude Code that try to redirect stderr. Always use the bash -c workaround when you need to capture both stdout and stderr.

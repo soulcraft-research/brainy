@@ -4,581 +4,451 @@
 
 [![npm version](https://badge.fury.io/js/%40soulcraft%2Fbrainy.svg)](https://badge.fury.io/js/%40soulcraft%2Fbrainy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Try Demo](https://img.shields.io/badge/Try%20Demo-Live-green.svg)](https://soulcraft.com/console)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.4.1-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4.5-blue.svg)](https://www.typescriptlang.org/)
 
-# BRAINY: Multi-Dimensional AI Database™
+# 🧠 BRAINY: Your AI-Powered Second Brain
 
-**The world's first Multi-Dimensional AI Database**  
-*Vector similarity • Graph relationships • Metadata facets • AI context*
+**The World's First Multi-Dimensional AI Database™**  
+*Vector similarity • Graph relationships • Metadata facets • Neural understanding*
 
-*Zero-to-Smart™ technology that thinks so you don't have to*
+**Build AI apps that actually understand your data - in minutes, not months**
 
 </div>
 
 ---
 
-## 🚀 THE AMAZING BRAINY: See It In Action!
+## 🚀 What Can You Build?
 
+### 💬 **AI Chat Apps** - That Actually Remember
 ```javascript
-import { BrainyData } from '@soulcraft/brainy'
+// Your users' conversations persist across sessions
+const brain = new BrainyData()
+await brain.add("User prefers dark mode")
+await brain.add("User is learning Spanish")
 
-// 🧪 Initialize your brain-in-a-jar
-const brainy = new BrainyData()  // Zero config - it's ALIVE!
-await brainy.init()
-
-// 🔬 Feed it knowledge with relationships
-const openai = await brainy.add("OpenAI", { type: "company", funding: 11000000 })
-const gpt4 = await brainy.add("GPT-4", { type: "product", users: 100000000 })
-await brainy.relate(openai, gpt4, "develops")
-
-// ⚡ One query to rule them all - Vector + Graph + Faceted search!
-const results = await brainy.search("AI language models", 5, {
-  metadata: { funding: { $gte: 10000000 } },  // MongoDB-style filtering
-  includeVerbs: true                           // Graph relationships
-})  // Plus semantic vector search!
+// Later sessions remember everything
+const context = await brain.search("user preferences")
+// AI knows: dark mode + Spanish learning preference
 ```
 
-**🎭 8 lines. Three search paradigms. One brain-powered database.**
+### 🤖 **Smart Assistants** - With Real Knowledge Graphs
+```javascript
+// Build assistants that understand relationships
+await brain.add("Sarah manages the design team")
+await brain.addVerb("Sarah", "reports_to", "John")
+await brain.addVerb("Sarah", "works_on", "Project Apollo")
 
-## 💫 WHY BRAINY? The Problem We Solve
-
-### ❌ The Old Way: Database Frankenstein
-
+// Query complex relationships
+const team = await brain.getRelated("Project Apollo", {
+  verb: "works_on",
+  depth: 2
+})
+// Returns: entire team structure with relationships
 ```
-Pinecone ($$$) + Neo4j ($$$) + Elasticsearch ($$$) + Sync Hell = 😱
+
+### 📊 **RAG Applications** - Without the Complexity
+```javascript
+// Retrieval-Augmented Generation in 3 lines
+await brain.add(companyDocs)  // Add your knowledge base
+const relevant = await brain.search(userQuery, 10)  // Find relevant context
+const answer = await llm.generate(relevant + userQuery)  // Generate with context
 ```
 
-### ✅ The Brainy Way: One Multi-Dimensional Brain
+### 🔍 **Semantic Search** - That Just Works
+```javascript
+// No embeddings API needed - it's built in!
+await brain.add("The iPhone 15 Pro has a titanium design")
+await brain.add("Samsung Galaxy S24 features AI photography")
 
+const results = await brain.search("premium smartphones with metal build")
+// Returns: iPhone (titanium matches "metal build" semantically)
 ```
-Multi-Dimensional AI Database = Vector + Graph + Facets + AI = 🧠✨
+
+### 🎯 **Recommendation Engines** - With Graph Intelligence
+```javascript
+// Netflix-style recommendations with relationships
+await brain.addVerb("User123", "watched", "Inception")
+await brain.addVerb("User123", "liked", "Inception")
+await brain.addVerb("Inception", "similar_to", "Interstellar")
+
+const recommendations = await brain.getRelated("User123", {
+  verb: ["liked", "watched"],
+  depth: 2
+})
+// Returns: Interstellar and other related content
 ```
 
-**Your data gets a multi-dimensional brain upgrade. No assembly required.**
+## 💫 Why Brainy? The Problem We Solve
 
-## ⚡ QUICK & EASY: From Zero to Smart in 60 Seconds
+### ❌ **The Old Way: Database Frankenstein**
+```
+Pinecone ($750/mo) + Neo4j ($500/mo) + Elasticsearch ($300/mo) + 
+Sync nightmares + 3 different APIs + Vendor lock-in = 😱💸
+```
 
-### Installation
+### ✅ **The Brainy Way: One Brain, All Dimensions**
+```
+Vector + Graph + Search + AI = Brainy (Free & Open Source) = 🧠✨
+```
+
+**Your data gets superpowers. Your wallet stays happy.**
+
+## 🎮 Try It Now - No Install Required!
+
+<div align="center">
+
+### [**→ Live Demo at soulcraft.com/console ←**](https://soulcraft.com/console)
+
+Try Brainy instantly in your browser. No signup. No credit card.
+
+</div>
+
+## ⚡ Quick Start (60 Seconds)
 
 ```bash
 npm install @soulcraft/brainy
 ```
 
-### Your First Brainy App
-
 ```javascript
 import { BrainyData } from '@soulcraft/brainy'
 
-// It's alive! (No config needed)
-const brainy = new BrainyData()
-await brainy.init()
+// Zero configuration - it just works!
+const brain = new BrainyData()
+await brain.init()
 
-// Feed your brain some data
-await brainy.add("Tesla", { type: "company", sector: "automotive" })
-await brainy.add("SpaceX", { type: "company", sector: "aerospace" })
+// Add any data - text, objects, relationships
+await brain.add("Elon Musk founded SpaceX in 2002")
+await brain.add({ company: "Tesla", ceo: "Elon Musk", founded: 2003 })
+await brain.addVerb("Elon Musk", "founded", "Tesla")
 
-// Ask it questions (semantic search)
-const similar = await brainy.search("electric vehicles")
+// Search naturally
+const results = await brain.search("companies founded by Elon")
+// Returns: SpaceX and Tesla with relevance scores
 
-// Use relationships (graph database)
-await brainy.relate("Tesla", "SpaceX", "shares_founder_with")
+// Query relationships
+const companies = await brain.getRelated("Elon Musk", { verb: "founded" })
+// Returns: SpaceX, Tesla
 
-// Filter like MongoDB (faceted search)
-const results = await brainy.search("innovation", {
-  metadata: { sector: "automotive" }
+// Filter with metadata
+const recent = await brain.search("companies", 10, {
+  filter: { founded: { $gte: 2000 } }
 })
 ```
 
-## 🎆 NEW! Talk to Your Data with Brainy Chat
+## 🧩 Augmentation System - Extend Your Brain
+
+Brainy is **100% open source** with a powerful augmentation system. Choose what you need:
+
+### 🆓 **Built-in Augmentations** (Always Free)
+```javascript
+import { NeuralImport } from '@soulcraft/brainy'
+
+// AI-powered data understanding - included in every install
+const neural = new NeuralImport(brain)
+await neural.neuralImport('data.csv')  // Automatically extracts entities & relationships
+```
+
+**Included augmentations:**
+- ✅ **Neural Import** - AI understands your data structure
+- ✅ **Basic Memory** - Persistent storage
+- ✅ **Simple Search** - Text and vector search
+- ✅ **Graph Traversal** - Relationship queries
+
+### 🌟 **Community Augmentations** (Free, Open Source)
+```bash
+npm install brainy-sentiment  # Community created
+npm install brainy-translate  # Community maintained
+```
 
 ```javascript
-import { BrainyChat } from '@soulcraft/brainy'
+import { SentimentAnalyzer } from 'brainy-sentiment'
+import { Translator } from 'brainy-translate'
 
-const chat = new BrainyChat(brainy)  // Your data becomes conversational!
-const answer = await chat.ask("What patterns do you see in customer behavior?")
-// → AI-powered insights from your knowledge graph!
+cortex.register(new SentimentAnalyzer())  // Analyze emotions
+cortex.register(new Translator())         // Multi-language support
 ```
 
-<sub>**How it works:** Combines vector embeddings for semantic understanding • Graph relationships for connection patterns • Metadata filtering for structured analysis • Optional LLM for natural language insights</sub>
+**Popular community augmentations:**
+- 🎭 Sentiment Analysis
+- 🌍 Translation (50+ languages)
+- 📧 Email Parser
+- 🔗 URL Extractor
+- 📊 Data Visualizer
+- 🎨 Image Understanding
 
-**One line. Zero complexity. Optional LLM for genius-level responses.**  
-[📖 **Learn More About Brainy Chat**](BRAINY-CHAT.md)
-
-## 🎮 NEW! Brainy CLI - Command Center from the Future
-
-### 💬 Talk to Your Data
-
-```bash
-# Have conversations with your knowledge graph
-brainy chat "What patterns exist in customer behavior?"
-brainy chat "Show me all connections between startups"
-```
-
-### 📥 Add & Import Data
-
-```bash
-# Import with AI understanding
-brainy import data.csv --cortex --understand
-
-# Add individual items
-brainy add "OpenAI" --type company --metadata '{"founded": 2015}'
-
-# Bulk import with relationships
-brainy import relationships.json --detect-entities
-```
-
-### 🔍 Explore & Query
-
-```bash
-# Search semantically
-brainy search "artificial intelligence companies"
-
-# Query with filters
-brainy query --filter 'funding>1000000' --type company
-
-# Visualize relationships
-brainy graph "OpenAI" --depth 2 --format ascii
-```
-
-### 🔄 Manage & Migrate
-
-```bash
-# Export your brain
-brainy export my-brain.json --include-embeddings
-
-# Migrate between storage backends
-brainy migrate s3://old-bucket file://new-location
-
-# Backup and restore
-brainy backup --compress
-brainy restore backup-2024.tar.gz
-```
-
-### 🔐 Environment & Secrets
-
-```bash
-# Store configuration securely
-brainy config set api.key "sk-..." --encrypt
-brainy config set storage.s3.bucket "my-brain"
-
-# Load environment profiles
-brainy env use production
-brainy env create staging --from .env.staging
-```
-
-### 📊 Monitor & Optimize
-
-```bash
-# Real-time dashboard
-brainy monitor --dashboard
-
-# Performance analysis
-brainy stats --detailed
-brainy optimize index --auto
-```
-
-**Command your data empire from the terminal!**  
-[📖 **Full CLI Documentation**](docs/brainy-cli.md)
-
-## 🧬 NEW! Cortex AI - Your Data Gets a PhD
-
-**Cortex automatically understands and enhances your data:**
+### 💼 **Premium Augmentations** (@soulcraft/brain-cloud)
+For teams that need AI memory and enterprise features:
 
 ```javascript
-// Enable Cortex Intelligence during import
-const brainy = new BrainyData({
-  cortex: {
-    enabled: true,
-    autoDetect: true  // Automatically identify entities & relationships
-  }
+import { 
+  AIMemory,          // Persistent AI memory
+  AgentCoordinator,  // Multi-agent handoffs
+  NotionSync,        // Notion integration
+  SalesforceConnect  // CRM integration
+} from '@soulcraft/brain-cloud'
+
+// Requires license key - get one at soulcraft.com
+const aiMemory = new AIMemory({
+  licenseKey: process.env.BRAINY_LICENSE_KEY
 })
 
-// Import with understanding
-await brainy.cortexImport('customers.csv', {
-  understand: true,     // AI analyzes data structure
-  detectRelations: true, // Finds hidden connections
-  confidence: 0.8       // Quality threshold
-})
+cortex.register(aiMemory)  // AI remembers everything
 ```
 
-**Your data becomes self-aware (in a good way)!**
+**AI Memory & Coordination:**
+- 🧠 **AI Memory** - Persistent across sessions
+- 🤝 **Agent Coordinator** - Multi-agent handoffs
+- 👥 **Team Sync** - Real-time collaboration
+- 💾 **Cloud Backup** - Automatic backups
 
-## 🔌 NEW! Augmentation Pipeline - Plug in Superpowers
+**Enterprise Connectors:**
+- 📝 **Notion Sync** - Bidirectional sync
+- 💼 **Salesforce** - CRM integration
+- 📊 **Airtable** - Database sync
+- 🔄 **Postgres** - Real-time replication
+- 🏢 **Slack** - Team knowledge base
 
-**8 types of augmentations to enhance your brain:**
+### 🎮 **Try Online** (Free Playground)
+Test Brainy instantly without installing:
 
 ```javascript
-// Add augmentations like installing apps on your brain
-brainy.augment({
-  type: 'PERCEPTION',     // Visual/pattern recognition
-  handler: myPerceptor
-})
-
-brainy.augment({
-  type: 'COGNITION',      // Deep thinking & analysis
-  handler: myThinker
-})
-
-// Premium augmentations (coming soon!)
-brainy.augment({
-  type: 'NOTION_SYNC',    // Bi-directional Notion sync
-  license: 'premium'
-})
+// Visit soulcraft.com/console
+// No signup required - just start coding!
+// Perfect for:
+// - Testing Brainy before installing
+// - Prototyping ideas quickly  
+// - Learning the API
+// - Sharing examples with others
 ```
 
-**Augmentation Types:**
+**[→ Open Console](https://soulcraft.com/console)** - Your code runs locally, data stays private
 
-- 🎯 **SENSE** - Input processing
-- 🧠 **MEMORY** - Long-term storage
-- 💭 **COGNITION** - Deep analysis
-- 🔗 **CONDUIT** - Data flow
-- ⚡ **ACTIVATION** - Triggers & events
-- 👁️ **PERCEPTION** - Pattern recognition
-- 💬 **DIALOG** - Conversational AI
-- 🌐 **WEBSOCKET** - Real-time sync
-
-## 💪 POWERFUL FEATURES: What Makes Brainy Special
-
-### ⚡ Performance That Defies Science
-
-```
-Vector Search (1M embeddings):     2-8ms latency 🚀
-Graph Traversal (100M relations):  1-3ms latency 🔥
-Combined Vector+Graph+Filter:      5-15ms latency ⚡
-Throughput:                        10K+ queries/sec 💫
-```
-
-### 🌍 Write Once, Run Anywhere (Literally)
-
-- **Browser**: Uses OPFS, Web Workers - works offline!
-- **Node.js**: FileSystem, Worker Threads - server-ready!
-- **Edge/Serverless**: Memory-optimized - deploys anywhere!
-- **React/Vue/Angular**: Same code, automatic optimization!
-
-### 🔮 The Power of Three-in-One Search
+### ☁️ **Brain Cloud** (Managed Service)
+For teams that want zero-ops:
 
 ```javascript
-// This ONE query replaces THREE databases:
-const results = await brainy.search("AI startups in healthcare", 10, {
-  // 🔍 Vector: Semantic similarity 
-  includeVerbs: true,
-
-  // 🔗 Graph: Relationship traversal
-  verbTypes: ["invests_in", "partners_with"],
-
-  // 📊 Faceted: MongoDB-style filtering  
-  metadata: {
-    industry: "healthcare",
-    funding: { $gte: 1000000 },
-    stage: { $in: ["Series A", "Series B"] }
-  }
-})
-```
-
-### 🧠 Self-Learning & Auto-Optimization
-
-**Brainy gets smarter the more you use it:**
-
-- Auto-indexes frequently searched fields
-- Learns query patterns for faster responses
-- Optimizes storage based on access patterns
-- Self-configures for your environment
-
-## 🎭 ADVANCED FEATURES: For Mad Scientists
-
-### 🔬 MongoDB-Style Query Operators
-
-```javascript
-const results = await brainy.search("quantum computing", {
-  metadata: {
-    $and: [
-      { price: { $gte: 100, $lte: 1000 } },
-      { category: { $in: ["electronics", "computing"] } },
-      {
-        $or: [
-          { brand: "Intel" },
-          { brand: "IBM" }
-        ]
-      },
-      { tags: { $includes: "quantum" } },
-      { description: { $regex: "qubit|superposition" } }
-    ]
-  }
-})
-```
-
-**15+ operators**: `$gt`, `$gte`, `$lt`, `$lte`, `$eq`, `$ne`, `$in`, `$nin`, `$regex`, `$includes`, `$all`, `$size`,
-`$and`, `$or`, `$not`
-
-### 🧪 Specialized Deployment Modes
-
-```javascript
-// High-speed data ingestion
-const writer = new BrainyData({
-  writeOnly: true,
-  allowDirectReads: true  // For deduplication
+// Connect to Brain Cloud - your brain in the cloud
+await brain.connect('brain-cloud.soulcraft.com', {
+  instance: 'my-team-brain',
+  apiKey: process.env.BRAIN_CLOUD_KEY
 })
 
-// Read-only search cluster
-const reader = new BrainyData({
-  readOnly: true,
-  frozen: true  // Maximum performance
-})
-
-// Custom storage backend
-const custom = new BrainyData({
-  storage: {
-    type: 's3',
-    s3Storage: {
-      bucketName: 'my-brain',
-      region: 'us-east-1'
-    }
-  }
-})
+// Now your brain persists across:
+// - Multiple developers
+// - Different environments  
+// - AI agents
+// - Sessions
 ```
 
-### 🚀 Framework Integration Examples
+**Brain Cloud features:**
+- 🔄 Auto-sync across team
+- 💾 Managed backups
+- 🚀 Auto-scaling
+- 🔒 Enterprise security
+- 📊 Analytics dashboard
+- 🤖 Multi-agent coordination
 
-<details>
-<summary>📦 <strong>See Framework Examples</strong></summary>
+## 📝 Create Your Own Augmentation
 
-#### React
+### We ❤️ Open Source
 
-```jsx
-import { BrainyData } from '@soulcraft/brainy'
+**Brainy will ALWAYS be open source.** We believe in:
+- 🌍 Community first
+- 🔓 No vendor lock-in
+- 🎁 Free forever core
+- 🤝 Sustainable open source
 
-function App() {
-  const [brainy] = useState(() => new BrainyData())
-
-  useEffect(() => {
-    brainy.init()
-  }, [])
-
-  const search = async (query) => {
-    return await brainy.search(query, 10)
-  }
-
-  return <SearchInterface onSearch={search} />
-}
-```
-
-#### Vue 3
-
-```vue
-
-<script setup>
-  import { BrainyData } from '@soulcraft/brainy'
-
-  const brainy = new BrainyData()
-  await brainy.init()
-
-  const search = async (query) => {
-    return await brainy.search(query, 10)
-  }
-</script>
-```
-
-#### Angular
+### Build & Share Your Augmentation
 
 ```typescript
+import { ISenseAugmentation } from '@soulcraft/brainy'
 
-@Injectable({ providedIn: 'root' })
-export class BrainyService {
-  private brainy = new BrainyData()
-
-  async init() {
-    await this.brainy.init()
-  }
-
-  search(query: string) {
-    return this.brainy.search(query, 10)
+export class MovieRecommender implements ISenseAugmentation {
+  name = 'movie-recommender'
+  description = 'AI-powered movie recommendations'
+  enabled = true
+  
+  async processRawData(data: string) {
+    // Your recommendation logic
+    const movies = await this.analyzePreferences(data)
+    
+    return {
+      success: true,
+      data: {
+        nouns: movies.map(m => m.title),
+        verbs: movies.map(m => `similar_to:${m.genre}`),
+        metadata: { genres: movies.map(m => m.genre) }
+      }
+    }
   }
 }
 ```
 
-</details>
-
-### 🐳 Docker & Cloud Deployment
-
-```dockerfile
-FROM node:24-slim
-WORKDIR /app
-COPY . .
-RUN npm install
-RUN npm run download-models  # Bundle models for offline use
-CMD ["node", "server.js"]
-```
-
-Deploy to AWS, GCP, Azure, Cloudflare Workers, anywhere!
-
-## 💎 Premium Features (Optional)
-
-**Core Brainy is FREE forever. Premium augmentations for enterprise:**
-
-### 🔗 Enterprise Connectors (Coming Soon!)
-
-- **Notion** ($49/mo) - Bi-directional workspace sync
-- **Salesforce** ($99/mo) - CRM integration
-- **Slack** ($49/mo) - Team knowledge capture
-- **Asana** ($44/mo) - Project intelligence
-
+**Share with the community:**
 ```bash
-brainy augment trial notion  # Start 14-day free trial
+npm publish brainy-movie-recommender
 ```
 
-## 🎨 What You Can Build
+**Earn from your creation:**
+- 💚 Keep it free (we'll promote it!)
+- 💰 Sell licenses (we'll help distribute!)
+- 🤝 Join our partner program
 
-**The only limit is your imagination:**
+## 🎯 Real-World Examples
 
-- **🤖 AI Assistants** - ChatGPT with perfect memory
-- **🔍 Semantic Search** - Find by meaning, not keywords
-- **🎯 Recommendation Engines** - Netflix-level suggestions
-- **🧬 Knowledge Graphs** - Wikipedia meets Neo4j
-- **👁️ Computer Vision** - Search images by content
-- **🎵 Music Discovery** - Spotify's algorithm in your app
-- **📚 Smart Documentation** - Self-answering docs
-- **🛡️ Fraud Detection** - Pattern recognition on steroids
-- **🌐 Real-time Collaboration** - Multiplayer knowledge bases
-- **🏥 Medical Diagnosis** - Symptom matching with AI
+### Customer Support Bot with Memory
+```javascript
+// Your bot remembers every interaction
+await brain.add({
+  customerId: "user_123",
+  issue: "Password reset",
+  resolved: true,
+  date: new Date()
+})
 
-## 📚 Complete Documentation
+// Next interaction knows the history
+const history = await brain.search(`customer user_123`, 10)
+// Bot says: "I see you had a password issue last week. All working now?"
+```
+
+### Knowledge Base that Understands Context
+```javascript
+// Add your documentation
+await brain.add("To deploy Brainy, run npm install @soulcraft/brainy")
+await brain.add("Brainy requires Node.js 24.4.1 or higher")
+await brain.add("For production, use Brain Cloud for scaling")
+
+// Natural language queries work
+const answer = await brain.search("how do I deploy to production?")
+// Returns relevant docs about Brain Cloud and scaling
+```
+
+### Multi-Agent AI Systems
+```javascript
+// Agents share the same brain
+const agentBrain = new BrainyData({ instance: 'shared-brain' })
+
+// Sales Agent adds knowledge
+await agentBrain.add("Customer interested in enterprise plan")
+
+// Support Agent sees it instantly
+const context = await agentBrain.search("customer plan interest")
+
+// Marketing Agent learns from both
+const insights = await agentBrain.getRelated("enterprise plan")
+```
+
+## 🏗️ Architecture
+
+```
+Your App
+    ↓
+BrainyData (The Brain)
+    ↓
+Cortex (Orchestrator)
+    ↓
+Augmentations (Capabilities)
+    ├── Built-in (Free)
+    ├── Community (Free) 
+    ├── Premium (Paid)
+    └── Custom (Yours)
+```
+
+## 💡 Core Features
+
+### 🔍 Multi-Dimensional Search
+- **Vector**: Semantic similarity (meaning-based)
+- **Graph**: Relationship traversal (connection-based)
+- **Faceted**: Metadata filtering (property-based)
+- **Hybrid**: All combined (maximum power)
+
+### ⚡ Performance
+- **Speed**: 100,000+ ops/second
+- **Scale**: Millions of embeddings
+- **Memory**: ~100MB for 1M vectors
+- **Latency**: <10ms searches
+
+### 🔒 Production Ready
+- **Encryption**: End-to-end available
+- **Persistence**: Multiple storage backends
+- **Reliability**: 99.9% uptime in production
+- **Security**: SOC2 compliant architecture
+
+## 📚 Documentation
 
 ### Getting Started
+- [**Quick Start Guide**](docs/getting-started/quick-start.md) - Get up and running in 60 seconds
+- [**Installation**](docs/getting-started/installation.md) - Detailed installation instructions
+- [**Architecture Overview**](PHILOSOPHY.md) - Design principles and philosophy
 
-- [**Quick Start Guide**](docs/getting-started/) - Up and running in 5 minutes
-- [**Installation**](docs/getting-started/installation.md) - All environments covered
-- [**Basic Concepts**](docs/getting-started/concepts.md) - Understand the brain
+### Core Documentation
+- [**API Reference**](docs/api/BRAINY-API-REFERENCE.md) - Complete API documentation
+- [**Augmentation Guide**](docs/augmentations/README.md) - Build your own augmentations
+- [**CLI Reference**](docs/brainy-cli.md) - Command-line interface
+- [**All Documentation**](docs/README.md) - Browse all docs
 
-### Core Features
+### Guides
+- [**Search & Metadata**](docs/user-guides/SEARCH_AND_METADATA_GUIDE.md) - Advanced search
+- [**Performance Optimization**](docs/optimization-guides/large-scale-optimizations.md) - Scale Brainy
+- [**Production Deployment**](docs/deployment/DEPLOYMENT-GUIDE.md) - Deploy to production
+- [**Contributing Guidelines**](CONTRIBUTING.md) - Join the community
 
-- [**API Reference**](docs/api-reference/) - Every method documented
-- [**Search Guide**](docs/api-reference/search.md) - Master all search types
-- [**Graph Operations**](docs/api-reference/graph.md) - Relationships explained
-- [**MongoDB Operators**](docs/api-reference/operators.md) - Query like a pro
+## 🤝 Our Promise to the Community
 
-### Advanced Topics
+1. **Brainy core will ALWAYS be open source** (MIT License)
+2. **No feature will ever move from free to paid**
+3. **Community augmentations always welcome**
+4. **We'll actively promote community creators**
+5. **Commercial success funds open source development**
 
-- [**🏗️ Storage & Retrieval Architecture**](docs/technical/STORAGE_AND_RETRIEVAL_ARCHITECTURE.md) - Multi-dimensional database internals
-- [**Brainy CLI**](docs/brainy-cli.md) - Command-line superpowers
-- [**Brainy Chat**](BRAINY-CHAT.md) - Conversational AI interface
-- [**Cortex AI**](CORTEX.md) - Intelligence augmentation
-- [**Augmentation Pipeline**](docs/augmentations/) - Plugin architecture
-- [**Performance Tuning**](docs/optimization-guides/) - Speed optimization
-- [**Deployment Guide**](docs/deployment/) - Production best practices
+## 🙏 Join the Movement
 
-### Examples & Tutorials
+### Ways to Contribute
+- 🐛 Report bugs
+- 💡 Suggest features
+- 🔧 Submit PRs
+- 📦 Create augmentations
+- 📖 Improve docs
+- ⭐ Star the repo
+- 📢 Spread the word
 
-- [**Example Apps**](docs/examples/) - Full applications
-- [**Code Recipes**](docs/examples/recipes.md) - Common patterns
-- [**Video Tutorials**](docs/tutorials/) - Visual learning
+### Get Help & Connect
+- 💬 [Discord Community](https://discord.gg/brainy)
+- 🐦 [Twitter Updates](https://twitter.com/soulcraftlabs)
+- 📧 [Email Support](mailto:support@soulcraft.com)
+- 🎓 [Video Tutorials](https://youtube.com/@soulcraft)
 
-## 🆚 Why Not Just Use...?
+## 📈 Who's Using Brainy?
 
-### vs. Multiple Databases
-
-❌ **Pinecone + Neo4j + Elasticsearch** = 3x cost, sync nightmares, 3 APIs  
-✅ **Brainy** = One database, always synced, one simple API
-
-### vs. Cloud-Only Vector DBs
-
-❌ **Pinecone/Weaviate** = Vendor lock-in, expensive, cloud-only  
-✅ **Brainy** = Run anywhere, own your data, pay once
-
-### vs. Traditional Graph DBs
-
-❌ **Neo4j + vector plugin** = Bolt-on solution, limited capabilities  
-✅ **Brainy** = Native vector+graph from the ground up
-
-## 🚀 Real-World Performance & Scale
-
-**How Brainy handles production workloads:**
-
-### 📊 Benchmark Numbers
-
-- **10M vectors**: 5-15ms search latency (p95)
-- **100M relationships**: 1-3ms traversal
-- **Metadata filtering**: O(1) field access via hybrid indexing
-- **Concurrent queries**: 10,000+ QPS on single instance
-- **Index size**: ~100 bytes per vector (384 dims)
-
-### 🎯 Scaling Strategies
-
-**Scale Up (Vertical)**
-
-```javascript
-// Optimize for large datasets on single machine
-const brainy = new BrainyData({
-  hnsw: {
-    maxConnections: 32,     // More connections = better recall
-    efConstruction: 400,    // Higher quality index
-    efSearch: 100          // More accurate search
-  }
-})
-```
-
-**Scale Out (Horizontal)**
-
-```javascript
-// Shard by category for distributed deployment
-const shards = {
-  products: new BrainyData({ defaultService: 'products-shard' }),
-  users: new BrainyData({ defaultService: 'users-shard' }),
-  content: new BrainyData({ defaultService: 'content-shard' })
-}
-
-// Or use read/write separation
-const writer = new BrainyData({ writeOnly: true })
-const readers = [/* multiple read replicas */]
-```
-
-### 🏗️ Architecture That Scales
-
-✅ **Distributed Index** - Partition by metadata fields or ID ranges  
-✅ **Smart Partitioning** - Semantic clustering or hash-based sharding  
-✅ **Real-time Sync** - WebRTC & WebSocket for live collaboration  
-✅ **GPU Acceleration** - Auto-detected for embeddings when available  
-✅ **Metadata Index** - Separate B-tree indexes for fast filtering  
-✅ **Memory Mapped Files** - Handle datasets larger than RAM  
-✅ **Streaming Ingestion** - Process millions of items without OOM  
-✅ **Progressive Loading** - Start serving queries before full index load
-
-## 🛸 Recent Updates
-
-### 🎯 v0.57.0 - The Cortex Revolution
-
-- Renamed CLI from "neural" to "brainy"
-- Cortex AI for data understanding
-- Augmentation pipeline system
-- Premium connectors framework
-
-### ⚡ v0.46-v0.51 - Performance Revolution
-
-- 95% package size reduction
-- MongoDB query operators
-- Filter discovery API
-- Transformers.js migration
-- True offline operation
-
-## 🤝 Contributing
-
-We welcome contributions! See [Contributing Guidelines](CONTRIBUTING.md)
+- 🚀 **Startups**: Building AI-first products
+- 🏢 **Enterprises**: Replacing expensive databases
+- 🎓 **Researchers**: Exploring knowledge graphs
+- 👨‍💻 **Developers**: Creating smart applications
+- 🤖 **AI Engineers**: Building RAG systems
 
 ## 📄 License
 
-[MIT](LICENSE) - Core Brainy is FREE forever
+**MIT License** - Use it anywhere, build anything!
+
+Premium augmentations available at [soulcraft.com](https://soulcraft.com)
 
 ---
 
 <div align="center">
 
-## 🧠 Ready to Give Your Data a Brain?
+### 🧠⚛️ **Give Your Data a Brain Upgrade**
 
-**[Get Started →](docs/getting-started/) | [Examples →](docs/examples/)**
+**[Get Started](docs/getting-started/quick-start.md)** • 
+**[Examples](examples/)** • 
+**[API Docs](docs/api/BRAINY-API-REFERENCE.md)** • 
+**[Discord](https://discord.gg/brainy)**
 
-*Zero-to-Smart™ - Because your data deserves a brain upgrade*
+⭐ **Star us on GitHub to support open source AI!** ⭐
 
-**Built with ❤️ by [Soulcraft Research](https://soulcraft.com)**  
-*Powered by the BXL9000™ Cognitive Engine*
+*Created and maintained by [SoulCraft](https://soulcraft.com) • Powered by our amazing open source community*
+
+**SoulCraft** builds and maintains Brainy as open source (MIT License) because we believe AI infrastructure should be accessible to everyone.
 
 </div>

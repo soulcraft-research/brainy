@@ -91,7 +91,6 @@
     "build:browser": "npm run build && vite build --config vite.browser.config.ts",
     "build:framework": "tsc",
     "start": "node dist/framework.js",
-    "demo": "npm run build && cd demo/brainy-angular-demo && npm run build && npm run serve",
     "prepare": "npm run build",
     "test": "vitest run",
     "test:memory": "node --max-old-space-size=4096 --expose-gc ./node_modules/vitest/vitest.mjs run",
