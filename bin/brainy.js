@@ -357,12 +357,138 @@ program
 // AUGMENTATION MANAGEMENT (Direct Commands)
 // ========================================
 
+const augment = program
+  .command('augment')
+  .description('Manage brain augmentations')
+
+augment
+  .command('list')
+  .description('List available and active augmentations')
+  .action(wrapAction(async () => {
+    console.log(chalk.green('✅ Active (Built-in):'))
+    console.log('  • neural-import')
+    console.log('  • basic-storage')
+    console.log('')
+    
+    // Check for Brain Cloud
+    try {
+      await import('@soulcraft/brain-cloud')
+      const hasLicense = process.env.BRAINY_LICENSE_KEY
+      
+      if (hasLicense) {
+        console.log(chalk.cyan('✅ Active (Premium):'))
+        console.log('  • ai-memory')
+        console.log('  • agent-coordinator')
+        console.log('')
+      }
+    } catch {}
+    
+    console.log(chalk.dim('📦 Available:'))
+    console.log(chalk.dim('  • notion-sync (Premium)'))
+    console.log(chalk.dim('  • 40+ more at app.soulcraft.com'))
+  }))
+
+augment
+  .command('activate')
+  .description('Activate Brain Cloud with license key')
+  .action(wrapAction(async () => {
+    const rl = createInterface({
+      input: process.stdin,
+      output: process.stdout
+    })
+    
+    console.log(chalk.cyan('🧠 Brain Cloud Activation'))
+    console.log('')
+    console.log('Get your license at: ' + chalk.green('app.soulcraft.com'))
+    console.log('(14-day free trial available)')
+    console.log('')
+    
+    rl.question('License key: ', async (key) => {
+      if (key.startsWith('lic_')) {
+        // Save to config
+        const fs = await import('fs/promises')
+        const os = await import('os')
+        const configPath = `${os.homedir()}/.brainy`
+        
+        await fs.mkdir(configPath, { recursive: true })
+        await fs.writeFile(`${configPath}/license`, key)
+        
+        console.log(chalk.green('✅ License saved!'))
+        console.log('')
+        console.log('Install Brain Cloud:')
+        console.log(chalk.cyan('  npm install @soulcraft/brain-cloud'))
+        console.log('')
+        console.log('Then use in your code:')
+        console.log(chalk.gray('  import { AIMemory } from "@soulcraft/brain-cloud"'))
+        console.log(chalk.gray('  cortex.register(new AIMemory())'))
+      } else {
+        console.log(chalk.red('Invalid license key'))
+      }
+      rl.close()
+    })
+  }))
+
+augment
+  .command('info <name>')
+  .description('Get info about an augmentation')
+  .action(wrapAction(async (name) => {
+    const augmentations = {
+      'ai-memory': {
+        name: 'AI Memory',
+        description: 'Persistent memory across all AI sessions',
+        category: 'Memory',
+        tier: 'Premium',
+        popular: true,
+        example: `
+import { AIMemory } from '@soulcraft/brain-cloud'
+
+const cortex = new Cortex()
+cortex.register(new AIMemory())
+
+// Now your AI remembers everything
+await brain.add("User prefers dark mode")
+// This persists across sessions automatically`
+      },
+      'agent-coordinator': {
+        name: 'Agent Coordinator',
+        description: 'Multi-agent handoffs and orchestration',
+        category: 'Coordination',
+        tier: 'Premium',
+        popular: true
+      },
+      'notion-sync': {
+        name: 'Notion Sync',
+        description: 'Bidirectional Notion database sync',
+        category: 'Enterprise',
+        tier: 'Premium'
+      }
+    }
+    
+    const aug = augmentations[name]
+    if (aug) {
+      console.log(chalk.cyan(`📦 ${aug.name}`) + (aug.popular ? chalk.yellow(' ⭐ Popular') : ''))
+      console.log('')
+      console.log(`Category: ${aug.category}`)
+      console.log(`Tier: ${aug.tier}`)
+      console.log(`Description: ${aug.description}`)
+      if (aug.example) {
+        console.log('')
+        console.log('Example:')
+        console.log(chalk.gray(aug.example))
+      }
+    } else {
+      console.log(chalk.red(`Unknown augmentation: ${name}`))
+    }
+  }))
+
 program
   .command('install <augmentation>')
-  .description('Install augmentation')
+  .description('Install augmentation (legacy - use augment activate)')
   .option('-m, --mode <type>', 'Installation mode (free|premium)', 'free')
   .option('-c, --config <json>', 'Configuration as JSON')
   .action(wrapAction(async (augmentation, options) => {
+    console.log(chalk.yellow('Note: Use "brainy augment activate" for Brain Cloud'))
+    
     if (augmentation === 'brain-jar') {
       await cortex.brainJarInstall(options.mode)
     } else {
@@ -426,13 +552,18 @@ program
   .option('-a, --available', 'Show available augmentations')
   .action(wrapAction(async (options) => {
     if (options.available) {
-      console.log(chalk.cyan('Available Augmentations:'))
-      console.log('  • brain-jar - AI coordination and collaboration')
-      console.log('  • encryption - Data encryption and security')
-      console.log('  • neural-import - AI-powered data analysis')
-      console.log('  • performance-monitor - System monitoring')
+      console.log(chalk.green('✅ Built-in (Free):'))
+      console.log('  • neural-import - AI-powered data understanding')
+      console.log('  • basic-storage - Local persistence')
       console.log('')
-      console.log(chalk.dim('Install: brainy install <augmentation>'))
+      console.log(chalk.cyan('🌟 Premium (Brain Cloud):'))
+      console.log('  • ai-memory - ' + chalk.yellow('⭐ Most Popular') + ' - AI that remembers')
+      console.log('  • agent-coordinator - ' + chalk.yellow('⭐ Most Popular') + ' - Multi-agent orchestration')
+      console.log('  • notion-sync - Enterprise connector')
+      console.log('  • More at app.soulcraft.com/augmentations')
+      console.log('')
+      console.log(chalk.dim('Sign up: app.soulcraft.com (14-day free trial)'))
+      console.log(chalk.dim('Install: npm install @soulcraft/brain-cloud'))
     } else {
       await cortex.listAugmentations()
     }
