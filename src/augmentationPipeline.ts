@@ -1,9 +1,13 @@
 /**
- * Augmentation Event Pipeline
- *
- * This module provides a pipeline for managing and executing multiple augmentations
- * of each type. It allows registering multiple augmentations and executing them
- * in sequence or in parallel.
+ * Cortex - The Brain's Orchestration System
+ * 
+ * 🧠⚛️ The cerebral cortex that coordinates all augmentations
+ * 
+ * This module provides the central coordination system for managing and executing
+ * augmentations across all categories. Like the brain's cortex, it orchestrates
+ * different capabilities (augmentations) in sequence or parallel.
+ * 
+ * @deprecated AugmentationPipeline - Use Cortex instead
  */
 
 import {
@@ -64,11 +68,12 @@ const DEFAULT_PIPELINE_OPTIONS: PipelineOptions = {
 }
 
 /**
- * AugmentationPipeline class
+ * Cortex class - The Brain's Orchestration Center
  *
- * Manages multiple augmentations of each type and provides methods to execute them.
+ * Manages all augmentations like the cerebral cortex coordinates different brain regions.
+ * This is the central pipeline that orchestrates all augmentation execution.
  */
-export class AugmentationPipeline {
+export class Cortex {
   private registry: AugmentationRegistry = {
     sense: [],
     conduit: [],
@@ -81,14 +86,14 @@ export class AugmentationPipeline {
   }
 
   /**
-   * Register an augmentation with the pipeline
+   * Register an augmentation with the cortex
    *
    * @param augmentation The augmentation to register
-   * @returns The pipeline instance for chaining
+   * @returns The cortex instance for chaining
    */
   public register<T extends IAugmentation>(
     augmentation: T
-  ): AugmentationPipeline {
+  ): Cortex {
     let registered = false
 
     // Check for specific augmentation types
@@ -194,7 +199,7 @@ export class AugmentationPipeline {
    * @param augmentationName The name of the augmentation to unregister
    * @returns The pipeline instance for chaining
    */
-  public unregister(augmentationName: string): AugmentationPipeline {
+  public unregister(augmentationName: string): Cortex {
     let found = false
 
     // Remove from all registries
@@ -856,5 +861,9 @@ export class AugmentationPipeline {
   }
 }
 
-// Create and export a default instance of the pipeline
-export const augmentationPipeline = new AugmentationPipeline()
+// Create and export a default instance of the cortex
+export const cortex = new Cortex()
+
+// Backward compatibility exports
+export const AugmentationPipeline = Cortex
+export const augmentationPipeline = cortex

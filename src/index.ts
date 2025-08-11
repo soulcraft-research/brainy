@@ -1,15 +1,37 @@
 /**
- * Brainy
- * A vector and graph database using HNSW
+ * Brainy - Your AI-Powered Second Brain
+ * 🧠⚛️ A multi-dimensional database with vector, graph, and facet storage
+ * 
+ * Core Components:
+ * - BrainyData: The brain (core database)
+ * - Cortex: The orchestrator (manages augmentations)
+ * - NeuralImport: AI-powered data understanding
+ * - Augmentations: Brain capabilities (plugins)
  */
-
-// No setup needed - using clean ONNX Runtime with Transformers.js
 
 // Export main BrainyData class and related types
 import { BrainyData, BrainyDataConfig } from './brainyData.js'
 
 export { BrainyData }
 export type { BrainyDataConfig }
+
+// Export Cortex (the orchestrator)
+export { 
+  Cortex, 
+  cortex
+} from './cortex.js'
+
+// Export Neural Import (AI data understanding)
+export { NeuralImport } from './cortex/neuralImport.js'
+export type { 
+  NeuralAnalysisResult,
+  DetectedEntity,
+  DetectedRelationship,
+  NeuralInsight,
+  NeuralImportOptions 
+} from './cortex/neuralImport.js'
+
+// Augmentation types are already exported later in the file
 
 // Export distance functions for convenience
 import {
