@@ -5,7 +5,7 @@
  */
 
 import { BrainyData } from '../brainyData.js'
-import { BrainyChat } from '../chat/brainyChat.js'
+import { BrainyChat } from '../chat/BrainyChat.js'
 import { PerformanceMonitor } from './performanceMonitor.js'
 import { HealthCheck } from './healthCheck.js'
 // Licensing system moved to quantum-vault
@@ -599,6 +599,61 @@ export class Cortex {
       spinner.succeed(colors.success(`${emojis.check} Added with ID: ${id}`))
     } catch (error) {
       spinner.fail('Failed to add data')
+      console.error(error)
+    }
+  }
+
+  /**
+   * Add data with AI processing enabled (Neural Import + entity detection)
+   */
+  async addSmart(data?: string, metadata?: any): Promise<void> {
+    await this.ensureInitialized()
+    
+    // Interactive mode if no data provided
+    if (!data) {
+      const responses = await prompts([
+        {
+          type: 'text',
+          name: 'data',
+          message: `${emojis.brain} Enter data for AI processing:`
+        },
+        {
+          type: 'text',
+          name: 'id',
+          message: 'ID (optional, press enter to auto-generate):'
+        },
+        {
+          type: 'confirm',
+          name: 'hasMetadata',
+          message: 'Add metadata?',
+          initial: false
+        },
+        {
+          type: (prev: any) => prev ? 'text' : null,
+          name: 'metadata',
+          message: 'Enter metadata (JSON format):'
+        }
+      ])
+      
+      data = responses.data
+      if (responses.metadata) {
+        try {
+          metadata = JSON.parse(responses.metadata)
+        } catch {
+          console.log(colors.warning('Invalid JSON, skipping metadata'))
+        }
+      }
+      if (responses.id) {
+        metadata = { ...metadata, id: responses.id }
+      }
+    }
+
+    const spinner = ora('🧠 Processing with AI...').start()
+    try {
+      const id = await this.brainy!.addSmart(data, metadata)
+      spinner.succeed(colors.success(`${emojis.check} Processed with AI and added with ID: ${id}`))
+    } catch (error) {
+      spinner.fail('Failed to add data with AI processing')
       console.error(error)
     }
   }
@@ -1899,8 +1954,8 @@ export class Cortex {
     await this.ensureInitialized()
     
     // Import and create the Cortex SENSE augmentation
-    const { CortexSenseAugmentation } = await import('../augmentations/cortexSense.js')
-    const neuralSense = new CortexSenseAugmentation(this.brainy!, options)
+    const { NeuralImportAugmentation } = await import('../augmentations/neuralImport.js')
+    const neuralSense = new NeuralImportAugmentation(this.brainy!, options)
     
     // Initialize the augmentation
     await neuralSense.initialize()
@@ -1942,8 +1997,8 @@ export class Cortex {
   async neuralAnalyze(filePath: string): Promise<void> {
     await this.ensureInitialized()
     
-    const { CortexSenseAugmentation } = await import('../augmentations/cortexSense.js')
-    const neuralSense = new CortexSenseAugmentation(this.brainy!)
+    const { NeuralImportAugmentation } = await import('../augmentations/neuralImport.js')
+    const neuralSense = new NeuralImportAugmentation(this.brainy!)
     
     await neuralSense.initialize()
     
@@ -1982,8 +2037,8 @@ export class Cortex {
   async neuralValidate(filePath: string): Promise<void> {
     await this.ensureInitialized()
     
-    const { CortexSenseAugmentation } = await import('../augmentations/cortexSense.js')
-    const neuralSense = new CortexSenseAugmentation(this.brainy!)
+    const { NeuralImportAugmentation } = await import('../augmentations/neuralImport.js')
+    const neuralSense = new NeuralImportAugmentation(this.brainy!)
     
     await neuralSense.initialize()
     

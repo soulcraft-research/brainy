@@ -76,8 +76,38 @@ program
 
 program
   .command('add [data]')
-  .description('Add data across multiple dimensions (vector, graph, facets)')
+  .description('🔒 Add data literally (safe, no AI processing)')
   .option('-m, --metadata <json>', 'Metadata facets as JSON')
+  .option('-i, --id <id>', 'Custom ID')
+  .option('--smart', 'Enable AI processing (same as smart-add command)')
+  .action(wrapAction(async (data, options) => {
+    let metadata = {}
+    if (options.metadata) {
+      try {
+        metadata = JSON.parse(options.metadata)
+      } catch {
+        console.error(chalk.red('Invalid JSON metadata'))
+        process.exit(1)
+      }
+    }
+    if (options.id) {
+      metadata.id = options.id
+    }
+    
+    // Use smart processing if --smart flag is provided
+    if (options.smart) {
+      console.log(chalk.dim('🧠 AI processing enabled'))
+      await cortex.addSmart(data, metadata)
+    } else {
+      console.log(chalk.dim('🔒 Literal storage (safe for secrets/API keys)'))
+      await cortex.add(data, metadata)
+    }
+  }))
+
+program
+  .command('smart-add [data]')
+  .description('🧠 Add data with AI processing (Neural Import, entity detection)')
+  .option('-m, --metadata <json>', 'Metadata facets as JSON')  
   .option('-i, --id <id>', 'Custom ID')
   .action(wrapAction(async (data, options) => {
     let metadata = {}
@@ -92,7 +122,9 @@ program
     if (options.id) {
       metadata.id = options.id
     }
-    await cortex.add(data, metadata)
+    
+    console.log(chalk.dim('🧠 AI processing enabled (Neural Import + entity detection)'))
+    await cortex.addSmart(data, metadata)
   }))
 
 program
@@ -124,10 +156,44 @@ program
 
 program
   .command('chat [question]')
-  .description('AI-powered chat with multi-dimensional context')
-  .option('-l, --llm <model>', 'LLM model to use')
+  .description('🧠 Beautiful AI chat with local memory')
+  .option('-l, --list', 'List all chat sessions')
+  .option('-s, --search <query>', 'Search all conversations')
+  .option('-h, --history [limit]', 'Show conversation history (default: 10)')
+  .option('--session <id>', 'Use specific chat session')
+  .option('--new', 'Start a new session')
+  .option('--role <name>', 'Agent role (premium feature preview)', 'assistant')
   .action(wrapInteractive(async (question, options) => {
-    await cortex.chat(question)
+    const { BrainyData } = await import('../dist/brainyData.js')
+    const { ChatCLI } = await import('../dist/chat/ChatCLI.js')
+    
+    const brainy = new BrainyData()
+    await brainy.init()
+    
+    const chatCLI = new ChatCLI(brainy)
+    
+    // Handle different modes
+    if (options.list) {
+      await chatCLI.listSessions()
+    } else if (options.search) {
+      await chatCLI.searchConversations(options.search)
+    } else if (options.history) {
+      const limit = typeof options.history === 'string' ? parseInt(options.history) : 10
+      await chatCLI.showHistory(limit)
+    } else if (question) {
+      // Single message mode
+      await chatCLI.sendMessage(question, {
+        sessionId: options.session,
+        speaker: options.role
+      })
+    } else {
+      // Interactive chat mode
+      await chatCLI.startInteractiveChat({
+        sessionId: options.session,
+        speaker: options.role,
+        newSession: options.new
+      })
+    }
   }))
 
 program
@@ -175,6 +241,8 @@ program
   .action(wrapInteractive(async (file) => {
     await cortex.restore(file)
   }))
+
+// Chat commands moved to main chat command above
 
 // ========================================
 // BRAIN CLOUD INTEGRATION
@@ -858,6 +926,99 @@ program
   }))
 
 // ========================================
+// AUGMENTATION CONTROL COMMANDS
+// ========================================
+
+program
+  .command('augment')
+  .description('List all augmentations with their status')
+  .action(wrapAction(async () => {
+    const { BrainyData } = await import('../dist/brainyData.js')
+    const brainy = new BrainyData()
+    await brainy.init()
+    
+    const augmentations = brainy.listAugmentations()
+    
+    if (augmentations.length === 0) {
+      console.log(chalk.yellow('No augmentations registered'))
+      return
+    }
+    
+    console.log(chalk.cyan('🔧 Augmentations Status\n'))
+    
+    const grouped = augmentations.reduce((acc, aug) => {
+      if (!acc[aug.type]) acc[aug.type] = []
+      acc[aug.type].push(aug)
+      return acc
+    }, {})
+    
+    for (const [type, augs] of Object.entries(grouped)) {
+      console.log(chalk.bold(`${type.toUpperCase()}:`))
+      for (const aug of augs) {
+        const status = aug.enabled ? chalk.green('✅ enabled') : chalk.red('❌ disabled')
+        console.log(`  ${aug.name} - ${status}`)
+        console.log(chalk.dim(`    ${aug.description}`))
+      }
+      console.log('')
+    }
+  }))
+
+program
+  .command('augment enable <name>')
+  .description('Enable an augmentation by name')
+  .action(wrapAction(async (name) => {
+    const { BrainyData } = await import('../dist/brainyData.js')
+    const brainy = new BrainyData()
+    await brainy.init()
+    
+    const success = brainy.enableAugmentation(name)
+    
+    if (success) {
+      console.log(chalk.green(`✅ Enabled augmentation: ${name}`))
+    } else {
+      console.log(chalk.red(`❌ Augmentation not found: ${name}`))
+      console.log(chalk.dim('Use "brainy augment" to see available augmentations'))
+    }
+  }))
+
+program
+  .command('augment disable <name>')
+  .description('Disable an augmentation by name')
+  .action(wrapAction(async (name) => {
+    const { BrainyData } = await import('../dist/brainyData.js')
+    const brainy = new BrainyData()
+    await brainy.init()
+    
+    const success = brainy.disableAugmentation(name)
+    
+    if (success) {
+      console.log(chalk.green(`✅ Disabled augmentation: ${name}`))
+    } else {
+      console.log(chalk.red(`❌ Augmentation not found: ${name}`))
+      console.log(chalk.dim('Use "brainy augment" to see available augmentations'))
+    }
+  }))
+
+program
+  .command('augment status <name>')
+  .description('Check if an augmentation is enabled')
+  .action(wrapAction(async (name) => {
+    const { BrainyData } = await import('../dist/brainyData.js')
+    const brainy = new BrainyData()
+    await brainy.init()
+    
+    const enabled = brainy.isAugmentationEnabled(name)
+    
+    if (enabled !== undefined) {
+      const status = enabled ? chalk.green('✅ enabled') : chalk.red('❌ disabled')
+      console.log(`${name}: ${status}`)
+    } else {
+      console.log(chalk.red(`❌ Augmentation not found: ${name}`))
+      console.log(chalk.dim('Use "brainy augment" to see available augmentations'))
+    }
+  }))
+
+// ========================================
 // PARSE AND HANDLE
 // ========================================
 
@@ -872,7 +1033,14 @@ if (!process.argv.slice(2).length) {
   console.log('  brainy init                    # Initialize project')
   console.log('  brainy add "some data"         # Add multi-dimensional data')
   console.log('  brainy search "query"          # Search across all dimensions')
-  console.log('  brainy chat                    # AI chat with full context')
+  console.log('  brainy chat                    # 🧠 Magical AI chat with perfect memory')
+  console.log('')
+  console.log(chalk.bold('Chat & Memory:'))
+  console.log('  brainy chat                    # Interactive chat with local memory')
+  console.log('  brainy chat "question"         # Single question with context')
+  console.log('  brainy chat --list             # List all chat sessions')
+  console.log('  brainy chat --search "query"   # Search all conversations')
+  console.log('  brainy chat --history          # Show conversation history')
   console.log('')
   console.log(chalk.bold('Brain Cloud (Premium):'))
   console.log(chalk.green('  brainy cloud setup             # Auto-setup with provisioning'))
