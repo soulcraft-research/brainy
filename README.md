@@ -9,9 +9,8 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.4.1-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4.5-blue.svg)](https://www.typescriptlang.org/)
 
-# 🧠 BRAINY: Your AI-Powered Second Brain
+# 🧠 The World's First Multi-Dimensional AI Database™
 
-**The World's First Multi-Dimensional AI Database™**  
 *Vector similarity • Graph relationships • Metadata facets • Neural understanding*
 
 **Build AI apps that actually understand your data - in minutes, not months**
