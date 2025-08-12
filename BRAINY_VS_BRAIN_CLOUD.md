@@ -69,11 +69,13 @@ Think of it like GitHub vs Git - Brainy is Git (free tool), Brain Cloud is GitHu
 
 🌟 **Enterprise Connectors**
 ```javascript
-// These require Brain Cloud subscription
-import { NotionSync, SalesforceConnect } from '@soulcraft/brain-cloud'
+// These auto-load with Brain Cloud subscription after 'brainy cloud auth'
+// No manual imports needed - managed service handles everything!
 
-const notion = new NotionSync({
-  apiKey: 'your-brain-cloud-key'  // Premium only
+// Just use augmentations - they're automatically available
+await brainy.connectNotion({
+  // Your Notion credentials only - no Brain Cloud API keys needed
+  notionToken: process.env.NOTION_TOKEN
 })
 ```
 
@@ -208,9 +210,9 @@ const cloud = new CloudSync({
 ### Enterprise User (Paid)
 1. Uses Brainy locally first
 2. Decides they need cloud sync
-3. Signs up for Brain Cloud
-4. `npm install @soulcraft/brain-cloud`
-5. Adds cloud features to existing code
+3. Signs up for Brain Cloud at app.soulcraft.com
+4. `brainy cloud auth` (auto-configures everything!)
+5. Augmentations automatically available - no code changes needed
 
 ---
 

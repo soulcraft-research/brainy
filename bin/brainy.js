@@ -537,7 +537,7 @@ augment
     }
     
     console.log(chalk.dim('🚀 Join Early Access: https://soulcraft.com/brain-cloud'))
-    console.log(chalk.dim('📦 Install: npm install @soulcraft/brain-cloud'))
+    console.log(chalk.dim('🌐 Authenticate: brainy cloud auth'))
   }))
 
 augment
@@ -595,7 +595,7 @@ augment
         tier: 'Premium',
         popular: true,
         example: `
-import { AIMemory } from '@soulcraft/brain-cloud'
+// AI Memory auto-loads after 'brainy cloud auth' - no imports needed!
 
 const cortex = new Cortex()
 cortex.register(new AIMemory())
@@ -718,7 +718,7 @@ program
       console.log('  • More at app.soulcraft.com/augmentations')
       console.log('')
       console.log(chalk.dim('Sign up: app.soulcraft.com (14-day free trial)'))
-      console.log(chalk.dim('Install: npm install @soulcraft/brain-cloud'))
+      console.log(chalk.dim('Authenticate: brainy cloud auth'))
     } else {
       await cortex.listAugmentations()
     }
@@ -1233,18 +1233,18 @@ async function installBrainCloudPackage() {
     const hasPackageJson = existsSync('package.json')
     
     if (hasPackageJson) {
-      await execWithProgress('npm install @soulcraft/brain-cloud')
+      // Auto-configured with 'brainy cloud auth' - no package installation needed!
       console.log('✅ Brain Cloud package installed in current project')
     } else {
       // Install globally for non-project usage
-      await execWithProgress('npm install -g @soulcraft/brain-cloud')
+      console.log('✅ Run \'brainy cloud auth\' to authenticate and auto-configure')
       console.log('✅ Brain Cloud package installed globally')
     }
 
   } catch (error) {
     stopSpinner()
     console.log('⚠️  Could not auto-install Brain Cloud package')
-    console.log('   You can install it manually: npm install @soulcraft/brain-cloud')
+    console.log('   Authenticate manually: brainy cloud auth')
     // Don't throw error, this is optional
   }
 }
