@@ -115,7 +115,7 @@ Vector + Graph + Search + AI = Brainy (Free & Open Source) = 🧠✨
 
 <div align="center">
 
-### [**→ Live Demo at soulcraft.com/console ←**](https://soulcraft.com/console)
+### [**→ Live Demos at soulcraft.com/demo ←**](https://soulcraft.com/demo)
 
 Try Brainy instantly in your browser. No signup. No credit card.
 
@@ -254,7 +254,7 @@ cortex.register(aiMemory)  // AI remembers everything
 Test Brainy instantly without installing:
 
 ```javascript
-// Visit soulcraft.com/console
+// Visit soulcraft.com/demo
 // No signup required - just start coding!
 // Perfect for:
 // - Testing Brainy before installing
@@ -263,7 +263,7 @@ Test Brainy instantly without installing:
 // - Sharing examples with others
 ```
 
-**[→ Open Console](https://soulcraft.com/console)** - Your code runs locally, data stays private
+**[→ Try Live Demos](https://soulcraft.com/demo)** - Multiple interactive demos showcasing Brainy's capabilities
 
 ### ☁️ **Brain Cloud** (Managed Service)
 For teams that want zero-ops:
