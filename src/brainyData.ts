@@ -1665,12 +1665,27 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   }
 
   /**
-   * Add a vector or data to the database
-   * If the input is not a vector, it will be converted using the embedding function
+   * Add data to the database (literal storage by default)
+   * 
+   * 🔒 Safe by default: Only stores your data literally without AI processing
+   * 🧠 AI processing: Set { process: true } or use addSmart() for Neural Import
+   * 
    * @param vectorOrData Vector or data to add
-   * @param metadata Optional metadata to associate with the vector
-   * @param options Additional options
-   * @returns The ID of the added vector
+   * @param metadata Optional metadata to associate with the data
+   * @param options Additional options - use { process: true } for AI analysis
+   * @returns The ID of the added data
+   * 
+   * @example
+   * // Literal storage (safe, no AI processing)
+   * await brainy.add("API_KEY=secret123")
+   * 
+   * @example  
+   * // With AI processing (explicit opt-in)
+   * await brainy.add("John works at Acme Corp", null, { process: true })
+   * 
+   * @example
+   * // Smart processing (recommended for data analysis)
+   * await brainy.addSmart("Customer feedback: Great product!")
    */
   public async add(
     vectorOrData: Vector | any,
@@ -1680,6 +1695,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       addToRemote?: boolean // Whether to also add to the remote server if connected
       id?: string // Optional ID to use instead of generating a new one
       service?: string // The service that is inserting the data
+      process?: boolean // Enable AI processing (neural import, entity detection, etc.)
     } = {}
   ): Promise<string> {
     await this.ensureInitialized()
@@ -1982,6 +1998,25 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
       // Invalidate search cache since data has changed
       this.searchCache.invalidateOnDataChange('add')
+
+      // 🧠 AI Processing (Neural Import) - Only if explicitly requested
+      if (options.process === true) {
+        try {
+          // Execute SENSE pipeline (includes Neural Import and other AI augmentations)
+          await augmentationPipeline.executeSensePipeline(
+            'processRawData',
+            [vectorOrData, typeof vectorOrData === 'string' ? 'text' : 'data'],
+            { mode: ExecutionMode.SEQUENTIAL }
+          )
+          
+          if (this.loggingConfig?.verbose) {
+            console.log(`🧠 AI processing completed for data: ${id}`)
+          }
+        } catch (processingError) {
+          // Don't fail the add operation if processing fails
+          console.warn(`🧠 AI processing failed for ${id}:`, processingError)
+        }
+      }
 
       return id
     } catch (error) {
@@ -4441,6 +4476,34 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   }
 
   /**
+   * Add data with AI processing enabled by default
+   * 
+   * 🧠 This method automatically enables Neural Import and other AI augmentations
+   * for intelligent data understanding, entity detection, and relationship analysis.
+   * 
+   * Use this when you want AI to understand and process your data.
+   * Use regular add() when you want literal storage only.
+   *
+   * @param vectorOrData The data to add (any format)
+   * @param metadata Optional metadata to associate with the data
+   * @param options Additional options (process defaults to true)
+   * @returns The ID of the added data
+   */
+  public async addSmart(
+    vectorOrData: Vector | any,
+    metadata?: T,
+    options: {
+      forceEmbed?: boolean
+      addToRemote?: boolean
+      id?: string
+      service?: string
+    } = {}
+  ): Promise<string> {
+    // Call add() with process=true by default
+    return this.add(vectorOrData, metadata, { ...options, process: true })
+  }
+
+  /**
    * Get the number of nouns in the database (excluding verbs)
    * This is used for statistics reporting to match the expected behavior in tests
    * @private
@@ -6596,6 +6659,75 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     if (this.metadataIndex) {
       await this.metadataIndex.rebuild()
     }
+  }
+
+  // ===== Augmentation Control Methods =====
+
+  /**
+   * Enable an augmentation by name
+   * Universal control for built-in, community, and premium augmentations
+   *
+   * @param name The name of the augmentation to enable
+   * @returns True if augmentation was found and enabled
+   */
+  enableAugmentation(name: string): boolean {
+    return augmentationPipeline.enableAugmentation(name)
+  }
+
+  /**
+   * Disable an augmentation by name
+   * Universal control for built-in, community, and premium augmentations
+   *
+   * @param name The name of the augmentation to disable
+   * @returns True if augmentation was found and disabled
+   */
+  disableAugmentation(name: string): boolean {
+    return augmentationPipeline.disableAugmentation(name)
+  }
+
+  /**
+   * Check if an augmentation is enabled
+   *
+   * @param name The name of the augmentation to check
+   * @returns True if augmentation is found and enabled, false otherwise
+   */
+  isAugmentationEnabled(name: string): boolean {
+    return augmentationPipeline.isAugmentationEnabled(name)
+  }
+
+  /**
+   * Get all augmentations with their enabled status
+   * Shows built-in, community, and premium augmentations
+   *
+   * @returns Array of augmentations with name, type, and enabled status
+   */
+  listAugmentations(): Array<{
+    name: string
+    type: string
+    enabled: boolean
+    description: string
+  }> {
+    return augmentationPipeline.listAugmentationsWithStatus()
+  }
+
+  /**
+   * Enable all augmentations of a specific type
+   *
+   * @param type The type of augmentations to enable (sense, conduit, cognition, etc.)
+   * @returns Number of augmentations enabled
+   */
+  enableAugmentationType(type: 'sense' | 'conduit' | 'cognition' | 'memory' | 'perception' | 'dialog' | 'activation' | 'webSocket'): number {
+    return augmentationPipeline.enableAugmentationType(type)
+  }
+
+  /**
+   * Disable all augmentations of a specific type
+   *
+   * @param type The type of augmentations to disable (sense, conduit, cognition, etc.)
+   * @returns Number of augmentations disabled
+   */
+  disableAugmentationType(type: 'sense' | 'conduit' | 'cognition' | 'memory' | 'perception' | 'dialog' | 'activation' | 'webSocket'): number {
+    return augmentationPipeline.disableAugmentationType(type)
   }
 }
 

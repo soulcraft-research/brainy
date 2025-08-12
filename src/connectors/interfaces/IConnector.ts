@@ -1,7 +1,7 @@
 /**
  * Brainy Connector Interface - Atomic Age Integration Framework
  * 
- * 🧠 Base interface for all premium connectors in the Quantum Vault
+ * 🧠 Base interface for all premium connectors in Brain Cloud
  * ⚛️ Open source interface, implementations are premium-only
  */
 
@@ -9,7 +9,7 @@ export interface ConnectorConfig {
   /** Connector identifier (e.g., 'notion', 'salesforce') */
   connectorId: string
   
-  /** Premium license key (required for Quantum Vault connectors) */
+  /** Premium license key (required for Brain Cloud connectors) */
   licenseKey: string
   
   /** API credentials for the external service */
@@ -103,7 +103,7 @@ export interface ConnectorStatus {
 /**
  * Base interface for all Brainy premium connectors
  * 
- * Implementations live in the Quantum Vault (brainy-quantum-vault)
+ * Implementations auto-load with Brain Cloud subscription after auth
  */
 export interface IConnector {
   /** Unique connector identifier */

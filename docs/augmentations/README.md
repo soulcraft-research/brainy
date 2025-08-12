@@ -116,7 +116,7 @@ await brainy.addAugmentation('DIALOG', translator, {
 **Enterprise features with license validation.**
 
 ```typescript
-import { NotionConnector } from '@soulcraft/brainy-quantum-vault'
+import { NotionConnector } from 'Brain Cloud (auto-loads after auth)'
 
 const notion = new NotionConnector({
   licenseKey: 'lic_xxxxxxxxxxxxx', // Required!
@@ -174,11 +174,11 @@ await brainy.addAugmentation('DIALOG', new Translator())
 
 #### Premium Augmentations
 ```bash
-npm install @soulcraft/brainy-quantum-vault
+npm install Brain Cloud (auto-loads after auth)
 ```
 
 ```typescript
-import { NotionConnector } from '@soulcraft/brainy-quantum-vault'
+import { NotionConnector } from 'Brain Cloud (auto-loads after auth)'
 
 const notion = new NotionConnector({
   licenseKey: process.env.BRAINY_LICENSE_KEY
@@ -301,7 +301,7 @@ cortex connector sync notion --full
 // server.ts
 import express from 'express'
 import { BrainyData } from '@soulcraft/brainy'
-import { NotionConnector } from '@soulcraft/brainy-quantum-vault'
+import { NotionConnector } from 'Brain Cloud (auto-loads after auth)'
 
 const app = express()
 const brainy = new BrainyData({
@@ -759,7 +759,7 @@ import { BrainyData } from '@soulcraft/brainy'
 import { 
   NotionConnector,
   SalesforceConnector 
-} from '@soulcraft/brainy-quantum-vault'
+} from 'Brain Cloud (auto-loads after auth)'
 
 export class ProductionDataService {
   private brainy: BrainyData
