@@ -16,7 +16,7 @@ import {
 
 // Configuration from environment
 const CUSTOMER_ID = process.env.CUSTOMER_ID || 'demo-test-auto';
-const BRAIN_CLOUD_URL = process.env.BRAIN_CLOUD_URL || 'https://brain-cloud.dpsifr.workers.dev';
+const BRAIN_CLOUD_URL = process.env.BRAIN_CLOUD_URL || 'https://api.soulcraft.com/brain-cloud';
 
 class BrainCloudMCPServer {
   constructor() {

@@ -345,7 +345,7 @@ program
       
       try {
         // Test connection to Brain Cloud worker
-        const healthUrl = `https://brain-cloud.dpsifr.workers.dev/health`
+        const healthUrl = `https://api.soulcraft.com/brain-cloud/health`
         const response = await fetch(healthUrl, {
           headers: { 'x-customer-id': options.connect }
         })
@@ -357,7 +357,7 @@ program
           console.log(chalk.gray(`⏰ Connected at: ${new Date(data.timestamp).toLocaleString()}`))
           
           // Test memories endpoint
-          const memoriesResponse = await fetch(`https://brain-cloud.dpsifr.workers.dev/memories`, {
+          const memoriesResponse = await fetch(`https://api.soulcraft.com/brain-cloud/memories`, {
             headers: { 'x-customer-id': options.connect }
           })
           
@@ -384,7 +384,7 @@ program
       console.log(chalk.green(`📦 Exporting data from Brain Cloud instance: ${options.export}`))
       
       try {
-        const response = await fetch(`https://brain-cloud.dpsifr.workers.dev/export`, {
+        const response = await fetch(`https://api.soulcraft.com/brain-cloud/export`, {
           headers: { 'x-customer-id': options.export }
         })
         
@@ -408,7 +408,7 @@ program
       console.log(chalk.green(`🔍 Checking status of Brain Cloud instance: ${options.status}`))
       
       try {
-        const response = await fetch(`https://brain-cloud.dpsifr.workers.dev/health`, {
+        const response = await fetch(`https://api.soulcraft.com/brain-cloud/health`, {
           headers: { 'x-customer-id': options.status }
         })
         
@@ -419,7 +419,7 @@ program
           console.log(chalk.gray(`⏰ Last check: ${new Date(data.timestamp).toLocaleString()}`))
           
           // Get memory count
-          const memoriesResponse = await fetch(`https://brain-cloud.dpsifr.workers.dev/memories`, {
+          const memoriesResponse = await fetch(`https://api.soulcraft.com/brain-cloud/memories`, {
             headers: { 'x-customer-id': options.status }
           })
           
@@ -915,7 +915,7 @@ async function detectCustomerId() {
     const testIds = ['demo-test-auto', 'demo-test123']
     for (const id of testIds) {
       try {
-        const response = await fetch(`https://brain-cloud.dpsifr.workers.dev/health`, {
+        const response = await fetch(`https://api.soulcraft.com/brain-cloud/health`, {
           headers: { 'x-customer-id': id }
         })
         if (response.ok) {
@@ -947,7 +947,7 @@ async function setupBrainCloudMemory(customerId) {
           args: ["brainy-mcp-server.js"],
           env: {
             CUSTOMER_ID: customerId,
-            BRAIN_CLOUD_URL: "https://brain-cloud.dpsifr.workers.dev"
+            BRAIN_CLOUD_URL: "https://api.soulcraft.com/brain-cloud"
           }
         }
       }
@@ -1001,7 +1001,7 @@ When working with multiple AI assistants, we automatically coordinate:
   try {
     const brainyConfig = {
       brainCloudCustomerId: customerId,
-      brainCloudUrl: 'https://brain-cloud.dpsifr.workers.dev',
+      brainCloudUrl: 'https://api.soulcraft.com/brain-cloud',
       lastConnected: new Date().toISOString()
     }
     

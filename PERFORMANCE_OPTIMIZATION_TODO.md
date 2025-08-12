@@ -14,7 +14,7 @@ Current metadata filtering has a **300-400% search overhead** due to a fixed 3x 
 ### Root Cause
 ```typescript
 // Current implementation (inefficient)
-// File: /home/dpsifr/Projects/brainy/src/hnsw/hnswIndex.ts:377
+// File: src/hnsw/hnswIndex.ts:377
 const ef = filter ? Math.max(this.config.efSearch * 3, k * 3) : Math.max(this.config.efSearch, k)
 ```
 
@@ -41,7 +41,7 @@ function getEfMultiplier(selectivity: number): number {
 
 ### 3. Implementation Location
 
-**File**: `/home/dpsifr/Projects/brainy/src/brainyData.ts`  
+**File**: `src/brainyData.ts`  
 **Method**: `searchByNounTypes` (around line 2165)
 
 ```typescript
@@ -58,7 +58,7 @@ if (hasMetadataFilter && this.metadataIndex) {
 }
 ```
 
-**File**: `/home/dpsifr/Projects/brainy/src/hnsw/hnswIndex.ts`  
+**File**: `src/hnsw/hnswIndex.ts`  
 **Method**: `search` (around line 377)
 
 ```typescript
@@ -188,9 +188,9 @@ const cachedFieldIndex = this.metadataCache.get(`field_${field}`)
 
 ## 📝 Files to Modify
 
-1. `/home/dpsifr/Projects/brainy/src/brainyData.ts` (selectivity calculation)
-2. `/home/dpsifr/Projects/brainy/src/hnsw/hnswIndex.ts` (dynamic ef multiplier)
-3. `/home/dpsifr/Projects/brainy/src/hnsw/optimizedHNSWIndex.ts` (forward selectivity)
+1. `src/brainyData.ts` (selectivity calculation)
+2. `src/hnsw/hnswIndex.ts` (dynamic ef multiplier)
+3. `src/hnsw/optimizedHNSWIndex.ts` (forward selectivity)
 
 ## 🔄 Rollback Plan
 
