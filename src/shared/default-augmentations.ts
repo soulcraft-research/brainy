@@ -25,25 +25,25 @@ export class DefaultAugmentationRegistry {
   async initializeDefaults(): Promise<void> {
     console.log('🧠⚛️ Initializing default augmentations...')
 
-    // Register Cortex as default SENSE augmentation
-    await this.registerCortex()
+    // Register Neural Import as default SENSE augmentation
+    await this.registerNeuralImport()
 
     console.log('🧠⚛️ Default augmentations initialized')
   }
 
   /**
-   * Cortex - Default SENSE Augmentation
-   * AI-powered data understanding and entity extraction
+   * Neural Import - Default SENSE Augmentation
+   * AI-powered data understanding and entity extraction (always free)
    */
-  private async registerCortex(): Promise<void> {
+  private async registerNeuralImport(): Promise<void> {
     try {
-      // Import the Cortex augmentation
-      const { CortexSenseAugmentation } = await import('../augmentations/cortexSense.js')
+      // Import the Neural Import augmentation
+      const { NeuralImportAugmentation } = await import('../augmentations/neuralImport.js')
       
       // Note: The actual registration is commented out since BrainyData doesn't have addAugmentation method yet
       // This would create instance with default configuration
       /*
-      const cortex = new CortexSenseAugmentation(this.brainy as any, {
+      const neuralImport = new NeuralImportAugmentation(this.brainy as any, {
         confidenceThreshold: 0.7,
         enableWeights: true,
         skipDuplicates: true

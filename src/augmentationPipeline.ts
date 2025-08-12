@@ -859,6 +859,118 @@ export class Cortex {
         return results
     }
   }
+
+  /**
+   * Enable an augmentation by name
+   *
+   * @param name The name of the augmentation to enable
+   * @returns True if augmentation was found and enabled
+   */
+  public enableAugmentation(name: string): boolean {
+    for (const type of Object.keys(this.registry) as (keyof AugmentationRegistry)[]) {
+      const augmentation = this.registry[type].find(aug => aug.name === name)
+      if (augmentation) {
+        augmentation.enabled = true
+        return true
+      }
+    }
+    return false
+  }
+
+  /**
+   * Disable an augmentation by name
+   *
+   * @param name The name of the augmentation to disable
+   * @returns True if augmentation was found and disabled
+   */
+  public disableAugmentation(name: string): boolean {
+    for (const type of Object.keys(this.registry) as (keyof AugmentationRegistry)[]) {
+      const augmentation = this.registry[type].find(aug => aug.name === name)
+      if (augmentation) {
+        augmentation.enabled = false
+        return true
+      }
+    }
+    return false
+  }
+
+  /**
+   * Check if an augmentation is enabled
+   *
+   * @param name The name of the augmentation to check
+   * @returns True if augmentation is found and enabled, false otherwise
+   */
+  public isAugmentationEnabled(name: string): boolean {
+    for (const type of Object.keys(this.registry) as (keyof AugmentationRegistry)[]) {
+      const augmentation = this.registry[type].find(aug => aug.name === name)
+      if (augmentation) {
+        return augmentation.enabled
+      }
+    }
+    return false
+  }
+
+  /**
+   * Get all augmentations with their enabled status
+   *
+   * @returns Array of augmentations with name, type, and enabled status
+   */
+  public listAugmentationsWithStatus(): Array<{
+    name: string
+    type: keyof AugmentationRegistry
+    enabled: boolean
+    description: string
+  }> {
+    const result: Array<{
+      name: string
+      type: keyof AugmentationRegistry
+      enabled: boolean
+      description: string
+    }> = []
+
+    for (const [type, augmentations] of Object.entries(this.registry) as Array<[keyof AugmentationRegistry, IAugmentation[]]>) {
+      for (const aug of augmentations) {
+        result.push({
+          name: aug.name,
+          type: type,
+          enabled: aug.enabled,
+          description: aug.description
+        })
+      }
+    }
+
+    return result
+  }
+
+  /**
+   * Enable all augmentations of a specific type
+   *
+   * @param type The type of augmentations to enable
+   * @returns Number of augmentations enabled
+   */
+  public enableAugmentationType(type: keyof AugmentationRegistry): number {
+    let count = 0
+    for (const aug of this.registry[type]) {
+      aug.enabled = true
+      count++
+    }
+    return count
+  }
+
+  /**
+   * Disable all augmentations of a specific type
+   *
+   * @param type The type of augmentations to disable
+   * @returns Number of augmentations disabled
+   */
+  public disableAugmentationType(type: keyof AugmentationRegistry): number {
+    let count = 0
+    for (const aug of this.registry[type]) {
+      aug.enabled = false
+      count++
+    }
+    return count
+  }
 }
 
 // Create and export a default instance of the cortex

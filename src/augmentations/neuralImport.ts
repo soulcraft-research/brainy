@@ -1,8 +1,11 @@
 /**
- * Cortex SENSE Augmentation - Atomic Age AI-Powered Data Understanding
+ * Neural Import Augmentation - AI-Powered Data Understanding
  * 
- * 🧠 The cerebral cortex layer for intelligent data processing
- * ⚛️ Complete with confidence scoring and relationship weight calculation
+ * 🧠 Built-in AI augmentation for intelligent data processing
+ * ⚛️ Always free, always included, always enabled
+ * 
+ * This is the default AI-powered augmentation that comes with every Brainy installation.
+ * It provides intelligent data understanding, entity detection, and relationship analysis.
  */
 
 import { ISenseAugmentation, AugmentationResponse } from '../types/augmentations.js'
@@ -11,12 +14,12 @@ import { NounType, VerbType } from '../types/graphTypes.js'
 import * as fs from '../universal/fs.js'
 import * as path from '../universal/path.js'
 
-// Cortex Analysis Types
-export interface CortexAnalysisResult {
+// Neural Import Analysis Types
+export interface NeuralAnalysisResult {
   detectedEntities: DetectedEntity[]
   detectedRelationships: DetectedRelationship[]
   confidence: number
-  insights: CortexInsight[]
+  insights: NeuralInsight[]
 }
 
 export interface DetectedEntity {
@@ -39,7 +42,7 @@ export interface DetectedRelationship {
   metadata?: Record<string, any>
 }
 
-export interface CortexInsight {
+export interface NeuralInsight {
   type: 'hierarchy' | 'cluster' | 'pattern' | 'anomaly' | 'opportunity'
   description: string
   confidence: number
@@ -47,7 +50,7 @@ export interface CortexInsight {
   recommendation?: string
 }
 
-export interface CortexSenseConfig {
+export interface NeuralImportConfig {
   confidenceThreshold: number
   enableWeights: boolean
   skipDuplicates: boolean
@@ -57,15 +60,15 @@ export interface CortexSenseConfig {
 /**
  * Neural Import SENSE Augmentation - The Brain's Perceptual System
  */
-export class CortexSenseAugmentation implements ISenseAugmentation {
-  readonly name: string = 'cortex-sense'
-  readonly description: string = 'AI-powered cortex for intelligent data understanding'
+export class NeuralImportAugmentation implements ISenseAugmentation {
+  readonly name: string = 'neural-import'
+  readonly description: string = 'Built-in AI-powered data understanding and entity detection'
   enabled: boolean = true
 
   private brainy: BrainyData
-  private config: CortexSenseConfig
+  private config: NeuralImportConfig
 
-  constructor(brainy: BrainyData, config: Partial<CortexSenseConfig> = {}) {
+  constructor(brainy: BrainyData, config: Partial<NeuralImportConfig> = {}) {
     this.brainy = brainy
     this.config = {
       confidenceThreshold: 0.7,
@@ -77,7 +80,7 @@ export class CortexSenseAugmentation implements ISenseAugmentation {
 
   async initialize(): Promise<void> {
     // Initialize the cortex analysis system
-    console.log('🧠 Cortex SENSE augmentation initialized')
+    console.log('🧠 Neural Import augmentation initialized')
   }
 
   async shutDown(): Promise<void> {
@@ -360,7 +363,7 @@ export class CortexSenseAugmentation implements ISenseAugmentation {
   /**
    * Get the full neural analysis result (custom method for Cortex integration)
    */
-  async getNeuralAnalysis(rawData: Buffer | string, dataType: string): Promise<CortexAnalysisResult> {
+  async getNeuralAnalysis(rawData: Buffer | string, dataType: string): Promise<NeuralAnalysisResult> {
     const parsedData = await this.parseRawData(rawData, dataType)
     return await this.performNeuralAnalysis(parsedData)
   }
@@ -421,7 +424,7 @@ export class CortexSenseAugmentation implements ISenseAugmentation {
   /**
    * Perform neural analysis on parsed data
    */
-  private async performNeuralAnalysis(parsedData: any[], config = this.config): Promise<CortexAnalysisResult> {
+  private async performNeuralAnalysis(parsedData: any[], config = this.config): Promise<NeuralAnalysisResult> {
     // Phase 1: Neural Entity Detection
     const detectedEntities = await this.detectEntitiesWithNeuralAnalysis(parsedData, config)
     
@@ -429,7 +432,7 @@ export class CortexSenseAugmentation implements ISenseAugmentation {
     const detectedRelationships = await this.detectRelationshipsWithNeuralAnalysis(detectedEntities, parsedData, config)
     
     // Phase 3: Neural Insights Generation
-    const insights = await this.generateCortexInsights(detectedEntities, detectedRelationships)
+    const insights = await this.generateNeuralInsights(detectedEntities, detectedRelationships)
     
     // Phase 4: Confidence Scoring
     const overallConfidence = this.calculateOverallConfidence(detectedEntities, detectedRelationships)
@@ -698,8 +701,8 @@ export class CortexSenseAugmentation implements ISenseAugmentation {
   /**
    * Generate Neural Insights - The Intelligence Layer
    */
-  private async generateCortexInsights(entities: DetectedEntity[], relationships: DetectedRelationship[]): Promise<CortexInsight[]> {
-    const insights: CortexInsight[] = []
+  private async generateNeuralInsights(entities: DetectedEntity[], relationships: DetectedRelationship[]): Promise<NeuralInsight[]> {
+    const insights: NeuralInsight[] = []
 
     // Detect hierarchies
     const hierarchies = this.detectHierarchies(relationships)
@@ -848,8 +851,8 @@ export class CortexSenseAugmentation implements ISenseAugmentation {
     return (entityConfidence + relationshipConfidence) / 2
   }
 
-  private async storeNeuralAnalysis(analysis: CortexAnalysisResult): Promise<void> {
-    // Store the full analysis result for later retrieval by Cortex or other systems
+  private async storeNeuralAnalysis(analysis: NeuralAnalysisResult): Promise<void> {
+    // Store the full analysis result for later retrieval by Neural Import or other systems
     // This could be stored in the brainy instance metadata or a separate analysis store
   }
 
@@ -886,7 +889,7 @@ export class CortexSenseAugmentation implements ISenseAugmentation {
   /**
    * Assess data quality metrics
    */
-  private assessDataQuality(parsedData: any[], analysis: CortexAnalysisResult): {
+  private assessDataQuality(parsedData: any[], analysis: NeuralAnalysisResult): {
     completeness: number
     consistency: number
     accuracy: number
@@ -936,7 +939,7 @@ export class CortexSenseAugmentation implements ISenseAugmentation {
    */
   private generateRecommendations(
     parsedData: any[], 
-    analysis: CortexAnalysisResult,
+    analysis: NeuralAnalysisResult,
     entityTypes: Array<{ type: string; count: number; confidence: number }>,
     relationshipTypes: Array<{ type: string; count: number; confidence: number }>
   ): string[] {

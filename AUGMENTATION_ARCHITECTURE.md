@@ -231,7 +231,7 @@ src/
 - [ ] Update CLI commands
 
 ### Phase 2: Restructure brain-cloud
-- [ ] Move quantum-vault connectors to brain-cloud/enterprise
+- [ ] Organize enterprise connectors in brain-cloud managed service
 - [ ] Add AI memory augmentations
 - [ ] Implement license validation
 
