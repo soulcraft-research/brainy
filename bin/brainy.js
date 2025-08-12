@@ -570,12 +570,12 @@ augment
         
         console.log(chalk.green('✅ License saved!'))
         console.log('')
-        console.log('Install Brain Cloud:')
-        console.log(chalk.cyan('  npm install @soulcraft/brain-cloud'))
+        console.log('// Brain Cloud is NOT an npm package!')
+        console.log('// Augmentations auto-load based on your subscription')
         console.log('')
-        console.log('Then use in your code:')
-        console.log(chalk.gray('  import { AIMemory } from "@soulcraft/brain-cloud"'))
-        console.log(chalk.gray('  cortex.register(new AIMemory())'))
+        console.log('Next steps:')
+        console.log(chalk.cyan('  brainy cloud auth'))
+        console.log(chalk.gray('  # Your augmentations will auto-load'))
       } else {
         console.log(chalk.red('Invalid license key'))
       }
