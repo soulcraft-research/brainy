@@ -26,7 +26,7 @@ brainy augment available    # Shows what can be installed
 brainy augment add          # Interactive mode
 brainy augment add neural-import    # Built-in
 brainy augment add brainy-sentiment  # Community (from npm)
-brainy augment add ai-memory --premium  # Premium (needs license)
+brainy augment add ai-memory  # Brain Cloud feature (optional)
 
 # Remove augmentations
 brainy augment remove sentiment-analyzer
