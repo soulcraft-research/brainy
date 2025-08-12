@@ -72,9 +72,8 @@ import {
 } from './utils/logger.js'
 
 // Export BrainyChat for conversational AI
-import { BrainyChat, ChatOptions } from './chat/brainyChat.js'
+import { BrainyChat } from './chat/BrainyChat.js'
 export { BrainyChat }
-export type { ChatOptions }
 
 // Export Cortex CLI functionality - commented out for core MIT build
 // export { Cortex } from './cortex/cortex.js'
