@@ -7,7 +7,7 @@ Brainy has a clear augmentation system with four tiers:
 ```
 1. Built-in (Free, Always Included)
 2. Community (Free, npm packages)  
-3. Premium (Paid, @soulcraft/brain-cloud)
+3. Premium (Brain Cloud subscription - auto-loads after auth)
 4. Brain Cloud (Managed Service)
 ```
 
@@ -50,30 +50,37 @@ const cortex = new Cortex()
 cortex.register(new SentimentAnalyzer())
 ```
 
-## 3. Premium Augmentations (@soulcraft/brain-cloud)
+## 3. Premium Augmentations (Brain Cloud Auto-Loading)
 
 The `/brain-cloud` project contains premium augmentations:
 
 ### Core Premium Features (AI Memory & Coordination):
 ```javascript
-import { 
-  AIMemory,           // Persistent AI memory across sessions
-  AgentCoordinator,   // Multi-agent handoffs
-  TeamSync,          // Real-time team synchronization
-  CloudBackup        // Automatic cloud backups
-} from '@soulcraft/brain-cloud'
+// After 'brainy cloud auth', these are automatically available:
+// - AIMemory           // Persistent AI memory across sessions  
+// - AgentCoordinator   // Multi-agent handoffs
+// - TeamSync          // Real-time team synchronization
+// - CloudBackup       // Automatic cloud backups
+
+// No imports needed - they auto-load based on your subscription!
+const cortex = new Cortex()
+// Premium augmentations are automatically registered
 ```
 
-### Enterprise Connectors (from old quantum-vault):
+### Enterprise Connectors (Auto-Loading):
 ```javascript
-import {
-  NotionSync,        // Bidirectional Notion sync
-  SalesforceConnect, // CRM integration
-  AirtableSync,      // Database sync
-  PostgresSync,      // Real-time replication
-  SlackMemory,       // Team knowledge base
-  AnalyticsSuite     // Business intelligence
-} from '@soulcraft/brain-cloud/enterprise'
+// Enterprise augmentations auto-load for Team+ plans after auth:
+// - NotionSync        // Bidirectional Notion sync
+// - SalesforceConnect // CRM integration  
+// - AirtableSync      // Database sync
+// - PostgresSync      // Real-time replication
+// - SlackMemory       // Team knowledge base
+// - AnalyticsSuite    // Business intelligence
+
+// Just configure with your credentials - no imports needed!
+await brainy.connectNotion({
+  notionToken: process.env.NOTION_TOKEN
+})
 ```
 
 ## 4. Brain Cloud Service (Managed)
@@ -133,7 +140,7 @@ brainy augment add brainy-sentiment --type sense
 export BRAINY_LICENSE_KEY=lic_xxxxx
 
 # Install premium package
-npm install -g @soulcraft/brain-cloud
+brainy cloud auth  # Auto-configures based on your subscription
 
 # Register augmentations
 brainy augment add ai-memory --premium
@@ -219,7 +226,7 @@ src/
 ## Migration Plan
 
 ### Phase 1: Update References
-- [x] Replace all `brainy-quantum-vault` → `@soulcraft/brain-cloud`
+- [x] Replace all `brainy-quantum-vault` → Brain Cloud managed service
 - [ ] Update documentation
 - [ ] Update CLI commands
 
