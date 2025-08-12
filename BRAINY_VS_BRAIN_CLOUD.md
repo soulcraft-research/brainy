@@ -84,9 +84,9 @@ const notion = new NotionSync({
 
 ### Code Example - Brain Cloud
 ```javascript
-// Brain Cloud is an ADD-ON, not required for Brainy
-import { BrainyVectorDB } from '@brainy/vector-db'        // Free
-import { CloudSync } from '@soulcraft/brain-cloud'        // Premium
+// Everything is in one package
+import { BrainyVectorDB } from '@soulcraft/brainy'        // Free core
+// Cloud features are in same package, activated by API key
 
 const brain = new BrainyVectorDB()  // Works without cloud!
 
@@ -114,13 +114,11 @@ brainy/
 │       └── cloud.ts         # Cloud commands (points to Brain Cloud)
 ```
 
-### Brain Cloud (Separate Package)
+### Brain Cloud (Service, not a package)
 ```
-@soulcraft/brain-cloud/      # NPM package (paid)
-├── CloudSync.ts
-├── NotionConnector.ts
-├── SalesforceConnector.ts
-└── AIMemory.ts
+Brain Cloud is a managed service that auto-loads augmentations
+based on your subscription when you run `brainy cloud auth`.
+No manual package installation required!
 ```
 
 ---

@@ -150,13 +150,14 @@ const results = await brain.search("companies founded by Elon")
 # Auto-setup with cloud instance provisioning (RECOMMENDED)
 brainy cloud setup --email your@email.com
 
-# Or install manually
-npm install @soulcraft/brainy @soulcraft/brain-cloud
+# Sign up at app.soulcraft.com (free trial)
+brainy cloud auth  # Auto-configures based on your plan
 ```
 
 ```javascript
 import { BrainyData, Cortex } from '@soulcraft/brainy'
-import { AIMemory, AgentCoordinator } from '@soulcraft/brain-cloud'
+// After authentication, augmentations auto-load
+// No imports needed - they're managed by your account!
 
 const brain = new BrainyData()
 const cortex = new Cortex()
@@ -225,16 +226,13 @@ cortex.register(new Translator())         // Multi-language support
 🌟 **Brainy works perfectly without this!** Brain Cloud adds team features:
 
 ```javascript
-import { 
-  AIMemory,          // Persistent AI memory
-  AgentCoordinator,  // Multi-agent handoffs
-  NotionSync,        // Notion integration
-  SalesforceConnect  // CRM integration
-} from '@soulcraft/brain-cloud'
+// Brain Cloud features are in the main package
+// But require API key to activate cloud services
+import { BrainyVectorDB } from '@soulcraft/brainy'
 
-// Brain Cloud is a separate package (optional)
-const aiMemory = new AIMemory({
-  apiKey: process.env.BRAIN_CLOUD_KEY  // Only for cloud features
+// Activate Brain Cloud features with API key
+const brain = new BrainyVectorDB({
+  cloud: { apiKey: process.env.BRAIN_CLOUD_KEY }  // Optional
 })
 
 cortex.register(aiMemory)  // AI remembers everything
