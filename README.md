@@ -20,6 +20,22 @@
 
 ---
 
+## ✅ 100% Free & Open Source
+
+**Brainy is completely free. No license keys. No limits. No catch.**
+
+Every feature you see here works without any payment or registration:
+- ✓ Full vector database
+- ✓ Graph relationships
+- ✓ Semantic search
+- ✓ All storage adapters
+- ✓ Complete API
+- ✓ Forever free
+
+> 🌩️ **Brain Cloud** is an optional add-on for teams who want cloud sync and enterprise connectors.
+
+---
+
 ## 🚀 What Can You Build?
 
 ### 💬 **AI Chat Apps** - That Actually Remember
@@ -205,8 +221,8 @@ cortex.register(new Translator())         // Multi-language support
 - 📊 Data Visualizer
 - 🎨 Image Understanding
 
-### 💼 **Premium Augmentations** (@soulcraft/brain-cloud)
-For teams that need AI memory and enterprise features:
+### ☁️ **Brain Cloud** (Optional Add-On)
+🌟 **Brainy works perfectly without this!** Brain Cloud adds team features:
 
 ```javascript
 import { 
@@ -216,9 +232,9 @@ import {
   SalesforceConnect  // CRM integration
 } from '@soulcraft/brain-cloud'
 
-// Requires license key - get one at soulcraft.com
+// Brain Cloud is a separate package (optional)
 const aiMemory = new AIMemory({
-  licenseKey: process.env.BRAINY_LICENSE_KEY
+  apiKey: process.env.BRAIN_CLOUD_KEY  // Only for cloud features
 })
 
 cortex.register(aiMemory)  // AI remembers everything

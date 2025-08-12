@@ -549,9 +549,12 @@ augment
       output: process.stdout
     })
     
-    console.log(chalk.cyan('🧠 Brain Cloud Activation'))
+    console.log(chalk.cyan('☁️  Brain Cloud Activation (Optional Premium)'))
     console.log('')
-    console.log('Get your license at: ' + chalk.green('app.soulcraft.com'))
+    console.log(chalk.yellow('Note: Brainy core is 100% free and fully functional!'))
+    console.log('Brain Cloud adds optional team & sync features.')
+    console.log('')
+    console.log('Get Brain Cloud at: ' + chalk.green('app.soulcraft.com'))
     console.log('(14-day free trial available)')
     console.log('')
     
