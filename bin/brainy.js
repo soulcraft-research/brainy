@@ -163,13 +163,94 @@ program
   .option('--session <id>', 'Use specific chat session')
   .option('--new', 'Start a new session')
   .option('--role <name>', 'Agent role (premium feature preview)', 'assistant')
+  .option('--ui <mode>', 'UI mode: terminal (default) or web (premium)', 'terminal')
   .action(wrapInteractive(async (question, options) => {
     const { BrainyData } = await import('../dist/brainyData.js')
-    const { ChatCLI } = await import('../dist/chat/ChatCLI.js')
     
     const brainy = new BrainyData()
     await brainy.init()
     
+    // Handle web UI mode (premium feature)
+    if (options.ui === 'web') {
+      console.log(chalk.cyan('🌐 Starting Brain Cloud Coordination Interface...'))
+      console.log()
+      
+      try {
+        // Check if Brain Cloud is available
+        const hasLicense = process.env.BRAINY_LICENSE_KEY || await checkBrainCloudAuth()
+        
+        if (!hasLicense) {
+          console.log(chalk.yellow('🔐 Brain Cloud Authentication Required'))
+          console.log('The web coordination UI requires Brain Cloud authentication.')
+          console.log()
+          console.log('Get started:')
+          console.log('  1. ' + chalk.green('brainy cloud auth') + ' - Authenticate with Brain Cloud')
+          console.log('  2. ' + chalk.cyan('https://app.soulcraft.com') + ' - Sign up for Brain Cloud')
+          console.log()
+          console.log('Falling back to terminal chat...')
+          console.log()
+          options.ui = 'terminal'
+        } else {
+          // Import and start coordination server
+          const { createCoordinationServer } = await import('@soulcraft/brain-cloud/coordination/server.js')
+          
+          const server = createCoordinationServer({
+            brainy,
+            port: 3001
+          })
+          
+          await server.start()
+          
+          console.log(chalk.green('✅ Brain Cloud coordination interface started!'))
+          console.log()
+          console.log('🤝 Multi-agent coordination available at:')
+          console.log('   ' + chalk.cyan('http://localhost:3001/coordination'))
+          console.log()
+          console.log('💡 Features available:')
+          console.log('   • Visual agent coordination')
+          console.log('   • Real-time multi-agent handoffs')
+          console.log('   • Session management')
+          console.log('   • Premium Brain Cloud integration')
+          console.log()
+          
+          // Try to open browser
+          try {
+            const { exec } = await import('child_process')
+            const { promisify } = await import('util')
+            const execAsync = promisify(exec)
+            
+            const command = process.platform === 'win32' ? 'start' : 
+                           process.platform === 'darwin' ? 'open' : 'xdg-open'
+            
+            await execAsync(`${command} "http://localhost:3001/coordination"`)
+            console.log(chalk.green('🌐 Opening coordination interface in your browser...'))
+          } catch (error) {
+            console.log(chalk.yellow('💡 Copy the URL above to open in your browser'))
+          }
+          
+          console.log()
+          console.log(chalk.dim('Press Ctrl+C to stop the server'))
+          
+          // Keep server running
+          process.on('SIGINT', async () => {
+            console.log('\n🛑 Stopping coordination server...')
+            await server.stop()
+            process.exit(0)
+          })
+          
+          // Wait indefinitely
+          return new Promise(() => {})
+        }
+      } catch (error) {
+        console.log(chalk.red('❌ Failed to start web coordination interface:'), error.message)
+        console.log(chalk.yellow('Falling back to terminal chat...'))
+        console.log()
+        options.ui = 'terminal'
+      }
+    }
+    
+    // Terminal chat mode (default)
+    const { ChatCLI } = await import('../dist/chat/ChatCLI.js')
     const chatCLI = new ChatCLI(brainy)
     
     // Handle different modes
@@ -1041,6 +1122,7 @@ if (!process.argv.slice(2).length) {
   console.log('  brainy chat --list             # List all chat sessions')
   console.log('  brainy chat --search "query"   # Search all conversations')
   console.log('  brainy chat --history          # Show conversation history')
+  console.log('  brainy chat --ui=web           # 🌐 Premium web coordination interface')
   console.log('')
   console.log(chalk.bold('Brain Cloud (Premium):'))
   console.log(chalk.green('  brainy cloud setup             # Auto-setup with provisioning'))
@@ -1059,6 +1141,26 @@ if (!process.argv.slice(2).length) {
 // ========================================
 // BRAIN CLOUD MEMORY SETUP FUNCTIONS
 // ========================================
+
+async function checkBrainCloudAuth() {
+  try {
+    // Check for license file
+    const { readFile } = await import('fs/promises')
+    const { join } = await import('path')
+    const { homedir } = await import('os')
+    
+    try {
+      const licensePath = join(homedir(), '.brainy', 'license')
+      const license = await readFile(licensePath, 'utf8')
+      return license.trim().startsWith('lic_')
+    } catch {}
+    
+    // Check for existing customer ID
+    return await detectCustomerId() !== null
+  } catch {
+    return false
+  }
+}
 
 async function detectCustomerId() {
   try {

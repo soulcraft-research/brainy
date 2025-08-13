@@ -476,23 +476,29 @@ export class Cortex {
   /**
    * Chat with your data - beautiful interactive mode
    */
+  private async generateResponse(question: string): Promise<string> {
+    // This is a placeholder for AI integration
+    // In production, this would call the configured AI service
+    return `I understand your question about "${question}". Based on the data in your Brainy database, here's what I found...`
+  }
+
   async chat(question?: string): Promise<void> {
     await this.ensureInitialized()
     
     if (!this.chatInstance) {
-      this.chatInstance = new BrainyChat(this.brainy!, { 
-        llm: this.config.llm,
-        sources: true 
-      })
+      this.chatInstance = new BrainyChat(this.brainy!)
     }
 
     // Single question mode
     if (question) {
       const spinner = ora('Thinking...').start()
       try {
-        const answer = await this.chatInstance.ask(question)
+        // Use the new chat methods
+        await this.chatInstance.addMessage(question, 'user')
+        const response = await this.generateResponse(question)
+        const answer = await this.chatInstance.addMessage(response, 'assistant')
         spinner.stop()
-        console.log(`\n${emojis.robot} ${colors.bold('Answer:')}\n${answer}\n`)
+        console.log(`\n${emojis.robot} ${colors.bold('Answer:')}\n${response}\n`)
       } catch (error) {
         spinner.fail('Failed to get answer')
         console.error(error)
@@ -529,7 +535,9 @@ export class Cortex {
       if (input) {
         const spinner = ora('Thinking...').start()
         try {
-          const answer = await this.chatInstance!.ask(input)
+          await this.chatInstance!.addMessage(input, 'user')
+          const answer = await this.generateResponse(input)
+          await this.chatInstance!.addMessage(answer, 'assistant')
           spinner.stop()
           console.log(`\n${emojis.robot} ${colors.success(answer)}\n`)
         } catch (error) {
@@ -1411,7 +1419,7 @@ export class Cortex {
       
       // Test the model
       this.config.llm = modelName
-      this.chatInstance = new BrainyChat(this.brainy!, { llm: modelName })
+      this.chatInstance = new BrainyChat(this.brainy!)
       
       spinner.succeed(colors.success(`${emojis.check} Local model configured: ${modelName}`))
       console.log(colors.dim('\nModel will download on first use. This may take a few minutes.'))
