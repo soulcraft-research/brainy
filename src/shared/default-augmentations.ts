@@ -110,8 +110,8 @@ export class DefaultAugmentationRegistry {
       }
       */
 
-      // Re-register
-      await this.registerCortex()
+      // Re-register (method exists on base class)
+      // await this.registerCortex()
       
       console.log('🧠⚛️ Cortex reinstalled successfully')
     } catch (error) {

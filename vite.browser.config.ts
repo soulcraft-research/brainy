@@ -5,7 +5,7 @@ export default defineConfig({
   build: {
     target: 'es2022',
     lib: {
-      entry: resolve(__dirname, 'dist/browser-build/browserFramework.js'),
+      entry: resolve(__dirname, 'dist/browserFramework.js'),
       name: 'Brainy',
       fileName: 'brainy-browser-bundle',
       formats: ['es', 'umd']

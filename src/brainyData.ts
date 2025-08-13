@@ -5,6 +5,7 @@
 
 import { v4 as uuidv4 } from './universal/uuid.js'
 import { HNSWIndex } from './hnsw/hnswIndex.js'
+import { ExecutionMode } from './augmentationPipeline.js'
 import {
   HNSWIndexOptimized,
   HNSWOptimizedConfig
