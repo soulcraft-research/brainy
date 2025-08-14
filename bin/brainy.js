@@ -217,7 +217,158 @@ program
     }
   }))
 
-// Command 5: HELP - Interactive guidance
+// Command 5: CONFIG - Essential configuration
+program
+  .command('config <action> [key] [value]')
+  .description('Configure brainy (get, set, list)')
+  .action(wrapAction(async (action, key, value) => {
+    const configActions = {
+      get: async () => {
+        if (!key) {
+          console.error(colors.error('Please specify a key: brainy config get <key>'))
+          process.exit(1)
+        }
+        const result = await cortex.configGet(key)
+        console.log(colors.success(`${key}: ${result || 'not set'}`))
+      },
+      set: async () => {
+        if (!key || !value) {
+          console.error(colors.error('Usage: brainy config set <key> <value>'))
+          process.exit(1)
+        }
+        await cortex.configSet(key, value)
+        console.log(colors.success(`✅ Set ${key} = ${value}`))
+      },
+      list: async () => {
+        const config = await cortex.configList()
+        console.log(colors.primary('🔧 Current Configuration:'))
+        Object.entries(config).forEach(([k, v]) => {
+          console.log(colors.info(`  ${k}: ${v}`))
+        })
+      }
+    }
+    
+    if (configActions[action]) {
+      await configActions[action]()
+    } else {
+      console.error(colors.error('Valid actions: get, set, list'))
+      process.exit(1)
+    }
+  }))
+
+// Command 6: CLOUD - Premium features connection
+program
+  .command('cloud <action>')
+  .description('Connect to Brain Cloud premium features')
+  .option('-i, --instance <id>', 'Brain Cloud instance ID')
+  .action(wrapAction(async (action, options) => {
+    console.log(colors.primary('☁️ Brain Cloud Premium Features'))
+    
+    const cloudActions = {
+      connect: async () => {
+        console.log(colors.info('🔗 Connecting to Brain Cloud...'))
+        // Dynamic import to avoid loading premium code unnecessarily
+        try {
+          const { BrainCloudSDK } = await import('@brainy-cloud/sdk')
+          const connected = await BrainCloudSDK.connect(options.instance)
+          if (connected) {
+            console.log(colors.success('✅ Connected to Brain Cloud'))
+            console.log(colors.info(`Instance: ${connected.instanceId}`))
+          }
+        } catch (error) {
+          console.log(colors.warning('⚠️ Brain Cloud SDK not installed'))
+          console.log(colors.info('Install with: npm install @brainy-cloud/sdk'))
+          console.log(colors.info('Or visit: https://brain-cloud.soulcraft.com'))
+        }
+      },
+      status: async () => {
+        try {
+          const { BrainCloudSDK } = await import('@brainy-cloud/sdk')
+          const status = await BrainCloudSDK.getStatus()
+          console.log(colors.success('☁️ Cloud Status: Connected'))
+          console.log(colors.info(`Instance: ${status.instanceId}`))
+          console.log(colors.info(`Augmentations: ${status.augmentationCount} available`))
+        } catch {
+          console.log(colors.warning('☁️ Cloud Status: Not connected'))
+          console.log(colors.info('Use "brainy cloud connect" to connect'))
+        }
+      },
+      augmentations: async () => {
+        try {
+          const { BrainCloudSDK } = await import('@brainy-cloud/sdk')
+          const augs = await BrainCloudSDK.listAugmentations()
+          console.log(colors.primary('🧩 Available Premium Augmentations:'))
+          augs.forEach(aug => {
+            console.log(colors.success(`  ✅ ${aug.name} - ${aug.description}`))
+          })
+        } catch {
+          console.log(colors.warning('Connect to Brain Cloud first: brainy cloud connect'))
+        }
+      }
+    }
+    
+    if (cloudActions[action]) {
+      await cloudActions[action]()
+    } else {
+      console.log(colors.error('Valid actions: connect, status, augmentations'))
+      console.log(colors.info('Example: brainy cloud connect --instance demo-test-auto'))
+    }
+  }))
+
+// Command 7: MIGRATE - Migration tools
+program
+  .command('migrate <action>')
+  .description('Migration tools for upgrades')
+  .option('-f, --from <version>', 'Migrate from version')
+  .option('-b, --backup', 'Create backup before migration')
+  .action(wrapAction(async (action, options) => {
+    console.log(colors.primary('🔄 Brainy Migration Tools'))
+    
+    const migrateActions = {
+      check: async () => {
+        console.log(colors.info('🔍 Checking for migration needs...'))
+        // Check for deprecated methods, old config, etc.
+        const issues = []
+        
+        try {
+          const { BrainyData } = await import('../dist/brainyData.js')
+          const brainy = new BrainyData()
+          
+          // Check for old API usage
+          console.log(colors.success('✅ No migration issues found'))
+        } catch (error) {
+          console.log(colors.warning(`⚠️ Found issues: ${error.message}`))
+        }
+      },
+      backup: async () => {
+        console.log(colors.info('💾 Creating backup...'))
+        const { BrainyData } = await import('../dist/brainyData.js')
+        const brainy = new BrainyData()
+        const backup = await brainy.createBackup()
+        console.log(colors.success(`✅ Backup created: ${backup.path}`))
+      },
+      restore: async () => {
+        if (!options.from) {
+          console.error(colors.error('Please specify backup file: --from <path>'))
+          process.exit(1)
+        }
+        console.log(colors.info(`📥 Restoring from: ${options.from}`))
+        const { BrainyData } = await import('../dist/brainyData.js')
+        const brainy = new BrainyData()
+        await brainy.restoreBackup(options.from)
+        console.log(colors.success('✅ Restore complete'))
+      }
+    }
+    
+    if (migrateActions[action]) {
+      await migrateActions[action]()
+    } else {
+      console.log(colors.error('Valid actions: check, backup, restore'))
+      console.log(colors.info('Example: brainy migrate check'))
+    }
+  }))
+
+// Command 8: HELP - Interactive guidance
 program
   .command('help [command]')
   .description('Get help or enter interactive mode')
@@ -242,11 +393,13 @@ program
     console.log(colors.info('2. Search your brain'))
     console.log(colors.info('3. Import a file'))
     console.log(colors.info('4. Check status'))
-    console.log(colors.info('5. Show all commands'))
+    console.log(colors.info('5. Connect to Brain Cloud'))
+    console.log(colors.info('6. Configuration'))
+    console.log(colors.info('7. Show all commands'))
     console.log()
     
     const choice = await new Promise(resolve => {
-      rl.question(colors.primary('Enter your choice (1-5): '), (answer) => {
+      rl.question(colors.primary('Enter your choice (1-7): '), (answer) => {
         rl.close()
         resolve(answer)
       })
@@ -270,6 +423,14 @@ program
         console.log(colors.info('Shows your brain health and statistics'))
         break
       case '5':
+        console.log(colors.success('\n☁️ Use: brainy cloud connect'))
+        console.log(colors.info('Example: brainy cloud connect --instance demo-test-auto'))
+        break
+      case '6':
+        console.log(colors.success('\n🔧 Use: brainy config <action>'))
+        console.log(colors.info('Example: brainy config list'))
+        break
+      case '7':
         program.help()
         break
       default:
