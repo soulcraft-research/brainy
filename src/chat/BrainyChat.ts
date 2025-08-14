@@ -357,16 +357,13 @@ export class BrainyChat {
   // Private helper methods
 
   private async createMessageRelationships(messageId: string): Promise<void> {
-    // Link message to session using BrainyData addVerb() method
+    // Link message to session using unified addVerb API
     await this.brainy.addVerb(
       messageId,
       this.currentSessionId!,
-      undefined,
+      VerbType.PartOf,
       {
-        type: VerbType.PartOf,
-        metadata: {
-          relationship: 'message-in-session'
-        }
+        relationship: 'message-in-session'
       }
     )
 
@@ -387,12 +384,9 @@ export class BrainyChat {
       await this.brainy.addVerb(
         previousMessages[0].id,
         messageId,
-        undefined,
+        VerbType.Precedes,
         {
-          type: VerbType.Precedes,
-          metadata: {
-            relationship: 'message-sequence'
-          }
+          relationship: 'message-sequence'
         }
       )
     }

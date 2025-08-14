@@ -171,11 +171,6 @@ import {
   ExecutionMode,
   PipelineOptions,
   PipelineResult,
-  executeStreamlined,
-  executeByType,
-  executeSingle,
-  processStaticData,
-  processStreamingData,
   createPipeline,
   createStreamingPipeline,
   StreamlinedExecutionMode,
@@ -201,12 +196,7 @@ export {
   augmentationPipeline,
   ExecutionMode,
 
-  // Streamlined pipeline exports (now part of unified pipeline)
-  executeStreamlined,
-  executeByType,
-  executeSingle,
-  processStaticData,
-  processStreamingData,
+  // Factory functions
   createPipeline,
   createStreamingPipeline,
   StreamlinedExecutionMode,

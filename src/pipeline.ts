@@ -20,8 +20,14 @@ export {
 } from './augmentationPipeline.js'
 
 // Simple factory functions
-export const createPipeline = () => new (await import('./augmentationPipeline.js')).Cortex()
-export const createStreamingPipeline = () => new (await import('./augmentationPipeline.js')).Cortex()
+export const createPipeline = async () => {
+  const { Cortex } = await import('./augmentationPipeline.js')
+  return new Cortex()
+}
+export const createStreamingPipeline = async () => {
+  const { Cortex } = await import('./augmentationPipeline.js')
+  return new Cortex()
+}
 
 // Type aliases for consistency
 export type { PipelineOptions as StreamlinedPipelineOptions } from './augmentationPipeline.js'

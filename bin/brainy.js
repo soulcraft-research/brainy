@@ -12,7 +12,7 @@
 
 // @ts-ignore
 import { program } from 'commander'
-import { Cortex } from '../dist/cortex.js'
+import { BrainyData } from '../dist/brainyData.js'
 // @ts-ignore
 import chalk from 'chalk'
 import { readFileSync } from 'fs'
@@ -23,8 +23,15 @@ import { createInterface } from 'readline'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const packageJson = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8'))
 
-// Create single Cortex instance (the ONE orchestrator)
-const cortex = new Cortex()
+// Create single BrainyData instance (the ONE data orchestrator)
+let brainy = null
+const getBrainy = async () => {
+  if (!brainy) {
+    brainy = new BrainyData()
+    await brainy.init()
+  }
+  return brainy
+}
 
 // Beautiful colors
 const colors = {
@@ -199,6 +206,68 @@ program
 // THE 5 COMMANDS (ONE WAY TO DO EVERYTHING)
 // ========================================
 
+// Command 0: INIT - Initialize brainy (essential setup)
+program
+  .command('init')
+  .description('Initialize Brainy in current directory')
+  .option('-s, --storage <type>', 'Storage type (filesystem, memory, s3, r2, gcs)')
+  .option('-e, --encryption', 'Enable encryption for sensitive data')
+  .option('--s3-bucket <bucket>', 'S3 bucket name')
+  .option('--s3-region <region>', 'S3 region')
+  .option('--access-key <key>', 'Storage access key')
+  .option('--secret-key <key>', 'Storage secret key')
+  .action(wrapAction(async (options) => {
+    console.log(colors.primary('🧠 Initializing Brainy'))
+    console.log()
+    
+    const { BrainyData } = await import('../dist/brainyData.js')
+    
+    const config = {
+      storage: options.storage || 'filesystem',
+      encryption: options.encryption || false
+    }
+    
+    // Storage-specific configuration
+    if (options.storage === 's3' || options.storage === 'r2' || options.storage === 'gcs') {
+      if (!options.accessKey || !options.secretKey) {
+        console.log(colors.warning('⚠️ Cloud storage requires access credentials'))
+        console.log(colors.info('Use: --access-key <key> --secret-key <secret>'))
+        console.log(colors.info('Or set environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY'))
+        process.exit(1)
+      }
+      
+      config.storageOptions = {
+        bucket: options.s3Bucket,
+        region: options.s3Region || 'us-east-1',
+        accessKeyId: options.accessKey,
+        secretAccessKey: options.secretKey
+      }
+    }
+    
+    try {
+      const brainy = new BrainyData(config)
+      await brainy.init()
+      
+      console.log(colors.success('✅ Brainy initialized successfully!'))
+      console.log(colors.info(`📁 Storage: ${config.storage}`))
+      console.log(colors.info(`🔒 Encryption: ${config.encryption ? 'Enabled' : 'Disabled'}`))
+      
+      if (config.encryption) {
+        console.log(colors.warning('🔐 Encryption enabled - keep your keys secure!'))
+      }
+      
+      console.log()
+      console.log(colors.success('🚀 Ready to go! Try:'))
+      console.log(colors.info('  brainy add "Hello, World!"'))
+      console.log(colors.info('  brainy search "hello"'))
+      
+    } catch (error) {
+      console.log(colors.error('❌ Initialization failed:'))
+      console.log(colors.error(error.message))
+      process.exit(1)
+    }
+  }))
+
 // Command 1: ADD - Add data (smart by default)
 program
   .command('add [data]')
@@ -206,6 +275,7 @@ program
   .option('-m, --metadata <json>', 'Metadata as JSON')
   .option('-i, --id <id>', 'Custom ID') 
   .option('--literal', 'Skip AI processing (literal storage)')
+  .option('--encrypt', 'Encrypt this data (for sensitive information)')
   .action(wrapAction(async (data, options) => {
     if (!data) {
       console.log(colors.info('🧠 Interactive add mode'))
@@ -234,13 +304,31 @@ program
     if (options.id) {
       metadata.id = options.id
     }
+    if (options.encrypt) {
+      metadata.encrypted = true
+    }
     
     console.log(options.literal 
       ? colors.info('🔒 Literal storage') 
       : colors.success('🧠 Smart mode (auto-detects types)')
     )
     
-    await cortex.add(data, metadata)
+    if (options.encrypt) {
+      console.log(colors.warning('🔐 Encrypting sensitive data...'))
+    }
+    
+    const brainyInstance = await getBrainy()
+    
+    // Handle encryption at data level if requested
+    let processedData = data
+    if (options.encrypt) {
+      processedData = await brainyInstance.encryptData(data)
+      metadata.encrypted = true
+    }
+    
+    await brainyInstance.add(processedData, metadata, { 
+      process: options.literal ? 'literal' : 'auto'
+    })
     console.log(colors.success('✅ Added successfully!'))
   }))
 
@@ -475,7 +563,8 @@ program
       }
     }
     
-    const results = await cortex.search(query, searchOptions)
+    const brainyInstance = await getBrainy()
+    const results = await brainyInstance.search(query, searchOptions.limit || 10, searchOptions)
     
     if (results.length === 0) {
       console.log(colors.warning('No results found'))
@@ -494,7 +583,93 @@ program
     })
   }))
 
-// Command 4: STATUS - Database health & info
+// Command 4: UPDATE - Update existing data
+program
+  .command('update <id>')
+  .description('Update existing data with new content or metadata')
+  .option('-d, --data <data>', 'New data content')
+  .option('-m, --metadata <json>', 'New metadata as JSON')
+  .option('--no-merge', 'Replace metadata instead of merging')
+  .option('--no-reindex', 'Skip reindexing (faster but less accurate search)')
+  .option('--cascade', 'Update related verbs')
+  .action(wrapAction(async (id, options) => {
+    console.log(colors.info(`🔄 Updating: "${id}"`))
+    
+    if (!options.data && !options.metadata) {
+      console.error(colors.error('Error: Must provide --data or --metadata'))
+      process.exit(1)
+    }
+    
+    let metadata = undefined
+    if (options.metadata) {
+      try {
+        metadata = JSON.parse(options.metadata)
+      } catch {
+        console.error(colors.error('Invalid JSON metadata'))
+        process.exit(1)
+      }
+    }
+    
+    const brainyInstance = await getBrainy()
+    
+    const success = await brainyInstance.update(id, options.data, metadata, {
+      merge: options.merge !== false, // Default true unless --no-merge
+      reindex: options.reindex !== false, // Default true unless --no-reindex  
+      cascade: options.cascade || false
+    })
+    
+    if (success) {
+      console.log(colors.success('✅ Updated successfully!'))
+      if (options.cascade) {
+        console.log(colors.info('📎 Related verbs updated'))
+      }
+    } else {
+      console.log(colors.error('❌ Update failed'))
+    }
+  }))
+
+// Command 5: DELETE - Remove data (soft delete by default)
+program
+  .command('delete <id>')
+  .description('Delete data (soft delete by default, preserves indexes)')
+  .option('--hard', 'Permanent deletion (removes from indexes)')
+  .option('--cascade', 'Delete related verbs')
+  .option('--force', 'Force delete even if has relationships')
+  .action(wrapAction(async (id, options) => {
+    console.log(colors.info(`🗑️  Deleting: "${id}"`))
+    
+    if (options.hard) {
+      console.log(colors.warning('⚠️  Hard delete - data will be permanently removed'))
+    } else {
+      console.log(colors.info('🔒 Soft delete - data marked as deleted but preserved'))
+    }
+    
+    const brainyInstance = await getBrainy()
+    
+    try {
+      const success = await brainyInstance.delete(id, {
+        soft: !options.hard, // Soft delete unless --hard specified
+        cascade: options.cascade || false,
+        force: options.force || false
+      })
+      
+      if (success) {
+        console.log(colors.success('✅ Deleted successfully!'))
+        if (options.cascade) {
+          console.log(colors.info('📎 Related verbs also deleted'))
+        }
+      } else {
+        console.log(colors.error('❌ Delete failed'))
+      }
+    } catch (error) {
+      console.error(colors.error(`❌ Delete failed: ${error.message}`))
+      if (error.message.includes('has relationships')) {
+        console.log(colors.info('💡 Try: --cascade to delete relationships or --force to ignore them'))
+      }
+    }
+  }))
+
+// Command 6: STATUS - Database health & info
 program
   .command('status')
   .description('Show brain status and comprehensive statistics')
@@ -830,15 +1005,17 @@ program
     console.log(colors.info('1. Add some data'))
     console.log(colors.info('2. Chat with AI using your data'))
     console.log(colors.info('3. Search your brain'))
-    console.log(colors.info('4. Import a file'))
-    console.log(colors.info('5. Check status'))
-    console.log(colors.info('6. Connect to Brain Cloud'))
-    console.log(colors.info('7. Configuration'))
-    console.log(colors.info('8. Show all commands'))
+    console.log(colors.info('4. Update existing data'))
+    console.log(colors.info('5. Delete data'))
+    console.log(colors.info('6. Import a file'))
+    console.log(colors.info('7. Check status'))
+    console.log(colors.info('8. Connect to Brain Cloud'))
+    console.log(colors.info('9. Configuration'))
+    console.log(colors.info('10. Show all commands'))
     console.log()
     
     const choice = await new Promise(resolve => {
-      rl.question(colors.primary('Enter your choice (1-8): '), (answer) => {
+      rl.question(colors.primary('Enter your choice (1-10): '), (answer) => {
         rl.close()
         resolve(answer)
       })
