@@ -3,6 +3,7 @@
 ![Brainy Logo](brainy.png)
 
 [![npm version](https://badge.fury.io/js/%40soulcraft%2Fbrainy.svg)](https://badge.fury.io/js/%40soulcraft%2Fbrainy)
+[![1.0 RC](https://img.shields.io/badge/1.0-Release%20Candidate-orange.svg)](https://github.com/soulcraftlabs/brainy/releases/tag/v1.0.0-rc.1)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Try Demo](https://img.shields.io/badge/Try%20Demo-Live-green.svg)](https://soulcraft.com)
 [![Brain Cloud](https://img.shields.io/badge/Brain%20Cloud-Early%20Access-blue.svg)](https://soulcraft.com/brain-cloud)
@@ -16,6 +17,43 @@
 **Build AI apps that actually understand your data - in minutes, not months**
 
 </div>
+
+---
+
+## 🎉 **NEW: Brainy 1.0 - The Unified API**
+
+**The Great Cleanup is complete!** Brainy 1.0 introduces the **unified API** - ONE way to do everything with just **7 core methods**:
+
+```bash
+# Install the latest release candidate
+npm install @soulcraft/brainy@rc
+```
+
+```javascript
+import { BrainyData, NounType, VerbType } from '@soulcraft/brainy'
+
+const brain = new BrainyData()
+await brain.init()
+
+// 🎯 THE 7 UNIFIED METHODS:
+const id1 = await brain.add("Smart data addition")           // 1. Smart addition
+const id2 = await brain.addNoun("John Doe", NounType.Person) // 2. Typed entities
+const verb = await brain.addVerb(id1, id2, VerbType.CreatedBy) // 3. Relationships
+const results = await brain.search("smart data", 10)         // 4. Vector search
+const ids = await brain.import(["data1", "data2"])          // 5. Bulk import
+await brain.update(id1, "Updated data")                     // 6. Smart updates
+await brain.delete(verb)                                    // 7. Soft delete
+```
+
+### ✨ **What's New in 1.0:**
+- **🔥 40+ methods consolidated** → 7 unified methods
+- **🧠 Smart by default** - `add()` auto-detects and processes intelligently
+- **🔐 Universal encryption** - Built-in encryption for sensitive data
+- **🐳 Container ready** - Model preloading for production deployments
+- **📦 16% smaller package** despite major new features
+- **🔄 Soft delete default** - Better performance, no reindexing needed
+
+**Breaking Changes:** See [MIGRATION.md](MIGRATION.md) for complete upgrade guide.
 
 ---
 
@@ -39,7 +77,7 @@ Every feature you see here works without any payment or registration:
 
 ### 💬 **AI Chat Apps** - That Actually Remember
 ```javascript
-// Your users' conversations persist across sessions
+// Your users' conversations persist across sessions  
 const brain = new BrainyData()
 await brain.add("User prefers dark mode")
 await brain.add("User is learning Spanish")
@@ -51,17 +89,30 @@ const context = await brain.search("user preferences")
 
 ### 🤖 **Smart Assistants** - With Real Knowledge Graphs
 ```javascript
-// Build assistants that understand relationships
-await brain.add("Sarah manages the design team")
-await brain.addVerb("Sarah", "reports_to", "John")
-await brain.addVerb("Sarah", "works_on", "Project Apollo")
+// Build assistants that understand relationships (NEW 1.0 API!)
+import { BrainyData, NounType, VerbType } from '@soulcraft/brainy'
 
-// Query complex relationships
-const team = await brain.getRelated("Project Apollo", {
-  verb: "works_on",
-  depth: 2
+const brain = new BrainyData()
+await brain.init()
+
+// Create typed entities
+const sarahId = await brain.addNoun("Sarah Thompson", NounType.Person)
+const johnId = await brain.addNoun("John Davis", NounType.Person) 
+const projectId = await brain.addNoun("Project Apollo", NounType.Project)
+
+// Create relationships with metadata
+await brain.addVerb(sarahId, johnId, VerbType.ReportsTo, {
+  role: "Design Manager",
+  startDate: "2024-01-15"
 })
-// Returns: entire team structure with relationships
+await brain.addVerb(sarahId, projectId, VerbType.WorksWith, {
+  responsibility: "Lead Designer",
+  allocation: "75%"
+})
+
+// Query complex relationships with graph traversal
+const sarahData = await brain.getNounWithVerbs(sarahId)
+// Returns: complete graph view with all relationships and metadata
 ```
 
 ### 📊 **RAG Applications** - Without the Complexity
