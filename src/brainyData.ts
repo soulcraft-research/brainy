@@ -7269,6 +7269,30 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   // ===== Augmentation Control Methods =====
 
   /**
+   * UNIFIED API METHOD #8: Register an augmentation
+   * Add custom augmentations to extend Brainy's capabilities
+   * 
+   * @param augmentation The augmentation to register
+   * @returns The BrainyData instance for chaining
+   */
+  register(augmentation: IAugmentation): this {
+    augmentationPipeline.register(augmentation)
+    return this
+  }
+
+  /**
+   * Unregister an augmentation by name
+   * Remove augmentations from the pipeline
+   * 
+   * @param name The name of the augmentation to unregister
+   * @returns The BrainyData instance for chaining
+   */
+  unregister(name: string): this {
+    augmentationPipeline.unregister(name)
+    return this
+  }
+
+  /**
    * Enable an augmentation by name
    * Universal control for built-in, community, and premium augmentations
    *
