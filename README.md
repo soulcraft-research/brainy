@@ -20,6 +20,22 @@
 
 ---
 
+## 💖 **Support Brainy's Development**
+
+<div align="center">
+
+**Brainy is 100% open source and free forever!** Help us keep it that way:
+
+[![Sponsor](https://img.shields.io/badge/💖_Sponsor_Brainy-Support_Development-ff69b4?style=for-the-badge)](https://github.com/sponsors/soulcraftlabs)
+[![Brain Cloud](https://img.shields.io/badge/☁️_Try_Brain_Cloud-Free_Trial-4A90E2?style=for-the-badge)](https://app.soulcraft.com)
+[![Star](https://img.shields.io/badge/⭐_Star_on_GitHub-Show_Support-FFC107?style=for-the-badge)](https://github.com/soulcraftlabs/brainy)
+
+**Every sponsorship helps us:** Build more features • Fix bugs faster • Keep Brainy free
+
+</div>
+
+---
+
 ## 🎉 **NEW: Brainy 1.0 - The Unified API**
 
 **The Great Cleanup is complete!** Brainy 1.0 introduces the **unified API** - ONE way to do everything with just **9 core methods**:
@@ -35,15 +51,15 @@ import { BrainyData, NounType, VerbType } from '@soulcraft/brainy'
 const brain = new BrainyData()
 await brain.init()
 
-// 🎯 THE 9 UNIFIED METHODS:
-await brain.add("Smart data addition")           // 1. Smart addition
-await brain.search("smart data", 10)             // 2. Vector search
+// 🎯 THE 9 UNIFIED METHODS - One way to do everything!
+await brain.add("Smart data")                    // 1. Smart addition
+await brain.search("query", 10)                  // 2. Unified search
 await brain.import(["data1", "data2"])          // 3. Bulk import
-await brain.addNoun("John Doe", NounType.Person) // 4. Typed entities
-await brain.addVerb(id1, id2, VerbType.CreatedBy) // 5. Relationships
-await brain.update(id1, "Updated data")         // 6. Smart updates
+await brain.addNoun("John", NounType.Person)    // 4. Typed entities
+await brain.addVerb(id1, id2, VerbType.Knows)   // 5. Relationships
+await brain.update(id, "new data")              // 6. Smart updates
 await brain.delete(id)                          // 7. Soft delete
-brain.augment(myAugmentation)                   // 8. Add capabilities
+brain.augment(myAugmentation)                   // 8. Extend capabilities
 await brain.export({ format: 'json' })          // 9. Export data
 ```
 
@@ -382,8 +398,24 @@ await neural.neuralImport('data.csv')  // Automatically extracts entities & rela
 **Be the First!** Create an augmentation and we'll feature it here.
 [See how to build augmentations →](UNIFIED-API.md#creating-your-own-augmentation)
 
-### ☁️ **Brain Cloud** (Optional Add-On)
-🌟 **Brainy works perfectly without this!** Brain Cloud adds team features:
+### ☁️ **Brain Cloud** - Power Up Your Brain! 🚀
+**Try it FREE:** Get persistent memory, team sync, and enterprise connectors!
+
+```bash
+# Quick setup - 30 seconds to superpowers!
+npx brainy cloud setup
+
+# Or visit: app.soulcraft.com/signup
+```
+
+**Why Brain Cloud?**
+- 🧠 **AI Memory That Never Forgets** - Conversations persist across sessions
+- 🤝 **Multi-Agent Coordination** - AI agents work together seamlessly
+- 💾 **Automatic Backups** - Never lose your brain's knowledge
+- 🔄 **Team Sync** - Share knowledge across your organization
+- 🔌 **Premium Connectors** - Notion, Slack, Salesforce, and more!
+
+**Special Offer:** First 100GB FREE, then just $9/month for individuals, $49/team
 
 ```javascript
 // Brain Cloud features are in the main package

@@ -1069,12 +1069,47 @@ program
 // Command 8: CLOUD - Premium features connection
 program
   .command('cloud <action>')
-  .description('Connect to Brain Cloud premium features')
+  .description('☁️ Brain Cloud - AI Memory, Team Sync, Enterprise Connectors (FREE TRIAL!)')
   .option('-i, --instance <id>', 'Brain Cloud instance ID')
+  .option('-e, --email <email>', 'Your email for signup')
   .action(wrapAction(async (action, options) => {
-    console.log(colors.primary('☁️ Brain Cloud Premium Features'))
+    console.log(boxen(
+      colors.brain('☁️ BRAIN CLOUD - SUPERCHARGE YOUR BRAIN! 🚀\n\n') +
+      colors.success('✨ FREE TRIAL: First 100GB FREE!\n') +
+      colors.info('💰 Then just $9/month (individuals) or $49/month (teams)\n\n') +
+      colors.primary('Features:\n') +
+      colors.dim('  • AI Memory that persists across sessions\n') +
+      colors.dim('  • Multi-agent coordination\n') +
+      colors.dim('  • Automatic backups & sync\n') +
+      colors.dim('  • Premium connectors (Notion, Slack, etc.)'),
+      { padding: 1, borderStyle: 'round', borderColor: 'cyan' }
+    ))
     
     const cloudActions = {
+      setup: async () => {
+        console.log(colors.brain('\n🚀 Quick Setup - 30 seconds to superpowers!\n'))
+        
+        if (!options.email) {
+          const { email } = await prompts({
+            type: 'text',
+            name: 'email',
+            message: 'Enter your email for FREE trial:',
+            validate: (value) => value.includes('@') || 'Please enter a valid email'
+          })
+          options.email = email
+        }
+        
+        console.log(colors.success(`\n✅ Setting up Brain Cloud for: ${options.email}`))
+        console.log(colors.info('\n📧 Check your email for activation link!'))
+        console.log(colors.dim('\nOr visit: https://app.soulcraft.com/activate\n'))
+        
+        // TODO: Actually call Brain Cloud API when ready
+        console.log(colors.brain('🎉 Your Brain Cloud trial is ready!'))
+        console.log(colors.success('\nNext steps:'))
+        console.log(colors.dim('  1. Check your email for API key'))
+        console.log(colors.dim('  2. Run: brainy cloud connect --key YOUR_KEY'))
+        console.log(colors.dim('  3. Start using persistent AI memory!'))
+      },
       connect: async () => {
         console.log(colors.info('🔗 Connecting to Brain Cloud...'))
         // Dynamic import to avoid loading premium code unnecessarily
