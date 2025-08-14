@@ -134,14 +134,46 @@ program
     }
   }))
 
-// Command 3: SEARCH - Triple-power search
+// Command 3: SEARCH - Triple-power search  
 program
   .command('search <query>')
   .description('Search your brain (vector + graph + facets)')
   .option('-l, --limit <number>', 'Results limit', '10')
-  .option('-f, --filter <json>', 'Metadata filters')
+  .option('-f, --filter <json>', 'Metadata filters (see "brainy fields" for available fields)')
   .option('-d, --depth <number>', 'Relationship depth', '2')
+  .option('--fields', 'Show available filter fields and exit')
   .action(wrapAction(async (query, options) => {
+    
+    // Handle --fields option
+    if (options.fields) {
+      console.log(colors.primary('🔍 Available Filter Fields'))
+      console.log(colors.primary('=' .repeat(30)))
+      
+      try {
+        const { BrainyData } = await import('../dist/brainyData.js')
+        const brainy = new BrainyData()
+        await brainy.init()
+        
+        const filterFields = await brainy.getFilterFields()
+        if (filterFields.length > 0) {
+          console.log(colors.success('Available fields for --filter option:'))
+          filterFields.forEach(field => {
+            console.log(colors.info(`  ${field}`))
+          })
+          console.log()
+          console.log(colors.primary('Usage Examples:'))
+          console.log(colors.info(`  brainy search "query" --filter '{"type":"person"}'`))
+          console.log(colors.info(`  brainy search "query" --filter '{"category":"work","status":"active"}'`))
+        } else {
+          console.log(colors.warning('No indexed fields available yet.'))
+          console.log(colors.info('Add some data with metadata to see available fields.'))
+        }
+        
+      } catch (error) {
+        console.log(colors.error(`Error: ${error.message}`))
+      }
+      return
+    }
     console.log(colors.info(`🔍 Searching: "${query}"`))
     
     const searchOptions = { 
@@ -212,8 +244,20 @@ program
       console.log(colors.info(`  Total Items: ${colors.success(stats.total || 0)}`))
       console.log(colors.info(`  Nouns: ${colors.success(stats.nounCount || 0)}`))
       console.log(colors.info(`  Verbs (Relationships): ${colors.success(stats.verbCount || 0)}`))
-      console.log(colors.info(`  Documents: ${colors.success(stats.documentCount || 0)}`))
+      console.log(colors.info(`  Metadata Records: ${colors.success(stats.metadataCount || 0)}`))
       console.log()
+      
+      // Per-Service Breakdown (if available)
+      if (stats.serviceBreakdown && Object.keys(stats.serviceBreakdown).length > 0) {
+        console.log(colors.primary('🔧 Per-Service Breakdown'))
+        Object.entries(stats.serviceBreakdown).forEach(([service, serviceStats]) => {
+          console.log(colors.info(`  ${colors.success(service)}:`))
+          console.log(colors.info(`    Nouns: ${serviceStats.nounCount}`))
+          console.log(colors.info(`    Verbs: ${serviceStats.verbCount}`))
+          console.log(colors.info(`    Metadata: ${serviceStats.metadataCount}`))
+        })
+        console.log()
+      }
       
       // Storage Information
       if (stats.storage) {
@@ -290,6 +334,25 @@ program
         })
         console.log()
       }
+      
+      // Available Fields for Advanced Search
+      console.log(colors.primary('🔍 Available Search Fields'))
+      try {
+        const filterFields = await brainy.getFilterFields()
+        if (filterFields.length > 0) {
+          console.log(colors.info('  Use these fields for advanced filtering:'))
+          filterFields.forEach(field => {
+            console.log(colors.success(`    ${field}`))
+          })
+          console.log(colors.info('\n  Example: brainy search "query" --filter \'{"type":"person"}\''))
+        } else {
+          console.log(colors.warning('  No indexed fields available yet'))
+          console.log(colors.info('  Add some data to see available fields'))
+        }
+      } catch (error) {
+        console.log(colors.warning('  Field discovery not available'))
+      }
+      console.log()
       
       // Show raw JSON if verbose
       if (options.verbose) {
