@@ -1666,27 +1666,24 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   }
 
   /**
-   * Add data to the database (literal storage by default)
-   * 
-   * 🔒 Safe by default: Only stores your data literally without AI processing
-   * 🧠 AI processing: Set { process: true } or use addSmart() for Neural Import
+   * Add data to the database with intelligent processing
    * 
    * @param vectorOrData Vector or data to add
    * @param metadata Optional metadata to associate with the data
-   * @param options Additional options - use { process: true } for AI analysis
+   * @param options Additional options for processing
    * @returns The ID of the added data
    * 
    * @example
-   * // Literal storage (safe, no AI processing)
-   * await brainy.add("API_KEY=secret123")
+   * // Auto mode - intelligently decides processing
+   * await brainy.add("Customer feedback: Great product!")
    * 
    * @example  
-   * // With AI processing (explicit opt-in)
-   * await brainy.add("John works at Acme Corp", null, { process: true })
+   * // Explicit literal mode for sensitive data
+   * await brainy.add("API_KEY=secret123", null, { process: 'literal' })
    * 
    * @example
-   * // Smart processing (recommended for data analysis)
-   * await brainy.addSmart("Customer feedback: Great product!")
+   * // Force neural processing
+   * await brainy.add("John works at Acme Corp", null, { process: 'neural' })
    */
   public async add(
     vectorOrData: Vector | any,
@@ -1696,7 +1693,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       addToRemote?: boolean // Whether to also add to the remote server if connected
       id?: string // Optional ID to use instead of generating a new one
       service?: string // The service that is inserting the data
-      process?: boolean // Enable AI processing (neural import, entity detection, etc.)
+      process?: 'auto' | 'literal' | 'neural' // Processing mode (default: 'auto')
     } = {}
   ): Promise<string> {
     await this.ensureInitialized()
@@ -2000,8 +1997,20 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       // Invalidate search cache since data has changed
       this.searchCache.invalidateOnDataChange('add')
 
-      // 🧠 AI Processing (Neural Import) - Only if explicitly requested
-      if (options.process === true) {
+      // Determine processing mode
+      const processingMode = options.process || 'auto'
+      let shouldProcessNeurally = false
+      
+      if (processingMode === 'neural') {
+        shouldProcessNeurally = true
+      } else if (processingMode === 'auto') {
+        // Auto-detect whether to use neural processing
+        shouldProcessNeurally = this.shouldAutoProcessNeurally(vectorOrData, metadata)
+      }
+      // 'literal' mode means no neural processing
+      
+      // 🧠 AI Processing (Neural Import) - Based on processing mode
+      if (shouldProcessNeurally) {
         try {
           // Execute SENSE pipeline (includes Neural Import and other AI augmentations)
           await augmentationPipeline.executeSensePipeline(
@@ -4477,31 +4486,16 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   }
 
   /**
-   * Add data with AI processing enabled by default
-   * 
-   * 🧠 This method automatically enables Neural Import and other AI augmentations
-   * for intelligent data understanding, entity detection, and relationship analysis.
-   * 
-   * Use this when you want AI to understand and process your data.
-   * Use regular add() when you want literal storage only.
-   *
-   * @param vectorOrData The data to add (any format)
-   * @param metadata Optional metadata to associate with the data
-   * @param options Additional options (process defaults to true)
-   * @returns The ID of the added data
+   * @deprecated Use add() instead - it's smart by default now
+   * @hidden
    */
   public async addSmart(
     vectorOrData: Vector | any,
     metadata?: T,
-    options: {
-      forceEmbed?: boolean
-      addToRemote?: boolean
-      id?: string
-      service?: string
-    } = {}
+    options: any = {}
   ): Promise<string> {
-    // Call add() with process=true by default
-    return this.add(vectorOrData, metadata, { ...options, process: true })
+    console.warn('⚠️ addSmart() is deprecated. Use add() instead - it\'s smart by default now!')
+    return this.add(vectorOrData, metadata, { ...options, process: 'auto' })
   }
 
   /**

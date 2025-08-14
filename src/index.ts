@@ -183,12 +183,7 @@ import {
   StreamlinedPipelineResult
 } from './pipeline.js'
 
-// Export sequential pipeline (for backward compatibility)
-import {
-  SequentialPipeline,
-  sequentialPipeline,
-  SequentialPipelineOptions
-} from './sequentialPipeline.js'
+// Sequential pipeline removed - use unified pipeline instead
 
 // Export augmentation factory
 import {
@@ -205,8 +200,6 @@ export {
   pipeline,
   augmentationPipeline,
   ExecutionMode,
-  SequentialPipeline,
-  sequentialPipeline,
 
   // Streamlined pipeline exports (now part of unified pipeline)
   executeStreamlined,
@@ -227,7 +220,6 @@ export {
 export type {
   PipelineOptions,
   PipelineResult,
-  SequentialPipelineOptions,
   StreamlinedPipelineOptions,
   StreamlinedPipelineResult,
   AugmentationOptions
