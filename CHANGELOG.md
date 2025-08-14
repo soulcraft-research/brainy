@@ -2,6 +2,99 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.0.0-rc.1] - 2025-01-14
+
+### 🎉 **MAJOR RELEASE CANDIDATE - THE GREAT CLEANUP**
+
+This release represents a complete architectural consolidation and API unification. We've eliminated duplicate code, standardized all operations, and enhanced security while maintaining all existing functionality and performance optimizations.
+
+### ✨ **NEW UNIFIED API - ONE Way to Do Everything**
+
+#### Added
+- **🧠 7 Core Methods** - Consolidated from 40+ scattered methods to 7 unified operations:
+  1. `add()` - Smart data addition (auto/guided/explicit/literal modes)
+  2. `search()` - Triple-power search (vector + graph + facets)  
+  3. `import()` - Neural import with semantic type detection
+  4. `addNoun()` - Explicit noun creation with strongly-typed NounType
+  5. `addVerb()` - Relationship creation between nouns
+  6. `update()` - Smart updates with automatic index synchronization
+  7. `delete()` - Smart delete with soft delete default
+
+- **🔐 Universal Encryption System**
+  - `encryptData()` / `decryptData()` - Universal crypto utilities
+  - `setConfig(key, value, { encrypt: true })` - Encrypted configuration storage
+  - `brainy add --encrypt` - Per-item encryption via CLI
+  - `brainy init --encryption` - Master encryption setup
+  - Works in all environments: Browser, Node.js, Serverless
+
+- **🐳 Container-Ready Deployment**
+  - `BrainyData.preloadModel()` - Download models during container build
+  - `BrainyData.warmup()` - Production-optimized initialization
+  - Local-files-only mode for offline containers
+  - GPU acceleration (WebGPU/CUDA) with CPU fallback
+
+### 🔄 **CLI TRANSFORMATION**
+
+#### Changed
+- **Simplified from 40+ commands to 9 clean commands:**
+  - `brainy init` - Initialize with encryption/storage options
+  - `brainy add` - Smart data addition (replaces addSmart, literal, neural modes)
+  - `brainy search` - Unified search with filters
+  - `brainy update` - Update existing data/metadata
+  - `brainy delete` - Smart delete (soft delete by default)
+  - `brainy chat` - AI conversations with your data
+  - `brainy import` - Bulk data import
+  - `brainy status` - Comprehensive system status
+  - `brainy config` - Configuration management
+
+### 🏗️ **ARCHITECTURE CONSOLIDATION**
+
+#### Removed
+- **❌ Duplicate pipeline implementations** - 3 different Cortex classes → 1 unified
+- **❌ addSmart() method** - Functionality merged into `add()` with smart defaults
+- **❌ Legacy CLI commands** - 40+ commands → 9 focused commands
+- **❌ cortex-legacy.ts** - Replaced with clean unified implementation
+
+#### Enhanced
+- **📦 Package Size Reduced 16%** - From 2.52MB to 2.1MB despite major feature additions
+- **🔄 Soft Delete by Default** - Preserves indexes, no reindexing needed
+- **⚡ All Scaling Optimizations Preserved** - 3-tier LRU cache, realtime streaming, memory modes
+
+### ⚠️ **BREAKING CHANGES**
+- **CLI Commands** - Most existing CLI commands renamed/consolidated
+- **addSmart() method** - Removed, use `add()` with smart defaults
+- **Pipeline Classes** - Multiple pipeline types consolidated into one
+
+### 🚀 **MIGRATION FROM 0.x**
+
+```javascript
+// OLD (0.x)
+await brainy.addSmart(data, metadata)
+await brainy.searchSimilar(query, 10)
+
+// NEW (1.0)  
+await brainy.add(data, metadata) // Smart by default!
+await brainy.search(query, 10)   // Same power, cleaner API
+```
+
+```bash
+# OLD (0.x)
+brainy add-smart "data"
+brainy search-similar "query"
+
+# NEW (1.0)
+brainy add "data"      # Smart by default!
+brainy search "query"  # Same power, simpler
+```
+
+### 💬 **FEEDBACK & SUPPORT**
+
+We'd love your feedback on this release candidate! Please:
+- 🐛 Report bugs via [GitHub Issues](https://github.com/soulcraftlabs/brainy/issues)
+- 💬 Share feedback via [GitHub Discussions](https://github.com/soulcraftlabs/brainy/discussions)
+
+**Target Timeline**: 2-4 weeks of testing, then 1.0.0 final release.
+
 ## [0.57.0](https://github.com/soulcraftlabs/brainy/compare/v0.56.0...v0.57.0) (2025-08-08)
 
 ### ⚠ BREAKING CHANGES

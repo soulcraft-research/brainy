@@ -793,9 +793,8 @@ export class NeuralImport {
         await this.brainy.addVerb(
           relationship.sourceId,
           relationship.targetId,
-          undefined, // no custom vector
+          relationship.verbType as VerbType,
           {
-            type: relationship.verbType,
             weight: relationship.weight,
             metadata: {
               confidence: relationship.confidence,

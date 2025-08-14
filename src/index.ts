@@ -171,11 +171,6 @@ import {
   ExecutionMode,
   PipelineOptions,
   PipelineResult,
-  executeStreamlined,
-  executeByType,
-  executeSingle,
-  processStaticData,
-  processStreamingData,
   createPipeline,
   createStreamingPipeline,
   StreamlinedExecutionMode,
@@ -183,12 +178,7 @@ import {
   StreamlinedPipelineResult
 } from './pipeline.js'
 
-// Export sequential pipeline (for backward compatibility)
-import {
-  SequentialPipeline,
-  sequentialPipeline,
-  SequentialPipelineOptions
-} from './sequentialPipeline.js'
+// Sequential pipeline removed - use unified pipeline instead
 
 // Export augmentation factory
 import {
@@ -205,15 +195,8 @@ export {
   pipeline,
   augmentationPipeline,
   ExecutionMode,
-  SequentialPipeline,
-  sequentialPipeline,
 
-  // Streamlined pipeline exports (now part of unified pipeline)
-  executeStreamlined,
-  executeByType,
-  executeSingle,
-  processStaticData,
-  processStreamingData,
+  // Factory functions
   createPipeline,
   createStreamingPipeline,
   StreamlinedExecutionMode,
@@ -227,7 +210,6 @@ export {
 export type {
   PipelineOptions,
   PipelineResult,
-  SequentialPipelineOptions,
   StreamlinedPipelineOptions,
   StreamlinedPipelineResult,
   AugmentationOptions

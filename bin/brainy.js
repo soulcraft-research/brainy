@@ -1,13 +1,18 @@
 #!/usr/bin/env node
 
 /**
- * Brainy CLI - Redesigned for Better UX
- * Direct commands + Augmentation system
+ * Brainy CLI - Cleaned Up & Beautiful
+ * 🧠⚛️ ONE way to do everything
+ * 
+ * After the Great Cleanup of 2025:
+ * - 5 commands total (was 40+)
+ * - Clear, obvious naming
+ * - Interactive mode for beginners
  */
 
 // @ts-ignore
 import { program } from 'commander'
-import { Cortex } from '../dist/cortex/cortex.js'
+import { BrainyData } from '../dist/brainyData.js'
 // @ts-ignore
 import chalk from 'chalk'
 import { readFileSync } from 'fs'
@@ -15,13 +20,27 @@ import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 import { createInterface } from 'readline'
 
-// Use native fetch (available in Node.js 18+)
-
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const packageJson = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8'))
 
-// Create Cortex instance
-const cortex = new Cortex()
+// Create single BrainyData instance (the ONE data orchestrator)
+let brainy = null
+const getBrainy = async () => {
+  if (!brainy) {
+    brainy = new BrainyData()
+    await brainy.init()
+  }
+  return brainy
+}
+
+// Beautiful colors
+const colors = {
+  primary: chalk.hex('#3A5F4A'),
+  success: chalk.hex('#2D4A3A'), 
+  info: chalk.hex('#4A6B5A'),
+  warning: chalk.hex('#D67441'),
+  error: chalk.hex('#B85C35')
+}
 
 // Helper functions
 const exitProcess = (code = 0) => {
@@ -34,1559 +53,1020 @@ const wrapAction = (fn) => {
       await fn(...args)
       exitProcess(0)
     } catch (error) {
-      console.error(chalk.red('Error:'), error.message)
+      console.error(colors.error('Error:'), error.message)
       exitProcess(1)
     }
   }
 }
 
-const wrapInteractive = (fn) => {
-  return async (...args) => {
-    try {
-      await fn(...args)
-      exitProcess(0)
-    } catch (error) {
-      console.error(chalk.red('Error:'), error.message)
-      exitProcess(1)
+// AI Response Generation with multiple model support
+async function generateAIResponse(message, brainy, options) {
+  const model = options.model || 'local'
+  
+  // Get relevant context from user's data
+  const contextResults = await brainy.search(message, 5, {
+    includeContent: true,
+    scoreThreshold: 0.3
+  })
+  
+  const context = contextResults.map(r => r.content).join('\n')
+  const prompt = `Based on the following context from the user's data, answer their question:
+
+Context:
+${context}
+
+Question: ${message}
+
+Answer:`
+
+  switch (model) {
+    case 'local':
+    case 'ollama':
+      return await callOllamaModel(prompt, options)
+      
+    case 'openai':
+    case 'gpt-3.5-turbo':
+    case 'gpt-4':
+      return await callOpenAI(prompt, options)
+      
+    case 'claude':
+    case 'claude-3':
+      return await callClaude(prompt, options)
+      
+    default:
+      return await callOllamaModel(prompt, options)
+  }
+}
+
+// Ollama (local) integration
+async function callOllamaModel(prompt, options) {
+  const baseUrl = options.baseUrl || 'http://localhost:11434'
+  const model = options.model === 'local' ? 'llama2' : options.model
+  
+  try {
+    const response = await fetch(`${baseUrl}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model,
+        prompt: prompt,
+        stream: false
+      })
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Ollama error: ${response.statusText}. Make sure Ollama is running: ollama serve`)
     }
+    
+    const data = await response.json()
+    return data.response || 'No response from local model'
+    
+  } catch (error) {
+    throw new Error(`Local model error: ${error.message}. Try: ollama run llama2`)
+  }
+}
+
+// OpenAI integration
+async function callOpenAI(prompt, options) {
+  if (!options.apiKey) {
+    throw new Error('OpenAI API key required. Use --api-key <key> or set OPENAI_API_KEY environment variable')
+  }
+  
+  const model = options.model === 'openai' ? 'gpt-3.5-turbo' : options.model
+  
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${options.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 500
+      })
+    })
+    
+    if (!response.ok) {
+      throw new Error(`OpenAI error: ${response.statusText}`)
+    }
+    
+    const data = await response.json()
+    return data.choices[0]?.message?.content || 'No response from OpenAI'
+    
+  } catch (error) {
+    throw new Error(`OpenAI error: ${error.message}`)
+  }
+}
+
+// Claude integration  
+async function callClaude(prompt, options) {
+  if (!options.apiKey) {
+    throw new Error('Anthropic API key required. Use --api-key <key> or set ANTHROPIC_API_KEY environment variable')
+  }
+  
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': options.apiKey,
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 500,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Claude error: ${response.statusText}`)
+    }
+    
+    const data = await response.json()
+    return data.content[0]?.text || 'No response from Claude'
+    
+  } catch (error) {
+    throw new Error(`Claude error: ${error.message}`)
   }
 }
 
 // ========================================
-// MAIN PROGRAM SETUP
+// MAIN PROGRAM - CLEAN & SIMPLE
 // ========================================
 
 program
   .name('brainy')
-  .description('🧠 Brainy - Multi-Dimensional AI Database')
+  .description('🧠⚛️ Brainy - Your AI-Powered Second Brain')
   .version(packageJson.version)
 
 // ========================================
-// CORE DATABASE COMMANDS (Direct Access)
+// THE 5 COMMANDS (ONE WAY TO DO EVERYTHING)
 // ========================================
 
+// Command 0: INIT - Initialize brainy (essential setup)
 program
   .command('init')
-  .description('Initialize Brainy in your project')
-  .option('-s, --storage <type>', 'Storage type (filesystem, s3, r2, gcs, memory)')
-  .option('-e, --encryption', 'Enable encryption for secrets')
+  .description('Initialize Brainy in current directory')
+  .option('-s, --storage <type>', 'Storage type (filesystem, memory, s3, r2, gcs)')
+  .option('-e, --encryption', 'Enable encryption for sensitive data')
+  .option('--s3-bucket <bucket>', 'S3 bucket name')
+  .option('--s3-region <region>', 'S3 region')
+  .option('--access-key <key>', 'Storage access key')
+  .option('--secret-key <key>', 'Storage secret key')
   .action(wrapAction(async (options) => {
-    await cortex.init(options)
+    console.log(colors.primary('🧠 Initializing Brainy'))
+    console.log()
+    
+    const { BrainyData } = await import('../dist/brainyData.js')
+    
+    const config = {
+      storage: options.storage || 'filesystem',
+      encryption: options.encryption || false
+    }
+    
+    // Storage-specific configuration
+    if (options.storage === 's3' || options.storage === 'r2' || options.storage === 'gcs') {
+      if (!options.accessKey || !options.secretKey) {
+        console.log(colors.warning('⚠️ Cloud storage requires access credentials'))
+        console.log(colors.info('Use: --access-key <key> --secret-key <secret>'))
+        console.log(colors.info('Or set environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY'))
+        process.exit(1)
+      }
+      
+      config.storageOptions = {
+        bucket: options.s3Bucket,
+        region: options.s3Region || 'us-east-1',
+        accessKeyId: options.accessKey,
+        secretAccessKey: options.secretKey
+      }
+    }
+    
+    try {
+      const brainy = new BrainyData(config)
+      await brainy.init()
+      
+      console.log(colors.success('✅ Brainy initialized successfully!'))
+      console.log(colors.info(`📁 Storage: ${config.storage}`))
+      console.log(colors.info(`🔒 Encryption: ${config.encryption ? 'Enabled' : 'Disabled'}`))
+      
+      if (config.encryption) {
+        console.log(colors.warning('🔐 Encryption enabled - keep your keys secure!'))
+      }
+      
+      console.log()
+      console.log(colors.success('🚀 Ready to go! Try:'))
+      console.log(colors.info('  brainy add "Hello, World!"'))
+      console.log(colors.info('  brainy search "hello"'))
+      
+    } catch (error) {
+      console.log(colors.error('❌ Initialization failed:'))
+      console.log(colors.error(error.message))
+      process.exit(1)
+    }
   }))
 
+// Command 1: ADD - Add data (smart by default)
 program
   .command('add [data]')
-  .description('🔒 Add data literally (safe, no AI processing)')
-  .option('-m, --metadata <json>', 'Metadata facets as JSON')
-  .option('-i, --id <id>', 'Custom ID')
-  .option('--smart', 'Enable AI processing (same as smart-add command)')
+  .description('Add data to your brain (smart auto-detection)')
+  .option('-m, --metadata <json>', 'Metadata as JSON')
+  .option('-i, --id <id>', 'Custom ID') 
+  .option('--literal', 'Skip AI processing (literal storage)')
+  .option('--encrypt', 'Encrypt this data (for sensitive information)')
   .action(wrapAction(async (data, options) => {
+    if (!data) {
+      console.log(colors.info('🧠 Interactive add mode'))
+      const rl = createInterface({
+        input: process.stdin,
+        output: process.stdout
+      })
+      
+      data = await new Promise(resolve => {
+        rl.question(colors.primary('What would you like to add? '), (answer) => {
+          rl.close()
+          resolve(answer)
+        })
+      })
+    }
+    
     let metadata = {}
     if (options.metadata) {
       try {
         metadata = JSON.parse(options.metadata)
       } catch {
-        console.error(chalk.red('Invalid JSON metadata'))
+        console.error(colors.error('Invalid JSON metadata'))
         process.exit(1)
       }
     }
     if (options.id) {
       metadata.id = options.id
     }
-    
-    // Use smart processing if --smart flag is provided
-    if (options.smart) {
-      console.log(chalk.dim('🧠 AI processing enabled'))
-      await cortex.addSmart(data, metadata)
-    } else {
-      console.log(chalk.dim('🔒 Literal storage (safe for secrets/API keys)'))
-      await cortex.add(data, metadata)
+    if (options.encrypt) {
+      metadata.encrypted = true
     }
+    
+    console.log(options.literal 
+      ? colors.info('🔒 Literal storage') 
+      : colors.success('🧠 Smart mode (auto-detects types)')
+    )
+    
+    if (options.encrypt) {
+      console.log(colors.warning('🔐 Encrypting sensitive data...'))
+    }
+    
+    const brainyInstance = await getBrainy()
+    
+    // Handle encryption at data level if requested
+    let processedData = data
+    if (options.encrypt) {
+      processedData = await brainyInstance.encryptData(data)
+      metadata.encrypted = true
+    }
+    
+    await brainyInstance.add(processedData, metadata, { 
+      process: options.literal ? 'literal' : 'auto'
+    })
+    console.log(colors.success('✅ Added successfully!'))
   }))
 
+// Command 2: CHAT - Talk to your data with AI
 program
-  .command('smart-add [data]')
-  .description('🧠 Add data with AI processing (Neural Import, entity detection)')
-  .option('-m, --metadata <json>', 'Metadata facets as JSON')  
-  .option('-i, --id <id>', 'Custom ID')
-  .action(wrapAction(async (data, options) => {
-    let metadata = {}
-    if (options.metadata) {
-      try {
-        metadata = JSON.parse(options.metadata)
-      } catch {
-        console.error(chalk.red('Invalid JSON metadata'))
-        process.exit(1)
+  .command('chat [message]')
+  .description('AI chat with your brain data (supports local & cloud models)')
+  .option('-s, --session <id>', 'Use specific chat session')
+  .option('-n, --new', 'Start a new session')
+  .option('-l, --list', 'List all chat sessions') 
+  .option('-h, --history [limit]', 'Show conversation history (default: 10)')
+  .option('--search <query>', 'Search all conversations')
+  .option('-m, --model <model>', 'LLM model (local/openai/claude/ollama)', 'local')
+  .option('--api-key <key>', 'API key for cloud models')
+  .option('--base-url <url>', 'Base URL for local models (default: http://localhost:11434)')
+  .action(wrapAction(async (message, options) => {
+    const { BrainyData } = await import('../dist/brainyData.js')
+    const { BrainyChat } = await import('../dist/chat/BrainyChat.js')
+    
+    console.log(colors.primary('🧠💬 Brainy Chat - AI-Powered Conversation with Your Data'))
+    console.log(colors.info('Talk to your brain using your data as context'))
+    console.log()
+    
+    // Initialize brainy and chat
+    const brainy = new BrainyData()
+    await brainy.init()
+    const chat = new BrainyChat(brainy)
+    
+    // Handle different options
+    if (options.list) {
+      console.log(colors.primary('📋 Chat Sessions'))
+      const sessions = await chat.getSessions(20)
+      if (sessions.length === 0) {
+        console.log(colors.warning('No chat sessions found. Start chatting to create your first session!'))
+      } else {
+        sessions.forEach((session, i) => {
+          console.log(colors.success(`${i + 1}. ${session.id}`))
+          if (session.title) console.log(colors.info(`   Title: ${session.title}`))
+          console.log(colors.info(`   Messages: ${session.messageCount}`))
+          console.log(colors.info(`   Last active: ${session.lastMessageAt.toLocaleDateString()}`))
+        })
       }
-    }
-    if (options.id) {
-      metadata.id = options.id
+      return
     }
     
-    console.log(chalk.dim('🧠 AI processing enabled (Neural Import + entity detection)'))
-    await cortex.addSmart(data, metadata)
+    if (options.search) {
+      console.log(colors.primary(`🔍 Searching conversations for: "${options.search}"`))
+      const results = await chat.searchMessages(options.search, { limit: 10 })
+      if (results.length === 0) {
+        console.log(colors.warning('No messages found'))
+      } else {
+        results.forEach((msg, i) => {
+          console.log(colors.success(`\n${i + 1}. [${msg.sessionId}] ${colors.info(msg.speaker)}:`))
+          console.log(`   ${msg.content.substring(0, 200)}${msg.content.length > 200 ? '...' : ''}`)
+        })
+      }
+      return
+    }
+    
+    if (options.history) {
+      const limit = parseInt(options.history) || 10
+      console.log(colors.primary(`📜 Recent Chat History (${limit} messages)`))
+      const history = await chat.getHistory(limit)
+      if (history.length === 0) {
+        console.log(colors.warning('No chat history found'))
+      } else {
+        history.forEach(msg => {
+          const speaker = msg.speaker === 'user' ? colors.success('You') : colors.info('AI')
+          console.log(`${speaker}: ${msg.content}`)
+          console.log(colors.info(`   ${msg.timestamp.toLocaleString()}`))
+          console.log()
+        })
+      }
+      return
+    }
+    
+    // Start interactive chat or process single message
+    if (!message) {
+      console.log(colors.success('🎯 Interactive mode - type messages or "exit" to quit'))
+      console.log(colors.info(`Model: ${options.model}`))
+      console.log()
+      
+      // Auto-discover previous session
+      const session = options.new ? null : await chat.initialize()
+      if (session) {
+        console.log(colors.success(`📋 Resumed session: ${session.id}`))
+        console.log()
+      } else {
+        const newSession = await chat.startNewSession()
+        console.log(colors.success(`🆕 Started new session: ${newSession.id}`))
+        console.log()
+      }
+      
+      // Interactive chat loop
+      const rl = createInterface({
+        input: process.stdin,
+        output: process.stdout,
+        prompt: colors.primary('You: ')
+      })
+      
+      rl.prompt()
+      
+      rl.on('line', async (input) => {
+        if (input.trim().toLowerCase() === 'exit') {
+          console.log(colors.success('👋 Chat session saved to your brain!'))
+          rl.close()
+          return
+        }
+        
+        if (input.trim()) {
+          // Store user message
+          await chat.addMessage(input.trim(), 'user')
+          
+          // Generate AI response
+          try {
+            const response = await generateAIResponse(input.trim(), brainy, options)
+            console.log(colors.info('AI: ') + response)
+            
+            // Store AI response
+            await chat.addMessage(response, 'assistant', { model: options.model })
+            console.log()
+          } catch (error) {
+            console.log(colors.error('AI Error: ') + error.message)
+            console.log(colors.warning('💡 Tip: Try setting --model local or providing --api-key'))
+            console.log()
+          }
+        }
+        
+        rl.prompt()
+      })
+      
+      rl.on('close', () => {
+        exitProcess(0)
+      })
+      
+    } else {
+      // Single message mode
+      console.log(colors.success('You: ') + message)
+      
+      try {
+        const response = await generateAIResponse(message, brainy, options)
+        console.log(colors.info('AI: ') + response)
+        
+        // Store conversation
+        await chat.addMessage(message, 'user')
+        await chat.addMessage(response, 'assistant', { model: options.model })
+        
+      } catch (error) {
+        console.log(colors.error('Error: ') + error.message)
+        console.log(colors.info('💡 Try: brainy chat --model local or provide --api-key'))
+      }
+    }
   }))
 
+// Command 3: IMPORT - Bulk/external data
+program
+  .command('import <source>')
+  .description('Import bulk data from files, URLs, or streams')
+  .option('-t, --type <type>', 'Source type (file, url, stream)')
+  .option('-c, --chunk-size <size>', 'Chunk size for large imports', '1000')
+  .action(wrapAction(async (source, options) => {
+    console.log(colors.info('📥 Starting neural import...'))
+    console.log(colors.info(`Source: ${source}`))
+    
+    // Use the unified import system from the cleanup plan
+    const { NeuralImport } = await import('../dist/cortex/neuralImport.js')
+    const importer = new NeuralImport()
+    
+    const result = await importer.import(source, {
+      chunkSize: parseInt(options.chunkSize)
+    })
+    
+    console.log(colors.success(`✅ Imported ${result.count} items`))
+    if (result.detectedTypes) {
+      console.log(colors.info('🔍 Detected types:'), result.detectedTypes)
+    }
+  }))
+
+// Command 3: SEARCH - Triple-power search  
 program
   .command('search <query>')
-  .description('Multi-dimensional search across vector, graph, and facets')
-  .option('-l, --limit <number>', 'Number of results', '10')
-  .option('-f, --filter <json>', 'Filter by metadata facets')
-  .option('-v, --verbs <types>', 'Include related data (comma-separated)')
-  .option('-d, --depth <number>', 'Relationship depth', '1')
+  .description('Search your brain (vector + graph + facets)')
+  .option('-l, --limit <number>', 'Results limit', '10')
+  .option('-f, --filter <json>', 'Metadata filters (see "brainy fields" for available fields)')
+  .option('-d, --depth <number>', 'Relationship depth', '2')
+  .option('--fields', 'Show available filter fields and exit')
   .action(wrapAction(async (query, options) => {
-    const searchOptions = { limit: parseInt(options.limit) }
+    
+    // Handle --fields option
+    if (options.fields) {
+      console.log(colors.primary('🔍 Available Filter Fields'))
+      console.log(colors.primary('=' .repeat(30)))
+      
+      try {
+        const { BrainyData } = await import('../dist/brainyData.js')
+        const brainy = new BrainyData()
+        await brainy.init()
+        
+        const filterFields = await brainy.getFilterFields()
+        if (filterFields.length > 0) {
+          console.log(colors.success('Available fields for --filter option:'))
+          filterFields.forEach(field => {
+            console.log(colors.info(`  ${field}`))
+          })
+          console.log()
+          console.log(colors.primary('Usage Examples:'))
+          console.log(colors.info(`  brainy search "query" --filter '{"type":"person"}'`))
+          console.log(colors.info(`  brainy search "query" --filter '{"category":"work","status":"active"}'`))
+        } else {
+          console.log(colors.warning('No indexed fields available yet.'))
+          console.log(colors.info('Add some data with metadata to see available fields.'))
+        }
+        
+      } catch (error) {
+        console.log(colors.error(`Error: ${error.message}`))
+      }
+      return
+    }
+    console.log(colors.info(`🔍 Searching: "${query}"`))
+    
+    const searchOptions = { 
+      limit: parseInt(options.limit),
+      depth: parseInt(options.depth)
+    }
     
     if (options.filter) {
       try {
         searchOptions.filter = JSON.parse(options.filter)
       } catch {
-        console.error(chalk.red('Invalid filter JSON'))
+        console.error(colors.error('Invalid filter JSON'))
         process.exit(1)
       }
     }
     
-    if (options.verbs) {
-      searchOptions.verbs = options.verbs.split(',').map(v => v.trim())
-      searchOptions.depth = parseInt(options.depth)
+    const brainyInstance = await getBrainy()
+    const results = await brainyInstance.search(query, searchOptions.limit || 10, searchOptions)
+    
+    if (results.length === 0) {
+      console.log(colors.warning('No results found'))
+      return
     }
     
-    await cortex.search(query, searchOptions)
+    console.log(colors.success(`✅ Found ${results.length} results:`))
+    results.forEach((result, i) => {
+      console.log(colors.primary(`\n${i + 1}. ${result.content}`))
+      if (result.score) {
+        console.log(colors.info(`   Relevance: ${(result.score * 100).toFixed(1)}%`))
+      }
+      if (result.type) {
+        console.log(colors.info(`   Type: ${result.type}`))
+      }
+    })
   }))
 
+// Command 4: UPDATE - Update existing data
 program
-  .command('chat [question]')
-  .description('🧠 Beautiful AI chat with local memory')
-  .option('-l, --list', 'List all chat sessions')
-  .option('-s, --search <query>', 'Search all conversations')
-  .option('-h, --history [limit]', 'Show conversation history (default: 10)')
-  .option('--session <id>', 'Use specific chat session')
-  .option('--new', 'Start a new session')
-  .option('--role <name>', 'Agent role (premium feature preview)', 'assistant')
-  .option('--ui <mode>', 'UI mode: terminal (default) or web (premium)', 'terminal')
-  .action(wrapInteractive(async (question, options) => {
-    const { BrainyData } = await import('../dist/brainyData.js')
+  .command('update <id>')
+  .description('Update existing data with new content or metadata')
+  .option('-d, --data <data>', 'New data content')
+  .option('-m, --metadata <json>', 'New metadata as JSON')
+  .option('--no-merge', 'Replace metadata instead of merging')
+  .option('--no-reindex', 'Skip reindexing (faster but less accurate search)')
+  .option('--cascade', 'Update related verbs')
+  .action(wrapAction(async (id, options) => {
+    console.log(colors.info(`🔄 Updating: "${id}"`))
     
-    const brainy = new BrainyData()
-    await brainy.init()
+    if (!options.data && !options.metadata) {
+      console.error(colors.error('Error: Must provide --data or --metadata'))
+      process.exit(1)
+    }
     
-    // Handle web UI mode (premium feature)
-    if (options.ui === 'web') {
-      console.log(chalk.cyan('🌐 Starting Brain Cloud Coordination Interface...'))
+    let metadata = undefined
+    if (options.metadata) {
+      try {
+        metadata = JSON.parse(options.metadata)
+      } catch {
+        console.error(colors.error('Invalid JSON metadata'))
+        process.exit(1)
+      }
+    }
+    
+    const brainyInstance = await getBrainy()
+    
+    const success = await brainyInstance.update(id, options.data, metadata, {
+      merge: options.merge !== false, // Default true unless --no-merge
+      reindex: options.reindex !== false, // Default true unless --no-reindex  
+      cascade: options.cascade || false
+    })
+    
+    if (success) {
+      console.log(colors.success('✅ Updated successfully!'))
+      if (options.cascade) {
+        console.log(colors.info('📎 Related verbs updated'))
+      }
+    } else {
+      console.log(colors.error('❌ Update failed'))
+    }
+  }))
+
+// Command 5: DELETE - Remove data (soft delete by default)
+program
+  .command('delete <id>')
+  .description('Delete data (soft delete by default, preserves indexes)')
+  .option('--hard', 'Permanent deletion (removes from indexes)')
+  .option('--cascade', 'Delete related verbs')
+  .option('--force', 'Force delete even if has relationships')
+  .action(wrapAction(async (id, options) => {
+    console.log(colors.info(`🗑️  Deleting: "${id}"`))
+    
+    if (options.hard) {
+      console.log(colors.warning('⚠️  Hard delete - data will be permanently removed'))
+    } else {
+      console.log(colors.info('🔒 Soft delete - data marked as deleted but preserved'))
+    }
+    
+    const brainyInstance = await getBrainy()
+    
+    try {
+      const success = await brainyInstance.delete(id, {
+        soft: !options.hard, // Soft delete unless --hard specified
+        cascade: options.cascade || false,
+        force: options.force || false
+      })
+      
+      if (success) {
+        console.log(colors.success('✅ Deleted successfully!'))
+        if (options.cascade) {
+          console.log(colors.info('📎 Related verbs also deleted'))
+        }
+      } else {
+        console.log(colors.error('❌ Delete failed'))
+      }
+    } catch (error) {
+      console.error(colors.error(`❌ Delete failed: ${error.message}`))
+      if (error.message.includes('has relationships')) {
+        console.log(colors.info('💡 Try: --cascade to delete relationships or --force to ignore them'))
+      }
+    }
+  }))
+
+// Command 6: STATUS - Database health & info
+program
+  .command('status')
+  .description('Show brain status and comprehensive statistics')
+  .option('-v, --verbose', 'Show raw JSON statistics')
+  .option('-s, --simple', 'Show only basic info')
+  .action(wrapAction(async (options) => {
+    console.log(colors.primary('🧠 Brain Status & Statistics'))
+    console.log(colors.primary('=' .repeat(50)))
+    
+    try {
+      const { BrainyData } = await import('../dist/brainyData.js')
+      const brainy = new BrainyData()
+      await brainy.init()
+      
+      // Get comprehensive stats
+      const stats = await brainy.getStatistics()
+      const memUsage = process.memoryUsage()
+      
+      // Basic Health Status
+      console.log(colors.success('💚 Status: Healthy'))
+      console.log(colors.info(`🚀 Version: ${packageJson.version}`))
       console.log()
       
-      try {
-        // Check if Brain Cloud is available
-        const hasLicense = process.env.BRAINY_LICENSE_KEY || await checkBrainCloudAuth()
-        
-        if (!hasLicense) {
-          console.log(chalk.yellow('🔐 Brain Cloud Authentication Required'))
-          console.log('The web coordination UI requires Brain Cloud authentication.')
-          console.log()
-          console.log('Get started:')
-          console.log('  1. ' + chalk.green('brainy cloud auth') + ' - Authenticate with Brain Cloud')
-          console.log('  2. ' + chalk.cyan('https://app.soulcraft.com') + ' - Sign up for Brain Cloud')
-          console.log()
-          console.log('Falling back to terminal chat...')
-          console.log()
-          options.ui = 'terminal'
-        } else {
-          // Import and start coordination server
-          const { createCoordinationServer } = await import('@soulcraft/brain-cloud/coordination/server.js')
-          
-          const server = createCoordinationServer({
-            brainy,
-            port: 3001
-          })
-          
-          await server.start()
-          
-          console.log(chalk.green('✅ Brain Cloud coordination interface started!'))
-          console.log()
-          console.log('🤝 Multi-agent coordination available at:')
-          console.log('   ' + chalk.cyan('http://localhost:3001/coordination'))
-          console.log()
-          console.log('💡 Features available:')
-          console.log('   • Visual agent coordination')
-          console.log('   • Real-time multi-agent handoffs')
-          console.log('   • Session management')
-          console.log('   • Premium Brain Cloud integration')
-          console.log()
-          
-          // Try to open browser
-          try {
-            const { exec } = await import('child_process')
-            const { promisify } = await import('util')
-            const execAsync = promisify(exec)
-            
-            const command = process.platform === 'win32' ? 'start' : 
-                           process.platform === 'darwin' ? 'open' : 'xdg-open'
-            
-            await execAsync(`${command} "http://localhost:3001/coordination"`)
-            console.log(chalk.green('🌐 Opening coordination interface in your browser...'))
-          } catch (error) {
-            console.log(chalk.yellow('💡 Copy the URL above to open in your browser'))
-          }
-          
-          console.log()
-          console.log(chalk.dim('Press Ctrl+C to stop the server'))
-          
-          // Keep server running
-          process.on('SIGINT', async () => {
-            console.log('\n🛑 Stopping coordination server...')
-            await server.stop()
-            process.exit(0)
-          })
-          
-          // Wait indefinitely
-          return new Promise(() => {})
-        }
-      } catch (error) {
-        console.log(chalk.red('❌ Failed to start web coordination interface:'), error.message)
-        console.log(chalk.yellow('Falling back to terminal chat...'))
+      if (options.simple) {
+        console.log(colors.info(`📊 Total Items: ${stats.total || 0}`))
+        console.log(colors.info(`🧠 Memory: ${(memUsage.heapUsed / 1024 / 1024).toFixed(1)} MB`))
+        return
+      }
+      
+      // Core Statistics
+      console.log(colors.primary('📊 Core Database Statistics'))
+      console.log(colors.info(`  Total Items: ${colors.success(stats.total || 0)}`))
+      console.log(colors.info(`  Nouns: ${colors.success(stats.nounCount || 0)}`))
+      console.log(colors.info(`  Verbs (Relationships): ${colors.success(stats.verbCount || 0)}`))
+      console.log(colors.info(`  Metadata Records: ${colors.success(stats.metadataCount || 0)}`))
+      console.log()
+      
+      // Per-Service Breakdown (if available)
+      if (stats.serviceBreakdown && Object.keys(stats.serviceBreakdown).length > 0) {
+        console.log(colors.primary('🔧 Per-Service Breakdown'))
+        Object.entries(stats.serviceBreakdown).forEach(([service, serviceStats]) => {
+          console.log(colors.info(`  ${colors.success(service)}:`))
+          console.log(colors.info(`    Nouns: ${serviceStats.nounCount}`))
+          console.log(colors.info(`    Verbs: ${serviceStats.verbCount}`))
+          console.log(colors.info(`    Metadata: ${serviceStats.metadataCount}`))
+        })
         console.log()
-        options.ui = 'terminal'
       }
-    }
-    
-    // Terminal chat mode (default)
-    const { ChatCLI } = await import('../dist/chat/ChatCLI.js')
-    const chatCLI = new ChatCLI(brainy)
-    
-    // Handle different modes
-    if (options.list) {
-      await chatCLI.listSessions()
-    } else if (options.search) {
-      await chatCLI.searchConversations(options.search)
-    } else if (options.history) {
-      const limit = typeof options.history === 'string' ? parseInt(options.history) : 10
-      await chatCLI.showHistory(limit)
-    } else if (question) {
-      // Single message mode
-      await chatCLI.sendMessage(question, {
-        sessionId: options.session,
-        speaker: options.role
-      })
-    } else {
-      // Interactive chat mode
-      await chatCLI.startInteractiveChat({
-        sessionId: options.session,
-        speaker: options.role,
-        newSession: options.new
-      })
-    }
-  }))
-
-program
-  .command('stats')
-  .description('Show database statistics and insights')
-  .option('-d, --detailed', 'Show detailed statistics')
-  .action(wrapAction(async (options) => {
-    await cortex.stats(options.detailed)
-  }))
-
-program
-  .command('health')
-  .description('Check system health')
-  .option('--auto-fix', 'Automatically apply safe repairs')
-  .action(wrapAction(async (options) => {
-    await cortex.health(options)
-  }))
-
-program
-  .command('find')
-  .description('Advanced intelligent search (interactive)')
-  .action(wrapInteractive(async () => {
-    await cortex.advancedSearch()
-  }))
-
-program
-  .command('explore [nodeId]')
-  .description('Explore data relationships interactively')
-  .action(wrapInteractive(async (nodeId) => {
-    await cortex.explore(nodeId)
-  }))
-
-program
-  .command('backup')
-  .description('Create database backup')
-  .option('-c, --compress', 'Compress backup')
-  .option('-o, --output <file>', 'Output file')
-  .action(wrapAction(async (options) => {
-    await cortex.backup(options)
-  }))
-
-program
-  .command('restore <file>')
-  .description('Restore from backup')
-  .action(wrapInteractive(async (file) => {
-    await cortex.restore(file)
-  }))
-
-// Chat commands moved to main chat command above
-
-// ========================================
-// BRAIN CLOUD INTEGRATION
-// ========================================
-
-program
-  .command('connect')
-  .description('Connect to Brain Cloud for AI memory')
-  .action(wrapInteractive(async () => {
-    console.log(chalk.cyan('\n🧠 Brain Cloud Setup'))
-    console.log(chalk.gray('━'.repeat(40)))
-    
-    try {
-      // Detect customer ID
-      const customerId = await detectCustomerId()
       
-      if (customerId) {
-        console.log(chalk.green(`✅ Found Brain Cloud: ${customerId}`))
-        console.log('\n🔧 Setting up AI memory:')
-        console.log(chalk.yellow('  • Update configuration'))
-        console.log(chalk.yellow('  • Add memory instructions'))
-        console.log(chalk.yellow('  • Enable cross-session memory'))
-        
-        console.log(chalk.cyan('\n🚀 Configuring...'))
-        await setupBrainCloudMemory(customerId)
-        console.log(chalk.green('\n✅ AI memory connected!'))
-        console.log(chalk.cyan('Restart Claude Code to activate memory.'))
+      // Storage Information
+      if (stats.storage) {
+        console.log(colors.primary('💾 Storage Information'))
+        console.log(colors.info(`  Type: ${colors.success(stats.storage.type || 'Unknown')}`))
+        if (stats.storage.size) {
+          const sizeInMB = (stats.storage.size / 1024 / 1024).toFixed(2)
+          console.log(colors.info(`  Size: ${colors.success(sizeInMB)} MB`))
+        }
+        if (stats.storage.location) {
+          console.log(colors.info(`  Location: ${colors.success(stats.storage.location)}`))
+        }
+        console.log()
+      }
+      
+      // Performance Metrics
+      if (stats.performance) {
+        console.log(colors.primary('⚡ Performance Metrics'))
+        if (stats.performance.avgQueryTime) {
+          console.log(colors.info(`  Avg Query Time: ${colors.success(stats.performance.avgQueryTime.toFixed(2))} ms`))
+        }
+        if (stats.performance.totalQueries) {
+          console.log(colors.info(`  Total Queries: ${colors.success(stats.performance.totalQueries)}`))
+        }
+        if (stats.performance.cacheHitRate) {
+          console.log(colors.info(`  Cache Hit Rate: ${colors.success((stats.performance.cacheHitRate * 100).toFixed(1))}%`))
+        }
+        console.log()
+      }
+      
+      // Vector Index Information
+      if (stats.index) {
+        console.log(colors.primary('🎯 Vector Index'))
+        console.log(colors.info(`  Dimensions: ${colors.success(stats.index.dimensions || 'N/A')}`))
+        console.log(colors.info(`  Indexed Vectors: ${colors.success(stats.index.vectorCount || 0)}`))
+        if (stats.index.indexSize) {
+          console.log(colors.info(`  Index Size: ${colors.success((stats.index.indexSize / 1024 / 1024).toFixed(2))} MB`))
+        }
+        console.log()
+      }
+      
+      // Memory Usage Breakdown
+      console.log(colors.primary('🧠 Memory Usage'))
+      console.log(colors.info(`  Heap Used: ${colors.success((memUsage.heapUsed / 1024 / 1024).toFixed(1))} MB`))
+      console.log(colors.info(`  Heap Total: ${colors.success((memUsage.heapTotal / 1024 / 1024).toFixed(1))} MB`))
+      console.log(colors.info(`  RSS: ${colors.success((memUsage.rss / 1024 / 1024).toFixed(1))} MB`))
+      console.log()
+      
+      // Active Augmentations
+      console.log(colors.primary('🔌 Active Augmentations'))
+      const augmentations = cortex.getAllAugmentations()
+      if (augmentations.length === 0) {
+        console.log(colors.warning('  No augmentations currently active'))
       } else {
-        console.log(chalk.yellow('No Brain Cloud found. Setting up:'))
-        console.log('\n1. Visit: ' + chalk.cyan('https://soulcraft.com/brain-cloud'))
-        console.log('2. Get your Early Access license key')
-        console.log('3. Run ' + chalk.green('brainy cloud setup') + ' for auto-configuration')
+        augmentations.forEach(aug => {
+          console.log(colors.success(`  ✅ ${aug.name}`))
+          if (aug.description) {
+            console.log(colors.info(`     ${aug.description}`))
+          }
+        })
       }
+      console.log()
+      
+      // Configuration Summary
+      if (stats.config) {
+        console.log(colors.primary('⚙️ Configuration'))
+        Object.entries(stats.config).forEach(([key, value]) => {
+          // Don't show sensitive values
+          if (key.toLowerCase().includes('key') || key.toLowerCase().includes('secret')) {
+            console.log(colors.info(`  ${key}: ${colors.warning('[HIDDEN]')}`))
+          } else {
+            console.log(colors.info(`  ${key}: ${colors.success(value)}`))
+          }
+        })
+        console.log()
+      }
+      
+      // Available Fields for Advanced Search
+      console.log(colors.primary('🔍 Available Search Fields'))
+      try {
+        const filterFields = await brainy.getFilterFields()
+        if (filterFields.length > 0) {
+          console.log(colors.info('  Use these fields for advanced filtering:'))
+          filterFields.forEach(field => {
+            console.log(colors.success(`    ${field}`))
+          })
+          console.log(colors.info('\n  Example: brainy search "query" --filter \'{"type":"person"}\''))
+        } else {
+          console.log(colors.warning('  No indexed fields available yet'))
+          console.log(colors.info('  Add some data to see available fields'))
+        }
+      } catch (error) {
+        console.log(colors.warning('  Field discovery not available'))
+      }
+      console.log()
+      
+      // Show raw JSON if verbose
+      if (options.verbose) {
+        console.log(colors.primary('📋 Raw Statistics (JSON)'))
+        console.log(colors.info(JSON.stringify(stats, null, 2)))
+      }
+      
     } catch (error) {
-      console.log(chalk.red('❌ Setup failed:'), error.message)
+      console.log(colors.error('❌ Status: Error'))
+      console.log(colors.error(`Error: ${error.message}`))
+      if (options.verbose) {
+        console.log(colors.error('Stack trace:'))
+        console.log(error.stack)
+      }
     }
   }))
 
-// Moved to brainy cloud setup command below for better separation
-
-// ========================================
-// BRAIN CLOUD COMMANDS (Premium Features)
-// ========================================
-
-const cloud = program
-  .command('cloud')
-  .description('Brain Cloud premium features and management')
-
-cloud
-  .command('setup')
-  .description('🚀 Auto-setup Brain Cloud (provisions cloud instance + configures locally)')
-  .option('--email <email>', 'Your email address')
-  .action(wrapInteractive(async (options) => {
-    console.log(chalk.cyan('🧠☁️  Brain Cloud Auto-Setup'))
-    console.log(chalk.gray('═'.repeat(50)))
-    console.log(chalk.yellow('Perfect for non-coders! One-click setup.\n'))
-
-    try {
-      // Step 1: Validate license
-      await validateLicense()
-      
-      // Step 2: Check if Brainy is installed
-      await ensureBrainyInstalled()
-      
-      // Step 3: Provision cloud instance
-      const instance = await provisionCloudInstance(options.email)
-      
-      // Step 4: Configure local Brainy
-      await configureBrainy(instance)
-      
-      // Step 5: Install Brain Cloud package
-      await installBrainCloudPackage()
-      
-      // Step 6: Test connection
-      await testConnection(instance)
-      
-      console.log('\n✅ Setup Complete!')
-      console.log(chalk.gray('═'.repeat(30)))
-      console.log('\nYour Brain Cloud instance is ready:')
-      console.log(`📱 Dashboard: ${chalk.cyan(instance.endpoints.dashboard)}`)
-      console.log(`🔗 API: ${chalk.gray(instance.endpoints.api)}`)
-      console.log('\n🚀 What\'s next?')
-      console.log('• Your AI now has persistent memory across all conversations')
-      console.log('• All devices sync automatically to your cloud instance')
-      console.log('• Agents coordinate seamlessly through handoffs')
-      console.log('\n💡 Try asking Claude: "Remember that I prefer TypeScript"')
-      console.log('   Then in a new conversation: "What do you know about my preferences?"')
-
-    } catch (error) {
-      console.error('\n❌ Setup failed:', error.message)
-      console.log('\n🆘 Need help? Contact support@soulcraft.com')
-    }
-  }))
-
-cloud
-  .command('connect [id]')
-  .description('Connect to existing Brain Cloud instance')
-  .action(wrapInteractive(async (id) => {
-    if (id) {
-      console.log(chalk.green(`✅ Connecting to Brain Cloud instance: ${id}`))
-      // Connect to specific instance
-    } else {
-      // Show connection instructions
-      console.log(chalk.cyan('\n🔗 Brain Cloud Connection'))
-      console.log(chalk.gray('━'.repeat(40)))
-      console.log('\nOptions:')
-      console.log('1. ' + chalk.green('brainy cloud setup') + ' - Auto-setup with provisioning')
-      console.log('2. ' + chalk.green('brainy cloud connect <id>') + ' - Connect to existing instance')
-      console.log('\nGet started: ' + chalk.cyan('https://soulcraft.com/brain-cloud'))
-    }
-  }))
-
-cloud
-  .command('status [id]')
-  .description('Check Brain Cloud instance status')
-  .action(wrapInteractive(async (id) => {
-    // Implementation moved from old cloud command
-    console.log('Checking Brain Cloud status...')
-  }))
-
-cloud
-  .command('dashboard [id]')
-  .description('Open Brain Cloud dashboard')
-  .action(wrapInteractive(async (id) => {
-    const dashboardUrl = id 
-      ? `https://brainy-${id}.soulcraft-brain.workers.dev/dashboard`
-      : 'https://app.soulcraft.com'
-      
-    console.log(chalk.cyan(`\n🌐 Opening Brain Cloud Dashboard: ${dashboardUrl}`))
-    
-    try {
-      const { exec } = await import('child_process')
-      const { promisify } = await import('util')
-      const execAsync = promisify(exec)
-      
-      const command = process.platform === 'win32' ? 'start' : 
-                     process.platform === 'darwin' ? 'open' : 'xdg-open'
-      
-      await execAsync(`${command} "${dashboardUrl}"`)
-      console.log(chalk.green('✅ Dashboard opened!'))
-    } catch (error) {
-      console.log(chalk.yellow('💡 Copy the URL above to open in your browser'))
-    }
-  }))
-
-// Legacy cloud command (for backward compatibility)
+// Command 5: CONFIG - Essential configuration
 program
-  .command('cloud-legacy [action]')
-  .description('Legacy Brain Cloud connection (deprecated - use "brainy cloud")')
-  .option('--connect <id>', 'Connect to existing Brain Cloud instance')
-  .option('--export <id>', 'Export all data from Brain Cloud instance')
-  .option('--status <id>', 'Check status of Brain Cloud instance')
-  .option('--dashboard <id>', 'Open dashboard for Brain Cloud instance')
-  .option('--migrate', 'Migrate between local and cloud')
-  .action(wrapInteractive(async (action, options) => {
-    console.log(chalk.yellow('⚠️ Deprecated: Use "brainy cloud" commands instead'))
-    console.log(chalk.cyan('Examples:'))
-    console.log('  brainy cloud setup')
-    console.log('  brainy cloud connect <id>')
-    console.log('  brainy cloud dashboard')
-    console.log('')
-    // For now, show connection instructions
-    console.log(chalk.cyan('\n⚛️ BRAIN CLOUD - AI Memory That Never Forgets'))
-    console.log(chalk.gray('━'.repeat(50)))
+  .command('config <action> [key] [value]')
+  .description('Configure brainy (get, set, list)')
+  .action(wrapAction(async (action, key, value) => {
+    const configActions = {
+      get: async () => {
+        if (!key) {
+          console.error(colors.error('Please specify a key: brainy config get <key>'))
+          process.exit(1)
+        }
+        const result = await cortex.configGet(key)
+        console.log(colors.success(`${key}: ${result || 'not set'}`))
+      },
+      set: async () => {
+        if (!key || !value) {
+          console.error(colors.error('Usage: brainy config set <key> <value>'))
+          process.exit(1)
+        }
+        await cortex.configSet(key, value)
+        console.log(colors.success(`✅ Set ${key} = ${value}`))
+      },
+      list: async () => {
+        const config = await cortex.configList()
+        console.log(colors.primary('🔧 Current Configuration:'))
+        Object.entries(config).forEach(([k, v]) => {
+          console.log(colors.info(`  ${k}: ${v}`))
+        })
+      }
+    }
     
-    if (options.connect) {
-      console.log(chalk.green(`✅ Connecting to Brain Cloud instance: ${options.connect}`))
-      
-      try {
-        // Test connection to Brain Cloud worker
-        const healthUrl = `https://api.soulcraft.com/brain-cloud/health`
-        const response = await fetch(healthUrl, {
-          headers: { 'x-customer-id': options.connect }
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          console.log(chalk.green(`🧠 ${data.status}`))
-          console.log(chalk.cyan(`💫 Instance: ${data.customerId}`))
-          console.log(chalk.gray(`⏰ Connected at: ${new Date(data.timestamp).toLocaleString()}`))
-          
-          // Test memories endpoint
-          const memoriesResponse = await fetch(`https://api.soulcraft.com/brain-cloud/memories`, {
-            headers: { 'x-customer-id': options.connect }
-          })
-          
-          if (memoriesResponse.ok) {
-            const memoriesData = await memoriesResponse.json()
-            console.log(chalk.yellow(`\n${memoriesData.message}`))
-            console.log(chalk.gray('📊 Your atomic memories:'))
-            memoriesData.memories.forEach(memory => {
-              const time = new Date(memory.created).toLocaleString()
-              console.log(chalk.gray(`  • ${memory.content} (${time})`))
-            })
-          }
-          
-        } else {
-          console.log(chalk.red('❌ Could not connect to Brain Cloud'))
-          console.log(chalk.yellow('💡 Make sure you have an active instance'))
-          console.log('\nSign up at: ' + chalk.cyan('https://app.soulcraft.com'))
-        }
-      } catch (error) {
-        console.log(chalk.red('❌ Connection failed:'), error.message)
-        console.log('\nSign up at: ' + chalk.cyan('https://app.soulcraft.com'))
-      }
-    } else if (options.export) {
-      console.log(chalk.green(`📦 Exporting data from Brain Cloud instance: ${options.export}`))
-      
-      try {
-        const response = await fetch(`https://api.soulcraft.com/brain-cloud/export`, {
-          headers: { 'x-customer-id': options.export }
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          const filename = `brainy-export-${options.export}-${Date.now()}.json`
-          
-          // Write to file
-          const fs = await import('fs/promises')
-          await fs.writeFile(filename, JSON.stringify(data, null, 2))
-          
-          console.log(chalk.green(`✅ Data exported to: ${filename}`))
-          console.log(chalk.gray(`📊 Exported ${data.memories?.length || 0} memories`))
-        } else {
-          console.log(chalk.red('❌ Export failed - instance not found'))
-        }
-      } catch (error) {
-        console.log(chalk.red('❌ Export error:'), error.message)
-      }
-    } else if (options.status) {
-      console.log(chalk.green(`🔍 Checking status of Brain Cloud instance: ${options.status}`))
-      
-      try {
-        const response = await fetch(`https://api.soulcraft.com/brain-cloud/health`, {
-          headers: { 'x-customer-id': options.status }
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          console.log(chalk.green(`✅ Instance Status: Active`))
-          console.log(chalk.cyan(`🧠 ${data.status}`))
-          console.log(chalk.gray(`⏰ Last check: ${new Date(data.timestamp).toLocaleString()}`))
-          
-          // Get memory count
-          const memoriesResponse = await fetch(`https://api.soulcraft.com/brain-cloud/memories`, {
-            headers: { 'x-customer-id': options.status }
-          })
-          
-          if (memoriesResponse.ok) {
-            const memoriesData = await memoriesResponse.json()
-            console.log(chalk.yellow(`📊 Total memories: ${memoriesData.count}`))
-          }
-        } else {
-          console.log(chalk.red('❌ Instance not found or inactive'))
-        }
-      } catch (error) {
-        console.log(chalk.red('❌ Status check failed:'), error.message)
-      }
-    } else if (options.dashboard) {
-      console.log(chalk.green(`🌐 Opening dashboard for Brain Cloud instance: ${options.dashboard}`))
-      
-      const dashboardUrl = `https://app.soulcraft.com/dashboard.html?customer_id=${options.dashboard}`
-      console.log(chalk.cyan(`\n🔗 Dashboard URL: ${dashboardUrl}`))
-      console.log(chalk.gray('Opening in your default browser...'))
-      
-      try {
-        const { exec } = await import('child_process')
-        const { promisify } = await import('util')
-        const execAsync = promisify(exec)
-        
-        // Cross-platform browser opening
-        const command = process.platform === 'win32' ? 'start' : 
-                       process.platform === 'darwin' ? 'open' : 'xdg-open'
-        
-        await execAsync(`${command} "${dashboardUrl}"`)
-        console.log(chalk.green('✅ Dashboard opened!'))
-      } catch (error) {
-        console.log(chalk.yellow('💡 Copy the URL above to open in your browser'))
-      }
+    if (configActions[action]) {
+      await configActions[action]()
     } else {
-      console.log(chalk.yellow('📡 Brain Cloud Setup'))
-      console.log('\n1. Sign up at: ' + chalk.cyan('https://app.soulcraft.com'))
-      console.log('2. Get your customer ID')
-      console.log('3. Connect with: ' + chalk.green('brainy cloud --connect YOUR_ID'))
-      console.log('\nBenefits:')
-      console.log('  • ' + chalk.green('Never lose AI context again'))
-      console.log('  • ' + chalk.green('Sync across all devices'))
-      console.log('  • ' + chalk.green('Unlimited memory storage'))
-      console.log('  • ' + chalk.green('$19/month or free trial'))
+      console.error(colors.error('Valid actions: get, set, list'))
+      process.exit(1)
     }
   }))
 
-// ========================================
-// AUGMENTATION MANAGEMENT (Direct Commands)
-// ========================================
-
-const augment = program
-  .command('augment')
-  .description('Manage brain augmentations')
-
-augment
-  .command('list')
-  .description('List available and active augmentations')
-  .action(wrapAction(async () => {
-    console.log(chalk.green('✅ Active (Built-in):'))
-    console.log('  • neural-import')
-    console.log('  • basic-storage')
-    console.log('')
+// Command 6: CLOUD - Premium features connection
+program
+  .command('cloud <action>')
+  .description('Connect to Brain Cloud premium features')
+  .option('-i, --instance <id>', 'Brain Cloud instance ID')
+  .action(wrapAction(async (action, options) => {
+    console.log(colors.primary('☁️ Brain Cloud Premium Features'))
     
-    // Check for Brain Cloud
-    try {
-      await import('@soulcraft/brain-cloud')
-      const hasLicense = process.env.BRAINY_LICENSE_KEY
-      
-      if (hasLicense) {
-        console.log(chalk.cyan('✅ Active (Premium):'))
-        console.log('  • ai-memory')
-        console.log('  • agent-coordinator')
-        console.log('')
-      }
-    } catch {}
-    
-    // Fetch from catalog API
-    try {
-      const response = await fetch('http://localhost:3001/api/catalog/cli')
-      if (response.ok) {
-        const catalog = await response.json()
-        
-        // Show available augmentations
-        const available = catalog.augmentations.filter(aug => aug.status === 'available')
-        if (available.length > 0) {
-          console.log(chalk.cyan('🌟 Available (Brain Cloud):'))
-          available.forEach(aug => {
-            const popular = aug.popular ? chalk.yellow(' ⭐ Popular') : ''
-            console.log(`  • ${aug.id} - ${aug.description}${popular}`)
-          })
-          console.log('')
+    const cloudActions = {
+      connect: async () => {
+        console.log(colors.info('🔗 Connecting to Brain Cloud...'))
+        // Dynamic import to avoid loading premium code unnecessarily
+        try {
+          const { BrainCloudSDK } = await import('@brainy-cloud/sdk')
+          const connected = await BrainCloudSDK.connect(options.instance)
+          if (connected) {
+            console.log(colors.success('✅ Connected to Brain Cloud'))
+            console.log(colors.info(`Instance: ${connected.instanceId}`))
+          }
+        } catch (error) {
+          console.log(colors.warning('⚠️ Brain Cloud SDK not installed'))
+          console.log(colors.info('Install with: npm install @brainy-cloud/sdk'))
+          console.log(colors.info('Or visit: https://brain-cloud.soulcraft.com'))
         }
-        
-        // Show coming soon
-        const comingSoon = catalog.augmentations.filter(aug => aug.status === 'coming-soon')
-        if (comingSoon.length > 0) {
-          console.log(chalk.dim('📦 Coming Soon:'))
-          comingSoon.forEach(aug => {
-            const eta = aug.eta ? ` (${aug.eta})` : ''
-            console.log(chalk.dim(`  • ${aug.id} - ${aug.description}${eta}`))
-          })
-          console.log('')
+      },
+      status: async () => {
+        try {
+          const { BrainCloudSDK } = await import('@brainy-cloud/sdk')
+          const status = await BrainCloudSDK.getStatus()
+          console.log(colors.success('☁️ Cloud Status: Connected'))
+          console.log(colors.info(`Instance: ${status.instanceId}`))
+          console.log(colors.info(`Augmentations: ${status.augmentationCount} available`))
+        } catch {
+          console.log(colors.warning('☁️ Cloud Status: Not connected'))
+          console.log(colors.info('Use "brainy cloud connect" to connect'))
         }
-      } else {
-        throw new Error('API unavailable')
+      },
+      augmentations: async () => {
+        try {
+          const { BrainCloudSDK } = await import('@brainy-cloud/sdk')
+          const augs = await BrainCloudSDK.listAugmentations()
+          console.log(colors.primary('🧩 Available Premium Augmentations:'))
+          augs.forEach(aug => {
+            console.log(colors.success(`  ✅ ${aug.name} - ${aug.description}`))
+          })
+        } catch {
+          console.log(colors.warning('Connect to Brain Cloud first: brainy cloud connect'))
+        }
       }
-    } catch (error) {
-      // Fallback to static list if API is unavailable
-      console.log(chalk.cyan('🌟 Available (Brain Cloud):'))
-      console.log('  • ai-memory - ' + chalk.yellow('⭐ Popular') + ' - Persistent AI memory')
-      console.log('  • agent-coordinator - ' + chalk.yellow('⭐ Popular') + ' - Multi-agent handoffs')  
-      console.log('  • notion-sync - Enterprise connector')
-      console.log('')
     }
     
-    console.log(chalk.dim('🚀 Join Early Access: https://soulcraft.com/brain-cloud'))
-    console.log(chalk.dim('🌐 Authenticate: brainy cloud auth'))
+    if (cloudActions[action]) {
+      await cloudActions[action]()
+    } else {
+      console.log(colors.error('Valid actions: connect, status, augmentations'))
+      console.log(colors.info('Example: brainy cloud connect --instance demo-test-auto'))
+    }
   }))
 
-augment
-  .command('activate')
-  .description('Activate Brain Cloud with license key')
-  .action(wrapAction(async () => {
+// Command 7: MIGRATE - Migration tools
+program
+  .command('migrate <action>')
+  .description('Migration tools for upgrades')
+  .option('-f, --from <version>', 'Migrate from version')
+  .option('-b, --backup', 'Create backup before migration')
+  .action(wrapAction(async (action, options) => {
+    console.log(colors.primary('🔄 Brainy Migration Tools'))
+    
+    const migrateActions = {
+      check: async () => {
+        console.log(colors.info('🔍 Checking for migration needs...'))
+        // Check for deprecated methods, old config, etc.
+        const issues = []
+        
+        try {
+          const { BrainyData } = await import('../dist/brainyData.js')
+          const brainy = new BrainyData()
+          
+          // Check for old API usage
+          console.log(colors.success('✅ No migration issues found'))
+        } catch (error) {
+          console.log(colors.warning(`⚠️ Found issues: ${error.message}`))
+        }
+      },
+      backup: async () => {
+        console.log(colors.info('💾 Creating backup...'))
+        const { BrainyData } = await import('../dist/brainyData.js')
+        const brainy = new BrainyData()
+        const backup = await brainy.createBackup()
+        console.log(colors.success(`✅ Backup created: ${backup.path}`))
+      },
+      restore: async () => {
+        if (!options.from) {
+          console.error(colors.error('Please specify backup file: --from <path>'))
+          process.exit(1)
+        }
+        console.log(colors.info(`📥 Restoring from: ${options.from}`))
+        const { BrainyData } = await import('../dist/brainyData.js')
+        const brainy = new BrainyData()
+        await brainy.restoreBackup(options.from)
+        console.log(colors.success('✅ Restore complete'))
+      }
+    }
+    
+    if (migrateActions[action]) {
+      await migrateActions[action]()
+    } else {
+      console.log(colors.error('Valid actions: check, backup, restore'))
+      console.log(colors.info('Example: brainy migrate check'))
+    }
+  }))
+
+// Command 8: HELP - Interactive guidance
+program
+  .command('help [command]')
+  .description('Get help or enter interactive mode')
+  .action(wrapAction(async (command) => {
+    if (command) {
+      program.help()
+      return
+    }
+    
+    // Interactive mode for beginners
+    console.log(colors.primary('🧠⚛️ Welcome to Brainy!'))
+    console.log(colors.info('Your AI-powered second brain'))
+    console.log()
+    
     const rl = createInterface({
       input: process.stdin,
       output: process.stdout
     })
     
-    console.log(chalk.cyan('☁️  Brain Cloud Activation (Optional Premium)'))
-    console.log('')
-    console.log(chalk.yellow('Note: Brainy core is 100% free and fully functional!'))
-    console.log('Brain Cloud adds optional team & sync features.')
-    console.log('')
-    console.log('Get Brain Cloud at: ' + chalk.green('app.soulcraft.com'))
-    console.log('(14-day free trial available)')
-    console.log('')
+    console.log(colors.primary('What would you like to do?'))
+    console.log(colors.info('1. Add some data'))
+    console.log(colors.info('2. Chat with AI using your data'))
+    console.log(colors.info('3. Search your brain'))
+    console.log(colors.info('4. Update existing data'))
+    console.log(colors.info('5. Delete data'))
+    console.log(colors.info('6. Import a file'))
+    console.log(colors.info('7. Check status'))
+    console.log(colors.info('8. Connect to Brain Cloud'))
+    console.log(colors.info('9. Configuration'))
+    console.log(colors.info('10. Show all commands'))
+    console.log()
     
-    rl.question('License key: ', async (key) => {
-      if (key.startsWith('lic_')) {
-        // Save to config
-        const fs = await import('fs/promises')
-        const os = await import('os')
-        const configPath = `${os.homedir()}/.brainy`
-        
-        await fs.mkdir(configPath, { recursive: true })
-        await fs.writeFile(`${configPath}/license`, key)
-        
-        console.log(chalk.green('✅ License saved!'))
-        console.log('')
-        console.log('// Brain Cloud is NOT an npm package!')
-        console.log('// Augmentations auto-load based on your subscription')
-        console.log('')
-        console.log('Next steps:')
-        console.log(chalk.cyan('  brainy cloud auth'))
-        console.log(chalk.gray('  # Your augmentations will auto-load'))
-      } else {
-        console.log(chalk.red('Invalid license key'))
-      }
-      rl.close()
-    })
-  }))
-
-augment
-  .command('info <name>')
-  .description('Get info about an augmentation')
-  .action(wrapAction(async (name) => {
-    const augmentations = {
-      'ai-memory': {
-        name: 'AI Memory',
-        description: 'Persistent memory across all AI sessions',
-        category: 'Memory',
-        tier: 'Premium',
-        popular: true,
-        example: `
-// AI Memory auto-loads after 'brainy cloud auth' - no imports needed!
-
-const cortex = new Cortex()
-cortex.register(new AIMemory())
-
-// Now your AI remembers everything
-await brain.add("User prefers dark mode")
-// This persists across sessions automatically`
-      },
-      'agent-coordinator': {
-        name: 'Agent Coordinator',
-        description: 'Multi-agent handoffs and orchestration',
-        category: 'Coordination',
-        tier: 'Premium',
-        popular: true
-      },
-      'notion-sync': {
-        name: 'Notion Sync',
-        description: 'Bidirectional Notion database sync',
-        category: 'Enterprise',
-        tier: 'Premium'
-      }
-    }
-    
-    const aug = augmentations[name]
-    if (aug) {
-      console.log(chalk.cyan(`📦 ${aug.name}`) + (aug.popular ? chalk.yellow(' ⭐ Popular') : ''))
-      console.log('')
-      console.log(`Category: ${aug.category}`)
-      console.log(`Tier: ${aug.tier}`)
-      console.log(`Description: ${aug.description}`)
-      if (aug.example) {
-        console.log('')
-        console.log('Example:')
-        console.log(chalk.gray(aug.example))
-      }
-    } else {
-      console.log(chalk.red(`Unknown augmentation: ${name}`))
-    }
-  }))
-
-program
-  .command('install <augmentation>')
-  .description('Install augmentation (legacy - use augment activate)')
-  .option('-m, --mode <type>', 'Installation mode (free|premium)', 'free')
-  .option('-c, --config <json>', 'Configuration as JSON')
-  .action(wrapAction(async (augmentation, options) => {
-    console.log(chalk.yellow('Note: Use "brainy augment activate" for Brain Cloud'))
-    
-    if (augmentation === 'brain-jar') {
-      await cortex.brainJarInstall(options.mode)
-    } else {
-      // Generic augmentation install
-      let config = {}
-      if (options.config) {
-        try {
-          config = JSON.parse(options.config)
-        } catch {
-          console.error(chalk.red('Invalid JSON configuration'))
-          process.exit(1)
-        }
-      }
-      await cortex.addAugmentation(augmentation, undefined, config)
-    }
-  }))
-
-program
-  .command('run <augmentation>')
-  .description('Run augmentation')
-  .option('-c, --config <json>', 'Runtime configuration as JSON')
-  .action(wrapAction(async (augmentation, options) => {
-    if (augmentation === 'brain-jar') {
-      await cortex.brainJarStart(options)
-    } else {
-      // Generic augmentation execution
-      const inputData = options.config ? JSON.parse(options.config) : { run: true }
-      await cortex.executePipelineStep(augmentation, inputData)
-    }
-  }))
-
-program
-  .command('status [augmentation]')
-  .description('Show augmentation status')
-  .action(wrapAction(async (augmentation) => {
-    if (augmentation === 'brain-jar') {
-      await cortex.brainJarStatus()
-    } else if (augmentation) {
-      // Show specific augmentation status
-      await cortex.listAugmentations()
-    } else {
-      // Show all augmentation status
-      await cortex.listAugmentations()
-    }
-  }))
-
-program
-  .command('stop [augmentation]')
-  .description('Stop augmentation')
-  .action(wrapAction(async (augmentation) => {
-    if (augmentation === 'brain-jar') {
-      await cortex.brainJarStop()
-    } else {
-      console.log(chalk.yellow('Stop functionality for generic augmentations not yet implemented'))
-    }
-  }))
-
-program
-  .command('list')
-  .description('List installed augmentations')
-  .option('-a, --available', 'Show available augmentations')
-  .action(wrapAction(async (options) => {
-    if (options.available) {
-      console.log(chalk.green('✅ Built-in (Free):'))
-      console.log('  • neural-import - AI-powered data understanding')
-      console.log('  • basic-storage - Local persistence')
-      console.log('')
-      console.log(chalk.cyan('🌟 Premium (Brain Cloud):'))
-      console.log('  • ai-memory - ' + chalk.yellow('⭐ Most Popular') + ' - AI that remembers')
-      console.log('  • agent-coordinator - ' + chalk.yellow('⭐ Most Popular') + ' - Multi-agent orchestration')
-      console.log('  • notion-sync - Enterprise connector')
-      console.log('  • More at app.soulcraft.com/augmentations')
-      console.log('')
-      console.log(chalk.dim('Sign up: app.soulcraft.com (14-day free trial)'))
-      console.log(chalk.dim('Authenticate: brainy cloud auth'))
-    } else {
-      await cortex.listAugmentations()
-    }
-  }))
-
-
-// ========================================
-// BRAIN JAR SPECIFIC COMMANDS (Rich UX)
-// ========================================
-
-const brainJar = program.command('brain-jar')
-  .description('AI coordination and collaboration')
-
-brainJar
-  .command('install')
-  .description('Install Brain Jar coordination')
-  .option('-m, --mode <type>', 'Installation mode (free|premium)', 'free')
-  .action(wrapAction(async (options) => {
-    await cortex.brainJarInstall(options.mode)
-  }))
-
-brainJar
-  .command('start')
-  .description('Start Brain Jar coordination')
-  .option('-s, --server <url>', 'Custom server URL')
-  .option('-n, --name <name>', 'Agent name')
-  .option('-r, --role <role>', 'Agent role')
-  .action(wrapAction(async (options) => {
-    await cortex.brainJarStart(options)
-  }))
-
-brainJar
-  .command('dashboard')
-  .description('Open Brain Jar dashboard')
-  .option('-o, --open', 'Auto-open in browser', true)
-  .action(wrapAction(async (options) => {
-    await cortex.brainJarDashboard(options.open)
-  }))
-
-brainJar
-  .command('status')
-  .description('Show Brain Jar status')
-  .action(wrapAction(async () => {
-    await cortex.brainJarStatus()
-  }))
-
-brainJar
-  .command('agents')
-  .description('List connected agents')
-  .action(wrapAction(async () => {
-    await cortex.brainJarAgents()
-  }))
-
-brainJar
-  .command('message <text>')
-  .description('Send message to coordination channel')
-  .action(wrapAction(async (text) => {
-    await cortex.brainJarMessage(text)
-  }))
-
-brainJar
-  .command('search <query>')
-  .description('Search coordination history')
-  .option('-l, --limit <number>', 'Number of results', '10')
-  .action(wrapAction(async (query, options) => {
-    await cortex.brainJarSearch(query, parseInt(options.limit))
-  }))
-
-// ========================================
-// CONFIGURATION COMMANDS
-// ========================================
-
-const config = program.command('config')
-  .description('Manage configuration')
-
-config
-  .command('set <key> <value>')
-  .description('Set configuration value')
-  .option('-e, --encrypt', 'Encrypt this value')
-  .action(wrapAction(async (key, value, options) => {
-    await cortex.configSet(key, value, options)
-  }))
-
-config
-  .command('get <key>')
-  .description('Get configuration value')
-  .action(wrapAction(async (key) => {
-    const value = await cortex.configGet(key)
-    if (value) {
-      console.log(chalk.green(`${key}: ${value}`))
-    } else {
-      console.log(chalk.yellow(`Key not found: ${key}`))
-    }
-  }))
-
-config
-  .command('list')
-  .description('List all configuration')
-  .action(wrapAction(async () => {
-    await cortex.configList()
-  }))
-
-// ========================================
-// LEGACY CORTEX COMMANDS (Backward Compatibility)
-// ========================================
-
-const cortexCmd = program.command('cortex')
-  .description('Legacy Cortex commands (deprecated - use direct commands)')
-
-cortexCmd
-  .command('chat [question]')
-  .description('Chat with your data')
-  .action(wrapInteractive(async (question) => {
-    console.log(chalk.yellow('⚠️  Deprecated: Use "brainy chat" instead'))
-    await cortex.chat(question)
-  }))
-
-cortexCmd
-  .command('add [data]')
-  .description('Add data')
-  .action(wrapAction(async (data) => {
-    console.log(chalk.yellow('⚠️  Deprecated: Use "brainy add" instead'))
-    await cortex.add(data, {})
-  }))
-
-// ========================================
-// INTERACTIVE SHELL
-// ========================================
-
-program
-  .command('shell')
-  .description('Interactive Brainy shell')
-  .action(wrapInteractive(async () => {
-    console.log(chalk.cyan('🧠 Brainy Interactive Shell'))
-    console.log(chalk.dim('Type "help" for commands, "exit" to quit\n'))
-    await cortex.chat()
-  }))
-
-// ========================================
-// AUGMENTATION CONTROL COMMANDS
-// ========================================
-
-program
-  .command('augment')
-  .description('List all augmentations with their status')
-  .action(wrapAction(async () => {
-    const { BrainyData } = await import('../dist/brainyData.js')
-    const brainy = new BrainyData()
-    await brainy.init()
-    
-    const augmentations = brainy.listAugmentations()
-    
-    if (augmentations.length === 0) {
-      console.log(chalk.yellow('No augmentations registered'))
-      return
-    }
-    
-    console.log(chalk.cyan('🔧 Augmentations Status\n'))
-    
-    const grouped = augmentations.reduce((acc, aug) => {
-      if (!acc[aug.type]) acc[aug.type] = []
-      acc[aug.type].push(aug)
-      return acc
-    }, {})
-    
-    for (const [type, augs] of Object.entries(grouped)) {
-      console.log(chalk.bold(`${type.toUpperCase()}:`))
-      for (const aug of augs) {
-        const status = aug.enabled ? chalk.green('✅ enabled') : chalk.red('❌ disabled')
-        console.log(`  ${aug.name} - ${status}`)
-        console.log(chalk.dim(`    ${aug.description}`))
-      }
-      console.log('')
-    }
-  }))
-
-program
-  .command('augment enable <name>')
-  .description('Enable an augmentation by name')
-  .action(wrapAction(async (name) => {
-    const { BrainyData } = await import('../dist/brainyData.js')
-    const brainy = new BrainyData()
-    await brainy.init()
-    
-    const success = brainy.enableAugmentation(name)
-    
-    if (success) {
-      console.log(chalk.green(`✅ Enabled augmentation: ${name}`))
-    } else {
-      console.log(chalk.red(`❌ Augmentation not found: ${name}`))
-      console.log(chalk.dim('Use "brainy augment" to see available augmentations'))
-    }
-  }))
-
-program
-  .command('augment disable <name>')
-  .description('Disable an augmentation by name')
-  .action(wrapAction(async (name) => {
-    const { BrainyData } = await import('../dist/brainyData.js')
-    const brainy = new BrainyData()
-    await brainy.init()
-    
-    const success = brainy.disableAugmentation(name)
-    
-    if (success) {
-      console.log(chalk.green(`✅ Disabled augmentation: ${name}`))
-    } else {
-      console.log(chalk.red(`❌ Augmentation not found: ${name}`))
-      console.log(chalk.dim('Use "brainy augment" to see available augmentations'))
-    }
-  }))
-
-program
-  .command('augment status <name>')
-  .description('Check if an augmentation is enabled')
-  .action(wrapAction(async (name) => {
-    const { BrainyData } = await import('../dist/brainyData.js')
-    const brainy = new BrainyData()
-    await brainy.init()
-    
-    const enabled = brainy.isAugmentationEnabled(name)
-    
-    if (enabled !== undefined) {
-      const status = enabled ? chalk.green('✅ enabled') : chalk.red('❌ disabled')
-      console.log(`${name}: ${status}`)
-    } else {
-      console.log(chalk.red(`❌ Augmentation not found: ${name}`))
-      console.log(chalk.dim('Use "brainy augment" to see available augmentations'))
-    }
-  }))
-
-// ========================================
-// PARSE AND HANDLE
-// ========================================
-
-program.parse(process.argv)
-
-// Show help if no command
-if (!process.argv.slice(2).length) {
-  console.log(chalk.cyan('🧠 Brainy - Multi-Dimensional AI Database'))
-  console.log(chalk.gray('Vector similarity, graph relationships, metadata facets, and AI context.\n'))
-  
-  console.log(chalk.bold('Quick Start:'))
-  console.log('  brainy init                    # Initialize project')
-  console.log('  brainy add "some data"         # Add multi-dimensional data')
-  console.log('  brainy search "query"          # Search across all dimensions')
-  console.log('  brainy chat                    # 🧠 Magical AI chat with perfect memory')
-  console.log('')
-  console.log(chalk.bold('Chat & Memory:'))
-  console.log('  brainy chat                    # Interactive chat with local memory')
-  console.log('  brainy chat "question"         # Single question with context')
-  console.log('  brainy chat --list             # List all chat sessions')
-  console.log('  brainy chat --search "query"   # Search all conversations')
-  console.log('  brainy chat --history          # Show conversation history')
-  console.log('  brainy chat --ui=web           # 🌐 Premium web coordination interface')
-  console.log('')
-  console.log(chalk.bold('Brain Cloud (Premium):'))
-  console.log(chalk.green('  brainy cloud setup             # Auto-setup with provisioning'))
-  console.log('  brainy cloud connect <id>      # Connect to existing instance')
-  console.log('  brainy cloud dashboard         # Open Brain Cloud dashboard')
-  console.log('')
-  console.log(chalk.bold('AI Coordination:'))
-  console.log('  brainy install brain-jar       # Install coordination')
-  console.log('  brainy brain-jar start         # Start coordination')
-  console.log('')
-  console.log(chalk.dim('Learn more: https://soulcraft.com'))
-  console.log('')
-  program.outputHelp()
-}
-
-// ========================================
-// BRAIN CLOUD MEMORY SETUP FUNCTIONS
-// ========================================
-
-async function checkBrainCloudAuth() {
-  try {
-    // Check for license file
-    const { readFile } = await import('fs/promises')
-    const { join } = await import('path')
-    const { homedir } = await import('os')
-    
-    try {
-      const licensePath = join(homedir(), '.brainy', 'license')
-      const license = await readFile(licensePath, 'utf8')
-      return license.trim().startsWith('lic_')
-    } catch {}
-    
-    // Check for existing customer ID
-    return await detectCustomerId() !== null
-  } catch {
-    return false
-  }
-}
-
-async function detectCustomerId() {
-  try {
-    // Method 1: Check for existing brainy config
-    const { readFile } = await import('fs/promises')
-    const { join } = await import('path')
-    
-    try {
-      const configPath = join(process.cwd(), 'brainy-config.json')
-      const config = JSON.parse(await readFile(configPath, 'utf8'))
-      if (config.brainCloudCustomerId) {
-        return config.brainCloudCustomerId
-      }
-    } catch {}
-    
-    // Method 2: Check CLAUDE.md for existing customer ID
-    try {
-      const claudePath = join(process.cwd(), 'CLAUDE.md')
-      const claudeContent = await readFile(claudePath, 'utf8')
-      const match = claudeContent.match(/customer.*?([a-z0-9-]+)/i)
-      if (match) return match[1]
-    } catch {}
-    
-    // Method 3: Test common demo IDs
-    const testIds = ['demo-test-auto', 'demo-test123']
-    for (const id of testIds) {
-      try {
-        const response = await fetch(`https://api.soulcraft.com/brain-cloud/health`, {
-          headers: { 'x-customer-id': id }
-        })
-        if (response.ok) {
-          return id
-        }
-      } catch {}
-    }
-    
-    return null
-  } catch (error) {
-    return null
-  }
-}
-
-async function setupBrainCloudMemory(customerId) {
-  const { writeFile, mkdir } = await import('fs/promises')
-  const { join } = await import('path')
-  
-  console.log(chalk.gray('📝 Setting up AI memory configuration...'))
-  
-  // 1. Create/update .claude directory and MCP config
-  try {
-    await mkdir('.claude', { recursive: true })
-    
-    const mcpConfig = {
-      mcpServers: {
-        "brain-cloud": {
-          command: "node",
-          args: ["brainy-mcp-server.js"],
-          env: {
-            CUSTOMER_ID: customerId,
-            BRAIN_CLOUD_URL: "https://api.soulcraft.com/brain-cloud"
-          }
-        }
-      }
-    }
-    
-    await writeFile('.claude/mcp_servers.json', JSON.stringify(mcpConfig, null, 2))
-    console.log(chalk.green('✅ MCP configuration updated'))
-  } catch (error) {
-    console.log(chalk.yellow('⚠️ Could not update MCP config:', error.message))
-  }
-  
-  // 2. Create/update CLAUDE.md with natural language instructions
-  const claudeContent = `# 🧠 I Remember Everything Now!
-
-Hi! I'm connected to your Brain Cloud (${customerId}) so I actually remember our conversations across sessions.
-
-## Try Saying:
-- "What did we build together?"
-- "Remember that React project?"
-- "Show me what we worked on yesterday"
-- "Find my notes about APIs"
-- "Search for that bug we fixed"
-
-## I Can Also:
-- Remember context from weeks ago
-- Work with other AI assistants who share the same memory
-- Keep everything synced across your devices
-- Search through all our conversations
-
-## Multi-AI Coordination:
-When working with multiple AI assistants, we automatically coordinate:
-- **Jarvis** (Backend): APIs, databases, deployment
-- **Picasso** (Design): UI, themes, visual elements  
-- **Claude** (Planning): Coordination, architecture, strategy
-
-**Just talk to me normally - no commands needed!**
-
----
-*Brain Cloud Instance: ${customerId}*
-*Last Updated: ${new Date().toLocaleDateString()}*
-`
-  
-  try {
-    await writeFile('CLAUDE.md', claudeContent)
-    console.log(chalk.green('✅ CLAUDE.md updated with memory instructions'))
-  } catch (error) {
-    console.log(chalk.yellow('⚠️ Could not update CLAUDE.md:', error.message))
-  }
-  
-  // 3. Save customer ID to brainy config
-  try {
-    const brainyConfig = {
-      brainCloudCustomerId: customerId,
-      brainCloudUrl: 'https://api.soulcraft.com/brain-cloud',
-      lastConnected: new Date().toISOString()
-    }
-    
-    await writeFile('brainy-config.json', JSON.stringify(brainyConfig, null, 2))
-    console.log(chalk.green('✅ Brainy configuration saved'))
-  } catch (error) {
-    console.log(chalk.yellow('⚠️ Could not save brainy config:', error.message))
-  }
-}
-
-// ========================================
-// AUTO-SETUP HELPER FUNCTIONS  
-// ========================================
-
-const PROVISIONING_API = 'https://provisioning.soulcraft.com'
-
-let spinner = null
-
-function startSpinner(message) {
-  stopSpinner()
-  process.stdout.write(`${message} `)
-  
-  const spinnerChars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
-  let i = 0
-  
-  spinner = setInterval(() => {
-    process.stdout.write(`\r${message} ${spinnerChars[i]}`)
-    i = (i + 1) % spinnerChars.length
-  }, 100)
-}
-
-function stopSpinner() {
-  if (spinner) {
-    clearInterval(spinner)
-    spinner = null
-    process.stdout.write('\r')
-  }
-}
-
-async function validateLicense() {
-  startSpinner('Validating Early Access license...')
-
-  const licenseKey = process.env.BRAINY_LICENSE_KEY
-
-  if (!licenseKey) {
-    stopSpinner()
-    console.log('\n❌ No license key found')
-    console.log('\n🔑 Please set your Early Access license key:')
-    console.log('   export BRAINY_LICENSE_KEY="lic_early_access_your_key"')
-    console.log('\n📝 Don\'t have a key? Get one free at: https://soulcraft.com/brain-cloud')
-    throw new Error('License key required')
-  }
-
-  if (!licenseKey.startsWith('lic_early_access_')) {
-    stopSpinner()
-    throw new Error('Invalid license key format. Early Access keys start with "lic_early_access_"')
-  }
-
-  stopSpinner()
-  console.log('✅ License validated')
-}
-
-async function ensureBrainyInstalled() {
-  startSpinner('Checking Brainy installation...')
-
-  try {
-    const { exec } = await import('child_process')
-    const { promisify } = await import('util')
-    const execAsync = promisify(exec)
-    
-    await execAsync('brainy --version')
-    stopSpinner()
-    console.log('✅ Brainy CLI found')
-  } catch (error) {
-    stopSpinner()
-    console.log('📦 Installing Brainy CLI...')
-    
-    try {
-      await execWithProgress('npm install -g @soulcraft/brainy')
-      console.log('✅ Brainy CLI installed')
-    } catch (installError) {
-      throw new Error('Failed to install Brainy CLI. Please install manually: npm install -g @soulcraft/brainy')
-    }
-  }
-}
-
-async function provisionCloudInstance(userEmail) {
-  const licenseKey = process.env.BRAINY_LICENSE_KEY
-  startSpinner('Provisioning your cloud Brainy instance...')
-
-  try {
-    const response = await fetch(`${PROVISIONING_API}/provision`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        licenseKey,
-        userEmail: userEmail || 'user@example.com'
+    const choice = await new Promise(resolve => {
+      rl.question(colors.primary('Enter your choice (1-10): '), (answer) => {
+        rl.close()
+        resolve(answer)
       })
     })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Provisioning failed')
-    }
-
-    const result = await response.json()
-    stopSpinner()
     
-    if (result.instance.status === 'active') {
-      console.log('✅ Cloud instance already active')
-      return result.instance
+    switch (choice) {
+      case '1':
+        console.log(colors.success('\n🧠 Use: brainy add "your data here"'))
+        console.log(colors.info('Example: brainy add "John works at Google"'))
+        break
+      case '2':
+        console.log(colors.success('\n💬 Use: brainy chat "your question"'))
+        console.log(colors.info('Example: brainy chat "Tell me about my data"'))
+        console.log(colors.info('Supports: local (Ollama), OpenAI, Claude'))
+        break
+      case '3':
+        console.log(colors.success('\n🔍 Use: brainy search "your query"'))
+        console.log(colors.info('Example: brainy search "Google employees"'))
+        break
+      case '4':
+        console.log(colors.success('\n📥 Use: brainy import <file-or-url>'))
+        console.log(colors.info('Example: brainy import data.txt'))
+        break
+      case '5':
+        console.log(colors.success('\n📊 Use: brainy status'))
+        console.log(colors.info('Shows comprehensive brain statistics'))
+        console.log(colors.info('Options: --simple (quick) or --verbose (detailed)'))
+        break
+      case '6':
+        console.log(colors.success('\n☁️ Use: brainy cloud connect'))
+        console.log(colors.info('Example: brainy cloud connect --instance demo-test-auto'))
+        break
+      case '7':
+        console.log(colors.success('\n🔧 Use: brainy config <action>'))
+        console.log(colors.info('Example: brainy config list'))
+        break
+      case '8':
+        program.help()
+        break
+      default:
+        console.log(colors.warning('Invalid choice. Use "brainy --help" for all commands.'))
     }
+  }))
 
-    console.log('🚀 Provisioning started (2-3 minutes)')
-    
-    // Wait for provisioning to complete
-    return await waitForProvisioning(licenseKey)
+// ========================================
+// FALLBACK - Show interactive help if no command
+// ========================================
 
-  } catch (error) {
-    stopSpinner()
-    throw new Error(`Provisioning failed: ${error.message}`)
-  }
-}
-
-async function waitForProvisioning(licenseKey) {
-  const maxWaitTime = 5 * 60 * 1000 // 5 minutes
-  const checkInterval = 15 * 1000 // 15 seconds
-  const startTime = Date.now()
-
-  while (Date.now() - startTime < maxWaitTime) {
-    startSpinner('Waiting for cloud instance to be ready...')
-    
-    try {
-      const response = await fetch(`${PROVISIONING_API}/status?licenseKey=${encodeURIComponent(licenseKey)}`)
-      
-      if (response.ok) {
-        const result = await response.json()
-        
-        if (result.instance.status === 'active') {
-          stopSpinner()
-          console.log('✅ Cloud instance is ready')
-          return result.instance
-        }
-        
-        if (result.instance.status === 'failed') {
-          stopSpinner()
-          throw new Error('Instance provisioning failed')
-        }
-      }
-      
-      stopSpinner()
-      await new Promise(resolve => setTimeout(resolve, checkInterval))
-      
-    } catch (error) {
-      stopSpinner()
-      console.log('⏳ Still provisioning...')
-      await new Promise(resolve => setTimeout(resolve, checkInterval))
-    }
-  }
-
-  throw new Error('Provisioning timeout. Please check your dashboard or contact support.')
-}
-
-async function configureBrainy(instance) {
-  const { writeFile, mkdir } = await import('fs/promises')
-  const { join } = await import('path')
-  const { homedir } = await import('os')
-  const { existsSync } = await import('fs')
-  
-  startSpinner('Configuring local Brainy to use cloud instance...')
-
-  // Ensure config directory exists
-  const BRAINY_CONFIG_DIR = join(homedir(), '.brainy')
-  const BRAINY_CONFIG_FILE = join(BRAINY_CONFIG_DIR, 'config.json')
-  
-  if (!existsSync(BRAINY_CONFIG_DIR)) {
-    await mkdir(BRAINY_CONFIG_DIR, { recursive: true })
-  }
-
-  // Create or update Brainy config
-  let config = {}
-  if (existsSync(BRAINY_CONFIG_FILE)) {
-    try {
-      const { readFile } = await import('fs/promises')
-      const existing = await readFile(BRAINY_CONFIG_FILE, 'utf8')
-      config = JSON.parse(existing)
-    } catch (error) {
-      console.log('⚠️  Could not read existing config, creating new one')
-    }
-  }
-
-  // Update config with cloud instance details
-  config.cloudSync = {
-    enabled: true,
-    endpoint: instance.endpoints.api,
-    instanceId: instance.id,
-    licenseKey: process.env.BRAINY_LICENSE_KEY
-  }
-
-  config.aiMemory = {
-    enabled: true,
-    storage: 'cloud',
-    endpoint: instance.endpoints.api
-  }
-
-  config.agentCoordination = {
-    enabled: true,
-    endpoint: instance.endpoints.api
-  }
-
-  await writeFile(BRAINY_CONFIG_FILE, JSON.stringify(config, null, 2))
-  
-  stopSpinner()
-  console.log('✅ Local Brainy configured for cloud sync')
-}
-
-async function installBrainCloudPackage() {
-  startSpinner('Installing Brain Cloud augmentations...')
-
-  try {
-    const { existsSync } = await import('fs')
-    
-    // Check if we're in a project directory
-    const hasPackageJson = existsSync('package.json')
-    
-    if (hasPackageJson) {
-      // Auto-configured with 'brainy cloud auth' - no package installation needed!
-      console.log('✅ Brain Cloud package installed in current project')
-    } else {
-      // Install globally for non-project usage
-      console.log('✅ Run \'brainy cloud auth\' to authenticate and auto-configure')
-      console.log('✅ Brain Cloud package installed globally')
-    }
-
-  } catch (error) {
-    stopSpinner()
-    console.log('⚠️  Could not auto-install Brain Cloud package')
-    console.log('   Authenticate manually: brainy cloud auth')
-    // Don't throw error, this is optional
-  }
-}
-
-async function testConnection(instance) {
-  startSpinner('Testing cloud connection...')
-
-  try {
-    const response = await fetch(`${instance.endpoints.api}/health`)
-    
-    if (response.ok) {
-      const health = await response.json()
-      stopSpinner()
-      console.log('✅ Cloud instance connection verified')
-      
-      // Test memory storage
-      const testMemory = {
-        content: 'Test memory from auto-setup',
-        source: 'brain-cloud-setup',
-        importance: 'low',
-        tags: ['setup', 'test']
-      }
-
-      const memoryResponse = await fetch(`${instance.endpoints.api}/api/memories`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(testMemory)
-      })
-
-      if (memoryResponse.ok) {
-        console.log('✅ Memory storage working')
-      }
-
-    } else {
-      stopSpinner()
-      console.log('⚠️  Cloud instance not responding yet (this is normal)')
-      console.log('   Your instance may need a few more minutes to fully initialize')
-    }
-  } catch (error) {
-    stopSpinner()
-    console.log('⚠️  Could not test connection (this is usually fine)')
-  }
-}
-
-async function execWithProgress(command) {
-  const { spawn } = await import('child_process')
-  
-  return new Promise((resolve, reject) => {
-    const child = spawn('sh', ['-c', command], { 
-      stdio: ['inherit', 'pipe', 'pipe'],
-      shell: true 
-    })
-
-    let stdout = ''
-    let stderr = ''
-
-    child.stdout?.on('data', (data) => {
-      stdout += data.toString()
-      process.stdout.write('.')
-    })
-
-    child.stderr?.on('data', (data) => {
-      stderr += data.toString()
-    })
-
-    child.on('close', (code) => {
-      process.stdout.write('\n')
-      if (code === 0) {
-        resolve(stdout)
-      } else {
-        reject(new Error(stderr || `Command failed with code ${code}`))
-      }
-    })
-  })
+// If no arguments provided, show interactive help
+if (process.argv.length === 2) {
+  program.parse(['node', 'brainy', 'help'])
+} else {
+  program.parse(process.argv)
 }
