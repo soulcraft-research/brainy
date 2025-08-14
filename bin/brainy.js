@@ -52,6 +52,140 @@ const wrapAction = (fn) => {
   }
 }
 
+// AI Response Generation with multiple model support
+async function generateAIResponse(message, brainy, options) {
+  const model = options.model || 'local'
+  
+  // Get relevant context from user's data
+  const contextResults = await brainy.search(message, 5, {
+    includeContent: true,
+    scoreThreshold: 0.3
+  })
+  
+  const context = contextResults.map(r => r.content).join('\n')
+  const prompt = `Based on the following context from the user's data, answer their question:
+
+Context:
+${context}
+
+Question: ${message}
+
+Answer:`
+
+  switch (model) {
+    case 'local':
+    case 'ollama':
+      return await callOllamaModel(prompt, options)
+      
+    case 'openai':
+    case 'gpt-3.5-turbo':
+    case 'gpt-4':
+      return await callOpenAI(prompt, options)
+      
+    case 'claude':
+    case 'claude-3':
+      return await callClaude(prompt, options)
+      
+    default:
+      return await callOllamaModel(prompt, options)
+  }
+}
+
+// Ollama (local) integration
+async function callOllamaModel(prompt, options) {
+  const baseUrl = options.baseUrl || 'http://localhost:11434'
+  const model = options.model === 'local' ? 'llama2' : options.model
+  
+  try {
+    const response = await fetch(`${baseUrl}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model,
+        prompt: prompt,
+        stream: false
+      })
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Ollama error: ${response.statusText}. Make sure Ollama is running: ollama serve`)
+    }
+    
+    const data = await response.json()
+    return data.response || 'No response from local model'
+    
+  } catch (error) {
+    throw new Error(`Local model error: ${error.message}. Try: ollama run llama2`)
+  }
+}
+
+// OpenAI integration
+async function callOpenAI(prompt, options) {
+  if (!options.apiKey) {
+    throw new Error('OpenAI API key required. Use --api-key <key> or set OPENAI_API_KEY environment variable')
+  }
+  
+  const model = options.model === 'openai' ? 'gpt-3.5-turbo' : options.model
+  
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${options.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 500
+      })
+    })
+    
+    if (!response.ok) {
+      throw new Error(`OpenAI error: ${response.statusText}`)
+    }
+    
+    const data = await response.json()
+    return data.choices[0]?.message?.content || 'No response from OpenAI'
+    
+  } catch (error) {
+    throw new Error(`OpenAI error: ${error.message}`)
+  }
+}
+
+// Claude integration  
+async function callClaude(prompt, options) {
+  if (!options.apiKey) {
+    throw new Error('Anthropic API key required. Use --api-key <key> or set ANTHROPIC_API_KEY environment variable')
+  }
+  
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': options.apiKey,
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 500,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Claude error: ${response.statusText}`)
+    }
+    
+    const data = await response.json()
+    return data.content[0]?.text || 'No response from Claude'
+    
+  } catch (error) {
+    throw new Error(`Claude error: ${error.message}`)
+  }
+}
+
 // ========================================
 // MAIN PROGRAM - CLEAN & SIMPLE
 // ========================================
@@ -110,7 +244,158 @@ program
     console.log(colors.success('✅ Added successfully!'))
   }))
 
-// Command 2: IMPORT - Bulk/external data
+// Command 2: CHAT - Talk to your data with AI
+program
+  .command('chat [message]')
+  .description('AI chat with your brain data (supports local & cloud models)')
+  .option('-s, --session <id>', 'Use specific chat session')
+  .option('-n, --new', 'Start a new session')
+  .option('-l, --list', 'List all chat sessions') 
+  .option('-h, --history [limit]', 'Show conversation history (default: 10)')
+  .option('--search <query>', 'Search all conversations')
+  .option('-m, --model <model>', 'LLM model (local/openai/claude/ollama)', 'local')
+  .option('--api-key <key>', 'API key for cloud models')
+  .option('--base-url <url>', 'Base URL for local models (default: http://localhost:11434)')
+  .action(wrapAction(async (message, options) => {
+    const { BrainyData } = await import('../dist/brainyData.js')
+    const { BrainyChat } = await import('../dist/chat/BrainyChat.js')
+    
+    console.log(colors.primary('🧠💬 Brainy Chat - AI-Powered Conversation with Your Data'))
+    console.log(colors.info('Talk to your brain using your data as context'))
+    console.log()
+    
+    // Initialize brainy and chat
+    const brainy = new BrainyData()
+    await brainy.init()
+    const chat = new BrainyChat(brainy)
+    
+    // Handle different options
+    if (options.list) {
+      console.log(colors.primary('📋 Chat Sessions'))
+      const sessions = await chat.getSessions(20)
+      if (sessions.length === 0) {
+        console.log(colors.warning('No chat sessions found. Start chatting to create your first session!'))
+      } else {
+        sessions.forEach((session, i) => {
+          console.log(colors.success(`${i + 1}. ${session.id}`))
+          if (session.title) console.log(colors.info(`   Title: ${session.title}`))
+          console.log(colors.info(`   Messages: ${session.messageCount}`))
+          console.log(colors.info(`   Last active: ${session.lastMessageAt.toLocaleDateString()}`))
+        })
+      }
+      return
+    }
+    
+    if (options.search) {
+      console.log(colors.primary(`🔍 Searching conversations for: "${options.search}"`))
+      const results = await chat.searchMessages(options.search, { limit: 10 })
+      if (results.length === 0) {
+        console.log(colors.warning('No messages found'))
+      } else {
+        results.forEach((msg, i) => {
+          console.log(colors.success(`\n${i + 1}. [${msg.sessionId}] ${colors.info(msg.speaker)}:`))
+          console.log(`   ${msg.content.substring(0, 200)}${msg.content.length > 200 ? '...' : ''}`)
+        })
+      }
+      return
+    }
+    
+    if (options.history) {
+      const limit = parseInt(options.history) || 10
+      console.log(colors.primary(`📜 Recent Chat History (${limit} messages)`))
+      const history = await chat.getHistory(limit)
+      if (history.length === 0) {
+        console.log(colors.warning('No chat history found'))
+      } else {
+        history.forEach(msg => {
+          const speaker = msg.speaker === 'user' ? colors.success('You') : colors.info('AI')
+          console.log(`${speaker}: ${msg.content}`)
+          console.log(colors.info(`   ${msg.timestamp.toLocaleString()}`))
+          console.log()
+        })
+      }
+      return
+    }
+    
+    // Start interactive chat or process single message
+    if (!message) {
+      console.log(colors.success('🎯 Interactive mode - type messages or "exit" to quit'))
+      console.log(colors.info(`Model: ${options.model}`))
+      console.log()
+      
+      // Auto-discover previous session
+      const session = options.new ? null : await chat.initialize()
+      if (session) {
+        console.log(colors.success(`📋 Resumed session: ${session.id}`))
+        console.log()
+      } else {
+        const newSession = await chat.startNewSession()
+        console.log(colors.success(`🆕 Started new session: ${newSession.id}`))
+        console.log()
+      }
+      
+      // Interactive chat loop
+      const rl = createInterface({
+        input: process.stdin,
+        output: process.stdout,
+        prompt: colors.primary('You: ')
+      })
+      
+      rl.prompt()
+      
+      rl.on('line', async (input) => {
+        if (input.trim().toLowerCase() === 'exit') {
+          console.log(colors.success('👋 Chat session saved to your brain!'))
+          rl.close()
+          return
+        }
+        
+        if (input.trim()) {
+          // Store user message
+          await chat.addMessage(input.trim(), 'user')
+          
+          // Generate AI response
+          try {
+            const response = await generateAIResponse(input.trim(), brainy, options)
+            console.log(colors.info('AI: ') + response)
+            
+            // Store AI response
+            await chat.addMessage(response, 'assistant', { model: options.model })
+            console.log()
+          } catch (error) {
+            console.log(colors.error('AI Error: ') + error.message)
+            console.log(colors.warning('💡 Tip: Try setting --model local or providing --api-key'))
+            console.log()
+          }
+        }
+        
+        rl.prompt()
+      })
+      
+      rl.on('close', () => {
+        exitProcess(0)
+      })
+      
+    } else {
+      // Single message mode
+      console.log(colors.success('You: ') + message)
+      
+      try {
+        const response = await generateAIResponse(message, brainy, options)
+        console.log(colors.info('AI: ') + response)
+        
+        // Store conversation
+        await chat.addMessage(message, 'user')
+        await chat.addMessage(response, 'assistant', { model: options.model })
+        
+      } catch (error) {
+        console.log(colors.error('Error: ') + error.message)
+        console.log(colors.info('💡 Try: brainy chat --model local or provide --api-key'))
+      }
+    }
+  }))
+
+// Command 3: IMPORT - Bulk/external data
 program
   .command('import <source>')
   .description('Import bulk data from files, URLs, or streams')
@@ -543,16 +828,17 @@ program
     
     console.log(colors.primary('What would you like to do?'))
     console.log(colors.info('1. Add some data'))
-    console.log(colors.info('2. Search your brain'))
-    console.log(colors.info('3. Import a file'))
-    console.log(colors.info('4. Check status'))
-    console.log(colors.info('5. Connect to Brain Cloud'))
-    console.log(colors.info('6. Configuration'))
-    console.log(colors.info('7. Show all commands'))
+    console.log(colors.info('2. Chat with AI using your data'))
+    console.log(colors.info('3. Search your brain'))
+    console.log(colors.info('4. Import a file'))
+    console.log(colors.info('5. Check status'))
+    console.log(colors.info('6. Connect to Brain Cloud'))
+    console.log(colors.info('7. Configuration'))
+    console.log(colors.info('8. Show all commands'))
     console.log()
     
     const choice = await new Promise(resolve => {
-      rl.question(colors.primary('Enter your choice (1-7): '), (answer) => {
+      rl.question(colors.primary('Enter your choice (1-8): '), (answer) => {
         rl.close()
         resolve(answer)
       })
@@ -564,27 +850,32 @@ program
         console.log(colors.info('Example: brainy add "John works at Google"'))
         break
       case '2':
+        console.log(colors.success('\n💬 Use: brainy chat "your question"'))
+        console.log(colors.info('Example: brainy chat "Tell me about my data"'))
+        console.log(colors.info('Supports: local (Ollama), OpenAI, Claude'))
+        break
+      case '3':
         console.log(colors.success('\n🔍 Use: brainy search "your query"'))
         console.log(colors.info('Example: brainy search "Google employees"'))
         break
-      case '3':
+      case '4':
         console.log(colors.success('\n📥 Use: brainy import <file-or-url>'))
         console.log(colors.info('Example: brainy import data.txt'))
         break
-      case '4':
+      case '5':
         console.log(colors.success('\n📊 Use: brainy status'))
         console.log(colors.info('Shows comprehensive brain statistics'))
         console.log(colors.info('Options: --simple (quick) or --verbose (detailed)'))
         break
-      case '5':
+      case '6':
         console.log(colors.success('\n☁️ Use: brainy cloud connect'))
         console.log(colors.info('Example: brainy cloud connect --instance demo-test-auto'))
         break
-      case '6':
+      case '7':
         console.log(colors.success('\n🔧 Use: brainy config <action>'))
         console.log(colors.info('Example: brainy config list'))
         break
-      case '7':
+      case '8':
         program.help()
         break
       default:
