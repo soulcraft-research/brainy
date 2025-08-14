@@ -5,8 +5,8 @@
 [![npm version](https://badge.fury.io/js/%40soulcraft%2Fbrainy.svg)](https://badge.fury.io/js/%40soulcraft%2Fbrainy)
 [![1.0 RC](https://img.shields.io/badge/1.0-Release%20Candidate-orange.svg)](https://github.com/soulcraftlabs/brainy/releases/tag/v1.0.0-rc.1)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Try Demo](https://img.shields.io/badge/Try%20Demo-Live-green.svg)](https://soulcraft.com)
-[![Brain Cloud](https://img.shields.io/badge/Brain%20Cloud-Early%20Access-blue.svg)](https://soulcraft.com/brain-cloud)
+[![Website](https://img.shields.io/badge/Website-soulcraft.com-green.svg)](https://soulcraft.com)
+[![Brain Cloud](https://img.shields.io/badge/Brain%20Cloud-Coming%20Soon-blue.svg)](https://soulcraft.com)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.4.1-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4.5-blue.svg)](https://www.typescriptlang.org/)
 
@@ -26,8 +26,8 @@
 
 **Brainy is 100% open source and free forever!** Help us keep it that way:
 
-[![Sponsor](https://img.shields.io/badge/💖_Sponsor_Brainy-Support_Development-ff69b4?style=for-the-badge)](https://github.com/sponsors/soulcraftlabs)
-[![Brain Cloud](https://img.shields.io/badge/☁️_Try_Brain_Cloud-Free_Trial-4A90E2?style=for-the-badge)](https://app.soulcraft.com)
+[![Sponsor](https://img.shields.io/badge/💖_Sponsor_Brainy-Support_Development-ff69b4?style=for-the-badge)](https://github.com/soulcraftlabs/brainy)
+[![Brain Cloud](https://img.shields.io/badge/☁️_Try_Brain_Cloud-Coming_Soon-4A90E2?style=for-the-badge)](https://soulcraft.com)
 [![Star](https://img.shields.io/badge/⭐_Star_on_GitHub-Show_Support-FFC107?style=for-the-badge)](https://github.com/soulcraftlabs/brainy)
 
 **Every sponsorship helps us:** Build more features • Fix bugs faster • Keep Brainy free
@@ -284,15 +284,6 @@ Vector + Graph + Search + AI = Brainy (Free & Open Source) = 🧠✨
 
 **Your data gets superpowers. Your wallet stays happy.**
 
-## 🎮 Try It Now - No Install Required!
-
-<div align="center">
-
-### [**→ Live Demos at soulcraft.com/demo ←**](https://soulcraft.com/demo)
-
-Try Brainy instantly in your browser. No signup. No credit card.
-
-</div>
 
 ## ⚡ Quick Start (60 Seconds)
 
@@ -402,10 +393,9 @@ await neural.neuralImport('data.csv')  // Automatically extracts entities & rela
 **Try it FREE:** Get persistent memory, team sync, and enterprise connectors!
 
 ```bash
-# Quick setup - 30 seconds to superpowers!
-npx brainy cloud setup
-
-# Or visit: app.soulcraft.com/signup
+# Coming Soon! Brain Cloud is in development
+# Join the waitlist:
+# Visit: soulcraft.com
 ```
 
 **Why Brain Cloud?**
@@ -443,20 +433,6 @@ brain.register(aiMemory)  // AI remembers everything
 - 🔄 **Postgres** - Real-time replication
 - 🏢 **Slack** - Team knowledge base
 
-### 🎮 **Try Online** (Free Playground)
-Test Brainy instantly without installing:
-
-```javascript
-// Visit soulcraft.com/demo
-// No signup required - just start coding!
-// Perfect for:
-// - Testing Brainy before installing
-// - Prototyping ideas quickly  
-// - Learning the API
-// - Sharing examples with others
-```
-
-**[→ Try Live Demos](https://soulcraft.com/demo)** - Multiple interactive demos showcasing Brainy's capabilities
 
 ### ☁️ **Brain Cloud** (Managed Service)
 For teams that want zero-ops:
@@ -681,10 +657,9 @@ const insights = await agentBrain.getRelated("enterprise plan")
 - 📢 Spread the word
 
 ### Get Help & Connect
-- 💬 [Discord Community](https://discord.gg/brainy)
-- 🐦 [Twitter Updates](https://twitter.com/soulcraftlabs)
 - 📧 [Email Support](mailto:support@soulcraft.com)
-- 🎓 [Video Tutorials](https://youtube.com/@soulcraft)
+- 🐛 [GitHub Issues](https://github.com/soulcraftlabs/brainy/issues)
+- 💬 [GitHub Discussions](https://github.com/soulcraftlabs/brainy/discussions)
 
 ## 📈 Who's Using Brainy?
 
@@ -706,10 +681,10 @@ Premium augmentations available at [soulcraft.com](https://soulcraft.com)
 
 ### 🧠⚛️ **Give Your Data a Brain Upgrade**
 
-**[Get Started](docs/getting-started/quick-start.md)** • 
+**[Get Started](docs/getting-started/quick-start-1.0.md)** • 
 **[Examples](examples/)** • 
-**[API Docs](docs/api/BRAINY-API-REFERENCE.md)** • 
-**[Discord](https://discord.gg/brainy)**
+**[API Docs](UNIFIED-API.md)** • 
+**[GitHub](https://github.com/soulcraftlabs/brainy)**
 
 ⭐ **Star us on GitHub to support open source AI!** ⭐
 
