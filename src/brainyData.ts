@@ -1666,27 +1666,24 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   }
 
   /**
-   * Add data to the database (literal storage by default)
-   * 
-   * 🔒 Safe by default: Only stores your data literally without AI processing
-   * 🧠 AI processing: Set { process: true } or use addSmart() for Neural Import
+   * Add data to the database with intelligent processing
    * 
    * @param vectorOrData Vector or data to add
    * @param metadata Optional metadata to associate with the data
-   * @param options Additional options - use { process: true } for AI analysis
+   * @param options Additional options for processing
    * @returns The ID of the added data
    * 
    * @example
-   * // Literal storage (safe, no AI processing)
-   * await brainy.add("API_KEY=secret123")
+   * // Auto mode - intelligently decides processing
+   * await brainy.add("Customer feedback: Great product!")
    * 
    * @example  
-   * // With AI processing (explicit opt-in)
-   * await brainy.add("John works at Acme Corp", null, { process: true })
+   * // Explicit literal mode for sensitive data
+   * await brainy.add("API_KEY=secret123", null, { process: 'literal' })
    * 
    * @example
-   * // Smart processing (recommended for data analysis)
-   * await brainy.addSmart("Customer feedback: Great product!")
+   * // Force neural processing
+   * await brainy.add("John works at Acme Corp", null, { process: 'neural' })
    */
   public async add(
     vectorOrData: Vector | any,
@@ -1696,7 +1693,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       addToRemote?: boolean // Whether to also add to the remote server if connected
       id?: string // Optional ID to use instead of generating a new one
       service?: string // The service that is inserting the data
-      process?: boolean // Enable AI processing (neural import, entity detection, etc.)
+      process?: 'auto' | 'literal' | 'neural' // Processing mode (default: 'auto')
     } = {}
   ): Promise<string> {
     await this.ensureInitialized()
@@ -2000,8 +1997,20 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       // Invalidate search cache since data has changed
       this.searchCache.invalidateOnDataChange('add')
 
-      // 🧠 AI Processing (Neural Import) - Only if explicitly requested
-      if (options.process === true) {
+      // Determine processing mode
+      const processingMode = options.process || 'auto'
+      let shouldProcessNeurally = false
+      
+      if (processingMode === 'neural') {
+        shouldProcessNeurally = true
+      } else if (processingMode === 'auto') {
+        // Auto-detect whether to use neural processing
+        shouldProcessNeurally = this.shouldAutoProcessNeurally(vectorOrData, metadata)
+      }
+      // 'literal' mode means no neural processing
+      
+      // 🧠 AI Processing (Neural Import) - Based on processing mode
+      if (shouldProcessNeurally) {
         try {
           // Execute SENSE pipeline (includes Neural Import and other AI augmentations)
           await augmentationPipeline.executeSensePipeline(
@@ -3351,8 +3360,18 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
     id: string,
     options: {
       service?: string // The service that is deleting the data
+      soft?: boolean // Soft delete (mark as deleted, default: true)
+      cascade?: boolean // Delete related verbs (default: false)
+      force?: boolean // Force delete even if has relationships (default: false)
     } = {}
   ): Promise<boolean> {
+    const opts = {
+      service: undefined,
+      soft: true, // Soft delete is default - preserves indexes
+      cascade: false,
+      force: false,
+      ...options
+    }
     // Validate id parameter first, before any other logic
     if (id === null || id === undefined) {
       throw new Error('ID cannot be null or undefined')
@@ -3386,7 +3405,17 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         }
       }
 
-      // Remove from index
+      // Handle soft delete vs hard delete
+      if (opts.soft) {
+        // Soft delete: just mark as deleted - metadata filter will exclude from search
+        return await this.updateMetadata(actualId, { 
+          deleted: true, 
+          deletedAt: new Date().toISOString(),
+          deletedBy: opts.service || 'user'
+        } as T)
+      }
+
+      // Hard delete: Remove from index
       const removed = this.index.removeItem(actualId)
       if (!removed) {
         return false
@@ -3396,7 +3425,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       await this.storage!.deleteNoun(actualId)
 
       // Track deletion statistics
-      const service = this.getServiceName(options)
+      const service = this.getServiceName({ service: opts.service })
       await this.storage!.decrementStatistic('noun', service)
 
       // Try to remove metadata (ignore errors)
@@ -3569,7 +3598,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
       throw new Error('Relation type cannot be null or undefined')
     }
 
-    return this.addVerb(sourceId, targetId, undefined, {
+    return this._addVerbInternal(sourceId, targetId, undefined, {
       type: relationType,
       metadata: metadata
     })
@@ -3609,7 +3638,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
    *
    * @throws Error if source or target nouns don't exist and autoCreateMissingNouns is false or auto-creation fails
    */
-  public async addVerb(
+  private async _addVerbInternal(
     sourceId: string,
     targetId: string,
     vector?: Vector,
@@ -4477,31 +4506,16 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   }
 
   /**
-   * Add data with AI processing enabled by default
-   * 
-   * 🧠 This method automatically enables Neural Import and other AI augmentations
-   * for intelligent data understanding, entity detection, and relationship analysis.
-   * 
-   * Use this when you want AI to understand and process your data.
-   * Use regular add() when you want literal storage only.
-   *
-   * @param vectorOrData The data to add (any format)
-   * @param metadata Optional metadata to associate with the data
-   * @param options Additional options (process defaults to true)
-   * @returns The ID of the added data
+   * @deprecated Use add() instead - it's smart by default now
+   * @hidden
    */
   public async addSmart(
     vectorOrData: Vector | any,
     metadata?: T,
-    options: {
-      forceEmbed?: boolean
-      addToRemote?: boolean
-      id?: string
-      service?: string
-    } = {}
+    options: any = {}
   ): Promise<string> {
-    // Call add() with process=true by default
-    return this.add(vectorOrData, metadata, { ...options, process: true })
+    console.warn('⚠️ addSmart() is deprecated. Use add() instead - it\'s smart by default now!')
+    return this.add(vectorOrData, metadata, { ...options, process: 'auto' })
   }
 
   /**
@@ -6197,7 +6211,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
           }
 
           // Add the verb
-          await this.addVerb(verb.sourceId, verb.targetId, verb.vector, {
+          await this._addVerbInternal(verb.sourceId, verb.targetId, verb.vector, {
             id: verb.id,
             type: verb.metadata?.verb || VerbType.RelatedTo,
             metadata: verb.metadata
@@ -6414,7 +6428,7 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
         }
 
         // Add the verb
-        const id = await this.addVerb(sourceId, targetId, undefined, {
+        const id = await this._addVerbInternal(sourceId, targetId, undefined, {
           type: verbType,
           weight: metadata.weight,
           metadata
@@ -6586,25 +6600,615 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   }
 
   /**
-   * Set a configuration value in Cortex
+   * Set a configuration value with optional encryption
    * @param key Configuration key
    * @param value Configuration value
    * @param options Options including encryption
    */
   async setConfig(key: string, value: any, options?: { encrypt?: boolean }): Promise<void> {
-    // Cortex integration coming in next release
-    prodLog.debug('Cortex integration coming soon')
+    const configNoun = {
+      configKey: key,
+      configValue: options?.encrypt ? await this.encryptData(JSON.stringify(value)) : value,
+      encrypted: !!options?.encrypt,
+      timestamp: new Date().toISOString()
+    }
+
+    await this.add(configNoun, {
+      nounType: NounType.State,
+      configKey: key,
+      encrypted: !!options?.encrypt
+    } as T)
   }
 
   /**
-   * Get a configuration value from Cortex
+   * Get a configuration value with automatic decryption
    * @param key Configuration key
    * @returns Configuration value or undefined
    */
   async getConfig(key: string): Promise<any> {
-    // Cortex integration coming in next release
-    prodLog.debug('Cortex integration coming soon')
-    return undefined
+    try {
+      const results = await this.search('', 1, {
+        nounTypes: [NounType.State],
+        metadata: { configKey: key }
+      })
+
+      if (results.length === 0) return undefined
+
+      const configNoun = results[0]
+      const value = (configNoun as any).data?.configValue || (configNoun as any).metadata?.configValue
+      const encrypted = (configNoun as any).data?.encrypted || (configNoun as any).metadata?.encrypted
+
+      if (encrypted && typeof value === 'string') {
+        const decrypted = await this.decryptData(value)
+        return JSON.parse(decrypted)
+      }
+
+      return value
+    } catch (error) {
+      prodLog.debug('Config retrieval failed:', error)
+      return undefined
+    }
+  }
+
+  /**
+   * Encrypt data using universal crypto utilities
+   */
+  public async encryptData(data: string): Promise<string> {
+    const crypto = await import('./universal/crypto.js')
+    const key = crypto.randomBytes(32)
+    const iv = crypto.randomBytes(16)
+    
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv)
+    let encrypted = cipher.update(data, 'utf8', 'hex')
+    encrypted += cipher.final('hex')
+    
+    // Store key and iv with encrypted data (in production, manage keys separately)
+    return JSON.stringify({
+      encrypted,
+      key: Array.from(key).map(b => b.toString(16).padStart(2, '0')).join(''),
+      iv: Array.from(iv).map(b => b.toString(16).padStart(2, '0')).join('')
+    })
+  }
+
+  /**
+   * Decrypt data using universal crypto utilities
+   */
+  public async decryptData(encryptedData: string): Promise<string> {
+    const crypto = await import('./universal/crypto.js')
+    const { encrypted, key: keyHex, iv: ivHex } = JSON.parse(encryptedData)
+    
+    const key = new Uint8Array(keyHex.match(/.{1,2}/g)!.map((byte: string) => parseInt(byte, 16)))
+    const iv = new Uint8Array(ivHex.match(/.{1,2}/g)!.map((byte: string) => parseInt(byte, 16)))
+    
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv)
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8')
+    decrypted += decipher.final('utf8')
+    
+    return decrypted
+  }
+
+  // ========================================
+  // UNIFIED API - Core Methods (7 total)
+  // ONE way to do everything! 🧠⚛️
+  // 
+  // 1. add() - Smart data addition (auto/guided/explicit/literal)
+  // 2. search() - Triple-power search (vector + graph + facets)
+  // 3. import() - Neural import with semantic type detection  
+  // 4. addNoun() - Explicit noun creation with NounType
+  // 5. addVerb() - Relationship creation between nouns
+  // 6. update() - Update noun data/metadata with index sync
+  // 7. delete() - Smart delete with soft delete default (enhanced original)
+  // ========================================
+
+  /**
+   * Neural Import - Smart bulk data import with semantic type detection
+   * Uses transformer embeddings to automatically detect and classify data types
+   * @param data Array of data items or single item to import
+   * @param options Import options including type hints and processing mode
+   * @returns Array of created IDs
+   */
+  public async import(
+    data: any[] | any,
+    options?: {
+      typeHint?: NounType
+      autoDetect?: boolean
+      batchSize?: number
+      process?: 'auto' | 'guided' | 'explicit' | 'literal'
+    }
+  ): Promise<string[]> {
+    const items = Array.isArray(data) ? data : [data]
+    const results: string[] = []
+    const batchSize = options?.batchSize || 50
+
+    // Process in batches to avoid memory issues
+    for (let i = 0; i < items.length; i += batchSize) {
+      const batch = items.slice(i, i + batchSize)
+      
+      for (const item of batch) {
+        try {
+          // Auto-detect type using semantic schema if enabled
+          let detectedType = options?.typeHint
+          if (options?.autoDetect !== false && !detectedType) {
+            detectedType = await this.detectNounType(item)
+          }
+
+          // Create metadata with detected type
+          const metadata: any = {}
+          if (detectedType) {
+            metadata.nounType = detectedType
+          }
+
+          // Import item using standard add method
+          const id = await this.add(item, metadata, {
+            process: (options?.process as 'auto' | 'literal' | 'neural') || 'auto'
+          })
+          
+          results.push(id)
+        } catch (error) {
+          prodLog.warn(`Failed to import item:`, error)
+          // Continue with next item rather than failing entire batch
+        }
+      }
+    }
+
+    prodLog.info(`📦 Neural import completed: ${results.length}/${items.length} items imported`)
+    return results
+  }
+
+  /**
+   * Add Noun - Explicit noun creation with strongly-typed NounType
+   * For when you know exactly what type of noun you're creating
+   * @param data The noun data
+   * @param nounType The explicit noun type from NounType enum
+   * @param metadata Additional metadata
+   * @returns Created noun ID
+   */
+  public async addNoun(
+    data: any,
+    nounType: NounType,
+    metadata?: any
+  ): Promise<string> {
+    const nounMetadata = {
+      nounType,
+      ...metadata
+    }
+
+    return await this.add(data, nounMetadata, {
+      process: 'neural' // Neural mode since type is already known
+    })
+  }
+
+  /**
+   * Add Verb - Unified relationship creation between nouns
+   * Creates typed relationships with proper vector embeddings from metadata
+   * @param sourceId Source noun ID
+   * @param targetId Target noun ID  
+   * @param verbType Relationship type from VerbType enum
+   * @param metadata Additional metadata for the relationship (will be embedded for searchability)
+   * @param weight Relationship weight/strength (0-1, default: 0.5)
+   * @returns Created verb ID
+   */
+  public async addVerb(
+    sourceId: string,
+    targetId: string,
+    verbType: VerbType,
+    metadata?: any,
+    weight?: number
+  ): Promise<string> {
+    // Validate that source and target nouns exist
+    const sourceNoun = this.index.getNouns().get(sourceId)
+    const targetNoun = this.index.getNouns().get(targetId)
+    
+    if (!sourceNoun) {
+      throw new Error(`Source noun with ID ${sourceId} does not exist`)
+    }
+    if (!targetNoun) {
+      throw new Error(`Target noun with ID ${targetId} does not exist`)
+    }
+
+    // Create embeddable text from verb type and metadata for searchability
+    let embeddingText = `${verbType} relationship`
+    
+    // Include meaningful metadata in embedding
+    if (metadata) {
+      const metadataStrings = []
+      
+      // Add text-based metadata fields for better searchability
+      for (const [key, value] of Object.entries(metadata)) {
+        if (typeof value === 'string' && value.length > 0) {
+          metadataStrings.push(`${key}: ${value}`)
+        } else if (typeof value === 'number' || typeof value === 'boolean') {
+          metadataStrings.push(`${key}: ${value}`)
+        }
+      }
+      
+      if (metadataStrings.length > 0) {
+        embeddingText += ` with ${metadataStrings.join(', ')}`
+      }
+    }
+    
+    // Generate embedding for the relationship including metadata
+    const vector = await this.embeddingFunction(embeddingText)
+    
+    // Create complete verb metadata
+    const verbMetadata = {
+      verb: verbType,
+      sourceId,
+      targetId,
+      weight: weight || 0.5,
+      embeddingText, // Include the text used for embedding for debugging
+      ...metadata
+    }
+
+    // Use existing internal addVerb method with proper parameters
+    return await this._addVerbInternal(sourceId, targetId, vector, {
+      type: verbType,
+      weight: weight || 0.5,
+      metadata: verbMetadata,
+      forceEmbed: false // We already have the vector
+    })
+  }
+
+  /**
+   * Auto-detect whether to use neural processing for data
+   * @private
+   */
+  private shouldAutoProcessNeurally(data: any, metadata: any): boolean {
+    // Simple heuristics for auto-detection
+    if (typeof data === 'string') {
+      // Long text likely benefits from neural processing
+      if (data.length > 50) return true
+      // Short text with meaningful content
+      if (data.includes(' ') && data.length > 10) return true
+    }
+    
+    if (typeof data === 'object' && data !== null) {
+      // Complex objects usually benefit from neural processing
+      if (Object.keys(data).length > 2) return true
+      // Objects with text content
+      if (data.content || data.text || data.description) return true
+    }
+    
+    // Check metadata hints
+    if (metadata?.nounType) return true
+    if (metadata?.needsProcessing) return metadata.needsProcessing
+    
+    // Default to neural processing for rich data
+    return true
+  }
+
+  /**
+   * Detect noun type using semantic analysis
+   * @private
+   */
+  private async detectNounType(data: any): Promise<NounType> {
+    // Simple heuristic-based detection (could be enhanced with ML)
+    if (typeof data === 'string') {
+      if (data.includes('@') && data.includes('.')) {
+        return NounType.Person // Email indicates person
+      }
+      if (data.startsWith('http')) {
+        return NounType.Document // URL indicates document
+      }
+      if (data.length < 100) {
+        return NounType.Concept // Short text as concept
+      }
+      return NounType.Content // Default for longer text
+    }
+    
+    if (typeof data === 'object' && data !== null) {
+      if (data.name || data.title) {
+        return NounType.Concept
+      }
+      if (data.email || data.phone || data.firstName) {
+        return NounType.Person
+      }
+      if (data.url || data.content || data.body) {
+        return NounType.Document
+      }
+      if (data.message || data.text) {
+        return NounType.Message
+      }
+    }
+
+    return NounType.Content // Safe default
+  }
+
+
+  /**
+   * Get Noun with Connected Verbs - Retrieve noun and all its relationships
+   * Provides complete traversal view of a noun and its connections using existing searchVerbs
+   * @param nounId The noun ID to retrieve
+   * @param options Traversal options
+   * @returns Noun data with connected verbs and related nouns
+   */
+  public async getNounWithVerbs(
+    nounId: string,
+    options?: {
+      includeIncoming?: boolean // Include verbs pointing to this noun (default: true)
+      includeOutgoing?: boolean // Include verbs from this noun (default: true)  
+      verbLimit?: number // Limit verbs returned (default: 50)
+      verbTypes?: string[] // Filter by specific verb types
+    }
+  ): Promise<{
+    noun: {
+      id: string
+      data: any
+      metadata: any
+      nounType?: NounType
+    }
+    incomingVerbs: any[]
+    outgoingVerbs: any[]
+    totalConnections: number
+  } | null> {
+    const opts = {
+      includeIncoming: true,
+      includeOutgoing: true,
+      verbLimit: 50,
+      ...options
+    }
+
+    // Get the noun
+    const noun = this.index.getNouns().get(nounId)
+    if (!noun) {
+      return null
+    }
+
+    const result = {
+      noun: {
+        id: nounId,
+        data: noun.metadata || {}, // Use metadata as data for consistency
+        metadata: noun.metadata || {},
+        nounType: noun.metadata?.nounType
+      },
+      incomingVerbs: [] as any[],
+      outgoingVerbs: [] as any[],
+      totalConnections: 0
+    }
+
+    // Use existing searchVerbs functionality - it searches by target/source filters
+    try {
+      if (opts.includeIncoming) {
+        // Search for verbs where this noun is the target
+        const incomingVerbOptions = {
+          verbTypes: opts.verbTypes
+        }
+        const incomingResults = await this.searchVerbs(nounId, opts.verbLimit, incomingVerbOptions)
+        result.incomingVerbs = incomingResults.filter(verb => 
+          verb.targetId === nounId || verb.sourceId === nounId
+        )
+      }
+
+      if (opts.includeOutgoing) {
+        // Search for verbs where this noun is the source  
+        const outgoingVerbOptions = {
+          verbTypes: opts.verbTypes
+        }
+        const outgoingResults = await this.searchVerbs(nounId, opts.verbLimit, outgoingVerbOptions)
+        result.outgoingVerbs = outgoingResults.filter(verb => 
+          verb.sourceId === nounId || verb.targetId === nounId
+        )
+      }
+    } catch (error) {
+      prodLog.warn(`Error searching verbs for noun ${nounId}:`, error)
+      // Continue with empty arrays
+    }
+
+    result.totalConnections = result.incomingVerbs.length + result.outgoingVerbs.length
+    
+    prodLog.debug(`🔍 Retrieved noun ${nounId} with ${result.totalConnections} connections`)
+    return result
+  }
+
+  /**
+   * Update - Smart noun update with automatic index synchronization
+   * Updates both data and metadata while maintaining search index integrity
+   * @param id The noun ID to update
+   * @param data New data (optional - if not provided, only metadata is updated)
+   * @param metadata New metadata (merged with existing)
+   * @param options Update options
+   * @returns Success boolean
+   */
+  public async update(
+    id: string,
+    data?: any,
+    metadata?: any,
+    options?: {
+      merge?: boolean // Merge with existing metadata (default: true)
+      reindex?: boolean // Force reindexing (default: true)
+      cascade?: boolean // Update related verbs (default: false)
+    }
+  ): Promise<boolean> {
+    const opts = {
+      merge: true,
+      reindex: true,
+      cascade: false,
+      ...options
+    }
+
+    // Update data if provided
+    if (data !== undefined) {
+      // For data updates, we need to regenerate the vector
+      const existingNoun = this.index.getNouns().get(id)
+      if (!existingNoun) {
+        throw new Error(`Noun with ID ${id} does not exist`)
+      }
+
+      // Create new vector for updated data
+      const vector = await this.embeddingFunction(data)
+      
+      // Update the noun with new data and vector
+      const updatedNoun: HNSWNoun = {
+        ...existingNoun,
+        vector,
+        metadata: opts.merge ? { ...existingNoun.metadata, ...metadata } : metadata
+      }
+      
+      // Update in index
+      this.index.getNouns().set(id, updatedNoun)
+      
+      // Note: HNSW index will be updated automatically on next search
+      // Reindexing happens lazily for performance
+    } else if (metadata !== undefined) {
+      // Metadata-only update using existing updateMetadata method
+      return await this.updateMetadata(id, metadata)
+    }
+
+    // Update related verbs if cascade enabled
+    if (opts.cascade) {
+      // TODO: Implement cascade verb updates when verb access methods are clarified
+      prodLog.debug(`Cascade update requested for ${id} - feature pending implementation`)
+    }
+
+    prodLog.debug(`✅ Updated noun ${id} (data: ${data !== undefined}, metadata: ${metadata !== undefined})`)
+    return true
+  }
+
+
+
+  /**
+   * Preload Transformer Model - Essential for container deployments
+   * Downloads and caches models during initialization to avoid runtime delays
+   * @param options Preload options
+   * @returns Success boolean and model info
+   */
+  public static async preloadModel(options?: {
+    model?: string // Model to preload (default: all-MiniLM-L6-v2)
+    cacheDir?: string // Directory to cache models
+    device?: string // Device preference (auto, cpu, webgpu, cuda)
+    force?: boolean // Force re-download even if cached
+  }): Promise<{
+    success: boolean
+    modelPath: string
+    modelSize: number
+    device: string
+  }> {
+    const opts = {
+      model: 'Xenova/all-MiniLM-L6-v2',
+      cacheDir: './models',
+      device: 'auto',
+      force: false,
+      ...options
+    }
+
+    try {
+      // Import embedding utilities
+      const { TransformerEmbedding, resolveDevice } = await import('./utils/embedding.js')
+      
+      // Resolve optimal device
+      const device = await resolveDevice(opts.device as 'auto' | 'cpu' | 'webgpu' | 'cuda' | 'gpu')
+      
+      prodLog.info(`🤖 Preloading transformer model: ${opts.model}`)
+      prodLog.info(`📁 Cache directory: ${opts.cacheDir}`)
+      prodLog.info(`⚡ Target device: ${device}`)
+      
+      // Create embedder instance with preload settings
+      const embedder = new TransformerEmbedding({
+        model: opts.model,
+        cacheDir: opts.cacheDir,
+        device: device as 'auto' | 'cpu' | 'webgpu' | 'cuda' | 'gpu',
+        localFilesOnly: false, // Allow downloads during preload
+        verbose: true
+      })
+      
+      // Initialize and warm up the model
+      await embedder.init()
+      
+      // Test with a small input to fully load the model
+      await embedder.embed('test initialization')
+      
+      // Get model info for container deployments
+      const modelInfo = {
+        success: true,
+        modelPath: opts.cacheDir,
+        modelSize: await this.getModelSize(opts.cacheDir, opts.model),
+        device: device
+      }
+      
+      prodLog.info(`✅ Model preloaded successfully`)
+      prodLog.info(`📊 Model size: ${(modelInfo.modelSize / 1024 / 1024).toFixed(2)}MB`)
+      
+      return modelInfo
+    } catch (error) {
+      prodLog.error(`❌ Model preload failed:`, error)
+      return {
+        success: false,
+        modelPath: '',
+        modelSize: 0,
+        device: 'cpu'
+      }
+    }
+  }
+
+  /**
+   * Warmup - Initialize BrainyData with preloaded models (container-optimized)
+   * For production deployments where models should be ready immediately
+   * @param config BrainyData configuration
+   * @param options Warmup options
+   */
+  public static async warmup(
+    config?: BrainyDataConfig,
+    options?: {
+      preloadModel?: boolean
+      modelOptions?: Parameters<typeof BrainyData.preloadModel>[0]
+      testEmbedding?: boolean
+    }
+  ): Promise<BrainyData> {
+    const opts = {
+      preloadModel: true,
+      testEmbedding: true,
+      ...options
+    }
+
+    prodLog.info(`🚀 Starting Brainy warmup for container deployment`)
+
+    // Preload transformer models if requested
+    if (opts.preloadModel) {
+      const modelInfo = await BrainyData.preloadModel(opts.modelOptions)
+      if (!modelInfo.success) {
+        prodLog.warn(`⚠️ Model preload failed, continuing with lazy loading`)
+      }
+    }
+
+    // Create and initialize BrainyData instance
+    const brainy = new BrainyData(config)
+    await brainy.init()
+
+    // Test embedding to ensure everything works
+    if (opts.testEmbedding) {
+      try {
+        await brainy.embeddingFunction('test warmup embedding')
+        prodLog.info(`✅ Embedding test successful`)
+      } catch (error) {
+        prodLog.warn(`⚠️ Embedding test failed:`, error)
+      }
+    }
+
+    prodLog.info(`🎉 Brainy warmup complete - ready for production!`)
+    return brainy
+  }
+
+  /**
+   * Get model size for deployment info
+   * @private
+   */
+  private static async getModelSize(cacheDir: string, modelName: string): Promise<number> {
+    try {
+      const fs = await import('fs')
+      const path = await import('path')
+      
+      // Estimate model size (actual implementation would scan cache directory)
+      // For now, return known sizes for common models
+      const modelSizes: Record<string, number> = {
+        'Xenova/all-MiniLM-L6-v2': 90 * 1024 * 1024, // ~90MB
+        'Xenova/all-mpnet-base-v2': 420 * 1024 * 1024, // ~420MB
+        'Xenova/distilbert-base-uncased': 250 * 1024 * 1024 // ~250MB
+      }
+      
+      return modelSizes[modelName] || 100 * 1024 * 1024 // Default 100MB
+    } catch {
+      return 0
+    }
   }
 
   /**

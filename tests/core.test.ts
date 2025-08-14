@@ -21,7 +21,7 @@ describe('Brainy Core Functionality', () => {
 
   beforeAll(async () => {
     // Load brainy library as a consumer would
-    brainy = await import('../dist/unified.js')
+    brainy = await import('../src/index.js')
   })
 
   describe('Library Exports', () => {
@@ -42,12 +42,12 @@ describe('Brainy Core Functionality', () => {
       expect(typeof brainy.createEmbeddingFunction).toBe('function')
     })
 
-    it('should export environment object', () => {
-      expect(brainy.environment).toBeDefined()
-      expect(typeof brainy.environment).toBe('object')
-      expect(brainy.environment).toHaveProperty('isBrowser')
-      expect(brainy.environment).toHaveProperty('isNode')
-      expect(brainy.environment).toHaveProperty('isServerless')
+    it('should export environment detection functions', () => {
+      expect(typeof brainy.isBrowser).toBe('function')
+      expect(typeof brainy.isNode).toBe('function')
+      expect(typeof brainy.isWebWorker).toBe('function')
+      expect(typeof brainy.areWebWorkersAvailable).toBe('function')
+      expect(typeof brainy.isThreadingAvailable).toBe('function')
     })
   })
 

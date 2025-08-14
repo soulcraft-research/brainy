@@ -1,6 +1,6 @@
 {
   "name": "@soulcraft/brainy",
-  "version": "0.63.0",
+  "version": "1.0.0-rc.1",
   "description": "Multi-Dimensional AI Database - Vector similarity, graph relationships, metadata facets with HNSW indexing and OPFS storage",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -120,6 +120,8 @@
     "test:extraction": "node tests/auto-extraction.test.js",
     "extract-models": "node scripts/extract-models.js",
     "test:comprehensive": "npm run test:error-handling && npm run test:edge-cases && npm run test:storage && npm run test:environments && npm run test:specialized",
+    "test:release": "npm run build && vitest run tests/release-validation.test.ts tests/regression.test.ts tests/unified-api.test.ts tests/core.test.ts --reporter=verbose",
+    "test:1.0": "vitest run tests/unified-api.test.ts tests/cli.test.ts --reporter=verbose",
     "_generate-pdf": "node dev/scripts/generate-architecture-pdf.js",
     "_release": "standard-version",
     "_release:patch": "standard-version --release-as patch",
