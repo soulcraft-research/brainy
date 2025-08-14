@@ -3,7 +3,7 @@
 ![Brainy Logo](brainy.png)
 
 [![npm version](https://badge.fury.io/js/%40soulcraft%2Fbrainy.svg)](https://badge.fury.io/js/%40soulcraft%2Fbrainy)
-[![1.0 RC](https://img.shields.io/badge/1.0-Release%20Candidate-orange.svg)](https://github.com/soulcraftlabs/brainy/releases/tag/v1.0.0-rc.1)
+[![1.0](https://img.shields.io/badge/Version-1.0.0-brightgreen.svg)](https://github.com/soulcraftlabs/brainy/releases/tag/v1.0.0)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Website](https://img.shields.io/badge/Website-soulcraft.com-green.svg)](https://soulcraft.com)
 [![Brain Cloud](https://img.shields.io/badge/Brain%20Cloud-Coming%20Soon-blue.svg)](https://soulcraft.com)
@@ -41,8 +41,8 @@
 **The Great Cleanup is complete!** Brainy 1.0 introduces the **unified API** - ONE way to do everything with just **9 core methods**:
 
 ```bash
-# Install the latest release candidate
-npm install @soulcraft/brainy@rc
+# Install Brainy 1.0
+npm install @soulcraft/brainy
 ```
 
 ```javascript
