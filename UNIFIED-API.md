@@ -185,9 +185,10 @@ Extend Brainy with custom capabilities.
 import { NeuralImport } from '@soulcraft/brainy'
 brain.register(new NeuralImport())
 
-// Register community augmentations
-import SentimentAnalyzer from 'brainy-sentiment'
-brain.register(new SentimentAnalyzer())
+// Register community augmentations (when available)
+// Example: Future community packages
+// import SentimentAnalyzer from 'brainy-sentiment'
+// brain.register(new SentimentAnalyzer())
 
 // Register your own augmentation
 class MyCustomAugmentation {

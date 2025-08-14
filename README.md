@@ -315,9 +315,9 @@ import { BrainyData, Cortex } from '@soulcraft/brainy'
 const brain = new BrainyData()
 const cortex = new Cortex()
 
-// Add premium augmentations (requires Early Access license)
-cortex.register(new AIMemory())
-cortex.register(new AgentCoordinator())
+// Add premium augmentations (requires Brain Cloud subscription)
+brain.register(new AIMemory())
+brain.register(new AgentCoordinator())
 
 // Now your AI remembers everything across all sessions!
 await brain.add("User prefers TypeScript over JavaScript")
@@ -353,27 +353,31 @@ await neural.neuralImport('data.csv')  // Automatically extracts entities & rela
 - ✅ **Simple Search** - Text and vector search
 - ✅ **Graph Traversal** - Relationship queries
 
-### 🌟 **Community Augmentations** (Free, Open Source)
-```bash
-npm install brainy-sentiment  # Community created
-npm install brainy-translate  # Community maintained
-```
-
+### 🌟 **Community Augmentations** (Coming Soon!)
 ```javascript
-import { SentimentAnalyzer } from 'brainy-sentiment'
-import { Translator } from 'brainy-translate'
+// 🚧 FUTURE: Community augmentations will be available soon!
+// These are examples of what the community could build:
 
-cortex.register(new SentimentAnalyzer())  // Analyze emotions
-cortex.register(new Translator())         // Multi-language support
+// Example: Sentiment Analysis (not yet available)
+// npm install brainy-sentiment
+// brain.register(new SentimentAnalyzer())
+
+// Example: Translation (not yet available)  
+// npm install brainy-translate
+// brain.register(new Translator())
 ```
 
-**Popular community augmentations:**
-- 🎭 Sentiment Analysis
-- 🌍 Translation (50+ languages)
-- 📧 Email Parser
-- 🔗 URL Extractor
-- 📊 Data Visualizer
-- 🎨 Image Understanding
+**Ideas for Community Augmentations:**
+*Want to build one of these? We'll help promote it!*
+- 🎭 Sentiment Analysis - Analyze emotional tone
+- 🌍 Translation - Multi-language support
+- 📧 Email Parser - Extract structured data from emails
+- 🔗 URL Extractor - Find and validate URLs
+- 📊 Data Visualizer - Generate charts from data
+- 🎨 Image Understanding - Analyze image content
+
+**Be the First!** Create an augmentation and we'll feature it here.
+[See how to build augmentations →](UNIFIED-API.md#creating-your-own-augmentation)
 
 ### ☁️ **Brain Cloud** (Optional Add-On)
 🌟 **Brainy works perfectly without this!** Brain Cloud adds team features:
@@ -388,7 +392,7 @@ const brain = new BrainyVectorDB({
   cloud: { apiKey: process.env.BRAIN_CLOUD_KEY }  // Optional
 })
 
-cortex.register(aiMemory)  // AI remembers everything
+brain.register(aiMemory)  // AI remembers everything
 ```
 
 **AI Memory & Coordination:**
@@ -457,27 +461,31 @@ await brain.connect('brain-cloud.soulcraft.com', {
 ### Build & Share Your Augmentation
 
 ```typescript
-import { ISenseAugmentation } from '@soulcraft/brainy'
+import { IAugmentation } from '@soulcraft/brainy'
 
-export class MovieRecommender implements ISenseAugmentation {
+export class MovieRecommender implements IAugmentation {
   name = 'movie-recommender'
+  type = 'cognition' // sense|conduit|cognition|memory
   description = 'AI-powered movie recommendations'
   enabled = true
   
-  async processRawData(data: string) {
+  async processRawData(data: any) {
     // Your recommendation logic
     const movies = await this.analyzePreferences(data)
     
     return {
       success: true,
       data: {
-        nouns: movies.map(m => m.title),
-        verbs: movies.map(m => `similar_to:${m.genre}`),
-        metadata: { genres: movies.map(m => m.genre) }
+        recommendations: movies,
+        confidence: 0.95
       }
     }
   }
 }
+
+// Register with Brainy
+const brain = new BrainyData()
+brain.register(new MovieRecommender())
 ```
 
 **Share with the community:**
