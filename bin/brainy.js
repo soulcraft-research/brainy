@@ -180,10 +180,11 @@ program
 // Command 4: STATUS - Database health & info
 program
   .command('status')
-  .description('Show brain status and health')
-  .option('-v, --verbose', 'Detailed information')
+  .description('Show brain status and comprehensive statistics')
+  .option('-v, --verbose', 'Show raw JSON statistics')
+  .option('-s, --simple', 'Show only basic info')
   .action(wrapAction(async (options) => {
-    console.log(colors.primary('🧠 Brain Status'))
+    console.log(colors.primary('🧠 Brain Status & Statistics'))
     console.log(colors.primary('=' .repeat(50)))
     
     try {
@@ -191,29 +192,118 @@ program
       const brainy = new BrainyData()
       await brainy.init()
       
-      // Get basic stats
+      // Get comprehensive stats
       const stats = await brainy.getStatistics()
-      console.log(colors.success('💚 Status: Healthy'))
-      console.log(colors.info(`📊 Items: ${stats.total || 0}`))
-      console.log(colors.info(`🧠 Memory: ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1)} MB`))
+      const memUsage = process.memoryUsage()
       
-      if (options.verbose) {
-        console.log(colors.info('\n📋 Detailed Statistics:'))
-        console.log(JSON.stringify(stats, null, 2))
-        
-        console.log(colors.info('\n🔌 Active Augmentations:'))
-        const augmentations = cortex.getAllAugmentations()
-        if (augmentations.length === 0) {
-          console.log(colors.warning('  No augmentations active'))
-        } else {
-          augmentations.forEach(aug => {
-            console.log(colors.success(`  ✅ ${aug.name}`))
-          })
-        }
+      // Basic Health Status
+      console.log(colors.success('💚 Status: Healthy'))
+      console.log(colors.info(`🚀 Version: ${packageJson.version}`))
+      console.log()
+      
+      if (options.simple) {
+        console.log(colors.info(`📊 Total Items: ${stats.total || 0}`))
+        console.log(colors.info(`🧠 Memory: ${(memUsage.heapUsed / 1024 / 1024).toFixed(1)} MB`))
+        return
       }
+      
+      // Core Statistics
+      console.log(colors.primary('📊 Core Database Statistics'))
+      console.log(colors.info(`  Total Items: ${colors.success(stats.total || 0)}`))
+      console.log(colors.info(`  Nouns: ${colors.success(stats.nounCount || 0)}`))
+      console.log(colors.info(`  Verbs (Relationships): ${colors.success(stats.verbCount || 0)}`))
+      console.log(colors.info(`  Documents: ${colors.success(stats.documentCount || 0)}`))
+      console.log()
+      
+      // Storage Information
+      if (stats.storage) {
+        console.log(colors.primary('💾 Storage Information'))
+        console.log(colors.info(`  Type: ${colors.success(stats.storage.type || 'Unknown')}`))
+        if (stats.storage.size) {
+          const sizeInMB = (stats.storage.size / 1024 / 1024).toFixed(2)
+          console.log(colors.info(`  Size: ${colors.success(sizeInMB)} MB`))
+        }
+        if (stats.storage.location) {
+          console.log(colors.info(`  Location: ${colors.success(stats.storage.location)}`))
+        }
+        console.log()
+      }
+      
+      // Performance Metrics
+      if (stats.performance) {
+        console.log(colors.primary('⚡ Performance Metrics'))
+        if (stats.performance.avgQueryTime) {
+          console.log(colors.info(`  Avg Query Time: ${colors.success(stats.performance.avgQueryTime.toFixed(2))} ms`))
+        }
+        if (stats.performance.totalQueries) {
+          console.log(colors.info(`  Total Queries: ${colors.success(stats.performance.totalQueries)}`))
+        }
+        if (stats.performance.cacheHitRate) {
+          console.log(colors.info(`  Cache Hit Rate: ${colors.success((stats.performance.cacheHitRate * 100).toFixed(1))}%`))
+        }
+        console.log()
+      }
+      
+      // Vector Index Information
+      if (stats.index) {
+        console.log(colors.primary('🎯 Vector Index'))
+        console.log(colors.info(`  Dimensions: ${colors.success(stats.index.dimensions || 'N/A')}`))
+        console.log(colors.info(`  Indexed Vectors: ${colors.success(stats.index.vectorCount || 0)}`))
+        if (stats.index.indexSize) {
+          console.log(colors.info(`  Index Size: ${colors.success((stats.index.indexSize / 1024 / 1024).toFixed(2))} MB`))
+        }
+        console.log()
+      }
+      
+      // Memory Usage Breakdown
+      console.log(colors.primary('🧠 Memory Usage'))
+      console.log(colors.info(`  Heap Used: ${colors.success((memUsage.heapUsed / 1024 / 1024).toFixed(1))} MB`))
+      console.log(colors.info(`  Heap Total: ${colors.success((memUsage.heapTotal / 1024 / 1024).toFixed(1))} MB`))
+      console.log(colors.info(`  RSS: ${colors.success((memUsage.rss / 1024 / 1024).toFixed(1))} MB`))
+      console.log()
+      
+      // Active Augmentations
+      console.log(colors.primary('🔌 Active Augmentations'))
+      const augmentations = cortex.getAllAugmentations()
+      if (augmentations.length === 0) {
+        console.log(colors.warning('  No augmentations currently active'))
+      } else {
+        augmentations.forEach(aug => {
+          console.log(colors.success(`  ✅ ${aug.name}`))
+          if (aug.description) {
+            console.log(colors.info(`     ${aug.description}`))
+          }
+        })
+      }
+      console.log()
+      
+      // Configuration Summary
+      if (stats.config) {
+        console.log(colors.primary('⚙️ Configuration'))
+        Object.entries(stats.config).forEach(([key, value]) => {
+          // Don't show sensitive values
+          if (key.toLowerCase().includes('key') || key.toLowerCase().includes('secret')) {
+            console.log(colors.info(`  ${key}: ${colors.warning('[HIDDEN]')}`))
+          } else {
+            console.log(colors.info(`  ${key}: ${colors.success(value)}`))
+          }
+        })
+        console.log()
+      }
+      
+      // Show raw JSON if verbose
+      if (options.verbose) {
+        console.log(colors.primary('📋 Raw Statistics (JSON)'))
+        console.log(colors.info(JSON.stringify(stats, null, 2)))
+      }
+      
     } catch (error) {
       console.log(colors.error('❌ Status: Error'))
-      console.log(colors.error(error.message))
+      console.log(colors.error(`Error: ${error.message}`))
+      if (options.verbose) {
+        console.log(colors.error('Stack trace:'))
+        console.log(error.stack)
+      }
     }
   }))
 
@@ -420,7 +510,8 @@ program
         break
       case '4':
         console.log(colors.success('\n📊 Use: brainy status'))
-        console.log(colors.info('Shows your brain health and statistics'))
+        console.log(colors.info('Shows comprehensive brain statistics'))
+        console.log(colors.info('Options: --simple (quick) or --verbose (detailed)'))
         break
       case '5':
         console.log(colors.success('\n☁️ Use: brainy cloud connect'))
