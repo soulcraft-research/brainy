@@ -7,7 +7,8 @@ Welcome to the comprehensive documentation for Brainy - the intelligent vector g
 ### 🚀 [Getting Started](getting-started/)
 Quick setup guides and first steps with Brainy.
 
-- **[Quick Start Guide](getting-started/quick-start.md)** - Get up and running in minutes
+- **[Brainy 1.0 Quick Start](getting-started/quick-start-1.0.md)** - Get up and running with the unified API ⭐
+- **[Legacy Quick Start (0.x)](getting-started/quick-start.md)** - For existing 0.x users
 - **[Installation Guide](getting-started/installation.md)** - Installation options and requirements
 - **[Environment Setup](getting-started/environment-setup.md)** - Configure your development environment
 - **[First Steps](getting-started/first-steps.md)** - Your first Brainy application
@@ -104,12 +105,13 @@ Common issues and solutions.
 2. **[Documentation Standards](development/DOCUMENTATION_STANDARDS.md)** - Writing docs
 3. **[Testing Guide](development/testing.md)** - Testing practices
 
-## 🔄 Recently Updated
+## 🔄 Recently Updated (Brainy 1.0)
 
-- **[S3 Migration Guide](optimization-guides/s3-migration-guide.md)** - NEW: Complete migration guide for shared S3 buckets
+- **[Brainy 1.0 Quick Start](getting-started/quick-start-1.0.md)** - NEW: Unified API with 7 core methods ⭐
+- **[Migration Guide](../MIGRATION.md)** - NEW: Complete 0.x to 1.0 upgrade guide
+- **[Changelog](../CHANGELOG.md)** - NEW: 1.0 release candidate details
+- **[S3 Migration Guide](optimization-guides/s3-migration-guide.md)** - Complete migration guide for shared S3 buckets
 - **[Large-Scale Optimizations](optimization-guides/large-scale-optimizations.md)** - Complete rewrite with auto-configuration
-- **[Quick Start Guide](getting-started/quick-start.md)** - Updated with zero-config setup
-- **[API Reference](api-reference/)** - New auto-configuration APIs
 
 ## 📞 Getting Help
 
