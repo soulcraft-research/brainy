@@ -7269,15 +7269,237 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   // ===== Augmentation Control Methods =====
 
   /**
-   * UNIFIED API METHOD #8: Register an augmentation
-   * Add custom augmentations to extend Brainy's capabilities
+   * UNIFIED API METHOD #8: Augment - Complete augmentation management
+   * Register, enable, disable, list, and manage augmentations
    * 
-   * @param augmentation The augmentation to register
-   * @returns The BrainyData instance for chaining
+   * @param action The action to perform or augmentation to register
+   * @param options Additional options for the action
+   * @returns Various return types based on action
    */
-  register(augmentation: IAugmentation): this {
-    augmentationPipeline.register(augmentation)
-    return this
+  augment(
+    action: IAugmentation | 'list' | 'enable' | 'disable' | 'unregister' | 'enable-type' | 'disable-type',
+    options?: string | { name?: string; type?: string }
+  ): this | any {
+    // If it's an augmentation object, register it
+    if (typeof action === 'object' && 'name' in action && 'type' in action) {
+      augmentationPipeline.register(action as IAugmentation)
+      return this
+    }
+
+    // Handle string actions
+    switch (action) {
+      case 'list':
+        // Return list of all augmentations with status
+        return this.listAugmentations()
+      
+      case 'enable':
+        // Enable specific augmentation by name
+        if (typeof options === 'string') {
+          this.enableAugmentation(options)
+        } else if (options?.name) {
+          this.enableAugmentation(options.name)
+        }
+        return this
+      
+      case 'disable':
+        // Disable specific augmentation by name
+        if (typeof options === 'string') {
+          this.disableAugmentation(options)
+        } else if (options?.name) {
+          this.disableAugmentation(options.name)
+        }
+        return this
+      
+      case 'unregister':
+        // Remove augmentation from pipeline
+        if (typeof options === 'string') {
+          this.unregister(options)
+        } else if (options?.name) {
+          this.unregister(options.name)
+        }
+        return this
+      
+      case 'enable-type':
+        // Enable all augmentations of a type
+        if (typeof options === 'string') {
+          const validTypes = ['sense', 'conduit', 'cognition', 'memory', 'perception', 'dialog', 'activation', 'webSocket'] as const
+          if (validTypes.includes(options as any)) {
+            return this.enableAugmentationType(options as any)
+          }
+        } else if (options?.type) {
+          const validTypes = ['sense', 'conduit', 'cognition', 'memory', 'perception', 'dialog', 'activation', 'webSocket'] as const
+          if (validTypes.includes(options.type as any)) {
+            return this.enableAugmentationType(options.type as any)
+          }
+        }
+        throw new Error('Invalid augmentation type')
+      
+      case 'disable-type':
+        // Disable all augmentations of a type
+        if (typeof options === 'string') {
+          const validTypes = ['sense', 'conduit', 'cognition', 'memory', 'perception', 'dialog', 'activation', 'webSocket'] as const
+          if (validTypes.includes(options as any)) {
+            return this.disableAugmentationType(options as any)
+          }
+        } else if (options?.type) {
+          const validTypes = ['sense', 'conduit', 'cognition', 'memory', 'perception', 'dialog', 'activation', 'webSocket'] as const
+          if (validTypes.includes(options.type as any)) {
+            return this.disableAugmentationType(options.type as any)
+          }
+        }
+        throw new Error('Invalid augmentation type')
+      
+      default:
+        throw new Error(`Unknown augment action: ${action}`)
+    }
+  }
+
+  /**
+   * UNIFIED API METHOD #9: Export - Extract your data in various formats
+   * Export your brain's knowledge for backup, migration, or integration
+   * 
+   * @param options Export configuration
+   * @returns The exported data in the specified format
+   */
+  async export(options: {
+    format?: 'json' | 'csv' | 'graph' | 'embeddings'
+    includeVectors?: boolean
+    includeMetadata?: boolean
+    includeRelationships?: boolean
+    filter?: any
+    limit?: number
+  } = {}): Promise<any> {
+    const {
+      format = 'json',
+      includeVectors = false,
+      includeMetadata = true,
+      includeRelationships = true,
+      filter = {},
+      limit
+    } = options
+
+    // Get all data with optional filtering
+    const nounsResult = await this.getNouns()
+    const allNouns = nounsResult.items || []
+    let exportData: any[] = []
+
+    // Apply filters and limits
+    let nouns = allNouns
+    if (Object.keys(filter).length > 0) {
+      nouns = allNouns.filter((noun: any) => {
+        return Object.entries(filter).every(([key, value]) => {
+          return noun.metadata?.[key] === value
+        })
+      })
+    }
+    if (limit) {
+      nouns = nouns.slice(0, limit)
+    }
+
+    // Build export data
+    for (const noun of nouns) {
+      const exportItem: any = {
+        id: noun.id,
+        text: (noun as any).text || (noun.metadata as any)?.text || noun.id
+      }
+
+      if (includeVectors && noun.vector) {
+        exportItem.vector = noun.vector
+      }
+
+      if (includeMetadata && noun.metadata) {
+        exportItem.metadata = noun.metadata
+      }
+
+      if (includeRelationships) {
+        const relationships = await this.getNounWithVerbs(noun.id)
+        const allVerbs = [
+          ...(relationships?.incomingVerbs || []),
+          ...(relationships?.outgoingVerbs || [])
+        ]
+        if (allVerbs.length > 0) {
+          exportItem.relationships = allVerbs
+        }
+      }
+
+      exportData.push(exportItem)
+    }
+
+    // Format output based on requested format
+    switch (format) {
+      case 'csv':
+        return this.convertToCSV(exportData)
+      case 'graph':
+        return this.convertToGraphFormat(exportData)
+      case 'embeddings':
+        return exportData.map(item => ({
+          id: item.id,
+          vector: item.vector || []
+        }))
+      case 'json':
+      default:
+        return exportData
+    }
+  }
+
+  /**
+   * Helper: Convert data to CSV format
+   * @private
+   */
+  private convertToCSV(data: any[]): string {
+    if (data.length === 0) return ''
+    
+    // Get all unique keys
+    const keys = new Set<string>()
+    data.forEach(item => {
+      Object.keys(item).forEach(key => keys.add(key))
+    })
+    
+    // Create header
+    const headers = Array.from(keys)
+    const csv = [headers.join(',')]
+    
+    // Add data rows
+    data.forEach(item => {
+      const row = headers.map(header => {
+        const value = item[header]
+        if (typeof value === 'object') {
+          return JSON.stringify(value)
+        }
+        return value || ''
+      })
+      csv.push(row.join(','))
+    })
+    
+    return csv.join('\n')
+  }
+
+  /**
+   * Helper: Convert data to graph format
+   * @private
+   */
+  private convertToGraphFormat(data: any[]): any {
+    const nodes = data.map(item => ({
+      id: item.id,
+      label: item.text || item.id,
+      metadata: item.metadata
+    }))
+    
+    const edges: any[] = []
+    data.forEach(item => {
+      if (item.relationships) {
+        item.relationships.forEach((rel: any) => {
+          edges.push({
+            source: item.id,
+            target: rel.targetId,
+            type: rel.verbType,
+            metadata: rel.metadata
+          })
+        })
+      }
+    })
+    
+    return { nodes, edges }
   }
 
   /**

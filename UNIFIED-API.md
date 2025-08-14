@@ -1,10 +1,10 @@
-# 🧠 Brainy 1.0: The 8 Unified Methods
+# 🧠 Brainy 1.0: The 9 Unified Methods
 
-> **From 40+ scattered methods to 8 unified operations - ONE way to do everything!**
+> **From 40+ scattered methods to 9 unified operations - ONE way to do everything!**
 
 ## 🎯 The Complete Unified API
 
-Brainy 1.0 introduces a revolutionary unified API where **EVERYTHING** is accomplished through just **8 core methods**:
+Brainy 1.0 introduces a revolutionary unified API where **EVERYTHING** is accomplished through just **9 core methods**:
 
 ```javascript
 import { BrainyData, NounType, VerbType } from '@soulcraft/brainy'
@@ -12,7 +12,7 @@ import { BrainyData, NounType, VerbType } from '@soulcraft/brainy'
 const brain = new BrainyData()
 await brain.init()
 
-// 🎯 THE 8 UNIFIED METHODS:
+// 🎯 THE 9 UNIFIED METHODS:
 await brain.add("Smart data")                    // 1. Smart data addition
 await brain.search("query", 10)                  // 2. Unified search  
 await brain.import(["data1", "data2"])          // 3. Bulk import
@@ -20,7 +20,8 @@ await brain.addNoun("John", NounType.Person)    // 4. Typed entities
 await brain.addVerb(id1, id2, VerbType.Knows)   // 5. Relationships
 await brain.update(id, "new data")              // 6. Smart updates
 await brain.delete(id)                          // 7. Soft delete
-brain.register(myAugmentation)                  // 8. Extend capabilities
+brain.augment(myAugmentation)                   // 8. Extend capabilities
+await brain.export({ format: 'json' })          // 9. Export data
 ```
 
 ## 📊 Before vs After: The Transformation
@@ -43,7 +44,7 @@ brainy.softDelete(id)
 
 ### ✅ **NEW (1.0): Unified Simplicity**
 ```javascript
-// Just 8 methods handle EVERYTHING
+// Just 9 methods handle EVERYTHING
 brain.add()       // Replaces: addVector, addSmart, addText, addLiteral, etc.
 brain.search()    // Replaces: searchSimilar, searchByMetadata, searchText, etc.
 brain.import()    // Replaces: neuralImport, bulkAdd, importCSV, etc.
@@ -51,7 +52,8 @@ brain.addNoun()   // Replaces: createNoun, addEntity, createNode, etc.
 brain.addVerb()   // Replaces: createVerb, addRelationship, connect, etc.
 brain.update()    // Replaces: updateVector, updateMetadata, modify, etc.
 brain.delete()    // Replaces: hardDelete, softDelete, remove, etc.
-brain.register()  // NEW: Unified augmentation system
+brain.augment()   // NEW: Unified augmentation system
+brain.export()    // NEW: Universal data export
 ```
 
 ## 🔍 Deep Dive: Each Unified Method
@@ -177,37 +179,78 @@ await brain.delete(id, { hard: true })
 await brain.delete(id, { cascade: true })
 ```
 
-### 8️⃣ **`register()` - Augmentation System** ⭐ NEW!
-Extend Brainy with custom capabilities.
+### 8️⃣ **`augment()` - Complete Augmentation Management** ⭐ NEW!
+One method handles ALL augmentation operations!
 
 ```javascript
-// Register built-in augmentations
+// Register new augmentations
 import { NeuralImport } from '@soulcraft/brainy'
-brain.register(new NeuralImport())
+brain.augment(new NeuralImport())          // Add capability
 
-// Register community augmentations (when available)
-// Example: Future community packages
-// import SentimentAnalyzer from 'brainy-sentiment'
-// brain.register(new SentimentAnalyzer())
+// Manage existing augmentations
+brain.augment('enable', 'neural-import')   // Enable by name
+brain.augment('disable', 'sentiment')      // Disable by name
+brain.augment('unregister', 'old-augment') // Remove completely
 
-// Register your own augmentation
-class MyCustomAugmentation {
-  name = 'my-custom'
-  type = 'sense'
+// List all augmentations
+const all = brain.augment('list')          // Returns array with status
+// [
+//   { name: 'neural-import', type: 'sense', enabled: true },
+//   { name: 'sentiment', type: 'cognition', enabled: false }
+// ]
+
+// Bulk operations by type
+brain.augment('enable-type', 'sense')      // Enable all sense augmentations
+brain.augment('disable-type', 'cognition') // Disable all cognition augmentations
+
+// Create your own augmentation
+class MyAugmentation {
+  name = 'my-augment'
+  type = 'cognition'
   
   async processRawData(data) {
-    // Your custom logic
-    return enhancedData
+    return { ...data, enhanced: true }
   }
 }
 
-brain.register(new MyCustomAugmentation())
+// One method, complete control
+brain.augment(new MyAugmentation())        // Register
+brain.augment('enable', 'my-augment')      // Enable
+brain.augment('disable', 'my-augment')     // Disable
+brain.augment('unregister', 'my-augment')  // Remove
+```
 
-// Manage augmentations
-brain.unregister('my-custom')                    // Remove
-brain.enableAugmentation('neural-import')        // Enable
-brain.disableAugmentation('sentiment')           // Disable
-brain.listAugmentations()                        // List all
+### 9️⃣ **`export()` - Universal Data Export** ⭐ NEW!
+Export your brain's knowledge in any format.
+
+```javascript
+// Export everything as JSON
+const allData = await brain.export()
+
+// Export with options
+const data = await brain.export({
+  format: 'csv',              // json|csv|graph|embeddings
+  includeVectors: true,        // Include vector embeddings
+  includeMetadata: true,       // Include metadata
+  includeRelationships: true,  // Include graph relationships
+  filter: { type: 'Person' },  // Filter by metadata
+  limit: 1000                  // Limit results
+})
+
+// Export formats:
+// JSON - Complete data structure
+const json = await brain.export({ format: 'json' })
+
+// CSV - Spreadsheet compatible
+const csv = await brain.export({ format: 'csv' })
+
+// Graph - Nodes and edges for visualization
+const graph = await brain.export({ format: 'graph' })
+// Returns: { nodes: [...], edges: [...] }
+
+// Embeddings - Just vectors for ML pipelines
+const vectors = await brain.export({ format: 'embeddings' })
+// Returns: [{ id, vector }, ...]
 ```
 
 ## 🧩 Augmentation Types & Pipeline
@@ -286,10 +329,10 @@ brain.register(new MovieRecommender())
 
 ## 🎮 CLI: Unified Commands Match the API
 
-The CLI perfectly mirrors the 8 unified methods:
+The CLI perfectly mirrors the 9 unified methods:
 
 ```bash
-# The 8 CLI commands match the 8 API methods
+# The 9 CLI commands match the 9 API methods
 brainy add "data"                              # brain.add()
 brainy search "query"                          # brain.search()
 brainy import data.csv                         # brain.import()
@@ -297,7 +340,8 @@ brainy add-noun "John" --type Person          # brain.addNoun()
 brainy add-verb id1 id2 --type WorksWith      # brain.addVerb()
 brainy update id "new data"                   # brain.update()
 brainy delete id                              # brain.delete()
-brainy augment register ./my-augmentation.js  # brain.register()
+brainy augment register ./my-augmentation.js  # brain.augment()
+brainy export --format json --output data.json # brain.export()
 ```
 
 ## 🚀 Why This Design?
@@ -325,7 +369,7 @@ brainy augment register ./my-augmentation.js  # brain.register()
 
 | Metric | Before (0.x) | After (1.0) | Improvement |
 |--------|--------------|-------------|-------------|
-| API Methods | 40+ | 8 | **80% reduction** |
+| API Methods | 40+ | 9 | **78% reduction** |
 | Learning Curve | Weeks | Hours | **10x faster** |
 | Code Complexity | High | Low | **Simplified** |
 | Package Size | 2.52MB | 2.1MB | **16% smaller** |
@@ -337,20 +381,20 @@ brainy augment register ./my-augmentation.js  # brain.register()
 
 - Simple operations (add, search) are one-liners
 - Complex operations (graph traversal, AI processing) are still possible
-- Everything is discoverable through 8 methods
+- Everything is discoverable through 9 methods (odd numbers FTW! 🎯)
 - Augmentations add power without adding complexity
 
 ## 🔮 Future-Proof
 
-The 8 unified methods will remain stable. New features will be added through:
+The 9 unified methods will remain stable. New features will be added through:
 1. **Method options** - New parameters to existing methods
-2. **Augmentations** - Extended capabilities via register()
+2. **Augmentations** - Extended capabilities via augment()
 3. **Brain Cloud** - Premium features without API changes
 
 This ensures your code written today will work with future versions.
 
 ---
 
-*The 8 Unified Methods represent the culmination of our learning from thousands of users and millions of operations. This is the API we wish we had from day one.*
+*The 9 Unified Methods represent the culmination of our learning from thousands of users and millions of operations. This is the API we wish we had from day one.*
 
 **Welcome to Brainy 1.0 - Where complexity becomes simplicity.** 🧠✨

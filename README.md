@@ -22,7 +22,7 @@
 
 ## 🎉 **NEW: Brainy 1.0 - The Unified API**
 
-**The Great Cleanup is complete!** Brainy 1.0 introduces the **unified API** - ONE way to do everything with just **7 core methods**:
+**The Great Cleanup is complete!** Brainy 1.0 introduces the **unified API** - ONE way to do everything with just **9 core methods**:
 
 ```bash
 # Install the latest release candidate
@@ -35,18 +35,20 @@ import { BrainyData, NounType, VerbType } from '@soulcraft/brainy'
 const brain = new BrainyData()
 await brain.init()
 
-// 🎯 THE 7 UNIFIED METHODS:
-const id1 = await brain.add("Smart data addition")           // 1. Smart addition
-const id2 = await brain.addNoun("John Doe", NounType.Person) // 2. Typed entities
-const verb = await brain.addVerb(id1, id2, VerbType.CreatedBy) // 3. Relationships
-const results = await brain.search("smart data", 10)         // 4. Vector search
-const ids = await brain.import(["data1", "data2"])          // 5. Bulk import
-await brain.update(id1, "Updated data")                     // 6. Smart updates
-await brain.delete(verb)                                    // 7. Soft delete
+// 🎯 THE 9 UNIFIED METHODS:
+await brain.add("Smart data addition")           // 1. Smart addition
+await brain.search("smart data", 10)             // 2. Vector search
+await brain.import(["data1", "data2"])          // 3. Bulk import
+await brain.addNoun("John Doe", NounType.Person) // 4. Typed entities
+await brain.addVerb(id1, id2, VerbType.CreatedBy) // 5. Relationships
+await brain.update(id1, "Updated data")         // 6. Smart updates
+await brain.delete(id)                          // 7. Soft delete
+brain.augment(myAugmentation)                   // 8. Add capabilities
+await brain.export({ format: 'json' })          // 9. Export data
 ```
 
 ### ✨ **What's New in 1.0:**
-- **🔥 40+ methods consolidated** → 7 unified methods
+- **🔥 40+ methods consolidated** → 9 unified methods
 - **🧠 Smart by default** - `add()` auto-detects and processes intelligently
 - **🔐 Universal encryption** - Built-in encryption for sensitive data
 - **🐳 Container ready** - Model preloading for production deployments
@@ -96,9 +98,10 @@ Vector + Graph + Search + AI = Brainy (Free & Open Source) = 🧠✨
 pinecone.upsert(), neo4j.run(), elasticsearch.search()
 supabase.insert(), mongodb.find(), redis.set()
 
-// After: 7 methods handle everything
-brain.add(), brain.search(), brain.addNoun(), brain.addVerb()
-brain.import(), brain.update(), brain.delete()
+// After: 9 methods handle EVERYTHING
+brain.add(), brain.search(), brain.import()
+brain.addNoun(), brain.addVerb(), brain.update()
+brain.delete(), brain.augment(), brain.export()
 ```
 
 #### **🤯 Mind-Blowing Features Out of the Box**
@@ -571,10 +574,12 @@ const insights = await agentBrain.getRelated("enterprise plan")
 ```
 
 ### **What Makes 1.0 Different:**
-- **🎯 One API**: 7 methods handle everything (was 40+ methods)
+- **🎯 One API**: 9 methods handle everything (was 40+ methods)
 - **🧠 Smart Core**: Automatic data understanding and processing  
 - **🔗 Graph Built-in**: Relationships are first-class citizens
 - **🔐 Security Native**: Encryption integrated, not bolted-on
+- **🧩 Extensible**: Augment with custom capabilities
+- **📤 Portable**: Export in any format (json, csv, graph)
 - **⚡ Zero Config**: Works perfectly out of the box
 
 ### **The Magic:**

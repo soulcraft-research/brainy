@@ -1006,7 +1006,67 @@ program
     }
   }))
 
-// Command 7: CLOUD - Premium features connection
+// Command 7: EXPORT - Export your data
+program
+  .command('export')
+  .description('Export your brain data in various formats')
+  .option('-f, --format <format>', 'Export format (json, csv, graph, embeddings)', 'json')
+  .option('-o, --output <file>', 'Output file path')
+  .option('--vectors', 'Include vector embeddings')
+  .option('--no-metadata', 'Exclude metadata')
+  .option('--no-relationships', 'Exclude relationships')
+  .option('--filter <json>', 'Filter by metadata')
+  .option('-l, --limit <number>', 'Limit number of items')
+  .action(wrapAction(async (options) => {
+    const brainy = await initBrainy()
+    console.log(colors.brain('📤 Exporting Brain Data'))
+    
+    const spinner = ora('Exporting data...').start()
+    
+    try {
+      const exportOptions = {
+        format: options.format,
+        includeVectors: options.vectors || false,
+        includeMetadata: options.metadata !== false,
+        includeRelationships: options.relationships !== false,
+        filter: options.filter ? JSON.parse(options.filter) : {},
+        limit: options.limit ? parseInt(options.limit) : undefined
+      }
+      
+      const data = await brainy.export(exportOptions)
+      
+      spinner.succeed('Export complete')
+      
+      if (options.output) {
+        // Write to file
+        const fs = require('fs')
+        const content = typeof data === 'string' ? data : JSON.stringify(data, null, 2)
+        fs.writeFileSync(options.output, content)
+        console.log(colors.success(`✅ Exported to: ${options.output}`))
+        
+        // Show summary
+        const items = Array.isArray(data) ? data.length : (data.nodes ? data.nodes.length : 1)
+        console.log(colors.info(`📊 Format: ${options.format}`))
+        console.log(colors.info(`📁 Items: ${items}`))
+        if (options.vectors) {
+          console.log(colors.info(`🔢 Vectors: Included`))
+        }
+      } else {
+        // Output to console
+        if (typeof data === 'string') {
+          console.log(data)
+        } else {
+          console.log(JSON.stringify(data, null, 2))
+        }
+      }
+    } catch (error) {
+      spinner.fail('Export failed')
+      console.error(colors.error(error.message))
+      process.exit(1)
+    }
+  }))
+
+// Command 8: CLOUD - Premium features connection
 program
   .command('cloud <action>')
   .description('Connect to Brain Cloud premium features')
