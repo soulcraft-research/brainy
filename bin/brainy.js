@@ -869,7 +869,144 @@ program
     }
   }))
 
-// Command 6: CLOUD - Premium features connection
+// Command 6: AUGMENT - Manage augmentations (The 8th Unified Method!)
+program
+  .command('augment <action>')
+  .description('Manage augmentations to extend Brainy\'s capabilities')
+  .option('-n, --name <name>', 'Augmentation name')
+  .option('-t, --type <type>', 'Augmentation type (sense, conduit, cognition, memory)')
+  .option('-p, --path <path>', 'Path to augmentation module')
+  .option('-l, --list', 'List all augmentations')
+  .action(wrapAction(async (action, options) => {
+    const brainy = await initBrainy()
+    console.log(colors.brain('🧩 Augmentation Management'))
+    
+    const actions = {
+      list: async () => {
+        const augmentations = brainy.listAugmentations()
+        if (augmentations.length === 0) {
+          console.log(colors.warning('No augmentations registered'))
+          return
+        }
+        
+        const table = new Table({
+          head: [colors.brain('Name'), colors.brain('Type'), colors.brain('Status'), colors.brain('Description')],
+          style: { head: [], border: [] }
+        })
+        
+        augmentations.forEach(aug => {
+          table.push([
+            colors.primary(aug.name),
+            colors.info(aug.type),
+            aug.enabled ? colors.success('✅ Enabled') : colors.dim('⚪ Disabled'),
+            colors.dim(aug.description || '')
+          ])
+        })
+        
+        console.log(table.toString())
+        console.log(colors.info(`\nTotal: ${augmentations.length} augmentations`))
+      },
+      
+      enable: async () => {
+        if (!options.name) {
+          console.log(colors.error('Name required: --name <augmentation-name>'))
+          return
+        }
+        const success = brainy.enableAugmentation(options.name)
+        if (success) {
+          console.log(colors.success(`✅ Enabled augmentation: ${options.name}`))
+        } else {
+          console.log(colors.error(`Failed to enable: ${options.name} (not found)`))
+        }
+      },
+      
+      disable: async () => {
+        if (!options.name) {
+          console.log(colors.error('Name required: --name <augmentation-name>'))
+          return
+        }
+        const success = brainy.disableAugmentation(options.name)
+        if (success) {
+          console.log(colors.warning(`⚪ Disabled augmentation: ${options.name}`))
+        } else {
+          console.log(colors.error(`Failed to disable: ${options.name} (not found)`))
+        }
+      },
+      
+      register: async () => {
+        if (!options.path) {
+          console.log(colors.error('Path required: --path <augmentation-module>'))
+          return
+        }
+        
+        try {
+          // Dynamic import of custom augmentation
+          const customModule = await import(options.path)
+          const AugmentationClass = customModule.default || customModule[Object.keys(customModule)[0]]
+          
+          if (!AugmentationClass) {
+            console.log(colors.error('No augmentation class found in module'))
+            return
+          }
+          
+          const augmentation = new AugmentationClass()
+          brainy.register(augmentation)
+          console.log(colors.success(`✅ Registered augmentation: ${augmentation.name}`))
+          console.log(colors.info(`Type: ${augmentation.type}`))
+          if (augmentation.description) {
+            console.log(colors.dim(`Description: ${augmentation.description}`))
+          }
+        } catch (error) {
+          console.log(colors.error(`Failed to register augmentation: ${error.message}`))
+        }
+      },
+      
+      unregister: async () => {
+        if (!options.name) {
+          console.log(colors.error('Name required: --name <augmentation-name>'))
+          return
+        }
+        
+        brainy.unregister(options.name)
+        console.log(colors.warning(`🗑️ Unregistered augmentation: ${options.name}`))
+      },
+      
+      'enable-type': async () => {
+        if (!options.type) {
+          console.log(colors.error('Type required: --type <augmentation-type>'))
+          console.log(colors.info('Valid types: sense, conduit, cognition, memory, perception, dialog, activation'))
+          return
+        }
+        
+        const count = brainy.enableAugmentationType(options.type)
+        console.log(colors.success(`✅ Enabled ${count} ${options.type} augmentations`))
+      },
+      
+      'disable-type': async () => {
+        if (!options.type) {
+          console.log(colors.error('Type required: --type <augmentation-type>'))
+          console.log(colors.info('Valid types: sense, conduit, cognition, memory, perception, dialog, activation'))
+          return
+        }
+        
+        const count = brainy.disableAugmentationType(options.type)
+        console.log(colors.warning(`⚪ Disabled ${count} ${options.type} augmentations`))
+      }
+    }
+    
+    if (actions[action]) {
+      await actions[action]()
+    } else {
+      console.log(colors.error('Valid actions: list, enable, disable, register, unregister, enable-type, disable-type'))
+      console.log(colors.info('\nExamples:'))
+      console.log(colors.dim('  brainy augment list                                  # List all augmentations'))
+      console.log(colors.dim('  brainy augment enable --name neural-import           # Enable an augmentation'))
+      console.log(colors.dim('  brainy augment register --path ./my-augmentation.js  # Register custom augmentation'))
+      console.log(colors.dim('  brainy augment enable-type --type sense              # Enable all sense augmentations'))
+    }
+  }))
+
+// Command 7: CLOUD - Premium features connection
 program
   .command('cloud <action>')
   .description('Connect to Brain Cloud premium features')
