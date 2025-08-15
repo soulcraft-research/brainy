@@ -88,13 +88,41 @@ export class TransformerEmbedding implements EmbeddingModel {
    */
   constructor(options: TransformerEmbeddingOptions = {}) {
     this.verbose = options.verbose !== undefined ? options.verbose : true
+    
+    // PRODUCTION-READY MODEL CONFIGURATION
+    // Priority order: explicit option > environment variable > smart default
+    
+    let localFilesOnly: boolean
+    
+    if (options.localFilesOnly !== undefined) {
+      // 1. Explicit option takes highest priority
+      localFilesOnly = options.localFilesOnly
+    } else if (process.env.BRAINY_ALLOW_REMOTE_MODELS !== undefined) {
+      // 2. Environment variable override
+      localFilesOnly = process.env.BRAINY_ALLOW_REMOTE_MODELS !== 'true'
+    } else if (process.env.NODE_ENV === 'development') {
+      // 3. Development mode allows remote models
+      localFilesOnly = false
+    } else if (isBrowser()) {
+      // 4. Browser defaults to allowing remote models
+      localFilesOnly = false
+    } else {
+      // 5. Node.js production: try local first, but allow remote as fallback
+      // This is the NEW production-friendly default
+      localFilesOnly = false
+    }
+    
     this.options = {
       model: options.model || 'Xenova/all-MiniLM-L6-v2',
       verbose: this.verbose,
-      cacheDir: options.cacheDir || './models', // Will be resolved async in init()
-      localFilesOnly: options.localFilesOnly !== undefined ? options.localFilesOnly : !isBrowser(),
+      cacheDir: options.cacheDir || './models',
+      localFilesOnly: localFilesOnly,
       dtype: options.dtype || 'fp32',
       device: options.device || 'auto'
+    }
+    
+    if (this.verbose) {
+      this.logger('log', `Embedding config: localFilesOnly=${localFilesOnly}, model=${this.options.model}, cacheDir=${this.options.cacheDir}`)
     }
 
     // Configure transformers.js environment
@@ -242,7 +270,30 @@ export class TransformerEmbedding implements EmbeddingModel {
           delete cpuOptions.device
           this.extractor = await pipeline('feature-extraction', this.options.model, cpuOptions)
         } else {
-          throw gpuError
+          // PRODUCTION-READY ERROR HANDLING
+          // If local_files_only is true and models are missing, try enabling remote downloads
+          if (pipelineOptions.local_files_only && gpuError?.message?.includes('local_files_only')) {
+            this.logger('warn', 'Local models not found, attempting remote download as fallback...')
+            
+            try {
+              const remoteOptions = { ...pipelineOptions, local_files_only: false }
+              this.extractor = await pipeline('feature-extraction', this.options.model, remoteOptions)
+              this.logger('log', '✅ Successfully downloaded and loaded model from remote')
+              
+              // Update the configuration to reflect what actually worked
+              this.options.localFilesOnly = false
+            } catch (remoteError: any) {
+              // Both local and remote failed - throw comprehensive error
+              const errorMsg = `Failed to load embedding model "${this.options.model}". ` +
+                              `Local models not found and remote download failed. ` +
+                              `To fix: 1) Set BRAINY_ALLOW_REMOTE_MODELS=true, ` +
+                              `2) Run "npm run download-models", or ` +
+                              `3) Use a custom embedding function.`
+              throw new Error(errorMsg)
+            }
+          } else {
+            throw gpuError
+          }
         }
       }
 
