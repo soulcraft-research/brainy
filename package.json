@@ -1,6 +1,6 @@
 {
   "name": "@soulcraft/brainy",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Multi-Dimensional AI Database - Vector similarity, graph relationships, metadata facets with HNSW indexing and OPFS storage",
   "main": "dist/index.js",
   "module": "dist/index.js",
