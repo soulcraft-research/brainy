@@ -1,60 +1,64 @@
 #!/bin/bash
 
-# Script to remove sensitive business strategy files from git history
-# WARNING: This rewrites git history! Make sure to backup first.
+# Git history cleanup script for sensitive business documents
+# This removes business strategy files from git history permanently
 
-echo "⚠️  WARNING: This will rewrite git history!"
-echo "Make sure you have a backup and all team members are aware."
-echo ""
-read -p "Continue? (y/N): " -n 1 -r
-echo ""
+echo "🧹 Cleaning sensitive business documents from git history..."
+echo "⚠️  WARNING: This will rewrite git history and require force push"
 
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Aborted."
-    exit 1
-fi
-
-echo "Removing sensitive files from git history..."
-
-# Files to remove from history
+# List of sensitive files to remove from history
 FILES_TO_REMOVE=(
-    "IMPLEMENTATION-ROADMAP.md"
-    "CORTEX.md"
-    "CORTEX-ROADMAP.md"
-    "docs/STRATEGIC-IMPLEMENTATION-PLAN.md"
     "ACTUAL_CONFIG_STRATEGY.md"
+    "CORTEX-ROADMAP.md" 
+    "IMPLEMENTATION-ROADMAP.md"
     "MODEL_STRATEGY.md"
-    "METADATA_OPTIMIZATION_PROPOSAL.md"
-    "METADATA_PERFORMANCE_ANALYSIS.md"
-    "PERFORMANCE_OPTIMIZATION_TODO.md"
-    "TENSORFLOW_TO_TRANSFORMERS_ANALYSIS.md"
-    "MIGRATION_PLAN_DEPRECATED_METHODS.md"
-    "AUGMENTATION_ARCHITECTURE.md"  # Contains pricing info
-    "CLI_AUGMENTATION_GUIDE.md"
-    "docs/brainy-cli.md"
-    "docs/getting-started/quick-start.md"
-    "docs/distributed-deployment-scenario.md"
-    "docs/distributed-usage-guide.md"
-    "docs/brainy-distributed-enhancements.md"
-    "docs/brainy-distributed-enhancements-revised.md"
+    "docs/STRATEGIC-IMPLEMENTATION-PLAN.md"
+    "CORTEX.md"
+    "brainy-pitch-deck-FINAL-v2.pdf"
 )
 
-# Build the filter-branch command
+# Create the filter command
+FILTER_CMD="git rm --cached --ignore-unmatch"
 for file in "${FILES_TO_REMOVE[@]}"; do
-    echo "Removing $file from history..."
-    FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch --force --index-filter \
-        "git rm --cached --ignore-unmatch $file" \
-        --prune-empty --tag-name-filter cat -- --all
+    FILTER_CMD="$FILTER_CMD \"$file\""
+done
+
+echo "📋 Files to remove from git history:"
+for file in "${FILES_TO_REMOVE[@]}"; do
+    echo "  - $file"
 done
 
 echo ""
-echo "✅ Files removed from history."
-echo ""
-echo "⚠️  IMPORTANT NEXT STEPS:"
-echo "1. Force push to remote: git push origin --force --all"
-echo "2. Force push tags: git push origin --force --tags"
-echo "3. Tell all team members to re-clone the repository"
-echo "4. Clean up local repo: git for-each-ref --format='delete %(refname)' refs/original | git update-ref --stdin"
-echo "5. Run garbage collection: git gc --prune=now --aggressive"
-echo ""
-echo "Note: GitHub may still show some cached data for a while."
+read -p "Continue? (y/N): " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "❌ Aborted"
+    exit 1
+fi
+
+echo "🔄 Running git filter-branch to clean history..."
+
+# Set environment variable to suppress warning
+export FILTER_BRANCH_SQUELCH_WARNING=1
+
+# Run the filter-branch command
+git filter-branch --force --index-filter "$FILTER_CMD" --prune-empty --tag-name-filter cat -- --all
+
+if [ $? -eq 0 ]; then
+    echo "✅ Git history cleaned successfully!"
+    echo ""
+    echo "🗑️  Cleaning up backup refs..."
+    rm -rf .git/refs/original/
+    git reflog expire --expire=now --all
+    git gc --prune=now --aggressive
+    
+    echo ""
+    echo "⚠️  IMPORTANT: Run the following to update remote:"
+    echo "   git push --force --all"
+    echo "   git push --force --tags"
+    echo ""
+    echo "🔒 Sensitive business documents removed from git history"
+else
+    echo "❌ Git filter-branch failed"
+    exit 1
+fi
