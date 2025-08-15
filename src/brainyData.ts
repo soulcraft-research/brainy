@@ -64,6 +64,7 @@ import {
 import { SearchCache, SearchCacheConfig } from './utils/searchCache.js'
 import { CacheAutoConfigurator } from './utils/cacheAutoConfig.js'
 import { StatisticsCollector } from './utils/statisticsCollector.js'
+import { AugmentationManager } from './augmentationManager.js'
 
 export interface BrainyDataConfig {
   /**
@@ -470,6 +471,12 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   private loggingConfig: BrainyDataConfig['logging'] = { verbose: true }
   private defaultService: string = 'default'
   private searchCache: SearchCache<T>
+  
+  /**
+   * Type-safe augmentation management
+   * Access all augmentation operations through this property
+   */
+  public readonly augmentations: AugmentationManager
   private cacheAutoConfigurator: CacheAutoConfigurator
 
   // Timeout and retry configuration
@@ -691,6 +698,9 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
 
     // Initialize search cache with final configuration
     this.searchCache = new SearchCache<T>(finalSearchCacheConfig)
+    
+    // Initialize augmentation manager
+    this.augmentations = new AugmentationManager()
 
     // Initialize intelligent verb scoring if enabled
     if (config.intelligentVerbScoring?.enabled) {
@@ -7269,83 +7279,71 @@ export class BrainyData<T = any> implements BrainyDataInterface<T> {
   // ===== Augmentation Control Methods =====
 
   /**
-   * UNIFIED API METHOD #8: Augment - Complete augmentation management
-   * Register, enable, disable, list, and manage augmentations
+   * UNIFIED API METHOD #9: Augment - Register new augmentations
    * 
-   * @param action The action to perform or augmentation to register
-   * @param options Additional options for the action
-   * @returns Various return types based on action
+   * For registration: brain.augment(new MyAugmentation())
+   * For management: Use brain.augmentations.enable(), .disable(), .list() etc.
+   * 
+   * @param action The augmentation to register OR legacy string command
+   * @param options Legacy options for string commands (deprecated)
+   * @returns this for chaining when registering, various for legacy commands
+   * 
+   * @deprecated String-based commands are deprecated. Use brain.augmentations.* instead
    */
   augment(
     action: IAugmentation | 'list' | 'enable' | 'disable' | 'unregister' | 'enable-type' | 'disable-type',
     options?: string | { name?: string; type?: string }
   ): this | any {
-    // If it's an augmentation object, register it
-    if (typeof action === 'object' && 'name' in action && 'type' in action) {
-      augmentationPipeline.register(action as IAugmentation)
+    // PRIMARY USE: Register new augmentation
+    if (typeof action === 'object' && 'name' in action) {
+      this.augmentations.register(action as IAugmentation)
       return this
     }
 
-    // Handle string actions
+    // LEGACY: Handle string actions (deprecated - use brain.augmentations instead)
+    console.warn(`Deprecated: brain.augment('${action}') - Use brain.augmentations.${action}() instead`)
+    
     switch (action) {
       case 'list':
-        // Return list of all augmentations with status
-        return this.listAugmentations()
+        return this.augmentations.list()
       
       case 'enable':
-        // Enable specific augmentation by name
         if (typeof options === 'string') {
-          this.enableAugmentation(options)
+          this.augmentations.enable(options)
         } else if (options?.name) {
-          this.enableAugmentation(options.name)
+          this.augmentations.enable(options.name)
         }
         return this
       
       case 'disable':
-        // Disable specific augmentation by name
         if (typeof options === 'string') {
-          this.disableAugmentation(options)
+          this.augmentations.disable(options)
         } else if (options?.name) {
-          this.disableAugmentation(options.name)
+          this.augmentations.disable(options.name)
         }
         return this
       
       case 'unregister':
-        // Remove augmentation from pipeline
         if (typeof options === 'string') {
-          this.unregister(options)
+          this.augmentations.remove(options)
         } else if (options?.name) {
-          this.unregister(options.name)
+          this.augmentations.remove(options.name)
         }
         return this
       
       case 'enable-type':
-        // Enable all augmentations of a type
         if (typeof options === 'string') {
-          const validTypes = ['sense', 'conduit', 'cognition', 'memory', 'perception', 'dialog', 'activation', 'webSocket'] as const
-          if (validTypes.includes(options as any)) {
-            return this.enableAugmentationType(options as any)
-          }
+          return this.augmentations.enableType(options as any)
         } else if (options?.type) {
-          const validTypes = ['sense', 'conduit', 'cognition', 'memory', 'perception', 'dialog', 'activation', 'webSocket'] as const
-          if (validTypes.includes(options.type as any)) {
-            return this.enableAugmentationType(options.type as any)
-          }
+          return this.augmentations.enableType(options.type as any)
         }
         throw new Error('Invalid augmentation type')
       
       case 'disable-type':
-        // Disable all augmentations of a type
         if (typeof options === 'string') {
-          const validTypes = ['sense', 'conduit', 'cognition', 'memory', 'perception', 'dialog', 'activation', 'webSocket'] as const
-          if (validTypes.includes(options as any)) {
-            return this.disableAugmentationType(options as any)
-          }
+          return this.augmentations.disableType(options as any)
         } else if (options?.type) {
-          const validTypes = ['sense', 'conduit', 'cognition', 'memory', 'perception', 'dialog', 'activation', 'webSocket'] as const
-          if (validTypes.includes(options.type as any)) {
-            return this.disableAugmentationType(options.type as any)
-          }
+          return this.augmentations.disableType(options.type as any)
         }
         throw new Error('Invalid augmentation type')
       

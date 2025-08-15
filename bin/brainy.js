@@ -669,7 +669,108 @@ program
     }
   }))
 
-// Command 6: STATUS - Database health & info
+// Command 6A: ADD-NOUN - Create typed entities (Method #4)
+program
+  .command('add-noun <name>')
+  .description('Add a typed entity to your knowledge graph')
+  .option('-t, --type <type>', 'Noun type (Person, Organization, Project, Event, Concept, Location, Product)', 'Concept')
+  .option('-m, --metadata <json>', 'Metadata as JSON')
+  .option('--encrypt', 'Encrypt this entity')
+  .action(wrapAction(async (name, options) => {
+    const brainy = await getBrainy()
+    
+    // Validate noun type
+    const validTypes = ['Person', 'Organization', 'Project', 'Event', 'Concept', 'Location', 'Product']
+    if (!validTypes.includes(options.type)) {
+      console.log(colors.error(`❌ Invalid noun type: ${options.type}`))
+      console.log(colors.info(`Valid types: ${validTypes.join(', ')}`))
+      process.exit(1)
+    }
+    
+    let metadata = {}
+    if (options.metadata) {
+      try {
+        metadata = JSON.parse(options.metadata)
+      } catch {
+        console.error(colors.error('❌ Invalid JSON metadata'))
+        process.exit(1)
+      }
+    }
+    
+    if (options.encrypt) {
+      metadata.encrypted = true
+    }
+    
+    try {
+      const { NounType } = await import('../dist/types/graphTypes.js')
+      const id = await brainy.addNoun(name, NounType[options.type], metadata)
+      
+      console.log(colors.success('✅ Noun added successfully!'))
+      console.log(colors.info(`🆔 ID: ${id}`))
+      console.log(colors.info(`👤 Name: ${name}`))
+      console.log(colors.info(`🏷️ Type: ${options.type}`))
+      if (Object.keys(metadata).length > 0) {
+        console.log(colors.info(`📝 Metadata: ${JSON.stringify(metadata, null, 2)}`))
+      }
+    } catch (error) {
+      console.log(colors.error('❌ Failed to add noun:'))
+      console.log(colors.error(error.message))
+      process.exit(1)
+    }
+  }))
+
+// Command 6B: ADD-VERB - Create relationships (Method #5)
+program
+  .command('add-verb <source> <target>')
+  .description('Create a relationship between two entities')
+  .option('-t, --type <type>', 'Verb type (WorksFor, Knows, CreatedBy, BelongsTo, Uses, etc.)', 'RelatedTo')
+  .option('-m, --metadata <json>', 'Relationship metadata as JSON')
+  .option('--encrypt', 'Encrypt this relationship')
+  .action(wrapAction(async (source, target, options) => {
+    const brainy = await getBrainy()
+    
+    // Common verb types for validation
+    const commonTypes = ['WorksFor', 'Knows', 'CreatedBy', 'BelongsTo', 'Uses', 'LeadsProject', 'MemberOf', 'RelatedTo', 'InteractedWith']
+    if (!commonTypes.includes(options.type)) {
+      console.log(colors.warning(`⚠️ Uncommon verb type: ${options.type}`))
+      console.log(colors.info(`Common types: ${commonTypes.join(', ')}`))
+    }
+    
+    let metadata = {}
+    if (options.metadata) {
+      try {
+        metadata = JSON.parse(options.metadata)
+      } catch {
+        console.error(colors.error('❌ Invalid JSON metadata'))
+        process.exit(1)
+      }
+    }
+    
+    if (options.encrypt) {
+      metadata.encrypted = true
+    }
+    
+    try {
+      const { VerbType } = await import('../dist/types/graphTypes.js')
+      
+      // Use the provided type or fall back to RelatedTo
+      const verbType = VerbType[options.type] || options.type
+      const id = await brainy.addVerb(source, target, verbType, metadata)
+      
+      console.log(colors.success('✅ Relationship added successfully!'))
+      console.log(colors.info(`🆔 ID: ${id}`))
+      console.log(colors.info(`🔗 ${source} --[${options.type}]--> ${target}`))
+      if (Object.keys(metadata).length > 0) {
+        console.log(colors.info(`📝 Metadata: ${JSON.stringify(metadata, null, 2)}`))
+      }
+    } catch (error) {
+      console.log(colors.error('❌ Failed to add relationship:'))
+      console.log(colors.error(error.message))
+      process.exit(1)
+    }
+  }))
+
+// Command 7: STATUS - Database health & info
 program
   .command('status')
   .description('Show brain status and comprehensive statistics')

@@ -20,7 +20,7 @@ brainy neural-import data.csv
 brainy add "data"              # Smart by default
 brainy search "query"          # Unified search
 brainy import data.csv         # Neural import built-in
-# Just 9 core commands total
+# Just 9 unified methods total
 ```
 
 ## ⚡ Quick Start
@@ -40,7 +40,7 @@ brainy init
 # ✓ Performance tier (small, medium, large, enterprise)
 ```
 
-## 🧠 The Core Commands
+## 🧠 The 9 Unified Methods
 
 ### 1. `brainy add` - Smart Data Addition
 ```bash
@@ -57,19 +57,22 @@ brainy add "Sensitive data" --encrypt
 brainy add "Raw text data" --literal
 ```
 
-### 2. `brainy search` - Unified Search
+### 2. `brainy search` - Triple-Power Unified Search
 ```bash
-# Semantic search
+# 🎯 Vector/Semantic search
 brainy search "tech companies and their leaders" 
 
-# With filters
-brainy search "customer feedback" --filter '{"rating": {"$gte": 4}}'
+# 🔍 Metadata/Facet search with MongoDB operators
+brainy search "" --filter '{"rating": {"$gte": 4}, "department": "Engineering"}'
 
-# Limit results
-brainy search "AI projects" --limit 5
+# 🕸️ Graph traversal with relationships
+brainy search "project teams" --include-relationships
 
-# Include metadata in output
-brainy search "projects" --include-metadata
+# ⚡ TRIPLE POWER: All three combined!
+brainy search "engineering leaders" --filter '{"level": {"$gte": 7}}' --include-relationships
+
+# Limit results and include metadata
+brainy search "AI projects" --limit 5 --include-metadata
 ```
 
 ### 3. `brainy import` - Bulk Data Import
@@ -121,6 +124,43 @@ brainy export --format csv --filter '{"type": "person"}' --output people.csv
 
 # Export with relationships
 brainy export --include-relationships --output full-backup.json
+```
+
+### 7. `brainy add-noun` - Create Typed Entities
+```bash
+# Add people with metadata
+brainy add-noun "Sarah Johnson" --type Person --metadata '{"role": "CTO", "level": 9}'
+
+# Add organizations
+brainy add-noun "SoulCraft Labs" --type Organization --metadata '{"industry": "AI"}'
+
+# Add projects with rich metadata  
+brainy add-noun "AI Platform" --type Project --metadata '{"status": "active", "budget": 500000}'
+```
+
+### 8. `brainy add-verb` - Create Relationships
+```bash  
+# Connect entities with relationships
+brainy add-verb person_123 org_456 --type WorksFor --metadata '{"since": "2023-01-01"}'
+
+# Project relationships
+brainy add-verb person_123 project_789 --type LeadsProject
+
+# Any relationship type
+brainy add-verb entity_1 entity_2 --type CustomRelation --metadata '{"strength": 0.9}'
+```
+
+### 9. `brainy augment` - Extend Your Brain  
+```bash
+# List all augmentations
+brainy augment list
+
+# Enable/disable augmentations
+brainy augment enable sentiment-analyzer
+brainy augment disable sentiment-analyzer
+
+# Install community augmentations (future)
+brainy augment install brainy-sentiment
 ```
 
 ## 🎮 Interactive Commands

@@ -38,7 +38,7 @@
 
 ## 🎉 **NEW: Brainy 1.0 - The Unified API**
 
-**The Great Cleanup is complete!** Brainy 1.0 introduces the **unified API** - ONE way to do everything with just **8 core methods**:
+**The Great Cleanup is complete!** Brainy 1.0 introduces the **unified API** - ONE way to do everything with just **9 core methods**:
 
 ```bash
 # Install Brainy 1.0
@@ -51,7 +51,7 @@ import { BrainyData, NounType, VerbType } from '@soulcraft/brainy'
 const brain = new BrainyData()
 await brain.init()
 
-// 🎯 THE 8 UNIFIED METHODS - One way to do everything!
+// 🎯 THE 9 UNIFIED METHODS - One way to do everything!
 await brain.add("Smart data")                    // 1. Smart addition
 await brain.search("query", 10)                  // 2. Unified search
 await brain.import(["data1", "data2"])          // 3. Bulk import
@@ -60,10 +60,16 @@ await brain.addVerb(id1, id2, VerbType.Knows)   // 5. Relationships
 await brain.update(id, "new data")              // 6. Smart updates
 await brain.delete(id)                          // 7. Soft delete
 await brain.export({ format: 'json' })          // 8. Export data
+brain.augment(myAugmentation)                   // 9. Extend infinitely! ♾️
+
+// NEW: Type-safe augmentation management via brain.augmentations
+brain.augmentations.list()       // See all augmentations
+brain.augmentations.enable(name) // Enable/disable dynamically
 ```
 
 ### ✨ **What's New in 1.0:**
-- **🔥 40+ methods consolidated** → 8 unified methods
+- **🔥 40+ methods consolidated** → 9 unified methods
+- **♾️ The 9th method** - `augment()` lets you extend Brainy infinitely!
 - **🧠 Smart by default** - `add()` auto-detects and processes intelligently
 - **🔐 Universal encryption** - Built-in encryption for sensitive data
 - **🐳 Container ready** - Model preloading for production deployments
@@ -113,10 +119,12 @@ Vector + Graph + Search + AI = Brainy (Free & Open Source) = 🧠✨
 pinecone.upsert(), neo4j.run(), elasticsearch.search()
 supabase.insert(), mongodb.find(), redis.set()
 
-// After: 8 methods handle EVERYTHING
+// After: 9 methods handle EVERYTHING
 brain.add(), brain.search(), brain.import()
 brain.addNoun(), brain.addVerb(), brain.update()
-brain.delete(), brain.export()
+brain.delete(), brain.export(), brain.augment()
+
+// Why 9? The 9th method (augment) gives you methods 10 → ∞!
 ```
 
 #### **🤯 Mind-Blowing Features Out of the Box**

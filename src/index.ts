@@ -339,6 +339,9 @@ import type {
 } from './types/augmentations.js'
 import { AugmentationType, BrainyAugmentations } from './types/augmentations.js'
 
+// Export augmentation manager for type-safe augmentation management
+export { AugmentationManager, type AugmentationInfo } from './augmentationManager.js'
+
 export type { IAugmentation, AugmentationResponse, IWebSocketSupport }
 export {
   AugmentationType,

@@ -128,34 +128,48 @@ brain.augment(new EmailParser())
 await brain.add(emailContent) // Automatically parsed!
 ```
 
-## 🔧 Managing Augmentations
+## 🔧 Managing Augmentations (Type-Safe API)
 
-### List Active Augmentations
+### The New Type-Safe Way (Recommended)
 ```javascript
-const augmentations = brain.augment('list')
-console.log(augmentations)
-// [{ name: 'email-parser', type: 'processor', active: true }, ...]
+// Access all management through brain.augmentations
+const manager = brain.augmentations
+
+// List all augmentations
+const all = manager.list()
+console.log(all)
+// [{ name: 'email-parser', type: 'processor', enabled: true }, ...]
+
+// Get specific augmentation info
+const emailParser = manager.get('email-parser')
+if (manager.isEnabled('email-parser')) {
+  console.log('Email parser is active')
+}
+
+// Enable/disable augmentations
+manager.disable('email-parser')  // Temporarily disable
+manager.enable('email-parser')   // Re-enable
+manager.remove('email-parser')   // Remove completely
+
+// Manage by type (with TypeScript enums)
+import { AugmentationType } from '@soulcraft/brainy'
+
+manager.enableType(AugmentationType.PROCESSOR)  // Enable all processors
+manager.disableType(AugmentationType.MEMORY)    // Disable all memory augmentations
+
+// Get filtered lists
+const enabled = manager.listEnabled()    // All active augmentations
+const disabled = manager.listDisabled()  // All inactive augmentations
+const processors = manager.listByType(AugmentationType.PROCESSOR)
 ```
 
-### Enable/Disable Augmentations
+### Legacy String-Based API (Deprecated)
 ```javascript
-// Disable temporarily
-brain.augment('disable', 'email-parser')
-
-// Re-enable
+// ⚠️ Deprecated - will show console warnings
+brain.augment('list')
 brain.augment('enable', 'email-parser')
-
-// Remove completely
-brain.augment('unregister', 'email-parser')
-```
-
-### Enable by Type
-```javascript
-// Disable all processors
-brain.augment('disable-type', { type: 'processor' })
-
-// Enable only validators
-brain.augment('enable-type', { type: 'validator' })
+brain.augment('disable', 'email-parser')
+// Use brain.augmentations.* instead
 ```
 
 ## 🌟 Ideas for Community Augmentations

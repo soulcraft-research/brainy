@@ -4,10 +4,10 @@ Get up and running with Brainy 1.0's unified API in just a few minutes!
 
 ## 🎉 What's New in 1.0?
 
-Brainy 1.0 introduces the **unified API** - ONE way to do everything with just **8 core methods**:
+Brainy 1.0 introduces the **unified API** - ONE way to do everything with just **9 core methods**:
 
 ```javascript
-// 🎯 THE 8 UNIFIED METHODS:
+// 🎯 THE 9 UNIFIED METHODS:
 await brain.add("Smart data addition")           // 1. Smart addition
 await brain.addNoun("John Doe", NounType.Person) // 2. Typed entities  
 await brain.addVerb(id1, id2, VerbType.CreatedBy) // 3. Relationships
@@ -16,6 +16,7 @@ await brain.import(["data1", "data2"])           // 5. Bulk import
 await brain.update(id1, "Updated data")          // 6. Smart updates
 await brain.delete(verb)                         // 7. Soft delete
 await brain.export({ format: 'json' })           // 8. Export data
+brain.augment(myAugmentation)                   // 9. Extend infinitely!
 ```
 
 ## ⚡ The 2-Minute Setup
