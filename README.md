@@ -38,7 +38,7 @@
 
 ## 🎉 **NEW: Brainy 1.0 - The Unified API**
 
-**The Great Cleanup is complete!** Brainy 1.0 introduces the **unified API** - ONE way to do everything with just **9 core methods**:
+**The Great Cleanup is complete!** Brainy 1.0 introduces the **unified API** - ONE way to do everything with just **8 core methods**:
 
 ```bash
 # Install Brainy 1.0
@@ -51,7 +51,7 @@ import { BrainyData, NounType, VerbType } from '@soulcraft/brainy'
 const brain = new BrainyData()
 await brain.init()
 
-// 🎯 THE 9 UNIFIED METHODS - One way to do everything!
+// 🎯 THE 8 UNIFIED METHODS - One way to do everything!
 await brain.add("Smart data")                    // 1. Smart addition
 await brain.search("query", 10)                  // 2. Unified search
 await brain.import(["data1", "data2"])          // 3. Bulk import
@@ -59,12 +59,11 @@ await brain.addNoun("John", NounType.Person)    // 4. Typed entities
 await brain.addVerb(id1, id2, VerbType.Knows)   // 5. Relationships
 await brain.update(id, "new data")              // 6. Smart updates
 await brain.delete(id)                          // 7. Soft delete
-brain.augment(myAugmentation)                   // 8. Extend capabilities
-await brain.export({ format: 'json' })          // 9. Export data
+await brain.export({ format: 'json' })          // 8. Export data
 ```
 
 ### ✨ **What's New in 1.0:**
-- **🔥 40+ methods consolidated** → 9 unified methods
+- **🔥 40+ methods consolidated** → 8 unified methods
 - **🧠 Smart by default** - `add()` auto-detects and processes intelligently
 - **🔐 Universal encryption** - Built-in encryption for sensitive data
 - **🐳 Container ready** - Model preloading for production deployments
@@ -87,7 +86,7 @@ Every feature you see here works without any payment or registration:
 - ✓ Complete API
 - ✓ Forever free
 
-> 🌩️ **Brain Cloud** is an optional add-on for teams who want cloud sync and enterprise connectors.
+> 🌩️ **Brain Cloud** is our optional cloud service that helps sustain Brainy's development. Currently in early access at [soulcraft.com](https://soulcraft.com).
 
 ---
 
@@ -114,10 +113,10 @@ Vector + Graph + Search + AI = Brainy (Free & Open Source) = 🧠✨
 pinecone.upsert(), neo4j.run(), elasticsearch.search()
 supabase.insert(), mongodb.find(), redis.set()
 
-// After: 9 methods handle EVERYTHING
+// After: 8 methods handle EVERYTHING
 brain.add(), brain.search(), brain.import()
 brain.addNoun(), brain.addVerb(), brain.update()
-brain.delete(), brain.augment(), brain.export()
+brain.delete(), brain.export()
 ```
 
 #### **🤯 Mind-Blowing Features Out of the Box**
@@ -300,12 +299,12 @@ const brain = new BrainyData()
 await brain.init()
 
 // Add any data - text, objects, relationships
-await brain.add("Elon Musk founded SpaceX in 2002")
-await brain.add({ company: "Tesla", ceo: "Elon Musk", founded: 2003 })
-await brain.addVerb("Elon Musk", "founded", "Tesla")
+await brain.add("Satya Nadella became CEO of Microsoft in 2014")
+await brain.add({ company: "Anthropic", ceo: "Dario Amodei", founded: 2021 })
+await brain.addVerb("Sundar Pichai", "leads", "Google")
 
 // Search naturally
-const results = await brain.search("companies founded by Elon")
+const results = await brain.search("tech companies and their leaders")
 ```
 
 ### ☁️ Brain Cloud (AI Memory + Agent Coordination)
@@ -332,11 +331,11 @@ brain.register(new AgentCoordinator())
 // Now your AI remembers everything across all sessions!
 await brain.add("User prefers TypeScript over JavaScript")
 // This memory persists and syncs across all devices
-// Returns: SpaceX and Tesla with relevance scores
+// Returns: Microsoft and Anthropic with relevance scores
 
 // Query relationships
-const companies = await brain.getRelated("Elon Musk", { verb: "founded" })
-// Returns: SpaceX, Tesla
+const companies = await brain.getRelated("Sundar Pichai", { verb: "leads" })
+// Returns: Google, Alphabet
 
 // Filter with metadata
 const recent = await brain.search("companies", 10, {
@@ -389,53 +388,51 @@ await neural.neuralImport('data.csv')  // Automatically extracts entities & rela
 **Be the First!** Create an augmentation and we'll feature it here.
 [See how to build augmentations →](UNIFIED-API.md#creating-your-own-augmentation)
 
-### ☁️ **Brain Cloud** - Power Up Your Brain! 🚀
-**Try it FREE:** Get persistent memory, team sync, and enterprise connectors!
+### ☁️ **Brain Cloud** - Optional Cloud Services (Early Access) 🎆
 
-```bash
-# Coming Soon! Brain Cloud is in development
-# Join the waitlist:
-# Visit: soulcraft.com
-```
+**Currently in Early Access** - Join at [soulcraft.com](https://soulcraft.com)
 
-**Why Brain Cloud?**
-- 🧠 **AI Memory That Never Forgets** - Conversations persist across sessions
-- 🤝 **Multi-Agent Coordination** - AI agents work together seamlessly
-- 💾 **Automatic Backups** - Never lose your brain's knowledge
-- 🔄 **Team Sync** - Share knowledge across your organization
-- 🔌 **Premium Connectors** - Notion, Slack, Salesforce, and more!
+**Available Tiers:**
 
-**Special Offer:** First 100GB FREE, then just $9/month for individuals, $49/team
+#### 🆓 **Free Forever** - Local Database
+- ✓ Full multi-dimensional database
+- ✓ Works offline
+- ✓ No API keys required
+- ✓ Your data stays private
+
+#### ☁️ **Cloud Sync** - $19/month
+- ✓ Everything in Free tier
+- ✓ Team collaboration
+- ✓ Cross-device synchronization
+- ✓ Automatic backups
+- ✓ Real-time sync
+
+#### 🏢 **Enterprise** - $99/month
+- ✓ Everything in Cloud Sync
+- ✓ Dedicated infrastructure
+- ✓ Service Level Agreement (SLA)
+- ✓ Priority support
+- ✓ Custom integrations
 
 ```javascript
-// Brain Cloud features are in the main package
-// But require API key to activate cloud services
-import { BrainyVectorDB } from '@soulcraft/brainy'
-
-// Activate Brain Cloud features with API key
-const brain = new BrainyVectorDB({
-  cloud: { apiKey: process.env.BRAIN_CLOUD_KEY }  // Optional
+// Brain Cloud integration (when available):
+const brain = new BrainyData({
+  cloud: { 
+    enabled: true,  // Enable cloud sync
+    apiKey: process.env.BRAIN_CLOUD_KEY  // Optional for premium features
+  }
 })
 
-brain.register(aiMemory)  // AI remembers everything
+// Works perfectly without cloud too:
+const brain = new BrainyData()
+await brain.init()
+// Full database functionality, locally!
 ```
 
-**AI Memory & Coordination:**
-- 🧠 **AI Memory** - Persistent across sessions
-- 🤝 **Agent Coordinator** - Multi-agent handoffs
-- 👥 **Team Sync** - Real-time collaboration
-- 💾 **Cloud Backup** - Automatic backups
 
-**Enterprise Connectors:**
-- 📝 **Notion Sync** - Bidirectional sync
-- 💼 **Salesforce** - CRM integration
-- 📊 **Airtable** - Database sync
-- 🔄 **Postgres** - Real-time replication
-- 🏢 **Slack** - Team knowledge base
+### 🌐 **Why Brain Cloud?**
 
-
-### ☁️ **Brain Cloud** (Managed Service)
-For teams that want zero-ops:
+Brain Cloud adds optional cloud services to sustain Brainy's development:
 
 ```javascript
 // Connect to Brain Cloud - your brain in the cloud

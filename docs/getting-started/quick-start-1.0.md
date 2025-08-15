@@ -4,10 +4,10 @@ Get up and running with Brainy 1.0's unified API in just a few minutes!
 
 ## 🎉 What's New in 1.0?
 
-Brainy 1.0 introduces the **unified API** - ONE way to do everything with just **7 core methods**:
+Brainy 1.0 introduces the **unified API** - ONE way to do everything with just **8 core methods**:
 
 ```javascript
-// 🎯 THE 7 UNIFIED METHODS:
+// 🎯 THE 8 UNIFIED METHODS:
 await brain.add("Smart data addition")           // 1. Smart addition
 await brain.addNoun("John Doe", NounType.Person) // 2. Typed entities  
 await brain.addVerb(id1, id2, VerbType.CreatedBy) // 3. Relationships
@@ -15,6 +15,7 @@ await brain.search("smart data", 10)             // 4. Vector search
 await brain.import(["data1", "data2"])           // 5. Bulk import
 await brain.update(id1, "Updated data")          // 6. Smart updates
 await brain.delete(verb)                         // 7. Soft delete
+await brain.export({ format: 'json' })           // 8. Export data
 ```
 
 ## ⚡ The 2-Minute Setup
@@ -36,11 +37,11 @@ const brain = new BrainyData()
 await brain.init()
 
 // Smart data addition - automatically detects and processes
-const id1 = await brain.add("Elon Musk founded SpaceX in 2002")
-const id2 = await brain.add({ company: "Tesla", ceo: "Elon Musk", founded: 2003 })
+const id1 = await brain.add("Satya Nadella became CEO of Microsoft in 2014")
+const id2 = await brain.add({ company: "Anthropic", ceo: "Dario Amodei", founded: 2021 })
 
 // Search naturally
-const results = await brain.search("companies founded by Elon", 5)
+const results = await brain.search("tech companies and their leaders", 5)
 console.log('Found:', results)
 ```
 

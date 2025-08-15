@@ -40,12 +40,12 @@ brainy init
 # ✓ Performance tier (small, medium, large, enterprise)
 ```
 
-## 🧠 The 7 Core Data Commands
+## 🧠 The Core Commands
 
 ### 1. `brainy add` - Smart Data Addition
 ```bash
 # Smart mode (auto-detects and processes)
-brainy add "Elon Musk founded SpaceX in 2002"
+brainy add "Satya Nadella became CEO of Microsoft in 2014"
 
 # With metadata
 brainy add "Customer feedback" --metadata '{"rating": 5, "source": "survey"}'
@@ -60,7 +60,7 @@ brainy add "Raw text data" --literal
 ### 2. `brainy search` - Unified Search
 ```bash
 # Semantic search
-brainy search "companies founded by Elon" 
+brainy search "tech companies and their leaders" 
 
 # With filters
 brainy search "customer feedback" --filter '{"rating": {"$gte": 4}}'
@@ -111,30 +111,16 @@ brainy delete abc123 --hard
 brainy delete --query "outdated content" --confirm
 ```
 
-### 6. `brainy add-noun` - Create Typed Entities
+### 6. `brainy export` - Export Your Data
 ```bash
-# Create person entity
-brainy add-noun "Sarah Thompson" --type Person
+# Export to JSON
+brainy export --format json --output backup.json
 
-# With rich metadata
-brainy add-noun "Project Apollo" --type Project --metadata '{
-  "status": "active",
-  "budget": "$500K",
-  "team_size": 12
-}'
-```
+# Export with filters
+brainy export --format csv --filter '{"type": "person"}' --output people.csv
 
-### 7. `brainy add-verb` - Create Relationships
-```bash
-# Create relationship between entities
-brainy add-verb person_sarah_123 project_apollo_456 --type WorksWith
-
-# With relationship metadata
-brainy add-verb person_sarah_123 project_apollo_456 --type WorksWith --metadata '{
-  "role": "Lead Designer",
-  "allocation": "75%",
-  "start_date": "2024-01-15"
-}'
+# Export with relationships
+brainy export --include-relationships --output full-backup.json
 ```
 
 ## 🎮 Interactive Commands

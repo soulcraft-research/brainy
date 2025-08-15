@@ -1,10 +1,10 @@
-# 🧠 Brainy 1.0: The 9 Unified Methods
+# 🧠 Brainy 1.0: The 8 Unified Methods
 
-> **From 40+ scattered methods to 9 unified operations - ONE way to do everything!**
+> **From 40+ scattered methods to 8 unified operations - ONE way to do everything!**
 
 ## 🎯 The Complete Unified API
 
-Brainy 1.0 introduces a revolutionary unified API where **EVERYTHING** is accomplished through just **9 core methods**:
+Brainy 1.0 introduces a revolutionary unified API where **EVERYTHING** is accomplished through just **8 core methods**:
 
 ```javascript
 import { BrainyData, NounType, VerbType } from '@soulcraft/brainy'
@@ -12,7 +12,7 @@ import { BrainyData, NounType, VerbType } from '@soulcraft/brainy'
 const brain = new BrainyData()
 await brain.init()
 
-// 🎯 THE 9 UNIFIED METHODS:
+// 🎯 THE 8 UNIFIED METHODS:
 await brain.add("Smart data")                    // 1. Smart data addition
 await brain.search("query", 10)                  // 2. Unified search  
 await brain.import(["data1", "data2"])          // 3. Bulk import
@@ -20,8 +20,7 @@ await brain.addNoun("John", NounType.Person)    // 4. Typed entities
 await brain.addVerb(id1, id2, VerbType.Knows)   // 5. Relationships
 await brain.update(id, "new data")              // 6. Smart updates
 await brain.delete(id)                          // 7. Soft delete
-brain.augment(myAugmentation)                   // 8. Extend capabilities
-await brain.export({ format: 'json' })          // 9. Export data
+await brain.export({ format: 'json' })          // 8. Export data
 ```
 
 ## 📊 Before vs After: The Transformation
@@ -44,7 +43,7 @@ brainy.softDelete(id)
 
 ### ✅ **NEW (1.0): Unified Simplicity**
 ```javascript
-// Just 9 methods handle EVERYTHING
+// Just 8 methods handle EVERYTHING
 brain.add()       // Replaces: addVector, addSmart, addText, addLiteral, etc.
 brain.search()    // Replaces: searchSimilar, searchByMetadata, searchText, etc.
 brain.import()    // Replaces: neuralImport, bulkAdd, importCSV, etc.
@@ -52,7 +51,6 @@ brain.addNoun()   // Replaces: createNoun, addEntity, createNode, etc.
 brain.addVerb()   // Replaces: createVerb, addRelationship, connect, etc.
 brain.update()    // Replaces: updateVector, updateMetadata, modify, etc.
 brain.delete()    // Replaces: hardDelete, softDelete, remove, etc.
-brain.augment()   // NEW: Unified augmentation system
 brain.export()    // NEW: Universal data export
 ```
 
